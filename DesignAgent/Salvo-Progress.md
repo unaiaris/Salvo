@@ -9,15 +9,15 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado del proyecto | Etapa 2 — Contrato y datos sintéticos completada |
+| Estado del proyecto | Etapa 3 — Motor determinista en verificación |
 | Etapa completada | Etapa 2 — Contrato y datos sintéticos |
-| Próxima etapa | Etapa 3 — Motor determinista |
-| Estado de la próxima etapa | Pendiente de diseño y autorización |
+| Etapa en verificación | Etapa 3 — Motor determinista |
+| Estado de la etapa | Implementada en rama; pendiente de integración y compuerta sobre `main` |
 | Bloqueo actual | Ninguno |
 | Dependencias externas | Ninguna para el núcleo local |
 | Anthropic | Previsto para después del núcleo |
 | Koin sandbox | Post-MVP; sujeto a onboarding y credenciales |
-| Coordinación Codex–Claude | Sin tareas activas ni paths reservados |
+| Coordinación Codex–Claude | E3-MOTOR-DETERMINISTA lista para integrar; sin otro trabajo activo |
 
 ## Leyenda
 
@@ -38,7 +38,7 @@ Solo puede existir una etapa `En curso` a la vez.
 | 0 | Documentación e instrucciones | Completada | Docs coherentes y sin código | `AGENTS.md` + `DesignAgent/*.md` |
 | 1 | Fundaciones reproducibles | Completada | Builds, tests y arranque de ASP.NET Core + Next.js | Merge `897cec7` + compuerta verde |
 | 2 | Contrato y datos sintéticos | Completada | Seed idempotente + parser validado | Merge `4b7bf54` + 24 tests .NET + compuerta verde en `main` |
-| 3 | Motor determinista | Pendiente | Tests por regla + métricas sin fuga | Pendiente |
+| 3 | Motor determinista | En verificación | Tests por regla + métricas sin fuga | `c3a765c` + 42 tests .NET + compuerta verde en rama |
 | 4 | Alertas y casos de uso | Pendiente | Idempotencia + consistencia transaccional | Pendiente |
 | 5 | UI y dashboard | Pendiente | Recorrido completo y estados vacíos/error | Pendiente |
 | 6 | Proveedor antifraude mock | Pendiente | Estados y callbacks replay-safe | Pendiente |
@@ -136,8 +136,8 @@ La lista exacta se confirmará al iniciar la etapa. Como mínimo:
 - El build Turbopack no puede validarse bajo la restricción de puertos del entorno; la compuerta usa
   `next build --webpack`, opción soportada por Next.js 16.3.3 y verificada en producción local.
 
-La Etapa 2 quedó integrada y verificada sobre `main`. Etapa 3 permanece pendiente: requiere diseño,
-brief y autorización independientes antes de incorporar baseline, reglas o scoring.
+La Etapa 2 quedó integrada y verificada sobre `main`. Etapa 3 está implementada y verificada en su
+rama; permanece pendiente de integración y compuerta canónica antes de considerarse completada.
 
 ## Checklists por etapa
 
@@ -168,11 +168,11 @@ brief y autorización independientes antes de incorporar baseline, reglas o scor
 
 ### Etapa 3 — Motor determinista
 
-- [ ] Baseline estrictamente temporal.
-- [ ] Reglas puras y configuración central.
-- [ ] Scoring determinista.
-- [ ] Tests positivos, negativos y cold start.
-- [ ] Evaluación temprana y calibración.
+- [x] Baseline estrictamente temporal.
+- [x] Reglas puras y configuración central.
+- [x] Scoring determinista.
+- [x] Tests positivos, negativos y cold start.
+- [x] Evaluación temprana y calibración.
 
 ### Etapa 4 — Alertas
 
@@ -221,6 +221,7 @@ brief y autorización independientes antes de incorporar baseline, reglas o scor
 | --- | --- | --- | --- |
 | SDK .NET y versiones exactas de dependencias | Resuelta | Etapa 1 | .NET 10.0.400 y dependencias directas fijadas; locks verificados |
 | Schema y contratos E2 | Resuelta | Preparación de Etapa 2 | Decisiones 15–20 del Blueprint + brief `E2-CONTRACT-DATA` |
+| Baseline, reglas y calibración E3 | Resuelta | Preparación de Etapa 3 | Decisiones 21–27 del Blueprint + brief `E3-MOTOR-DETERMINISTA` |
 | Anthropic real | Diferida | Etapa 7 | Proveedor preferido; el núcleo no depende de él |
 | Acceso Koin sandbox | Diferida | Post-MVP | Requiere onboarding, private key y `org_id` |
 | Auth/multi-tenant | Diferida | Post-MVP | Necesaria antes de publicación mutable |
@@ -247,6 +248,10 @@ brief y autorización independientes antes de incorporar baseline, reglas o scor
 | 2026-08-31 | 2 | Contrato, importadores, migración y seed implementados | Commit `8b79010`; 16 tests de integración + 8 de dominio | Lista para integrar |
 | 2026-08-31 | 2 | Compuerta full-stack de rama | Restore locked, tooling EF, modelo sin cambios, 24 tests .NET, 3 Vitest y build Next.js | Verde en rama |
 | 2026-08-31 | 2 | Integración y verificación canónica | Merge `4b7bf54` + `./scripts/check.sh` sobre `main` | Completada |
+| 2026-08-31 | Preparación E3 | Diagnóstico, baseline, reglas, pesos, métricas y brief detallados | Aprobación del usuario | Aprobada |
+| 2026-08-31 | 3 | Inicio de E3-MOTOR-DETERMINISTA | Rama `codex/e3-motor-determinista` desde `4053f8f` | En curso |
+| 2026-08-31 | 3 | Motor temporal, reglas y evaluación implementados | Commit `c3a765c`; 24 tests de dominio + 18 de integración | Lista para integrar |
+| 2026-08-31 | 3 | Compuerta full-stack de rama | Restore locked, EF sin cambios, 42 tests .NET, 3 Vitest y build Next.js | Verde en rama |
 
 ## Protocolo de actualización
 

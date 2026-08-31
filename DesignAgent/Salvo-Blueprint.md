@@ -1,7 +1,7 @@
 # Salvo — Blueprint del MVP
 
 > Estado del documento: vigente
-> Estado del proyecto: Etapa 2 integrada y verificada; Etapa 3 pendiente de autorización
+> Estado del proyecto: Etapa 3 implementada en rama y pendiente de integración
 > Última actualización: 2026-08-31
 > Seguimiento operativo: [[Salvo-Progress]]
 
@@ -173,6 +173,28 @@ Contrato detallado aprobado para E2:
 - Pesos, ventanas, mínimos y umbral viven en un `RuleConfig` central e inmutable.
 - Reejecutar scoring produce el mismo resultado y no altera pedidos ya revisados sin una operación
   explícita de recalibración.
+
+Diseño aprobado para E3:
+
+- El motor ordena por `(occurredAt, merchantId, merchantReferenceId)` y evalúa por cohortes de
+  `occurredAt`: todos los pedidos de un mismo instante observan exclusivamente timestamps menores.
+  El desempate estabiliza la salida, pero no convierte eventos simultáneos en historia causal.
+- El baseline mantiene importes por comercio/moneda y comprador/moneda, actividad reciente por
+  comercio/comprador, países por comercio y comprador, compradores conocidos y franjas horarias
+  del comercio. Las ventanas son `[occurredAt - window, occurredAt)`.
+- `RuleConfig e3-v1` usa mediana temporal, multiplicadores racionales y configuración inmutable:
+  importe 90 días con mínimo 3 y anomalía `3x`; velocity 10 minutos y cuarto pedido;
+  cross-border 2 horas; horario 30 días, mínimo 20, franjas de 6 horas y rareza `<=10%` en
+  `America/Montevideo`; nuevo comprador `2.5x`; país 90 días, mínimo 3 y dominancia `>=60%`.
+- Pesos: `amount_anomaly=40`, `velocity=30`, `cross_border_velocity=40`, `unusual_hour=10`,
+  `new_buyer_high_value=30`, `foreign_country=20`. El score se limita a 100 y el flag usa
+  `score >= 60`.
+- E3 produce assessments transitorios y no crea tablas, evaluaciones persistidas, alertas ni API.
+  El lector usado por scoring no expone labels; evaluación los une por `orderId` solo después de
+  calcular todos los scores.
+- La calibración divide cohortes temporalmente: primeros dos tercios para barrer umbrales `0..100`
+  y último tercio como holdout. Se maximiza F1, luego se minimiza FPR y finalmente se elige el
+  umbral más alto. Una métrica sin denominador se representa como indefinida, no como cero.
 
 ### 4.3 Alertas y revisión
 
@@ -552,6 +574,13 @@ completo el MVP local.
 | 18 | La importación es estricta por schema y parcial por registro, con escritura atómica de válidos | Evitar pérdida silenciosa y estados técnicos incompletos | 2026-08-31 |
 | 19 | El seed es una fixture fija de 300 pedidos y 300 etiquetas, activada explícitamente | Garantizar auditabilidad, ausencia de PII e idempotencia reproducible | 2026-08-31 |
 | 20 | E2 excluye texto libre, FX, scoring y campos futuros sin caso de uso | Minimizar datos y preservar los límites entre etapas | 2026-08-31 |
+| 21 | Pedidos con el mismo `occurredAt` se evalúan como una cohorte aislada | Impedir que un desempate técnico introduzca fuga temporal | 2026-08-31 |
+| 22 | E3 usa `RuleConfig e3-v1` inmutable con medianas y factores racionales | Hacer cada decisión reproducible y auditable sin coma flotante | 2026-08-31 |
+| 23 | Los seis pesos suman señales con cap 100 y flag inclusivo en 60 | Exigir corroboración sin convertir una señal aislada en alerta | 2026-08-31 |
+| 24 | Horario inusual se aprende en franjas locales de seis horas | Modelar hábito temporal explícito sin fijar un horario comercial universal | 2026-08-31 |
+| 25 | Scoring y lectura de labels usan fronteras separadas | Hacer estructural la prohibición de usar ground truth como feature | 2026-08-31 |
+| 26 | Calibración usa un split temporal 2/3–1/3 y holdout sin retuning | Medir el umbral sin usar el futuro ni presentar el entrenamiento como evaluación | 2026-08-31 |
+| 27 | E3 no persiste assessments ni crea alertas | Mantener RiskEvaluation y efectos idempotentes dentro de E4 | 2026-08-31 |
 
 ## 14. Mapa de documentación
 

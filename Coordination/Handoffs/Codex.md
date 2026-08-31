@@ -157,3 +157,57 @@ Registro de entregas producidas por Codex. El estado canónico sigue en el Workb
   checkpoint requiere que el desarrollador la aparte o elimine explícitamente antes de aplicar la
   primera migración; ningún comando de E2 borra datos automáticamente.
 - Etapa 3, reglas, scoring, alertas, Anthropic y Koin no fueron iniciados.
+
+## E3-MOTOR-DETERMINISTA — Motor y evaluación temporal
+
+### Identificación
+
+- Estado: lista para integrar
+- Etapa: 3
+- Agente: Codex
+- Fecha: 2026-08-31
+- Rama: `codex/e3-motor-determinista`
+- Commit base: `4053f8f755ae7095615182430f73a46bafa0385b`
+- Commit de implementación: `c3a765c`
+
+### Resultado
+
+- `TemporalRiskEngine` ordena pedidos y evalúa cohortes de timestamps iguales contra historia
+  estrictamente anterior; el estado efímero está particionado por comercio y comprador.
+- `RuleConfig e3-v1` fija ventanas, mínimos, factores racionales, seis pesos, cap 100 y umbral 60.
+- Las seis reglas generan señales estables con detalle legible y sin buyer/device IDs.
+- Métricas puras calculan matriz, precision, recall, F1, FPR, flag rate, sweep 0–100 y split 2/3–1/3.
+- Aplicación calcula todos los scores antes de consultar labels mediante puertos separados;
+  infraestructura aporta lectores EF read-only sobre el schema E2.
+- La fixture produce scores `266×0`, `16×20`, `13×60`, `5×90`; calibración selecciona 60 y el
+  holdout deja 6 TP, 0 FP, 0 FN y 94 TN.
+- No se añadieron migraciones, tablas, endpoints, alertas, dependencias ni red externa.
+
+### Archivos principales
+
+- Dominio: `backend/src/Salvo.Domain/Risk/**` y métricas bajo `Evaluation/**`.
+- Aplicación: `backend/src/Salvo.Application/Risk/**`.
+- Infraestructura: `EfRiskOrderReader.cs`, `EfEvaluationLabelReader.cs` y registro DI.
+- Tests: `TemporalRiskEngineTests.cs`, `RiskMetricsEvaluatorTests.cs`,
+  `RiskEvaluationTests.cs` y guardia de arquitectura.
+- Documentación: Blueprint, Progress, Interview Prep, Workboard y brief E3.
+
+### Verificación
+
+- `dotnet restore Salvo.slnx --locked-mode`: pasa, sin dependencias nuevas.
+- `dotnet build Salvo.slnx --configuration Release --no-restore`: 0 warnings y 0 errores.
+- `dotnet ef migrations has-pending-model-changes`: ningún cambio pendiente.
+- `dotnet test ...`: 42/42 pasan —24 dominio y 18 integración—.
+- `npm run check --prefix frontend`: typecheck, ESLint y 3/3 Vitest pasan.
+- `npm run build --prefix frontend`: Next.js 16.3.3 Webpack pasa.
+- `./scripts/check.sh`: compuerta full-stack verde en la rama.
+- `git diff --check`: pasa.
+
+### Riesgos o pendientes
+
+- Los resultados perfectos pertenecen a una fixture pequeña y deliberadamente separable; no miden
+  generalización ni validan empíricamente velocity/cross-border, cubiertas mediante tests dirigidos.
+- La rama está lista, no integrada. Falta merge, repetir la compuerta sobre `main` y solo entonces
+  marcar Etapa 3 completada.
+- Etapa 4 permanece pendiente y requiere autorización independiente; E3 no persiste assessments ni
+  crea alertas.
