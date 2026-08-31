@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Salvo.Application/Salvo.Application.csproj" />
+    <ProjectReference Include="../Salvo.Infrastructure/Salvo.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

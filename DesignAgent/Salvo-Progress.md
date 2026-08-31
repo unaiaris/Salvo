@@ -9,15 +9,15 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado del proyecto | Diseño aprobado; sin código de aplicación versionado |
+| Estado del proyecto | Etapa 1 implementada en rama; lista para integrar |
 | Etapa completada | Etapa 0 — Documentación e instrucciones |
-| Próxima etapa | Etapa 1 — Fundaciones reproducibles |
-| Estado de la próxima etapa | Pendiente de inicio |
-| Bloqueo actual | Ninguno; el SDK .NET 10 se instalará y fijará al iniciar la Etapa 1 |
+| Etapa actual | Etapa 1 — Fundaciones reproducibles |
+| Estado de la etapa actual | En verificación |
+| Bloqueo actual | Ninguno; pendiente merge y compuerta conjunta |
 | Dependencias externas | Ninguna para el núcleo local |
 | Anthropic | Previsto para después del núcleo |
 | Koin sandbox | Post-MVP; sujeto a onboarding y credenciales |
-| Coordinación Codex–Claude | Preparada; sin tareas paralelas activas |
+| Coordinación Codex–Claude | E1-FOUNDATION lista para integrar desde `codex/e1-foundation` |
 
 ## Leyenda
 
@@ -36,7 +36,7 @@ Solo puede existir una etapa `En curso` a la vez.
 | Etapa | Objetivo | Estado | Compuerta principal | Evidencia |
 | --- | --- | --- | --- | --- |
 | 0 | Documentación e instrucciones | Completada | Docs coherentes y sin código | `AGENTS.md` + `DesignAgent/*.md` |
-| 1 | Fundaciones reproducibles | Pendiente | Builds, tests y arranque de ASP.NET Core + Next.js | Pendiente |
+| 1 | Fundaciones reproducibles | En verificación | Builds, tests y arranque de ASP.NET Core + Next.js | Brief + handoff E1-FOUNDATION |
 | 2 | Contrato y datos sintéticos | Pendiente | Seed idempotente + parser validado | Pendiente |
 | 3 | Motor determinista | Pendiente | Tests por regla + métricas sin fuga | Pendiente |
 | 4 | Alertas y casos de uso | Pendiente | Idempotencia + consistencia transaccional | Pendiente |
@@ -103,21 +103,38 @@ La lista exacta se confirmará al iniciar la etapa. Como mínimo:
 
 ### Criterios de salida
 
-- [ ] SDK .NET y Node fijados y documentados.
-- [ ] Dependencias NuGet y npm con versiones exactas instaladas.
-- [ ] API y frontend inician sin errores.
-- [ ] Nullable, analyzers y warnings como errores pasan.
-- [ ] `dotnet build` pasa.
-- [ ] `dotnet test` ejecuta tests unitarios y de integración mínimos.
-- [ ] OpenAPI se genera sin errores.
-- [ ] EF Core/SQLite realiza una operación mínima verificada.
-- [ ] TypeScript estricto pasa.
-- [ ] ESLint pasa mediante CLI directa.
-- [ ] Vitest ejecuta al menos un smoke test.
-- [ ] `npm run check` pasa.
-- [ ] Builds de producción backend y frontend pasan.
-- [ ] No hay secretos ni archivos DB versionados.
-- [ ] Riesgos restantes registrados.
+- [x] SDK .NET y Node fijados y documentados.
+- [x] Dependencias NuGet y npm con versiones exactas instaladas.
+- [x] API y frontend inician sin errores.
+- [x] Nullable, analyzers y warnings como errores pasan.
+- [x] `dotnet build` pasa.
+- [x] `dotnet test` ejecuta tests unitarios y de integración mínimos.
+- [x] OpenAPI se genera sin errores.
+- [x] EF Core/SQLite realiza una operación mínima verificada.
+- [x] TypeScript estricto pasa.
+- [x] ESLint pasa mediante CLI directa.
+- [x] Vitest ejecuta al menos un smoke test.
+- [x] `npm run check` pasa.
+- [x] Builds de producción backend y frontend pasan.
+- [x] No hay secretos ni archivos DB versionados.
+- [x] Riesgos restantes registrados.
+
+### Evidencia de rama
+
+- `./scripts/check.sh`: restore NuGet bloqueado, build Release con 0 warnings/0 errores, 3 tests
+  .NET, typecheck, ESLint, 3 tests Vitest y build Next.js 16.3.3 con Webpack, todo verde.
+- Smoke API: `GET /health` respondió `200` con el contrato esperado.
+- Smoke OpenAPI: `GET /openapi/v1.json` respondió `200`, OpenAPI 3.1.1 y operación `GetHealth`.
+- Smoke frontend: `/` respondió `200` y `/api/health` atravesó el rewrite hacia la API.
+- Auditoría Git: sin secretos, `.env` ni bases SQLite versionadas; artefactos generados permanecen
+  ignorados.
+
+### Riesgos restantes de Etapa 1
+
+- El build Turbopack no puede validarse bajo la restricción de puertos del entorno; la compuerta usa
+  `next build --webpack`, opción soportada por Next.js 16.3.3 y verificada en producción local.
+- El merge y la repetición de `./scripts/check.sh` sobre el estado integrado siguen pendientes; por
+  eso la etapa permanece `En verificación` y no se inicia la Etapa 2.
 
 ## Checklists por etapa
 
@@ -196,7 +213,7 @@ La lista exacta se confirmará al iniciar la etapa. Como mínimo:
 
 | Tema | Estado | Momento de decisión | Nota |
 | --- | --- | --- | --- |
-| SDK .NET y versiones exactas de dependencias | Abierta | Inicio de Etapa 1 | Resolver con smoke tests, sin versiones flotantes |
+| SDK .NET y versiones exactas de dependencias | Resuelta | Etapa 1 | .NET 10.0.400 y dependencias directas fijadas; locks verificados |
 | Anthropic real | Diferida | Etapa 7 | Proveedor preferido; el núcleo no depende de él |
 | Acceso Koin sandbox | Diferida | Post-MVP | Requiere onboarding, private key y `org_id` |
 | Auth/multi-tenant | Diferida | Post-MVP | Necesaria antes de publicación mutable |
@@ -214,6 +231,9 @@ La lista exacta se confirmará al iniciar la etapa. Como mínimo:
 | 2026-08-30 | 0 | Kit Claude y coordinación multiagente | Imports, enlaces y protocolo revisados | Completada |
 | 2026-08-31 | 0 | Arquitectura ASP.NET Core + Next.js y compuertas full-stack | Revisión cruzada de Blueprint, instrucciones y tracker | Completada |
 | 2026-08-31 | 0 | Instrucciones Codex/Claude y task brief compartido | Terminología, referencias, límites de autonomía y diff validados | Completada |
+| 2026-08-31 | 1 | Inicio de fundaciones reproducibles | Aprobación del usuario, brief y rama aislada | En curso |
+| 2026-08-31 | 1 | Scaffold .NET 10 + Next.js 16, SQLite, OpenAPI y tests | Build Release, 3 tests .NET, check frontend y build Webpack | Lista para integrar |
+| 2026-08-31 | 1 | Compuerta raíz y smokes full-stack | `./scripts/check.sh`; health, OpenAPI, frontend y proxy HTTP 200 | Verde en rama |
 
 ## Protocolo de actualización
 

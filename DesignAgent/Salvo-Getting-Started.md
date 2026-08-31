@@ -8,8 +8,9 @@
 ## Estado actual
 
 - Etapa 0 documental completada.
-- No hay código de aplicación versionado; los artefactos locales ignorados no cuentan como avance.
-- Siguiente etapa: fundaciones reproducibles, pendiente de aprobación.
+- Etapa 1 implementada en `codex/e1-foundation` y lista para integrar.
+- La Etapa 1 no se considera integrada hasta hacer merge y repetir la compuerta conjunta.
+- La Etapa 2 continúa pendiente y no se inicia automáticamente.
 
 ## Herramientas
 
@@ -17,12 +18,11 @@
 
 - Node.js 24.20.0 mediante nvm.
 - npm/npx 11.19.0.
+- SDK .NET 10.0.400, fijado mediante `global.json`.
 - Git 2.32.0.
 
 ### Pendientes o no detectadas
 
-- SDK .NET 10; se instalará y fijará mediante `global.json` al comenzar la Etapa 1.
-- `.nvmrc` se creará al comenzar la Etapa 1.
 - Docker no está instalado; no se necesita para el MVP.
 - El comando `code` no está disponible; cualquier editor compatible sirve.
 
@@ -70,18 +70,31 @@ El núcleo local no necesita cuentas externas.
   EF Core, OpenAPI y configuración.
 - Consultar `../Coordination/README.md` antes de abrir trabajo paralelo.
 
-## Comandos previstos
+## Preparación local
+
+```bash
+nvm use
+npm ci --prefix frontend
+```
+
+El comando `dotnet` debe estar disponible en `PATH`; `global.json` rechazará un SDK distinto de
+10.0.400.
+
+## Comandos disponibles
 
 | Comando | Propósito |
 | --- | --- |
-| `dotnet build` | Compilar backend con warnings como errores |
-| `dotnet test` | Tests unitarios y de integración backend |
-| `dotnet run --project backend/src/Salvo.Api` | API local |
+| `dotnet build Salvo.slnx --configuration Release` | Compilar backend con warnings como errores |
+| `dotnet test Salvo.slnx --configuration Release` | Tests unitarios y de integración backend |
+| `dotnet run --project backend/src/Salvo.Api` | API local en el perfil de desarrollo |
 | `npm run dev --prefix frontend` | Frontend local |
 | `npm run check --prefix frontend` | Typecheck, ESLint y tests UI |
-| Compuerta raíz por definir | Builds y tests de ambas toolchains |
+| `npm run build --prefix frontend` | Build de producción con Webpack |
+| `./scripts/check.sh` | Compuerta completa backend + frontend |
 
-Los comandos son objetivos del scaffold, no existen todavía.
+Para probar el proxy local, arrancar la API en `http://127.0.0.1:5100` y después el frontend. La
+ruta `/api/health` del frontend se reescribe al endpoint `/health` de la API mediante
+`SALVO_API_BASE_URL`.
 
 ## Restricciones operativas
 

@@ -55,3 +55,42 @@ Registro de entregas producidas por Codex. El estado canónico sigue en el Workb
 ### Riesgos o pendientes
 
 - La carga real de imports de `CLAUDE.md` requiere un smoke test cuando Claude Code esté instalado.
+
+## E1-FOUNDATION — Fundaciones reproducibles
+
+### Identificación
+
+- Estado: lista para integrar
+- Etapa: 1
+- Agente: Codex
+- Fecha: 2026-08-31
+- Rama: `codex/e1-foundation`
+- Commit base: `ca94c4752073170939796f3174f58ccf4b190624`
+- Commit final: `HEAD` de `codex/e1-foundation` en la entrega; hash exacto registrado en el reporte
+  de Codex.
+
+### Resultado
+
+- Solución .NET 10 modular con Domain, Application, Infrastructure, API y proyectos de tests.
+- API mínima con health, OpenAPI y EF Core/SQLite comprobado en integración.
+- Frontend Next.js App Router con TypeScript estricto, ESLint, Tailwind, Vitest y rewrite a la API.
+- SDKs, dependencias directas y lockfiles fijados; `.env.example` no contiene secretos.
+- Compuerta raíz `scripts/check.sh` para ambas toolchains.
+
+### Verificación
+
+- `dotnet restore Salvo.slnx --locked-mode`: pasa.
+- `dotnet build Salvo.slnx --configuration Release --no-restore`: 0 warnings, 0 errores.
+- `dotnet test Salvo.slnx --configuration Release --no-build --no-restore`: 3/3 tests pasan.
+- `npm run check --prefix frontend`: typecheck, ESLint y 3/3 tests pasan.
+- `npm run build --prefix frontend`: Next.js 16.3.3 Webpack pasa.
+- `./scripts/check.sh`: compuerta completa verde.
+- Smokes HTTP: API health, OpenAPI 3.1.1, frontend y proxy API responden `200`.
+- `git diff --check`: pasa; no hay `.env` ni DB SQLite versionadas.
+
+### Riesgos o pendientes
+
+- Repetir la compuerta después del merge antes de marcar la etapa `Verificada`.
+- Turbopack no se pudo validar por la restricción de puertos del entorno; Webpack es la ruta de
+  build de producción configurada y verificada.
+- La Etapa 2 no comenzó y requiere petición o aprobación independiente.

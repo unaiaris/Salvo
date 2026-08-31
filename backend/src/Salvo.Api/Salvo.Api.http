@@ -1,0 +1,11 @@
+@Salvo.Api_HostAddress = http://127.0.0.1:5100
+
+GET {{Salvo.Api_HostAddress}}/health
+Accept: application/json
+
+###
+
+GET {{Salvo.Api_HostAddress}}/openapi/v1.json
+Accept: application/json
+
+###

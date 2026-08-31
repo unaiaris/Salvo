@@ -3,7 +3,20 @@
 Consola antifraude B2B de portfolio para e-commerce, diseñada alrededor de reglas deterministas,
 alertas auditables e integración desacoplada con proveedores externos.
 
-Estado: diseño aprobado; todavía no hay código de aplicación versionado.
+Estado: fundación ejecutable ASP.NET Core + Next.js preparada; la lógica antifraude comienza en
+etapas posteriores.
+
+## Verificación local
+
+Con .NET 10.0.400, Node.js 24.20.0 y npm 11.19.0 disponibles en `PATH`:
+
+```bash
+npm ci --prefix frontend
+./scripts/check.sh
+```
+
+La compuerta restaura NuGet en modo bloqueado, compila y prueba el backend en Release, y ejecuta
+typecheck, ESLint, Vitest y el build de producción del frontend.
 
 ## Arquitectura
 

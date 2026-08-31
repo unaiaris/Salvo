@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/backend/" />
+  <Folder Name="/backend/src/">
+    <Project Path="backend/src/Salvo.Api/Salvo.Api.csproj" />
+    <Project Path="backend/src/Salvo.Application/Salvo.Application.csproj" />
+    <Project Path="backend/src/Salvo.Domain/Salvo.Domain.csproj" />
+    <Project Path="backend/src/Salvo.Infrastructure/Salvo.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/backend/tests/">
+    <Project Path="backend/tests/Salvo.Api.IntegrationTests/Salvo.Api.IntegrationTests.csproj" />
+    <Project Path="backend/tests/Salvo.Domain.Tests/Salvo.Domain.Tests.csproj" />
+  </Folder>
+</Solution>

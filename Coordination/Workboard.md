@@ -1,6 +1,6 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: sin tareas de implementación activas
+> Estado: Etapa 1 lista para integrar
 > Última actualización: 2026-08-31
 > Responsable: coordinador de la etapa
 
@@ -14,13 +14,13 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 
 ## Trabajo activo
 
-No hay tareas activas. La Etapa 1 todavía no comenzó.
+| Work ID | Etapa | Objetivo | Propietario | Estado | Rama | Base | Paths reservados | Dependencias | Actualizado |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| E1-FOUNDATION | 1 | Fundaciones ASP.NET Core + Next.js y compuerta conjunta | Codex | Lista para integrar | `codex/e1-foundation` | `ca94c47` | Configuración central, `backend/**`, `frontend/**` | Ninguna; compuerta verde | 2026-08-31 |
 
 ## Cola próxima
 
-| Work ID | Etapa | Objetivo | Propietario | Estado | Dependencias | Paths previstos |
-| --- | --- | --- | --- | --- | --- | --- |
-| E1-FOUNDATION | 1 | Fundaciones ASP.NET Core + Next.js y compuerta conjunta | Codex | Propuesta | Aprobación de inicio | Solución, paquetes, EF Core, OpenAPI, frontend y configuración central |
+No hay otra tarea en cola mientras se serializa la fundación.
 
 La Etapa 1 contiene archivos difíciles de paralelizar —solución, paquetes NuGet, `package.json`,
 lockfile, EF Core, OpenAPI y configuración—, por lo que conviene completar primero su scaffold de
