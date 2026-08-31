@@ -9,8 +9,8 @@
 
 - Etapa 0 documental completada.
 - Etapa 1 integrada mediante PR #1, cerrada mediante PR #2 y verificada sobre `main` en `66f0949`.
-- El schema y brief de Etapa 2 están aprobados; E2-CONTRACT-DATA está en curso en
-  `codex/e2-contract-data`.
+- E2-CONTRACT-DATA está implementada y con compuerta verde en `codex/e2-contract-data`; todavía no
+  está integrada en `main`.
 
 ## Herramientas
 
@@ -86,6 +86,8 @@ El comando `dotnet` debe estar disponible en `PATH`; `global.json` rechazará un
 | --- | --- |
 | `dotnet build Salvo.slnx --configuration Release` | Compilar backend con warnings como errores |
 | `dotnet test Salvo.slnx --configuration Release` | Tests unitarios y de integración backend |
+| `dotnet tool restore` | Restaurar `dotnet-ef` 10.0.11 desde el manifest local |
+| `dotnet ef database update --project backend/src/Salvo.Infrastructure --startup-project backend/src/Salvo.Api` | Aplicar migraciones a la DB local configurada |
 | `dotnet run --project backend/src/Salvo.Api` | API local en el perfil de desarrollo |
 | `npm run dev --prefix frontend` | Frontend local |
 | `npm run check --prefix frontend` | Typecheck, ESLint y tests UI |
@@ -95,6 +97,12 @@ El comando `dotnet` debe estar disponible en `PATH`; `global.json` rechazará un
 Para probar el proxy local, arrancar la API en `http://127.0.0.1:5100` y después el frontend. La
 ruta `/api/health` del frontend se reescribe al endpoint `/health` de la API mediante
 `SALVO_API_BASE_URL`.
+
+La API no aplica migraciones ni carga demo automáticamente. En desarrollo, después de migrar la DB,
+`POST /api/demo-data/seed` carga la fixture fija e idempotente. `POST /api/order-imports` recibe
+`multipart/form-data` con `file` y `format=CSV|JSON`. Si una DB local anterior a E2 solo contiene el
+checkpoint de fundación, debe apartarse o eliminarse de forma explícita por el desarrollador antes
+de aplicar la primera migración; la aplicación nunca la borra.
 
 ## Restricciones operativas
 

@@ -94,3 +94,65 @@ Registro de entregas producidas por Codex. El estado canónico sigue en el Workb
 - Turbopack no se pudo validar por la restricción de puertos del entorno; Webpack es la ruta de
   build de producción configurada y verificada.
 - La Etapa 2 no comenzó y requiere petición o aprobación independiente.
+
+## E2-CONTRACT-DATA — Contrato y datos sintéticos
+
+### Identificación
+
+- Estado: lista para integrar
+- Etapa: 2
+- Agente: Codex
+- Fecha: 2026-08-31
+- Rama: `codex/e2-contract-data`
+- Commit base: `193f7aacfe822160bbd9dc6c52815d970a93df4e`
+- Commit de implementación: `8b79010`
+- Push/merge: no realizados
+
+### Resultado
+
+- `Order` protege invariantes, normalización e inmutabilidad; `OrderEvaluationLabel` permanece
+  separado y no forma parte del contrato público.
+- Importación CSV/JSON converge en un único caso de uso con errores parciales, límites, duplicados
+  idempotentes y conflictos de referencias inmutables.
+- EF Core crea `orders` y `order_evaluation_labels` mediante `InitialOrderContractData`, con claves,
+  checks, índices y timestamps UTC ISO canónicos.
+- El seed embebido fija 300 pedidos pseudónimos y 300 labels —18 positivos— con GUID y tiempos
+  reproducibles; repetirlo no modifica el estado.
+- La API expone `POST /api/order-imports` y mapea `POST /api/demo-data/seed` solo cuando
+  `DemoData:Enabled` está activo.
+- La ayuda memoria documenta el speech y el recorrido real por Domain, Application,
+  Infrastructure, API, migración, fixture y tests.
+
+### Archivos principales
+
+- Dominio: `backend/src/Salvo.Domain/Orders/**` y `Evaluation/OrderEvaluationLabel.cs`.
+- Aplicación: `backend/src/Salvo.Application/Orders/**`.
+- Infraestructura: parsers, persistencia, migración, seed y fixture bajo
+  `backend/src/Salvo.Infrastructure/**`.
+- API: `Program.cs`, `OrderEndpoints.cs` y configuración `DemoData`.
+- Tests: `OrderTests.cs`, `OrderImportEndpointTests.cs`, `OrderPersistenceTests.cs`,
+  `DemoSeedTests.cs` y actualización de la factory/migración de integración.
+- Tooling: `Directory.Packages.props`, `.config/dotnet-tools.json`, lockfiles y `scripts/check.sh`.
+
+### Verificación
+
+- `dotnet restore Salvo.slnx --locked-mode`: pasa.
+- `dotnet tool restore`: restaura `dotnet-ef` 10.0.11.
+- `dotnet build Salvo.slnx --configuration Release --no-restore`: 0 warnings, 0 errores.
+- `dotnet ef migrations has-pending-model-changes ... --no-build`: ningún cambio pendiente.
+- `dotnet test Salvo.slnx --configuration Release --no-build --no-restore`: 24/24 pasan
+  —16 integración, 8 dominio—.
+- `npm run check --prefix frontend`: 3/3 Vitest, typecheck y ESLint pasan.
+- `npm run build --prefix frontend`: Next.js 16.3.3 Webpack pasa.
+- `./scripts/check.sh`: compuerta full-stack verde.
+- Auditoría de fixture y fuentes: sin campos/patrones de PII o pago; los errores no reflejan valores
+  recibidos y OpenAPI no expone `isFraudLabel`.
+
+### Riesgos o pendientes
+
+- Falta push, revisión, merge y repetición de la compuerta sobre `main`; E2 aún no está integrada ni
+  completada canónicamente.
+- La API no migra ni carga seed al arrancar por diseño. Una DB local efímera de E1 con el antiguo
+  checkpoint requiere que el desarrollador la aparte o elimine explícitamente antes de aplicar la
+  primera migración; ningún comando de E2 borra datos automáticamente.
+- Etapa 3, reglas, scoring, alertas, Anthropic y Koin no fueron iniciados.

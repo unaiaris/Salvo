@@ -1,6 +1,6 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: E2-CONTRACT-DATA en curso
+> Estado: E2-CONTRACT-DATA lista para integrar
 > Última actualización: 2026-08-31
 > Responsable: coordinador de la etapa
 
@@ -16,7 +16,7 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 
 | Work ID | Etapa | Objetivo | Propietario | Estado | Rama | Base | Paths reservados | Dependencias | Actualizado |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| E2-CONTRACT-DATA | 2 | Contrato, migración y datos sintéticos idempotentes | Codex | En curso | `codex/e2-contract-data` | `193f7aa` | Backend, tests y configuración/documentación E2 | Schema aprobado e inicio autorizado | 2026-08-31 |
+| E2-CONTRACT-DATA | 2 | Contrato, migración y datos sintéticos idempotentes | Codex | Lista para integrar | `codex/e2-contract-data` | `193f7aa` | Backend, tests y configuración/documentación E2 | Compuerta verde; requiere push/merge y verificación conjunta | 2026-08-31 |
 
 ## Cola próxima
 

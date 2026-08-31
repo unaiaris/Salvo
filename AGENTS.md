@@ -26,7 +26,8 @@ cambia alcance o arquitectura, actualizar primero su bitácora y después los do
 ## Estado actual
 
 - Etapa 1 integrada y verificada sobre `main`.
-- E2-CONTRACT-DATA está en curso en `codex/e2-contract-data`, con schema aprobado y brief completo.
+- E2-CONTRACT-DATA está lista para integrar en `codex/e2-contract-data`; commit de implementación
+  `8b79010` y compuerta full-stack verde.
 - No iniciar Etapa 3 ni incorporar reglas, scoring o alertas durante E2.
 - No iniciar una etapa nueva sin petición o aprobación explícita del usuario.
 - El estado operativo, checklists y evidencias viven en `DesignAgent/Salvo-Progress.md`.

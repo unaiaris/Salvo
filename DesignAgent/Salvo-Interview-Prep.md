@@ -92,8 +92,8 @@ volumen. No se presenta SQLite como elección de producción para un sistema ant
 
 ## Etapa 2 — contrato y datos
 
-> Estado: diseño aprobado; implementación todavía no iniciada. Hasta contar con código integrado y
-> tests verdes, explicar estas decisiones en futuro o como diseño, no como resultado terminado.
+> Estado: implementada y verificada en `codex/e2-contract-data`, todavía pendiente de integración.
+> Puede explicarse como resultado de la rama, aclarando que aún falta merge y verificación en `main`.
 
 ### Speech de 45 segundos
 
@@ -128,7 +128,7 @@ se modelan después como conceptos propios, en lugar de preasignar columnas null
 #### ¿Cómo se conserva la visibilidad temporal en SQLite?
 
 API y dominio usan `DateTimeOffset` con offset explícito. Persistencia normaliza a UTC ISO 8601
-canónico, legible y de longitud fija. Los tests de integración deben demostrar orden y rangos en la
+canónico, legible y de longitud fija. Los tests de integración demuestran orden y rangos en la
 base. Los empates se resuelven mediante `merchantId` y `merchantReferenceId`, no mediante un GUID
 aleatorio.
 
@@ -145,19 +145,38 @@ No se almacena descripción libre, dirección, email, teléfono, pago ni documen
 sintéticos prefijados. El MVP admite UYU, BRL y USD sin conversión FX; cualquier futuro baseline de
 importe se particiona por moneda. Ciudad es una localidad opcional, nunca una dirección.
 
-### Recorrido previsto por capas
+### Recorrido real por capas
 
-| Capa | Responsabilidad que debe quedar visible | Evidencia esperada |
+| Capa | Código para mostrar | Responsabilidad y evidencia |
 | --- | --- | --- |
-| `Salvo.Domain` | Construir un `Order` válido, normalizar value objects y proteger inmutabilidad | Tests de invariantes y casos límite |
-| `Salvo.Application` | Coordinar importación/seed mediante contratos independientes de HTTP, CSV y EF | Tests de duplicado, conflicto y resumen parcial |
-| `Salvo.Infrastructure` | Parsear CSV/JSON, convertir fechas, configurar EF, migrar y persistir | Tests SQLite de schema, orden, transacción e idempotencia |
-| `Salvo.Api` | Validar tamaño/formato y traducir resultados a HTTP/OpenAPI | Tests de endpoint y `ProblemDetails` |
-| Fixture demo | Definir 300 pedidos y 300 labels auditables, sin PII | Conteos, hash/estado estable y auditoría de patrones |
+| `Salvo.Domain` | `Orders/Order.cs`, `OrderDraft.cs`, `IsoCountryCodes.cs` | La fábrica acumula errores, normaliza IDs/ciudad/UTC y crea el pedido solo si todas las invariantes pasan. `OrderTests` cubre límites, normalización e igualdad de hechos. |
+| `Salvo.Application` | `Orders/Imports/ImportOrdersHandler.cs` | Une ambos formatos, valida tipos, clasifica duplicado frente a conflicto y limita la respuesta a 1.000 errores sin conocer HTTP, CsvHelper ni EF. |
+| `Salvo.Application` | `Orders/Seed/SeedDemoOrdersHandler.cs` | Valida la forma 300/300/18, deriva GUID deterministas, compara hechos existentes y nunca sobrescribe conflictos. |
+| `Salvo.Infrastructure` | `Imports/CsvOrderImportParser.cs` y `JsonOrderImportParser.cs` | Convierte sintaxis externa a registros crudos; los problemas estructurales detienen el documento y los de contenido siguen por registro. |
+| `Salvo.Infrastructure` | `Persistence/Configurations/*`, converters y `EfOrderDataStore.cs` | Repite constraints críticos, guarda fechas UTC legibles, define claves/índices y deja `SaveChanges` como frontera transaccional. |
+| Migración | `20260831151027_InitialOrderContractData.cs` | Crea únicamente `orders` y `order_evaluation_labels`; reemplaza el checkpoint de E1 y no se ejecuta automáticamente al arrancar. |
+| `Salvo.Api` | `OrderEndpoints.cs` | Valida multipart, tamaño y formato; traduce errores de documento a `ProblemDetails`; solo mapea el seed si `DemoData:Enabled` está activo. |
+| Fixture demo | `Seed/Fixtures/demo-orders.v1.json` | Contiene 300 pedidos pseudónimos, 18 labels positivos y timestamps fijos; es un recurso embebido, sin generación aleatoria ni red. |
 
-Al cerrar E2, sustituir “previsto” por referencias a clases, migraciones y tests realmente
-integrados. Los comentarios de código explican únicamente decisiones no obvias; los tests muestran
-el comportamiento ejecutable y esta guía conserva el speech.
+### Recorrido de cinco minutos para explicar el código
+
+1. Abrir `OrderEndpoints.cs`: la API solo protege la frontera de transporte —5 MiB,
+   `multipart/form-data` y `CSV|JSON`— y delega el comportamiento.
+2. Seguir a `OrderImportParser`: el dispatcher elige infraestructura CSV o JSON; ambos producen el
+   mismo `RawOrderImportRecord`, por lo que el caso de uso no duplica reglas.
+3. Entrar en `ImportOrdersHandler`: primero reúne errores por registro, luego llama a `Order.Create`,
+   deduplica por `(merchantId, merchantReferenceId)` y persiste todos los válidos juntos.
+4. Mostrar `Order.Create`: aquí viven las invariantes autoritativas. La API no puede saltárselas y
+   EF tampoco contamina el dominio.
+5. Mostrar `OrderConfiguration` y `UtcDateTimeOffsetConverter`: SQLite recibe UTC ISO fijo; los
+   índices soportan orden cronológico y futura historia por comprador/moneda.
+6. Mostrar `SeedDemoOrdersHandler`: IDs, tiempos y labels son reproducibles; la segunda ejecución
+   compara y omite, mientras un hecho distinto falla sin sobrescribir.
+7. Cerrar con `OrderImportEndpointTests`, `OrderPersistenceTests` y `DemoSeedTests`: los tests hacen
+   ejecutable el relato —formatos, límites, rollback, orden temporal, idempotencia y privacidad—.
+
+La evidencia actual es 16 tests de integración, 8 de dominio, modelo EF sin cambios pendientes y
+compuerta full-stack verde. Sigue siendo correcto decir “lista para integrar”, no “integrada”.
 
 ## Preguntas técnicas probables
 

@@ -1,6 +1,6 @@
 # E2-CONTRACT-DATA — Contrato y datos sintéticos
 
-> Estado: En curso
+> Estado: Lista para integrar
 
 ## Identificación
 
@@ -144,21 +144,21 @@ sin incorporar scoring, alertas, proveedores externos ni datos reales.
 
 ## Criterios de aceptación
 
-- [ ] El dominio rechaza invariantes inválidas y normaliza las aprobadas sin depender de EF/API.
-- [ ] La DB repite claves, checks, longitudes y enums críticos.
-- [ ] SQLite ordena y filtra fechas en DB con offsets normalizados y orden total determinista.
-- [ ] Dos comercios pueden compartir `merchantReferenceId`; uno solo no puede duplicarlo.
-- [ ] Un duplicado idéntico no crea efectos; un payload distinto con la misma clave entra en
+- [x] El dominio rechaza invariantes inválidas y normaliza las aprobadas sin depender de EF/API.
+- [x] La DB repite claves, checks, longitudes y enums críticos.
+- [x] SQLite ordena y filtra fechas en DB con offsets normalizados y orden total determinista.
+- [x] Dos comercios pueden compartir `merchantReferenceId`; uno solo no puede duplicarlo.
+- [x] Un duplicado idéntico no crea efectos; un payload distinto con la misma clave entra en
       conflicto.
-- [ ] CSV cubre BOM, delimitadores, quoting, escaped quotes, multiline y errores parciales.
-- [ ] JSON cubre objetos válidos/inválidos, campos desconocidos y documento malformado.
-- [ ] Los registros válidos de una importación parcial son atómicos ante fallos técnicos.
-- [ ] El seed deja 300 pedidos, 300 labels y 18 fraudes; repetirlo conserva el mismo estado completo.
-- [ ] El contrato público, fixture, errores y logs no contienen PII ni datos financieros reales.
-- [ ] `isFraudLabel` no aparece en `Order` ni en los DTOs públicos.
-- [ ] La migración crea el schema desde una DB vacía y no deja cambios de modelo pendientes.
-- [ ] La ayuda memoria explica cada capa, decisión, trade-off y test sin afirmar trabajo no integrado.
-- [ ] La compuerta full-stack permanece verde.
+- [x] CSV cubre BOM, delimitadores, quoting, escaped quotes, multiline y errores parciales.
+- [x] JSON cubre objetos válidos/inválidos, campos desconocidos y documento malformado.
+- [x] Los registros válidos de una importación parcial son atómicos ante fallos técnicos.
+- [x] El seed deja 300 pedidos, 300 labels y 18 fraudes; repetirlo conserva el mismo estado completo.
+- [x] El contrato público, fixture, errores y logs no contienen PII ni datos financieros reales.
+- [x] `isFraudLabel` no aparece en `Order` ni en los DTOs públicos.
+- [x] La migración crea el schema desde una DB vacía y no deja cambios de modelo pendientes.
+- [x] La ayuda memoria explica cada capa, decisión, trade-off y test sin afirmar trabajo no integrado.
+- [x] La compuerta full-stack permanece verde.
 
 ## Verificación y evidencia
 
@@ -198,4 +198,4 @@ sin incorporar scoring, alertas, proveedores externos ni datos reales.
 - Handoff en `Coordination/Handoffs/<Agente>.md` si se usa rama/worktree separado.
 - Estado de implementación: `Lista para integrar | Parcial | Bloqueada`.
 
-Estado actual: `En curso`. Codex implementa E2 en la rama y commit base indicados.
+Estado actual: `Lista para integrar`. Implementación local en `8b79010`; no se hizo push ni merge.
