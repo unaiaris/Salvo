@@ -8,8 +8,9 @@
 ## Estado actual
 
 - Etapa 0 documental completada.
-- Etapa 1 integrada mediante PR #1 y verificada sobre `main` en `897cec7`.
-- La Etapa 2 continúa pendiente y no se inicia automáticamente.
+- Etapa 1 integrada mediante PR #1, cerrada mediante PR #2 y verificada sobre `main` en `66f0949`.
+- El schema y brief de Etapa 2 están aprobados; la implementación continúa pendiente y no se inicia
+  automáticamente.
 
 ## Herramientas
 
@@ -65,8 +66,8 @@ El núcleo local no necesita cuentas externas.
   `../Coordination/Task-Brief-Template.md`.
 - Cada agente trabaja en su propia rama/worktree y escribe su handoff separado.
 - El coordinador actualiza el estado canónico después del merge y la verificación conjunta.
-- La Etapa 1 debe comenzar de forma secuencial porque concentra solución, paquetes, lockfile,
-  EF Core, OpenAPI y configuración.
+- E2 debe comenzar de forma secuencial porque concentra migración inicial, paquetes, locks, schema
+  EF Core y contratos públicos.
 - Consultar `../Coordination/README.md` antes de abrir trabajo paralelo.
 
 ## Preparación local

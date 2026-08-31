@@ -90,6 +90,75 @@ SQLite hace la demo portable y reproducible. El modelo evita depender de extensi
 la migración a Postgres queda para el momento en que se necesiten concurrencia, despliegue o mayor
 volumen. No se presenta SQLite como elección de producción para un sistema antifraude real.
 
+## Etapa 2 — contrato y datos
+
+> Estado: diseño aprobado; implementación todavía no iniciada. Hasta contar con código integrado y
+> tests verdes, explicar estas decisiones en futuro o como diseño, no como resultado terminado.
+
+### Speech de 45 segundos
+
+> En la capa de datos separé los hechos inmutables del pedido de cualquier resultado antifraude. El
+> pedido tiene una PK interna, pero la idempotencia usa la referencia estable del comercio. Si el
+> mismo payload llega otra vez se omite; si reutiliza la referencia con datos distintos, se informa
+> un conflicto y nunca se sobrescribe. El ground truth vive en una tabla separada y no aparece en la
+> importación pública, para impedir que el scoring lo use como feature. CSV y JSON convergen en el
+> mismo contrato de aplicación: los errores se acumulan por registro y los válidos se escriben de
+> forma atómica. El seed es una fixture fija de 300 pedidos, completamente sintética y repetible.
+
+### Decisiones para profundizar
+
+#### ¿Por qué la referencia única es compuesta?
+
+`merchantReferenceId` pertenece al namespace de un comercio. Dos comercios pueden usar `ORD_001`,
+pero uno solo no puede reutilizarlo para pedidos distintos. Por eso la PK técnica es un GUID y la
+restricción natural es `(merchantId, merchantReferenceId)`.
+
+#### ¿Por qué separar `isFraudLabel`?
+
+La etiqueta es ground truth de evaluación, no un hecho operativo ni una señal. Vive en
+`OrderEvaluationLabel`, no en `Order`; los DTOs públicos no la aceptan y solo el seed interno puede
+escribirla. Esta separación hace más difícil introducir fuga de información por accidente.
+
+#### ¿Por qué el pedido es inmutable?
+
+Importe, moneda, comprador y momento describen el evento recibido. Una reimportación con la misma
+clave y datos diferentes es un conflicto, no una actualización. Score, estado, evaluación y alerta
+se modelan después como conceptos propios, en lugar de preasignar columnas nullable sin semántica.
+
+#### ¿Cómo se conserva la visibilidad temporal en SQLite?
+
+API y dominio usan `DateTimeOffset` con offset explícito. Persistencia normaliza a UTC ISO 8601
+canónico, legible y de longitud fija. Los tests de integración deben demostrar orden y rangos en la
+base. Los empates se resuelven mediante `merchantId` y `merchantReferenceId`, no mediante un GUID
+aleatorio.
+
+#### ¿Cómo funciona una importación parcial?
+
+Los problemas estructurales invalidan el archivo. Los errores de contenido se acumulan por
+registro, mientras los registros válidos forman una única transacción. Un fallo técnico revierte
+ese subconjunto completo. Los duplicados idénticos se contabilizan como skips y una referencia con
+contenido distinto produce `REFERENCE_CONFLICT`.
+
+#### ¿Cómo se minimizan datos y alcance?
+
+No se almacena descripción libre, dirección, email, teléfono, pago ni documento. Los IDs son tokens
+sintéticos prefijados. El MVP admite UYU, BRL y USD sin conversión FX; cualquier futuro baseline de
+importe se particiona por moneda. Ciudad es una localidad opcional, nunca una dirección.
+
+### Recorrido previsto por capas
+
+| Capa | Responsabilidad que debe quedar visible | Evidencia esperada |
+| --- | --- | --- |
+| `Salvo.Domain` | Construir un `Order` válido, normalizar value objects y proteger inmutabilidad | Tests de invariantes y casos límite |
+| `Salvo.Application` | Coordinar importación/seed mediante contratos independientes de HTTP, CSV y EF | Tests de duplicado, conflicto y resumen parcial |
+| `Salvo.Infrastructure` | Parsear CSV/JSON, convertir fechas, configurar EF, migrar y persistir | Tests SQLite de schema, orden, transacción e idempotencia |
+| `Salvo.Api` | Validar tamaño/formato y traducir resultados a HTTP/OpenAPI | Tests de endpoint y `ProblemDetails` |
+| Fixture demo | Definir 300 pedidos y 300 labels auditables, sin PII | Conteos, hash/estado estable y auditoría de patrones |
+
+Al cerrar E2, sustituir “previsto” por referencias a clases, migraciones y tests realmente
+integrados. Los comentarios de código explican únicamente decisiones no obvias; los tests muestran
+el comportamiento ejecutable y esta guía conserva el speech.
+
 ## Preguntas técnicas probables
 
 ### ¿Cómo evitás fuga temporal en el motor?

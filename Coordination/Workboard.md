@@ -1,6 +1,6 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: Etapa 1 verificada; sin trabajo activo
+> Estado: E2 propuesta con schema aprobado; sin trabajo activo
 > Última actualización: 2026-08-31
 > Responsable: coordinador de la etapa
 
@@ -20,10 +20,10 @@ No hay tareas activas.
 
 | Work ID | Etapa | Objetivo | Estado | Dependencias | Paths previstos |
 | --- | --- | --- | --- | --- | --- |
-| E2-CONTRACT-DATA | 2 | Contrato, migración y datos sintéticos idempotentes | Propuesta | Aprobación de inicio y schema detallado | Domain, Application, Infrastructure, API y tests relacionados |
+| E2-CONTRACT-DATA | 2 | Contrato, migración y datos sintéticos idempotentes | Propuesta | Aprobación explícita de inicio; schema aprobado | Domain, Application, Infrastructure, API y tests relacionados |
 
-E2-CONTRACT-DATA es solo una propuesta de cola; todavía no tiene propietario, rama ni paths
-reservados.
+E2-CONTRACT-DATA tiene brief y schema aprobados, pero sigue como propuesta de cola: todavía no tiene
+propietario, rama ni paths reservados y no puede comenzar sin autorización explícita.
 
 ## Historial integrado
 

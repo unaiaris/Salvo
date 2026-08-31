@@ -25,9 +25,9 @@ cambia alcance o arquitectura, actualizar primero su bitácora y después los do
 
 ## Estado actual
 
-- Etapa 0 documental completada.
-- No hay código de aplicación versionado; los artefactos locales ignorados no demuestran avance.
-- Siguiente etapa: Etapa 1, fundaciones reproducibles.
+- Etapa 1 integrada y verificada sobre `main`.
+- El schema detallado de E2-CONTRACT-DATA está aprobado y documentado, pero la tarea sigue propuesta.
+- No hay tareas activas ni rama E2 creada.
 - No iniciar una etapa nueva sin petición o aprobación explícita del usuario.
 - El estado operativo, checklists y evidencias viven en `DesignAgent/Salvo-Progress.md`.
 
@@ -52,7 +52,7 @@ cambia alcance o arquitectura, actualizar primero su bitácora y después los do
 - Contrato HTTP: OpenAPI generado por ASP.NET Core y cliente TypeScript tipado.
 - Tests: xUnit e integración ASP.NET Core en backend; Vitest/Testing Library en frontend.
 - UI: Tailwind y Recharts.
-- Crear `global.json`, `Directory.Packages.props` y `.nvmrc` en la Etapa 1.
+- `global.json`, `Directory.Packages.props` y `.nvmrc` quedaron fijados en la Etapa 1.
 - Fijar versiones exactas y versionar `package-lock.json`; no usar versiones flotantes ni `@latest`
   en instrucciones reproducibles.
 - Usar ESLint directamente; no usar el comando eliminado `next lint`.

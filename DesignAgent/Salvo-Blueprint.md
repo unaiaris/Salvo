@@ -1,7 +1,7 @@
 # Salvo — Blueprint del MVP
 
 > Estado del documento: vigente
-> Estado del proyecto: diseño aprobado; código de aplicación aún no iniciado
+> Estado del proyecto: Etapa 1 integrada; schema de Etapa 2 aprobado y pendiente de inicio
 > Última actualización: 2026-08-31
 > Seguimiento operativo: [[Salvo-Progress]]
 
@@ -118,19 +118,43 @@ Analista de riesgo u operaciones de un comercio electrónico ficticio.
 
 ### 4.1 Datos e importación
 
-- Seed idempotente con aproximadamente 300 pedidos de 3–4 meses.
-- Entre 15 y 20 casos fraudulentos sintéticos y etiquetados.
+- Seed idempotente con 300 pedidos de una ventana fija de 120 días.
+- Ground truth completo: 300 etiquetas separadas, con 18 fraudes y 282 casos legítimos.
 - Campos mínimos normalizados:
   - `occurredAt` en UTC;
   - `amountCents` positivo para el total del pedido;
   - `currencyCode` ISO 4217;
-  - `merchantId` y `merchantReferenceId` estable y único;
+  - `merchantId` y `merchantReferenceId` forman una referencia comercial estable y única;
   - `buyerReferenceId` pseudónimo;
   - `countryCode` ISO 3166-1 alpha-2;
-  - `city`, `channel`, `deviceSessionId` y descripción sintética opcionales.
+  - `city`, `channel` y `deviceSessionId` opcionales.
 - El parser acumula errores por fila y continúa.
 - Una biblioteca mantenida de .NET resuelve quoting, BOM y delimitadores; la API valida los DTOs
   y el dominio vuelve a comprobar sus invariantes. El frontend valida anticipadamente solo para UX.
+
+Contrato detallado aprobado para E2:
+
+- `Order` contiene hechos inmutables; score, estado, evaluaciones y alertas se difieren.
+- PK técnica `id`; unicidad natural sobre `(merchantId, merchantReferenceId)`.
+- Repetir una referencia con el mismo contenido se omite; con contenido distinto produce conflicto.
+- IDs sintéticos ASCII, en mayúsculas, de hasta 64 caracteres y con prefijos `MER_`, `ORD_`,
+  `BUY_` y `DEV_` según corresponda.
+- `occurredAt` y `createdAt` son `DateTimeOffset` en C#, se normalizan a UTC y se persisten como
+  texto ISO 8601 canónico de longitud fija.
+- El orden total es `occurredAt`, `merchantId`, `merchantReferenceId`.
+- `amountCents` es `Int64` entre 1 y 1.000.000.000.000; el MVP admite `UYU`, `BRL` y `USD` sin
+  conversión FX. Los historiales monetarios futuros se particionan por moneda.
+- `channel` es nullable y admite `WEB`, `MOBILE_APP` o `MARKETPLACE`.
+- `city` es nullable, máximo 80 caracteres, Unicode NFC, sin controles ni direcciones.
+- No se persiste `description`; los campos desconocidos se rechazan.
+- CSV y JSON comparten el mismo DTO normalizado mediante `POST /api/order-imports`, archivo
+  `multipart/form-data` y formato explícito `CSV | JSON`.
+- Límite de 5 MiB y 10.000 registros; CSV UTF-8 con BOM opcional, coma o punto y coma y quoting
+  RFC 4180; JSON como array de objetos.
+- Los registros válidos se escriben en una transacción; los inválidos se reportan por registro y
+  no bloquean el resto. Un fallo de infraestructura revierte todo el subconjunto válido.
+- Los errores usan códigos estables, no reproducen valores recibidos y detallan como máximo 1.000
+  errores sin perder los conteos completos.
 
 ### 4.2 Baseline y scoring local
 
@@ -269,18 +293,28 @@ filtran tipos o errores específicos del proveedor fuera de infraestructura.
 
 ### Order
 
-- `id`
+- `id`: GUID interno y PK técnica
 - `merchantId`
-- `merchantReferenceId` único
+- `merchantReferenceId`; único dentro de `merchantId`
 - `buyerReferenceId` pseudónimo
 - `occurredAt`
 - `amountCents`
 - `currencyCode`
 - `countryCode`, `city`, `channel`, `deviceSessionId`
-- `localRiskScore`
-- `localStatus`: `NORMAL | FLAGGED | CONFIRMED_SAFE | REPORTED_FRAUD`
-- `isFraudLabel`: solo demo/evaluación
-- timestamps
+- `createdAt`
+
+Los hechos del pedido son inmutables. `localRiskScore`, estados, evaluaciones y alertas no se
+preasignan como columnas nullable en E2; se incorporan cuando existan sus casos de uso y migraciones.
+
+### OrderEvaluationLabel
+
+- `orderId`: PK y FK a `Order`
+- `isFraudLabel`
+- `createdAt`
+
+La etiqueta es ground truth exclusivo de demo/evaluación. No forma parte de `Order`, no aparece en
+los contratos públicos CSV/JSON y solo el seed interno puede escribirla. El motor de scoring no la
+recibe como feature.
 
 ### RiskEvaluation
 
@@ -512,6 +546,12 @@ completo el MVP local.
 | 12 | ASP.NET Core concentra backend y dominio; Next.js presenta la UI | Mostrar profundidad en C# y capacidad full-stack con fronteras claras | 2026-08-31 |
 | 13 | EF Core/SQLite implementa persistencia local | Mantener el MVP portable y aprovechar transacciones y tooling del ecosistema .NET | 2026-08-31 |
 | 14 | OpenAPI gobierna el contrato backend–frontend | Evitar contratos duplicados y mantener tipado el cliente TypeScript | 2026-08-31 |
+| 15 | `Order` conserva hechos inmutables y usa unicidad `(merchantId, merchantReferenceId)` | Separar identidad interna de idempotencia comercial y permitir referencias repetidas entre comercios | 2026-08-31 |
+| 16 | `isFraudLabel` vive en `OrderEvaluationLabel` y queda fuera del contrato público | Impedir que el ground truth alcance accidentalmente el scoring | 2026-08-31 |
+| 17 | Fechas visibles como `DateTimeOffset` y persistidas en UTC ISO 8601 canónico | Mantener legibilidad y exigir ordenamiento temporal reproducible en SQLite | 2026-08-31 |
+| 18 | La importación es estricta por schema y parcial por registro, con escritura atómica de válidos | Evitar pérdida silenciosa y estados técnicos incompletos | 2026-08-31 |
+| 19 | El seed es una fixture fija de 300 pedidos y 300 etiquetas, activada explícitamente | Garantizar auditabilidad, ausencia de PII e idempotencia reproducible | 2026-08-31 |
+| 20 | E2 excluye texto libre, FX, scoring y campos futuros sin caso de uso | Minimizar datos y preservar los límites entre etapas | 2026-08-31 |
 
 ## 14. Mapa de documentación
 

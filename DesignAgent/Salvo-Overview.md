@@ -58,12 +58,13 @@ externas.
 | Diseño B2B y alcance | Aprobado |
 | Blueprint e instrucciones Codex | Actualizados |
 | Kit Claude y coordinación paralela | Preparados |
-| Código de aplicación | No iniciado |
+| Etapa 1 | Integrada y verificada en `main` |
+| Etapa 2 | Schema y brief aprobados; implementación no iniciada |
 | Anthropic | Previsto para una etapa posterior |
 | Koin sandbox | Opcional, sujeto a onboarding |
 
 ## Próximo paso
 
-Etapa 1: fijar SDKs y dependencias, crear la solución ASP.NET Core y el frontend Next.js, configurar
-EF Core/SQLite y verificar builds, tests, OpenAPI y arranque de ambas toolchains. El alcance,
-checklist y evidencia requerida están en [[Salvo-Progress#Próximo bloque de trabajo — Etapa 1]].
+Autorizar explícitamente el inicio de E2-CONTRACT-DATA. Su schema, contratos, límites y criterios de
+aceptación ya están documentados en el Blueprint y en `../Coordination/Tasks/E2-CONTRACT-DATA.md`;
+no existe todavía rama, propietario ni trabajo activo.

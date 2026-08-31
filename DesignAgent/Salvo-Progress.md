@@ -12,12 +12,12 @@
 | Estado del proyecto | Etapa 1 — Fundaciones reproducibles completada |
 | Etapa completada | Etapa 1 — Fundaciones reproducibles |
 | Próxima etapa | Etapa 2 — Contrato y datos sintéticos |
-| Estado de la próxima etapa | Pendiente de aprobación |
+| Estado de la próxima etapa | Schema aprobado; inicio pendiente de autorización |
 | Bloqueo actual | Ninguno |
 | Dependencias externas | Ninguna para el núcleo local |
 | Anthropic | Previsto para después del núcleo |
 | Koin sandbox | Post-MVP; sujeto a onboarding y credenciales |
-| Coordinación Codex–Claude | E1-FOUNDATION verificada sobre `main`; sin trabajo activo |
+| Coordinación Codex–Claude | Brief E2 documentado como propuesta; sin trabajo activo |
 
 ## Leyenda
 
@@ -37,7 +37,7 @@ Solo puede existir una etapa `En curso` a la vez.
 | --- | --- | --- | --- | --- |
 | 0 | Documentación e instrucciones | Completada | Docs coherentes y sin código | `AGENTS.md` + `DesignAgent/*.md` |
 | 1 | Fundaciones reproducibles | Completada | Builds, tests y arranque de ASP.NET Core + Next.js | Merge `897cec7` + compuerta verde |
-| 2 | Contrato y datos sintéticos | Pendiente | Seed idempotente + parser validado | Pendiente |
+| 2 | Contrato y datos sintéticos | Pendiente | Seed idempotente + parser validado | Schema y brief aprobados; implementación pendiente |
 | 3 | Motor determinista | Pendiente | Tests por regla + métricas sin fuga | Pendiente |
 | 4 | Alertas y casos de uso | Pendiente | Idempotencia + consistencia transaccional | Pendiente |
 | 5 | UI y dashboard | Pendiente | Recorrido completo y estados vacíos/error | Pendiente |
@@ -136,7 +136,8 @@ La lista exacta se confirmará al iniciar la etapa. Como mínimo:
 - El build Turbopack no puede validarse bajo la restricción de puertos del entorno; la compuerta usa
   `next build --webpack`, opción soportada por Next.js 16.3.3 y verificada en producción local.
 
-La Etapa 2 permanece pendiente de aprobación y no se inicia automáticamente.
+El schema de Etapa 2 está aprobado; la implementación permanece pendiente de autorización y no se
+inicia automáticamente.
 
 ## Checklists por etapa
 
@@ -156,7 +157,7 @@ La Etapa 2 permanece pendiente de aprobación y no se inicia automáticamente.
 
 ### Etapa 2 — Contrato y datos
 
-- [ ] Aprobar schema detallado.
+- [x] Aprobar schema detallado.
 - [ ] Crear migración EF Core.
 - [ ] Crear fixtures y seed sintéticos.
 - [ ] Verificar idempotencia del seed.
@@ -216,6 +217,7 @@ La Etapa 2 permanece pendiente de aprobación y no se inicia automáticamente.
 | Tema | Estado | Momento de decisión | Nota |
 | --- | --- | --- | --- |
 | SDK .NET y versiones exactas de dependencias | Resuelta | Etapa 1 | .NET 10.0.400 y dependencias directas fijadas; locks verificados |
+| Schema y contratos E2 | Resuelta | Preparación de Etapa 2 | Decisiones 15–20 del Blueprint + brief `E2-CONTRACT-DATA` |
 | Anthropic real | Diferida | Etapa 7 | Proveedor preferido; el núcleo no depende de él |
 | Acceso Koin sandbox | Diferida | Post-MVP | Requiere onboarding, private key y `org_id` |
 | Auth/multi-tenant | Diferida | Post-MVP | Necesaria antes de publicación mutable |
@@ -237,6 +239,7 @@ La Etapa 2 permanece pendiente de aprobación y no se inicia automáticamente.
 | 2026-08-31 | 1 | Scaffold .NET 10 + Next.js 16, SQLite, OpenAPI y tests | Build Release, 3 tests .NET, check frontend y build Webpack | Lista para integrar |
 | 2026-08-31 | 1 | Compuerta raíz y smokes full-stack | `./scripts/check.sh`; health, OpenAPI, frontend y proxy HTTP 200 | Verde en rama |
 | 2026-08-31 | 1 | PR #1 integrado y verificación conjunta sobre `main` | Merge `897cec7` + `./scripts/check.sh` | Completada |
+| 2026-08-31 | Preparación E2 | Schema, contratos, seed, migración y criterios diseñados paso a paso | Aprobación del usuario + brief `E2-CONTRACT-DATA` | Aprobada; no iniciada |
 
 ## Protocolo de actualización
 
