@@ -1,7 +1,7 @@
 # Salvo — Blueprint del MVP
 
 > Estado del documento: vigente
-> Estado del proyecto: Etapa 3 implementada en rama y pendiente de integración
+> Estado del proyecto: Etapa 3 integrada y verificada; Etapa 4 pendiente de autorización
 > Última actualización: 2026-08-31
 > Seguimiento operativo: [[Salvo-Progress]]
 

@@ -9,15 +9,15 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado del proyecto | Etapa 3 — Motor determinista en verificación |
-| Etapa completada | Etapa 2 — Contrato y datos sintéticos |
-| Etapa en verificación | Etapa 3 — Motor determinista |
-| Estado de la etapa | Implementada en rama; pendiente de integración y compuerta sobre `main` |
+| Estado del proyecto | Etapa 3 — Motor determinista completada |
+| Etapa completada | Etapa 3 — Motor determinista |
+| Próxima etapa | Etapa 4 — Alertas y casos de uso |
+| Estado de la próxima etapa | Pendiente de diseño y autorización |
 | Bloqueo actual | Ninguno |
 | Dependencias externas | Ninguna para el núcleo local |
 | Anthropic | Previsto para después del núcleo |
 | Koin sandbox | Post-MVP; sujeto a onboarding y credenciales |
-| Coordinación Codex–Claude | E3-MOTOR-DETERMINISTA lista para integrar; sin otro trabajo activo |
+| Coordinación Codex–Claude | Sin tareas activas ni paths reservados |
 
 ## Leyenda
 
@@ -38,7 +38,7 @@ Solo puede existir una etapa `En curso` a la vez.
 | 0 | Documentación e instrucciones | Completada | Docs coherentes y sin código | `AGENTS.md` + `DesignAgent/*.md` |
 | 1 | Fundaciones reproducibles | Completada | Builds, tests y arranque de ASP.NET Core + Next.js | Merge `897cec7` + compuerta verde |
 | 2 | Contrato y datos sintéticos | Completada | Seed idempotente + parser validado | Merge `4b7bf54` + 24 tests .NET + compuerta verde en `main` |
-| 3 | Motor determinista | En verificación | Tests por regla + métricas sin fuga | `c3a765c` + 42 tests .NET + compuerta verde en rama |
+| 3 | Motor determinista | Completada | Tests por regla + métricas sin fuga | Merge `809ff75` + 42 tests .NET + compuerta verde en `main` |
 | 4 | Alertas y casos de uso | Pendiente | Idempotencia + consistencia transaccional | Pendiente |
 | 5 | UI y dashboard | Pendiente | Recorrido completo y estados vacíos/error | Pendiente |
 | 6 | Proveedor antifraude mock | Pendiente | Estados y callbacks replay-safe | Pendiente |
@@ -136,8 +136,8 @@ La lista exacta se confirmará al iniciar la etapa. Como mínimo:
 - El build Turbopack no puede validarse bajo la restricción de puertos del entorno; la compuerta usa
   `next build --webpack`, opción soportada por Next.js 16.3.3 y verificada en producción local.
 
-La Etapa 2 quedó integrada y verificada sobre `main`. Etapa 3 está implementada y verificada en su
-rama; permanece pendiente de integración y compuerta canónica antes de considerarse completada.
+La Etapa 3 quedó integrada y verificada sobre `main`. Etapa 4 permanece pendiente: requiere diseño,
+brief y autorización independientes antes de persistir evaluaciones o crear alertas.
 
 ## Checklists por etapa
 
@@ -252,6 +252,7 @@ rama; permanece pendiente de integración y compuerta canónica antes de conside
 | 2026-08-31 | 3 | Inicio de E3-MOTOR-DETERMINISTA | Rama `codex/e3-motor-determinista` desde `4053f8f` | En curso |
 | 2026-08-31 | 3 | Motor temporal, reglas y evaluación implementados | Commit `c3a765c`; 24 tests de dominio + 18 de integración | Lista para integrar |
 | 2026-08-31 | 3 | Compuerta full-stack de rama | Restore locked, EF sin cambios, 42 tests .NET, 3 Vitest y build Next.js | Verde en rama |
+| 2026-08-31 | 3 | Integración y verificación canónica | Merge `809ff75` + `./scripts/check.sh` sobre `main` | Completada |
 
 ## Protocolo de actualización
 

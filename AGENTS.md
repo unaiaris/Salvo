@@ -27,9 +27,9 @@ cambia alcance o arquitectura, actualizar primero su bitácora y después los do
 
 - Etapa 1 integrada y verificada sobre `main`.
 - Etapa 2 integrada en `main` mediante `4b7bf54` y verificada con la compuerta full-stack.
-- E3-MOTOR-DETERMINISTA está implementada en `codex/e3-motor-determinista` mediante `c3a765c`,
-  con compuerta de rama verde y estado `Lista para integrar`; todavía no está integrada en `main`.
-- No iniciar Etapa 4 ni incorporar alertas, revisión o persistencia de evaluaciones durante E3.
+- Etapa 3 integrada en `main` mediante `809ff75` y verificada con la compuerta full-stack.
+- No hay tareas activas; Etapa 4 permanece pendiente de autorización explícita.
+- No iniciar Etapa 4 ni incorporar alertas, revisión o persistencia de evaluaciones sin aprobación.
 - No iniciar una etapa nueva sin petición o aprobación explícita del usuario.
 - El estado operativo, checklists y evidencias viven en `DesignAgent/Salvo-Progress.md`.
 

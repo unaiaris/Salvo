@@ -179,7 +179,7 @@ compuerta full-stack verde sobre `main`.
 
 ## Etapa 3 — motor determinista
 
-> Estado: implementación `c3a765c` lista para integrar; pendiente de verificación sobre `main`.
+> Estado: integrada en `main` mediante `809ff75` y verificada con la compuerta full-stack.
 
 ### Speech de 60 segundos
 

@@ -1,6 +1,6 @@
 # E3-MOTOR-DETERMINISTA — Baseline, reglas y evaluación temporal
 
-> Estado: Lista para integrar
+> Estado: Integrada y verificada
 
 ## Identificación
 
@@ -127,5 +127,5 @@ separada y produce métricas temporales reproducibles sin persistir evaluaciones
 - Handoff en `Coordination/Handoffs/Codex.md`.
 - Estado: `Lista para integrar | Parcial | Bloqueada`.
 
-Estado de entrega: `Lista para integrar`. Commit de implementación `c3a765c`; compuerta completa
-verde en la rama con 42 tests .NET, modelo EF sin cambios, 3 tests frontend y build de producción.
+Estado final: `Integrada y verificada`. Commit de implementación `c3a765c`, cierre de rama
+`56a9d97`, merge en `main` `809ff75` y compuerta full-stack verde sobre el estado integrado.

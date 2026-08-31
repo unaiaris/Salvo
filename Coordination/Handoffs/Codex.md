@@ -162,13 +162,15 @@ Registro de entregas producidas por Codex. El estado canónico sigue en el Workb
 
 ### Identificación
 
-- Estado: lista para integrar
+- Estado: integrada y verificada
 - Etapa: 3
 - Agente: Codex
 - Fecha: 2026-08-31
 - Rama: `codex/e3-motor-determinista`
 - Commit base: `4053f8f755ae7095615182430f73a46bafa0385b`
 - Commit de implementación: `c3a765c`
+- Commit de cierre de rama: `56a9d97`
+- Merge en `main`: `809ff75`
 
 ### Resultado
 
@@ -200,14 +202,14 @@ Registro de entregas producidas por Codex. El estado canónico sigue en el Workb
 - `dotnet test ...`: 42/42 pasan —24 dominio y 18 integración—.
 - `npm run check --prefix frontend`: typecheck, ESLint y 3/3 Vitest pasan.
 - `npm run build --prefix frontend`: Next.js 16.3.3 Webpack pasa.
-- `./scripts/check.sh`: compuerta full-stack verde en la rama.
+- `./scripts/check.sh`: compuerta full-stack verde en la rama y repetida sobre el merge en `main`.
 - `git diff --check`: pasa.
 
 ### Riesgos o pendientes
 
 - Los resultados perfectos pertenecen a una fixture pequeña y deliberadamente separable; no miden
   generalización ni validan empíricamente velocity/cross-border, cubiertas mediante tests dirigidos.
-- La rama está lista, no integrada. Falta merge, repetir la compuerta sobre `main` y solo entonces
-  marcar Etapa 3 completada.
+- La integración y la compuerta canónica sobre `main` están completadas; no quedan pendientes dentro
+  del alcance E3.
 - Etapa 4 permanece pendiente y requiere autorización independiente; E3 no persiste assessments ni
   crea alertas.
