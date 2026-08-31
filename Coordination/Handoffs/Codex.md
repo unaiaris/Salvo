@@ -60,14 +60,14 @@ Registro de entregas producidas por Codex. El estado canónico sigue en el Workb
 
 ### Identificación
 
-- Estado: lista para integrar
+- Estado: verificada
 - Etapa: 1
 - Agente: Codex
 - Fecha: 2026-08-31
 - Rama: `codex/e1-foundation`
 - Commit base: `ca94c4752073170939796f3174f58ccf4b190624`
-- Commit final: `HEAD` de `codex/e1-foundation` en la entrega; hash exacto registrado en el reporte
-  de Codex.
+- Commit final: `d5a35fb90a72f87b813c40d36f2ce6eb31d150ab`
+- Merge en `main`: `897cec7`
 
 ### Resultado
 
@@ -85,12 +85,12 @@ Registro de entregas producidas por Codex. El estado canónico sigue en el Workb
 - `npm run check --prefix frontend`: typecheck, ESLint y 3/3 tests pasan.
 - `npm run build --prefix frontend`: Next.js 16.3.3 Webpack pasa.
 - `./scripts/check.sh`: compuerta completa verde.
+- `./scripts/check.sh` repetido sobre `main` en `897cec7`: compuerta completa verde.
 - Smokes HTTP: API health, OpenAPI 3.1.1, frontend y proxy API responden `200`.
 - `git diff --check`: pasa; no hay `.env` ni DB SQLite versionadas.
 
 ### Riesgos o pendientes
 
-- Repetir la compuerta después del merge antes de marcar la etapa `Verificada`.
 - Turbopack no se pudo validar por la restricción de puertos del entorno; Webpack es la ruta de
   build de producción configurada y verificada.
 - La Etapa 2 no comenzó y requiere petición o aprobación independiente.

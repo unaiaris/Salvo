@@ -9,15 +9,15 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado del proyecto | Etapa 1 implementada en rama; lista para integrar |
-| Etapa completada | Etapa 0 — Documentación e instrucciones |
-| Etapa actual | Etapa 1 — Fundaciones reproducibles |
-| Estado de la etapa actual | En verificación |
-| Bloqueo actual | Ninguno; pendiente merge y compuerta conjunta |
+| Estado del proyecto | Etapa 1 — Fundaciones reproducibles completada |
+| Etapa completada | Etapa 1 — Fundaciones reproducibles |
+| Próxima etapa | Etapa 2 — Contrato y datos sintéticos |
+| Estado de la próxima etapa | Pendiente de aprobación |
+| Bloqueo actual | Ninguno |
 | Dependencias externas | Ninguna para el núcleo local |
 | Anthropic | Previsto para después del núcleo |
 | Koin sandbox | Post-MVP; sujeto a onboarding y credenciales |
-| Coordinación Codex–Claude | E1-FOUNDATION lista para integrar desde `codex/e1-foundation` |
+| Coordinación Codex–Claude | E1-FOUNDATION verificada sobre `main`; sin trabajo activo |
 
 ## Leyenda
 
@@ -36,7 +36,7 @@ Solo puede existir una etapa `En curso` a la vez.
 | Etapa | Objetivo | Estado | Compuerta principal | Evidencia |
 | --- | --- | --- | --- | --- |
 | 0 | Documentación e instrucciones | Completada | Docs coherentes y sin código | `AGENTS.md` + `DesignAgent/*.md` |
-| 1 | Fundaciones reproducibles | En verificación | Builds, tests y arranque de ASP.NET Core + Next.js | Brief + handoff E1-FOUNDATION |
+| 1 | Fundaciones reproducibles | Completada | Builds, tests y arranque de ASP.NET Core + Next.js | Merge `897cec7` + compuerta verde |
 | 2 | Contrato y datos sintéticos | Pendiente | Seed idempotente + parser validado | Pendiente |
 | 3 | Motor determinista | Pendiente | Tests por regla + métricas sin fuga | Pendiente |
 | 4 | Alertas y casos de uso | Pendiente | Idempotencia + consistencia transaccional | Pendiente |
@@ -46,7 +46,7 @@ Solo puede existir una etapa `En curso` a la vez.
 | 8 | Calidad y portfolio | Pendiente | Instalación limpia + demo reproducible | Pendiente |
 | Post-MVP | Koin sandbox, auth, observabilidad, deploy | Pendiente | Aprobación independiente por capacidad | Pendiente |
 
-## Próximo bloque de trabajo — Etapa 1
+## Etapa 1 — Resultado verificado
 
 ### Objetivo
 
@@ -119,7 +119,7 @@ La lista exacta se confirmará al iniciar la etapa. Como mínimo:
 - [x] No hay secretos ni archivos DB versionados.
 - [x] Riesgos restantes registrados.
 
-### Evidencia de rama
+### Evidencia integrada
 
 - `./scripts/check.sh`: restore NuGet bloqueado, build Release con 0 warnings/0 errores, 3 tests
   .NET, typecheck, ESLint, 3 tests Vitest y build Next.js 16.3.3 con Webpack, todo verde.
@@ -128,13 +128,15 @@ La lista exacta se confirmará al iniciar la etapa. Como mínimo:
 - Smoke frontend: `/` respondió `200` y `/api/health` atravesó el rewrite hacia la API.
 - Auditoría Git: sin secretos, `.env` ni bases SQLite versionadas; artefactos generados permanecen
   ignorados.
+- PR #1 integrado en `main` mediante `897cec7`; `./scripts/check.sh` repetido sobre ese estado con
+  todos los pasos verdes.
 
 ### Riesgos restantes de Etapa 1
 
 - El build Turbopack no puede validarse bajo la restricción de puertos del entorno; la compuerta usa
   `next build --webpack`, opción soportada por Next.js 16.3.3 y verificada en producción local.
-- El merge y la repetición de `./scripts/check.sh` sobre el estado integrado siguen pendientes; por
-  eso la etapa permanece `En verificación` y no se inicia la Etapa 2.
+
+La Etapa 2 permanece pendiente de aprobación y no se inicia automáticamente.
 
 ## Checklists por etapa
 
@@ -234,6 +236,7 @@ La lista exacta se confirmará al iniciar la etapa. Como mínimo:
 | 2026-08-31 | 1 | Inicio de fundaciones reproducibles | Aprobación del usuario, brief y rama aislada | En curso |
 | 2026-08-31 | 1 | Scaffold .NET 10 + Next.js 16, SQLite, OpenAPI y tests | Build Release, 3 tests .NET, check frontend y build Webpack | Lista para integrar |
 | 2026-08-31 | 1 | Compuerta raíz y smokes full-stack | `./scripts/check.sh`; health, OpenAPI, frontend y proxy HTTP 200 | Verde en rama |
+| 2026-08-31 | 1 | PR #1 integrado y verificación conjunta sobre `main` | Merge `897cec7` + `./scripts/check.sh` | Completada |
 
 ## Protocolo de actualización
 

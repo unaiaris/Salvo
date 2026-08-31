@@ -8,8 +8,7 @@
 ## Estado actual
 
 - Etapa 0 documental completada.
-- Etapa 1 implementada en `codex/e1-foundation` y lista para integrar.
-- La Etapa 1 no se considera integrada hasta hacer merge y repetir la compuerta conjunta.
+- Etapa 1 integrada mediante PR #1 y verificada sobre `main` en `897cec7`.
 - La Etapa 2 continúa pendiente y no se inicia automáticamente.
 
 ## Herramientas
