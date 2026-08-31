@@ -177,6 +177,76 @@ importe se particiona por moneda. Ciudad es una localidad opcional, nunca una di
 La evidencia integrada es 16 tests de integración, 8 de dominio, modelo EF sin cambios pendientes y
 compuerta full-stack verde sobre `main`.
 
+## Etapa 3 — motor determinista
+
+> Estado: implementación en rama; pendiente de integración y verificación sobre `main`.
+
+### Speech de 60 segundos
+
+> El motor reproduce el orden de tiempo de evento y trata todos los pedidos con el mismo timestamp
+> como una cohorte: ninguno puede observar a otro evento simultáneo. Cada assessment usa únicamente
+> pedidos anteriores y una configuración inmutable versionada. Las seis reglas generan señales con
+> peso y evidencia legible; el score suma esas señales, se limita a 100 y requiere 60 para marcarse.
+> El scorer solo recibe pedidos, nunca labels. Después, otro caso de uso une los scores ya calculados
+> con el ground truth, calibra el umbral sobre los primeros dos tercios temporales y mide una vez el
+> tercio final. En la fixture sintética el holdout da 6 TP, 0 FP y 0 FN, pero lo presento como una
+> prueba reproducible del pipeline, no como rendimiento generalizable: el dataset fue diseñado para
+> ser separable y las reglas de velocity se validan con escenarios específicos.
+
+### Configuración y resultado provisional
+
+| Regla | Semántica resumida | Peso |
+| --- | --- | ---: |
+| `amount_anomaly` | `>=3x` mediana temporal por comprador/moneda, con fallback al comercio | 40 |
+| `velocity` | Cuarto pedido del comprador en diez minutos | 30 |
+| `cross_border_velocity` | País distinto dentro de dos horas | 40 |
+| `unusual_hour` | Franja local rara tras 20 pedidos anteriores | 10 |
+| `new_buyer_high_value` | Comprador nuevo y `>=2.5x` mediana del comercio | 30 |
+| `foreign_country` | País distinto del habitual con dominancia mínima de 60% | 20 |
+
+- Umbral: `score >= 60`; ninguna señal aislada marca un pedido.
+- Scores de la fixture: 266 en 0, 16 en 20, 13 en 60 y 5 en 90.
+- Calibración: 12 TP, 0 FP, 0 FN y 188 TN.
+- Holdout: 6 TP, 0 FP, 0 FN y 94 TN.
+- Los 18 positivos sintéticos combinan importe anómalo y país extranjero. La fixture no contiene
+  ráfagas suficientes para medir empíricamente todas las reglas.
+
+### Recorrido real por capas
+
+| Capa | Código para mostrar | Responsabilidad |
+| --- | --- | --- |
+| `Salvo.Domain/Risk` | `RuleConfig.cs`, `TemporalRiskEngine.cs` | Cohortes temporales, baseline efímero, seis reglas, señales y score puro. |
+| `Salvo.Domain/Evaluation` | `RiskMetricsEvaluator.cs` | Matriz, métricas, sweep 0–100 y split temporal sin dependencias de EF. |
+| `Salvo.Application/Risk` | `EvaluateLocalRiskHandler.cs` | Calcula scores antes de pedir labels; exige cobertura completa y evalúa holdout. |
+| `Salvo.Infrastructure` | `EfRiskOrderReader.cs`, `EfEvaluationLabelReader.cs` | Lectores separados y read-only sobre el schema E2. |
+| Tests | `TemporalRiskEngineTests.cs`, `RiskMetricsEvaluatorTests.cs`, `RiskEvaluationTests.cs` | Futuro, cohortes, orden, reglas, cold start, límites, idempotencia y fixture completa. |
+
+### Decisiones para profundizar
+
+#### ¿Por qué agrupar timestamps iguales?
+
+El orden por referencia resuelve reproducibilidad, no causalidad. Si se actualizara el baseline
+después de cada pedido, un evento simultáneo podría convertirse artificialmente en historia del
+siguiente. El motor evalúa el grupo completo y solo entonces actualiza el estado.
+
+#### ¿Cómo se impide el uso del label?
+
+`TemporalRiskEngine.Score` acepta únicamente pedidos y `RuleConfig`. Aplicación usa un puerto para
+pedidos y otro para labels; consulta los labels después de obtener todos los assessments. Un test de
+arquitectura protege esta firma y la evaluación rechaza cobertura incompleta.
+
+#### ¿Por qué mediana y factores racionales?
+
+La mediana tolera mejor los propios outliers que intentamos detectar. Los factores `3/1` y `5/2`
+se comparan con aritmética decimal exacta, sin una decisión de borde dependiente de `double`.
+
+#### ¿Qué significa la métrica perfecta actual?
+
+Demuestra que el procesamiento, la separación de labels y el split son reproducibles sobre la
+fixture conocida. No estima desempeño real: el dataset es pequeño, sintético y deliberadamente
+separable. Un piloto real exigiría datos representativos, costos de negocio y validación temporal
+externa.
+
 ## Preguntas técnicas probables
 
 ### ¿Cómo evitás fuga temporal en el motor?

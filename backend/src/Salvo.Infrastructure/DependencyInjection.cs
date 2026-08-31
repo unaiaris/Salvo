@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Salvo.Application.Orders;
 using Salvo.Application.Orders.Importing;
 using Salvo.Application.Orders.Seed;
+using Salvo.Application.Risk;
 using Salvo.Infrastructure.Importing;
 using Salvo.Infrastructure.Persistence;
 using Salvo.Infrastructure.Seed;
@@ -26,8 +27,11 @@ public static class DependencyInjection
         services.AddScoped<IOrderDataStore, EfOrderDataStore>();
         services.AddScoped<IOrderImportParser, OrderImportParser>();
         services.AddScoped<IDemoOrderSource, EmbeddedDemoOrderSource>();
+        services.AddScoped<IRiskOrderReader, EfRiskOrderReader>();
+        services.AddScoped<IEvaluationLabelReader, EfEvaluationLabelReader>();
         services.AddScoped<ImportOrdersHandler>();
         services.AddScoped<SeedDemoOrdersHandler>();
+        services.AddScoped<EvaluateLocalRiskHandler>();
 
         return services;
     }

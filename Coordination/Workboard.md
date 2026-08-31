@@ -1,6 +1,6 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: E2-CONTRACT-DATA integrada y verificada; sin trabajo activo
+> Estado: E3-MOTOR-DETERMINISTA en curso
 > Última actualización: 2026-08-31
 > Responsable: coordinador de la etapa
 
@@ -14,7 +14,9 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 
 ## Trabajo activo
 
-No hay tareas activas ni paths reservados.
+| Work ID | Etapa | Objetivo | Propietario | Estado | Rama | Base | Paths reservados | Dependencias | Actualizado |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| E3-MOTOR-DETERMINISTA | 3 | Baseline temporal, reglas, scoring y evaluación sin fuga | Codex | En curso | `codex/e3-motor-determinista` | `4053f8f` | `backend/src/Salvo.Domain/**`, `backend/src/Salvo.Application/**`, `backend/src/Salvo.Infrastructure/**`, `backend/tests/**`, `DesignAgent/**`, `Coordination/**` | E2 verificada + diseño E3 aprobado | 2026-08-31 |
 
 ## Cola próxima
 
