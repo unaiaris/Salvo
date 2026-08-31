@@ -1,6 +1,6 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: Etapa 1 lista para integrar
+> Estado: Etapa 1 verificada; sin trabajo activo
 > Última actualización: 2026-08-31
 > Responsable: coordinador de la etapa
 
@@ -14,17 +14,16 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 
 ## Trabajo activo
 
-| Work ID | Etapa | Objetivo | Propietario | Estado | Rama | Base | Paths reservados | Dependencias | Actualizado |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| E1-FOUNDATION | 1 | Fundaciones ASP.NET Core + Next.js y compuerta conjunta | Codex | Lista para integrar | `codex/e1-foundation` | `ca94c47` | Configuración central, `backend/**`, `frontend/**` | Ninguna; compuerta verde | 2026-08-31 |
+No hay tareas activas.
 
 ## Cola próxima
 
-No hay otra tarea en cola mientras se serializa la fundación.
+| Work ID | Etapa | Objetivo | Estado | Dependencias | Paths previstos |
+| --- | --- | --- | --- | --- | --- |
+| E2-CONTRACT-DATA | 2 | Contrato, migración y datos sintéticos idempotentes | Propuesta | Aprobación de inicio y schema detallado | Domain, Application, Infrastructure, API y tests relacionados |
 
-La Etapa 1 contiene archivos difíciles de paralelizar —solución, paquetes NuGet, `package.json`,
-lockfile, EF Core, OpenAPI y configuración—, por lo que conviene completar primero su scaffold de
-manera secuencial. El trabajo paralelo será más seguro desde módulos con contratos ya integrados.
+E2-CONTRACT-DATA es solo una propuesta de cola; todavía no tiene propietario, rama ni paths
+reservados.
 
 ## Historial integrado
 
@@ -35,6 +34,7 @@ manera secuencial. El trabajo paralelo será más seguro desde módulos con cont
 | E0-DOC-03 | 0 | Tracker y entrevista Koin | Codex | Verificada | Progress + Interview Prep |
 | E0-DOC-04 | 0 | Kit Claude y coordinación multiagente | Codex | Verificada | `CLAUDE.md`, `ClaudeAgent/`, `Coordination/` |
 | E0-DOC-05 | 0 | Instrucciones concisas y task brief compartido | Codex | Verificada | `AGENTS.md`, `CLAUDE.md`, `Coordination/Task-Brief-Template.md` |
+| E1-FOUNDATION | 1 | Fundaciones ASP.NET Core + Next.js y compuerta conjunta | Codex | Verificada | PR #1, merge `897cec7` y compuerta sobre `main` |
 
 ## Plantilla de fila activa
 

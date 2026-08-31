@@ -92,9 +92,15 @@ ASP.NET Core/.NET 10, un frontend Next.js y una compuerta reproducible, sin lóg
 
 ## Riesgos y pendientes
 
-- Repetir `./scripts/check.sh` después del merge para cambiar el estado canónico a `Verificada`.
 - Turbopack queda sin evidencia en este entorno; no bloquea el build Webpack configurado.
 - La Etapa 2 permanece fuera de alcance y pendiente de aprobación.
+
+## Integración
+
+- PR: #1.
+- Commit de implementación: `d5a35fb90a72f87b813c40d36f2ce6eb31d150ab`.
+- Merge en `main`: `897cec7`.
+- Compuerta posterior al merge: `./scripts/check.sh`, verde en todos sus pasos.
 
 ## Decisiones delegadas
 
@@ -115,4 +121,4 @@ ASP.NET Core/.NET 10, un frontend Next.js y una compuerta reproducible, sin lóg
 - Estado: `Lista para integrar | Parcial | Bloqueada`.
 - Handoff en `Coordination/Handoffs/Codex.md` antes de integrar en `main`.
 
-Estado de entrega: `Lista para integrar`.
+Estado de entrega original: `Lista para integrar`. Estado posterior a integración: `Verificada`.
