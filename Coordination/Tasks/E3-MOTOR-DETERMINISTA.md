@@ -1,6 +1,6 @@
 # E3-MOTOR-DETERMINISTA — Baseline, reglas y evaluación temporal
 
-> Estado: En curso
+> Estado: Lista para integrar
 
 ## Identificación
 
@@ -84,16 +84,16 @@ separada y produce métricas temporales reproducibles sin persistir evaluaciones
 
 ## Criterios de aceptación
 
-- [ ] Ningún pedido observa timestamps iguales o posteriores.
-- [ ] Permutar la entrada no cambia assessments ni señales.
-- [ ] El scorer no acepta ni consulta `OrderEvaluationLabel`.
-- [ ] Cada regla tiene tests positivos, negativos, límites y cold start.
-- [ ] Score, cap, señal y umbral son deterministas y auditables.
-- [ ] Repetir scoring produce exactamente la misma salida y ninguna escritura.
-- [ ] Métricas, split y threshold sweep son reproducibles y sin fuga.
-- [ ] La fixture E2 produce evidencia documentada sin presentar generalización.
-- [ ] No existen migraciones, tablas, endpoints, alertas ni dependencias nuevas.
-- [ ] La compuerta full-stack permanece verde.
+- [x] Ningún pedido observa timestamps iguales o posteriores.
+- [x] Permutar la entrada no cambia assessments ni señales.
+- [x] El scorer no acepta ni consulta `OrderEvaluationLabel`.
+- [x] Cada regla tiene tests positivos, negativos, límites y cold start.
+- [x] Score, cap, señal y umbral son deterministas y auditables.
+- [x] Repetir scoring produce exactamente la misma salida y ninguna escritura.
+- [x] Métricas, split y threshold sweep son reproducibles y sin fuga.
+- [x] La fixture E2 produce evidencia documentada sin presentar generalización.
+- [x] No existen migraciones, tablas, endpoints, alertas ni dependencias nuevas.
+- [x] La compuerta full-stack permanece verde.
 
 ## Verificación y evidencia
 
@@ -126,3 +126,6 @@ separada y produce métricas temporales reproducibles sin persistir evaluaciones
 - Mapa por capas y speech actualizado en la ayuda memoria.
 - Handoff en `Coordination/Handoffs/Codex.md`.
 - Estado: `Lista para integrar | Parcial | Bloqueada`.
+
+Estado de entrega: `Lista para integrar`. Commit de implementación `c3a765c`; compuerta completa
+verde en la rama con 42 tests .NET, modelo EF sin cambios, 3 tests frontend y build de producción.

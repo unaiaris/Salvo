@@ -1,7 +1,7 @@
 # Salvo — Blueprint del MVP
 
 > Estado del documento: vigente
-> Estado del proyecto: Etapa 3 en curso; diseño de motor determinista aprobado
+> Estado del proyecto: Etapa 3 implementada en rama y pendiente de integración
 > Última actualización: 2026-08-31
 > Seguimiento operativo: [[Salvo-Progress]]
 

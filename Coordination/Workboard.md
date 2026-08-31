@@ -1,6 +1,6 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: E3-MOTOR-DETERMINISTA en curso
+> Estado: E3-MOTOR-DETERMINISTA lista para integrar
 > Última actualización: 2026-08-31
 > Responsable: coordinador de la etapa
 
@@ -16,7 +16,7 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 
 | Work ID | Etapa | Objetivo | Propietario | Estado | Rama | Base | Paths reservados | Dependencias | Actualizado |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| E3-MOTOR-DETERMINISTA | 3 | Baseline temporal, reglas, scoring y evaluación sin fuga | Codex | En curso | `codex/e3-motor-determinista` | `4053f8f` | `backend/src/Salvo.Domain/**`, `backend/src/Salvo.Application/**`, `backend/src/Salvo.Infrastructure/**`, `backend/tests/**`, `DesignAgent/**`, `Coordination/**` | E2 verificada + diseño E3 aprobado | 2026-08-31 |
+| E3-MOTOR-DETERMINISTA | 3 | Baseline temporal, reglas, scoring y evaluación sin fuga | Codex | Lista para integrar | `codex/e3-motor-determinista` | `4053f8f` | `backend/src/Salvo.Domain/**`, `backend/src/Salvo.Application/**`, `backend/src/Salvo.Infrastructure/**`, `backend/tests/**`, `DesignAgent/**`, `Coordination/**` | E2 verificada + diseño E3 aprobado | 2026-08-31 |
 
 ## Cola próxima
 
