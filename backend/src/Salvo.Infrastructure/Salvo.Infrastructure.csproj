@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Salvo.Application/Salvo.Application.csproj" />
+    <ProjectReference Include="../Salvo.Domain/Salvo.Domain.csproj" />
+  </ItemGroup>
+</Project>

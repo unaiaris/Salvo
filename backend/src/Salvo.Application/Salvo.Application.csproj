@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../Salvo.Domain/Salvo.Domain.csproj" />
+  </ItemGroup>
+</Project>

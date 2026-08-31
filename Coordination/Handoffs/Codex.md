@@ -1,0 +1,96 @@
+# Salvo — Handoffs de Codex
+
+Registro de entregas producidas por Codex. El estado canónico sigue en el Workboard y Progress.
+
+## E0-DOC-04 — Kit Claude y coordinación multiagente
+
+### Identificación
+
+- Estado: integrado
+- Etapa: 0
+- Agente: Codex
+- Fecha: 2026-08-30
+
+### Resultado
+
+- `CLAUDE.md` raíz con imports de contexto compartido.
+- Carpeta `ClaudeAgent/` con workflow, task brief y handoff.
+- Carpeta `Coordination/` con protocolo, Workboard y logs separados.
+- Política de fuente única y reglas para ramas/worktrees paralelos.
+
+### Verificación
+
+- Estructura Markdown y enlaces internos.
+- Ausencia de secretos.
+- Ningún código de aplicación ni dependencia añadidos.
+
+### Riesgos o pendientes
+
+- Claude Code no está instalado actualmente en este entorno.
+- La Etapa 1 no debe paralelizarse hasta fijar scaffold y configuración central.
+
+## E0-DOC-05 — Instrucciones y task brief compartido
+
+### Identificación
+
+- Estado: integrado
+- Etapa: 0
+- Agente: Codex
+- Fecha: 2026-08-31
+
+### Resultado
+
+- `AGENTS.md` centraliza autonomía, aprobaciones y reglas compartidas.
+- `CLAUDE.md` queda como adaptador conciso sin duplicar el workflow.
+- `Coordination/Task-Brief-Template.md` sirve a Codex y Claude con resultado, alcance,
+  autorizaciones, aceptación y evidencia.
+- Terminología y estados de entrega quedan alineados con el Workboard.
+
+### Verificación
+
+- Referencias internas y nombres de archivos revisados.
+- Terminología de arquitectura y estados buscada en todos los Markdown.
+- Formato del diff validado sin errores.
+
+### Riesgos o pendientes
+
+- La carga real de imports de `CLAUDE.md` requiere un smoke test cuando Claude Code esté instalado.
+
+## E1-FOUNDATION — Fundaciones reproducibles
+
+### Identificación
+
+- Estado: lista para integrar
+- Etapa: 1
+- Agente: Codex
+- Fecha: 2026-08-31
+- Rama: `codex/e1-foundation`
+- Commit base: `ca94c4752073170939796f3174f58ccf4b190624`
+- Commit final: `HEAD` de `codex/e1-foundation` en la entrega; hash exacto registrado en el reporte
+  de Codex.
+
+### Resultado
+
+- Solución .NET 10 modular con Domain, Application, Infrastructure, API y proyectos de tests.
+- API mínima con health, OpenAPI y EF Core/SQLite comprobado en integración.
+- Frontend Next.js App Router con TypeScript estricto, ESLint, Tailwind, Vitest y rewrite a la API.
+- SDKs, dependencias directas y lockfiles fijados; `.env.example` no contiene secretos.
+- Compuerta raíz `scripts/check.sh` para ambas toolchains.
+
+### Verificación
+
+- `dotnet restore Salvo.slnx --locked-mode`: pasa.
+- `dotnet build Salvo.slnx --configuration Release --no-restore`: 0 warnings, 0 errores.
+- `dotnet test Salvo.slnx --configuration Release --no-build --no-restore`: 3/3 tests pasan.
+- `npm run check --prefix frontend`: typecheck, ESLint y 3/3 tests pasan.
+- `npm run build --prefix frontend`: Next.js 16.3.3 Webpack pasa.
+- `./scripts/check.sh`: compuerta completa verde.
+- Smokes HTTP: API health, OpenAPI 3.1.1, frontend y proxy API responden `200`.
+- `git diff --check`: pasa; no hay `.env` ni DB SQLite versionadas.
+
+### Riesgos o pendientes
+
+- Repetir la compuerta después del merge antes de marcar la etapa `Verificada`.
+- Turbopack no se pudo validar por la restricción de puertos del entorno; Webpack es la ruta de
+  build de producción configurada y verificada.
+- La Etapa 2 no comenzó y requiere petición o aprobación independiente.
