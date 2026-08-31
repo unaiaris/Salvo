@@ -99,14 +99,15 @@ Registro de entregas producidas por Codex. El estado canónico sigue en el Workb
 
 ### Identificación
 
-- Estado: lista para integrar
+- Estado: integrada y verificada
 - Etapa: 2
 - Agente: Codex
 - Fecha: 2026-08-31
 - Rama: `codex/e2-contract-data`
 - Commit base: `193f7aacfe822160bbd9dc6c52815d970a93df4e`
 - Commit de implementación: `8b79010`
-- Push/merge: no realizados
+- Commit de cierre de rama: `a78e577`
+- Merge en `main`: `4b7bf54`
 
 ### Resultado
 
@@ -150,8 +151,8 @@ Registro de entregas producidas por Codex. El estado canónico sigue en el Workb
 
 ### Riesgos o pendientes
 
-- Falta push, revisión, merge y repetición de la compuerta sobre `main`; E2 aún no está integrada ni
-  completada canónicamente.
+- La integración y la compuerta canónica sobre `main` están completadas; no quedan pendientes dentro
+  del alcance E2.
 - La API no migra ni carga seed al arrancar por diseño. Una DB local efímera de E1 con el antiguo
   checkpoint requiere que el desarrollador la aparte o elimine explícitamente antes de aplicar la
   primera migración; ningún comando de E2 borra datos automáticamente.

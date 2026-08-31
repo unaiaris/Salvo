@@ -59,11 +59,11 @@ externas.
 | Blueprint e instrucciones Codex | Actualizados |
 | Kit Claude y coordinación paralela | Preparados |
 | Etapa 1 | Integrada y verificada en `main` |
-| Etapa 2 | Lista para integrar desde `codex/e2-contract-data`; compuerta verde |
+| Etapa 2 | Integrada en `main` mediante `4b7bf54` y verificada |
 | Anthropic | Previsto para una etapa posterior |
 | Koin sandbox | Opcional, sujeto a onboarding |
 
 ## Próximo paso
 
-Revisar e integrar E2-CONTRACT-DATA desde `codex/e2-contract-data`, repetir la compuerta sobre
-`main` y cerrar documentalmente la etapa. Etapa 3 permanece pendiente de autorización separada.
+Definir y aprobar el brief detallado de Etapa 3 antes de iniciar baseline, reglas o scoring. No hay
+trabajo activo y la integración de E2 no autoriza automáticamente la siguiente etapa.

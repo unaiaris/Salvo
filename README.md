@@ -3,8 +3,8 @@
 Consola antifraude B2B de portfolio para e-commerce, diseñada alrededor de reglas deterministas,
 alertas auditables e integración desacoplada con proveedores externos.
 
-Estado: fundación ejecutable y contrato de pedidos/datos sintéticos implementado en la rama E2; las
-reglas antifraude comienzan en una etapa posterior.
+Estado: fundación y contrato de pedidos/datos sintéticos integrados y verificados; las reglas
+antifraude comienzan en una etapa posterior.
 
 ## Verificación local
 

@@ -1,6 +1,6 @@
 # E2-CONTRACT-DATA — Contrato y datos sintéticos
 
-> Estado: Lista para integrar
+> Estado: Integrada y verificada
 
 ## Identificación
 
@@ -198,4 +198,5 @@ sin incorporar scoring, alertas, proveedores externos ni datos reales.
 - Handoff en `Coordination/Handoffs/<Agente>.md` si se usa rama/worktree separado.
 - Estado de implementación: `Lista para integrar | Parcial | Bloqueada`.
 
-Estado actual: `Lista para integrar`. Implementación local en `8b79010`; no se hizo push ni merge.
+Estado final: `Integrada y verificada`. Implementación `8b79010`, cierre de rama `a78e577`, merge en
+`main` `4b7bf54` y compuerta full-stack verde sobre el estado integrado.

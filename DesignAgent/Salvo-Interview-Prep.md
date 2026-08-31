@@ -92,8 +92,7 @@ volumen. No se presenta SQLite como elección de producción para un sistema ant
 
 ## Etapa 2 — contrato y datos
 
-> Estado: implementada y verificada en `codex/e2-contract-data`, todavía pendiente de integración.
-> Puede explicarse como resultado de la rama, aclarando que aún falta merge y verificación en `main`.
+> Estado: integrada en `main` mediante `4b7bf54` y verificada con la compuerta full-stack.
 
 ### Speech de 45 segundos
 
@@ -175,8 +174,8 @@ importe se particiona por moneda. Ciudad es una localidad opcional, nunca una di
 7. Cerrar con `OrderImportEndpointTests`, `OrderPersistenceTests` y `DemoSeedTests`: los tests hacen
    ejecutable el relato —formatos, límites, rollback, orden temporal, idempotencia y privacidad—.
 
-La evidencia actual es 16 tests de integración, 8 de dominio, modelo EF sin cambios pendientes y
-compuerta full-stack verde. Sigue siendo correcto decir “lista para integrar”, no “integrada”.
+La evidencia integrada es 16 tests de integración, 8 de dominio, modelo EF sin cambios pendientes y
+compuerta full-stack verde sobre `main`.
 
 ## Preguntas técnicas probables
 

@@ -9,15 +9,15 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado del proyecto | Etapa 2 — Contrato y datos sintéticos lista para integrar |
-| Etapa completada | Etapa 1 — Fundaciones reproducibles |
-| Etapa actual | Etapa 2 — Contrato y datos sintéticos |
-| Estado de la etapa actual | En verificación; compuerta de rama verde |
+| Estado del proyecto | Etapa 2 — Contrato y datos sintéticos completada |
+| Etapa completada | Etapa 2 — Contrato y datos sintéticos |
+| Próxima etapa | Etapa 3 — Motor determinista |
+| Estado de la próxima etapa | Pendiente de diseño y autorización |
 | Bloqueo actual | Ninguno |
 | Dependencias externas | Ninguna para el núcleo local |
 | Anthropic | Previsto para después del núcleo |
 | Koin sandbox | Post-MVP; sujeto a onboarding y credenciales |
-| Coordinación Codex–Claude | E2-CONTRACT-DATA lista para integrar desde `codex/e2-contract-data` |
+| Coordinación Codex–Claude | Sin tareas activas ni paths reservados |
 
 ## Leyenda
 
@@ -37,7 +37,7 @@ Solo puede existir una etapa `En curso` a la vez.
 | --- | --- | --- | --- | --- |
 | 0 | Documentación e instrucciones | Completada | Docs coherentes y sin código | `AGENTS.md` + `DesignAgent/*.md` |
 | 1 | Fundaciones reproducibles | Completada | Builds, tests y arranque de ASP.NET Core + Next.js | Merge `897cec7` + compuerta verde |
-| 2 | Contrato y datos sintéticos | En verificación | Seed idempotente + parser validado | Commit `8b79010` + 24 tests .NET + compuerta verde |
+| 2 | Contrato y datos sintéticos | Completada | Seed idempotente + parser validado | Merge `4b7bf54` + 24 tests .NET + compuerta verde en `main` |
 | 3 | Motor determinista | Pendiente | Tests por regla + métricas sin fuga | Pendiente |
 | 4 | Alertas y casos de uso | Pendiente | Idempotencia + consistencia transaccional | Pendiente |
 | 5 | UI y dashboard | Pendiente | Recorrido completo y estados vacíos/error | Pendiente |
@@ -136,9 +136,8 @@ La lista exacta se confirmará al iniciar la etapa. Como mínimo:
 - El build Turbopack no puede validarse bajo la restricción de puertos del entorno; la compuerta usa
   `next build --webpack`, opción soportada por Next.js 16.3.3 y verificada en producción local.
 
-La implementación de Etapa 2 está lista para integrar desde la rama de trabajo. No se considera
-completada hasta hacer merge y repetir la compuerta sobre `main`; Etapa 3 no se inicia
-automáticamente.
+La Etapa 2 quedó integrada y verificada sobre `main`. Etapa 3 permanece pendiente: requiere diseño,
+brief y autorización independientes antes de incorporar baseline, reglas o scoring.
 
 ## Checklists por etapa
 
@@ -247,6 +246,7 @@ automáticamente.
 | 2026-08-31 | 2 | Inicio de E2-CONTRACT-DATA | Autorización del usuario + rama `codex/e2-contract-data` desde `193f7aa` | En curso |
 | 2026-08-31 | 2 | Contrato, importadores, migración y seed implementados | Commit `8b79010`; 16 tests de integración + 8 de dominio | Lista para integrar |
 | 2026-08-31 | 2 | Compuerta full-stack de rama | Restore locked, tooling EF, modelo sin cambios, 24 tests .NET, 3 Vitest y build Next.js | Verde en rama |
+| 2026-08-31 | 2 | Integración y verificación canónica | Merge `4b7bf54` + `./scripts/check.sh` sobre `main` | Completada |
 
 ## Protocolo de actualización
 

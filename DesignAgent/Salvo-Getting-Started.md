@@ -9,8 +9,8 @@
 
 - Etapa 0 documental completada.
 - Etapa 1 integrada mediante PR #1, cerrada mediante PR #2 y verificada sobre `main` en `66f0949`.
-- E2-CONTRACT-DATA está implementada y con compuerta verde en `codex/e2-contract-data`; todavía no
-  está integrada en `main`.
+- Etapa 2 está integrada en `main` mediante `4b7bf54` y verificada con la compuerta full-stack.
+- No hay tareas activas; Etapa 3 no comienza sin autorización explícita.
 
 ## Herramientas
 

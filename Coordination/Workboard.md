@@ -1,6 +1,6 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: E2-CONTRACT-DATA lista para integrar
+> Estado: E2-CONTRACT-DATA integrada y verificada; sin trabajo activo
 > Última actualización: 2026-08-31
 > Responsable: coordinador de la etapa
 
@@ -14,9 +14,7 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 
 ## Trabajo activo
 
-| Work ID | Etapa | Objetivo | Propietario | Estado | Rama | Base | Paths reservados | Dependencias | Actualizado |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| E2-CONTRACT-DATA | 2 | Contrato, migración y datos sintéticos idempotentes | Codex | Lista para integrar | `codex/e2-contract-data` | `193f7aa` | Backend, tests y configuración/documentación E2 | Compuerta verde; requiere push/merge y verificación conjunta | 2026-08-31 |
+No hay tareas activas ni paths reservados.
 
 ## Cola próxima
 
@@ -32,6 +30,7 @@ No hay otras tareas en cola.
 | E0-DOC-04 | 0 | Kit Claude y coordinación multiagente | Codex | Verificada | `CLAUDE.md`, `ClaudeAgent/`, `Coordination/` |
 | E0-DOC-05 | 0 | Instrucciones concisas y task brief compartido | Codex | Verificada | `AGENTS.md`, `CLAUDE.md`, `Coordination/Task-Brief-Template.md` |
 | E1-FOUNDATION | 1 | Fundaciones ASP.NET Core + Next.js y compuerta conjunta | Codex | Verificada | PR #1, merge `897cec7` y compuerta sobre `main` |
+| E2-CONTRACT-DATA | 2 | Contrato, importación, migración y datos sintéticos idempotentes | Codex | Verificada | Merge `4b7bf54`, 24 tests .NET y compuerta sobre `main` |
 
 ## Plantilla de fila activa
 
