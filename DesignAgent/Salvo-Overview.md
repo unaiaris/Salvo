@@ -59,12 +59,11 @@ externas.
 | Blueprint e instrucciones Codex | Actualizados |
 | Kit Claude y coordinación paralela | Preparados |
 | Etapa 1 | Integrada y verificada en `main` |
-| Etapa 2 | Schema y brief aprobados; implementación no iniciada |
+| Etapa 2 | En curso en `codex/e2-contract-data` |
 | Anthropic | Previsto para una etapa posterior |
 | Koin sandbox | Opcional, sujeto a onboarding |
 
 ## Próximo paso
 
-Autorizar explícitamente el inicio de E2-CONTRACT-DATA. Su schema, contratos, límites y criterios de
-aceptación ya están documentados en el Blueprint y en `../Coordination/Tasks/E2-CONTRACT-DATA.md`;
-no existe todavía rama, propietario ni trabajo activo.
+Implementar E2-CONTRACT-DATA dentro del schema, contratos, límites y criterios aprobados en el
+Blueprint y en `../Coordination/Tasks/E2-CONTRACT-DATA.md`, sin avanzar a reglas o scoring de E3.

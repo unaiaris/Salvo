@@ -1,7 +1,7 @@
 # Salvo — Blueprint del MVP
 
 > Estado del documento: vigente
-> Estado del proyecto: Etapa 1 integrada; schema de Etapa 2 aprobado y pendiente de inicio
+> Estado del proyecto: Etapa 2 — contrato y datos sintéticos en curso
 > Última actualización: 2026-08-31
 > Seguimiento operativo: [[Salvo-Progress]]
 

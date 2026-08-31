@@ -9,8 +9,8 @@
 
 - Etapa 0 documental completada.
 - Etapa 1 integrada mediante PR #1, cerrada mediante PR #2 y verificada sobre `main` en `66f0949`.
-- El schema y brief de Etapa 2 están aprobados; la implementación continúa pendiente y no se inicia
-  automáticamente.
+- El schema y brief de Etapa 2 están aprobados; E2-CONTRACT-DATA está en curso en
+  `codex/e2-contract-data`.
 
 ## Herramientas
 

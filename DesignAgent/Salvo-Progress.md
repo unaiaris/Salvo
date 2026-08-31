@@ -9,15 +9,15 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado del proyecto | Etapa 1 — Fundaciones reproducibles completada |
+| Estado del proyecto | Etapa 2 — Contrato y datos sintéticos en curso |
 | Etapa completada | Etapa 1 — Fundaciones reproducibles |
-| Próxima etapa | Etapa 2 — Contrato y datos sintéticos |
-| Estado de la próxima etapa | Schema aprobado; inicio pendiente de autorización |
+| Etapa actual | Etapa 2 — Contrato y datos sintéticos |
+| Estado de la etapa actual | En curso |
 | Bloqueo actual | Ninguno |
 | Dependencias externas | Ninguna para el núcleo local |
 | Anthropic | Previsto para después del núcleo |
 | Koin sandbox | Post-MVP; sujeto a onboarding y credenciales |
-| Coordinación Codex–Claude | Brief E2 documentado como propuesta; sin trabajo activo |
+| Coordinación Codex–Claude | E2-CONTRACT-DATA asignada a Codex en `codex/e2-contract-data` |
 
 ## Leyenda
 
@@ -37,7 +37,7 @@ Solo puede existir una etapa `En curso` a la vez.
 | --- | --- | --- | --- | --- |
 | 0 | Documentación e instrucciones | Completada | Docs coherentes y sin código | `AGENTS.md` + `DesignAgent/*.md` |
 | 1 | Fundaciones reproducibles | Completada | Builds, tests y arranque de ASP.NET Core + Next.js | Merge `897cec7` + compuerta verde |
-| 2 | Contrato y datos sintéticos | Pendiente | Seed idempotente + parser validado | Schema y brief aprobados; implementación pendiente |
+| 2 | Contrato y datos sintéticos | En curso | Seed idempotente + parser validado | Brief E2 + rama `codex/e2-contract-data` |
 | 3 | Motor determinista | Pendiente | Tests por regla + métricas sin fuga | Pendiente |
 | 4 | Alertas y casos de uso | Pendiente | Idempotencia + consistencia transaccional | Pendiente |
 | 5 | UI y dashboard | Pendiente | Recorrido completo y estados vacíos/error | Pendiente |
@@ -240,6 +240,7 @@ inicia automáticamente.
 | 2026-08-31 | 1 | Compuerta raíz y smokes full-stack | `./scripts/check.sh`; health, OpenAPI, frontend y proxy HTTP 200 | Verde en rama |
 | 2026-08-31 | 1 | PR #1 integrado y verificación conjunta sobre `main` | Merge `897cec7` + `./scripts/check.sh` | Completada |
 | 2026-08-31 | Preparación E2 | Schema, contratos, seed, migración y criterios diseñados paso a paso | Aprobación del usuario + brief `E2-CONTRACT-DATA` | Aprobada; no iniciada |
+| 2026-08-31 | 2 | Inicio de E2-CONTRACT-DATA | Autorización del usuario + rama `codex/e2-contract-data` desde `193f7aa` | En curso |
 
 ## Protocolo de actualización
 

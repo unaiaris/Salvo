@@ -1,18 +1,18 @@
 # E2-CONTRACT-DATA — Contrato y datos sintéticos
 
-> Estado: Propuesta con schema aprobado; implementación pendiente de autorización explícita
+> Estado: En curso
 
 ## Identificación
 
 - Work ID: E2-CONTRACT-DATA
 - Etapa: 2
 - Tipo: implementación
-- Propietario: sin asignar
+- Propietario: Codex
 - Coordinador: Codex en sesión con el usuario
 - Fecha: 2026-08-31
-- Rama/worktree: no creado; propuesta `codex/e2-contract-data`
-- Commit base: `66f0949eee6b3c220cf66ed00da1d0abd11498dc`
-- Dependencias: E1 integrada y verificada; schema E2 aprobado; inicio aún no autorizado
+- Rama/worktree: `codex/e2-contract-data`
+- Commit base: `193f7aacfe822160bbd9dc6c52815d970a93df4e`
+- Dependencias: E1 integrada y verificada; schema E2 aprobado; inicio autorizado
 
 ## Resultado esperado
 
@@ -136,8 +136,7 @@ sin incorporar scoring, alertas, proveedores externos ni datos reales.
 
 ## Acciones autorizadas
 
-- Ediciones locales permitidas: no hasta una autorización posterior de inicio; después, solo dentro
-  de los paths indicados.
+- Ediciones locales permitidas: sí, solo dentro de los paths indicados.
 - Instalación o actualización de dependencias: al iniciar, solo versiones exactas necesarias para
   EF tooling y CSV, con locks y smoke tests.
 - Escrituras externas: no; no publicar, desplegar ni hacer push sin autorización separada.
@@ -199,4 +198,4 @@ sin incorporar scoring, alertas, proveedores externos ni datos reales.
 - Handoff en `Coordination/Handoffs/<Agente>.md` si se usa rama/worktree separado.
 - Estado de implementación: `Lista para integrar | Parcial | Bloqueada`.
 
-Estado actual: `Propuesta`. Este brief documenta el diseño aprobado, pero no asigna ni inicia E2.
+Estado actual: `En curso`. Codex implementa E2 en la rama y commit base indicados.

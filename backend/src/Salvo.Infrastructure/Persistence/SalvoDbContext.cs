@@ -1,18 +1,17 @@
 using Microsoft.EntityFrameworkCore;
+using Salvo.Domain.Evaluation;
+using Salvo.Domain.Orders;
 
 namespace Salvo.Infrastructure.Persistence;
 
 public sealed class SalvoDbContext(DbContextOptions<SalvoDbContext> options) : DbContext(options)
 {
-    public DbSet<FoundationCheckpoint> FoundationCheckpoints => Set<FoundationCheckpoint>();
+    public DbSet<Order> Orders => Set<Order>();
+
+    public DbSet<OrderEvaluationLabel> OrderEvaluationLabels => Set<OrderEvaluationLabel>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<FoundationCheckpoint>(entity =>
-        {
-            entity.ToTable("foundation_checkpoints");
-            entity.HasKey(checkpoint => checkpoint.Id);
-            entity.Property(checkpoint => checkpoint.Name).HasMaxLength(100).IsRequired();
-        });
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(SalvoDbContext).Assembly);
     }
 }
