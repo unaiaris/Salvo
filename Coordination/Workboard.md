@@ -1,6 +1,6 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: E2 propuesta con schema aprobado; sin trabajo activo
+> Estado: E2-CONTRACT-DATA lista para integrar
 > Última actualización: 2026-08-31
 > Responsable: coordinador de la etapa
 
@@ -14,16 +14,13 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 
 ## Trabajo activo
 
-No hay tareas activas.
+| Work ID | Etapa | Objetivo | Propietario | Estado | Rama | Base | Paths reservados | Dependencias | Actualizado |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| E2-CONTRACT-DATA | 2 | Contrato, migración y datos sintéticos idempotentes | Codex | Lista para integrar | `codex/e2-contract-data` | `193f7aa` | Backend, tests y configuración/documentación E2 | Compuerta verde; requiere push/merge y verificación conjunta | 2026-08-31 |
 
 ## Cola próxima
 
-| Work ID | Etapa | Objetivo | Estado | Dependencias | Paths previstos |
-| --- | --- | --- | --- | --- | --- |
-| E2-CONTRACT-DATA | 2 | Contrato, migración y datos sintéticos idempotentes | Propuesta | Aprobación explícita de inicio; schema aprobado | Domain, Application, Infrastructure, API y tests relacionados |
-
-E2-CONTRACT-DATA tiene brief y schema aprobados, pero sigue como propuesta de cola: todavía no tiene
-propietario, rama ni paths reservados y no puede comenzar sin autorización explícita.
+No hay otras tareas en cola.
 
 ## Historial integrado
 

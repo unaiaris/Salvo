@@ -530,10 +530,17 @@
       "salvo.infrastructure": {
         "type": "Project",
         "dependencies": {
+          "CsvHelper": "[33.1.0, )",
           "Microsoft.EntityFrameworkCore.Sqlite": "[10.0.11, )",
           "Salvo.Application": "[1.0.0, )",
           "Salvo.Domain": "[1.0.0, )"
         }
+      },
+      "CsvHelper": {
+        "type": "CentralTransitive",
+        "requested": "[33.1.0, )",
+        "resolved": "33.1.0",
+        "contentHash": "kqfTOZGrn7NarNeXgjh86JcpTHUoeQDMB8t9NVa/ZtlSYiV1rxfRnQ49WaJsob4AiGrbK0XDzpyKkBwai4F8eg=="
       },
       "Microsoft.AspNetCore.OpenApi": {
         "type": "CentralTransitive",

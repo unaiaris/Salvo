@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http.Features;
 using Salvo.Infrastructure;
 
 namespace Salvo.Api;
@@ -13,6 +14,10 @@ public sealed class Program
         var builder = WebApplication.CreateBuilder(args);
 
         builder.Services.AddOpenApi();
+        builder.Services.Configure<FormOptions>(options =>
+        {
+            options.MultipartBodyLengthLimit = OrderEndpoints.MaximumFileSizeBytes + (64 * 1024);
+        });
         builder.Services.AddInfrastructure(builder.Configuration);
 
         var app = builder.Build();
@@ -24,6 +29,8 @@ public sealed class Program
                 () => TypedResults.Ok(new HealthResponse("ok", "salvo-api")))
             .WithName("GetHealth")
             .WithTags("System");
+
+        app.MapOrderEndpoints(builder.Configuration);
 
         app.Run();
     }

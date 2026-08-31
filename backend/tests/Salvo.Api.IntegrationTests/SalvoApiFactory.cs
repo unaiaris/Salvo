@@ -13,9 +13,24 @@ public sealed class SalvoApiFactory : WebApplicationFactory<Program>
 {
     private readonly SqliteConnection connection = new("Data Source=:memory:");
 
+    public async Task<HttpClient> CreateMigratedClientAsync()
+    {
+        var client = CreateClient();
+        await InitializeDatabaseAsync();
+        return client;
+    }
+
+    public async Task InitializeDatabaseAsync()
+    {
+        await using var scope = Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SalvoDbContext>();
+        await dbContext.Database.MigrateAsync();
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         connection.Open();
+        builder.UseSetting("DemoData:Enabled", "true");
 
         builder.ConfigureServices(services =>
         {

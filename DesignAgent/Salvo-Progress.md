@@ -9,15 +9,15 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado del proyecto | Etapa 1 — Fundaciones reproducibles completada |
+| Estado del proyecto | Etapa 2 — Contrato y datos sintéticos lista para integrar |
 | Etapa completada | Etapa 1 — Fundaciones reproducibles |
-| Próxima etapa | Etapa 2 — Contrato y datos sintéticos |
-| Estado de la próxima etapa | Schema aprobado; inicio pendiente de autorización |
+| Etapa actual | Etapa 2 — Contrato y datos sintéticos |
+| Estado de la etapa actual | En verificación; compuerta de rama verde |
 | Bloqueo actual | Ninguno |
 | Dependencias externas | Ninguna para el núcleo local |
 | Anthropic | Previsto para después del núcleo |
 | Koin sandbox | Post-MVP; sujeto a onboarding y credenciales |
-| Coordinación Codex–Claude | Brief E2 documentado como propuesta; sin trabajo activo |
+| Coordinación Codex–Claude | E2-CONTRACT-DATA lista para integrar desde `codex/e2-contract-data` |
 
 ## Leyenda
 
@@ -26,7 +26,7 @@
 | `Pendiente` | Todavía no comenzó |
 | `En curso` | Hay trabajo activo dentro del alcance acordado |
 | `Bloqueada` | No puede continuar sin una decisión o dependencia externa |
-| `En verificación` | Implementación terminada; falta pasar la compuerta |
+| `En verificación` | Implementación terminada; falta integración o cierre de la compuerta canónica |
 | `Completada` | Criterios de salida y evidencias registrados |
 
 Solo puede existir una etapa `En curso` a la vez.
@@ -37,7 +37,7 @@ Solo puede existir una etapa `En curso` a la vez.
 | --- | --- | --- | --- | --- |
 | 0 | Documentación e instrucciones | Completada | Docs coherentes y sin código | `AGENTS.md` + `DesignAgent/*.md` |
 | 1 | Fundaciones reproducibles | Completada | Builds, tests y arranque de ASP.NET Core + Next.js | Merge `897cec7` + compuerta verde |
-| 2 | Contrato y datos sintéticos | Pendiente | Seed idempotente + parser validado | Schema y brief aprobados; implementación pendiente |
+| 2 | Contrato y datos sintéticos | En verificación | Seed idempotente + parser validado | Commit `8b79010` + 24 tests .NET + compuerta verde |
 | 3 | Motor determinista | Pendiente | Tests por regla + métricas sin fuga | Pendiente |
 | 4 | Alertas y casos de uso | Pendiente | Idempotencia + consistencia transaccional | Pendiente |
 | 5 | UI y dashboard | Pendiente | Recorrido completo y estados vacíos/error | Pendiente |
@@ -136,8 +136,9 @@ La lista exacta se confirmará al iniciar la etapa. Como mínimo:
 - El build Turbopack no puede validarse bajo la restricción de puertos del entorno; la compuerta usa
   `next build --webpack`, opción soportada por Next.js 16.3.3 y verificada en producción local.
 
-El schema de Etapa 2 está aprobado; la implementación permanece pendiente de autorización y no se
-inicia automáticamente.
+La implementación de Etapa 2 está lista para integrar desde la rama de trabajo. No se considera
+completada hasta hacer merge y repetir la compuerta sobre `main`; Etapa 3 no se inicia
+automáticamente.
 
 ## Checklists por etapa
 
@@ -158,10 +159,13 @@ inicia automáticamente.
 ### Etapa 2 — Contrato y datos
 
 - [x] Aprobar schema detallado.
-- [ ] Crear migración EF Core.
-- [ ] Crear fixtures y seed sintéticos.
-- [ ] Verificar idempotencia del seed.
-- [ ] Implementar parser CSV/JSON y errores parciales.
+- [x] Crear migración EF Core.
+- [x] Crear fixtures y seed sintéticos.
+- [x] Verificar idempotencia del seed.
+- [x] Implementar parser CSV/JSON y errores parciales.
+- [x] Verificar límites de 5 MiB, 10.000 registros y 1.000 errores detallados.
+- [x] Verificar claves, checks, índices, UTC canónico y transacción atómica en SQLite.
+- [x] Auditar contratos públicos y fixture para impedir PII y fuga de `isFraudLabel`.
 
 ### Etapa 3 — Motor determinista
 
@@ -240,6 +244,9 @@ inicia automáticamente.
 | 2026-08-31 | 1 | Compuerta raíz y smokes full-stack | `./scripts/check.sh`; health, OpenAPI, frontend y proxy HTTP 200 | Verde en rama |
 | 2026-08-31 | 1 | PR #1 integrado y verificación conjunta sobre `main` | Merge `897cec7` + `./scripts/check.sh` | Completada |
 | 2026-08-31 | Preparación E2 | Schema, contratos, seed, migración y criterios diseñados paso a paso | Aprobación del usuario + brief `E2-CONTRACT-DATA` | Aprobada; no iniciada |
+| 2026-08-31 | 2 | Inicio de E2-CONTRACT-DATA | Autorización del usuario + rama `codex/e2-contract-data` desde `193f7aa` | En curso |
+| 2026-08-31 | 2 | Contrato, importadores, migración y seed implementados | Commit `8b79010`; 16 tests de integración + 8 de dominio | Lista para integrar |
+| 2026-08-31 | 2 | Compuerta full-stack de rama | Restore locked, tooling EF, modelo sin cambios, 24 tests .NET, 3 Vitest y build Next.js | Verde en rama |
 
 ## Protocolo de actualización
 

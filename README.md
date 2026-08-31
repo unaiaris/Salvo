@@ -3,8 +3,8 @@
 Consola antifraude B2B de portfolio para e-commerce, diseñada alrededor de reglas deterministas,
 alertas auditables e integración desacoplada con proveedores externos.
 
-Estado: fundación ejecutable ASP.NET Core + Next.js preparada; la lógica antifraude comienza en
-etapas posteriores.
+Estado: fundación ejecutable y contrato de pedidos/datos sintéticos implementado en la rama E2; las
+reglas antifraude comienzan en una etapa posterior.
 
 ## Verificación local
 
@@ -15,8 +15,9 @@ npm ci --prefix frontend
 ./scripts/check.sh
 ```
 
-La compuerta restaura NuGet en modo bloqueado, compila y prueba el backend en Release, y ejecuta
-typecheck, ESLint, Vitest y el build de producción del frontend.
+La compuerta restaura NuGet y el tooling local, compila y prueba el backend en Release, verifica que
+el modelo EF no tenga cambios pendientes y ejecuta typecheck, ESLint, Vitest y el build de producción
+del frontend.
 
 ## Arquitectura
 
