@@ -16,7 +16,7 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 
 | Work ID | Etapa | Objetivo | Propietario | Estado | Rama | Base | Paths reservados | Dependencias | Actualizado |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| E0-DOC-06 | 0 | Tooling de Claude Code: comandos, permisos y política de `.claude/` | Claude | Asignada | `claude/e0-doc-06-tooling` | `7e07a17` | `.claude/**`, `.gitignore`, `ClaudeAgent/README.md`, `Coordination/Handoffs/Claude.md` | Ninguna | 2026-09-01 |
+| E0-DOC-06 | 0 | Tooling de Claude Code: comandos, permisos y política de `.claude/` | Claude | Asignada | `claude/e0-doc-06-tooling` | `dbce667` | `.claude/**`, `.gitignore`, `ClaudeAgent/README.md`, `Coordination/Handoffs/Claude.md` | Ninguna | 2026-09-01 |
 
 Brief: `Coordination/Tasks/E0-DOC-06.md`.
 
