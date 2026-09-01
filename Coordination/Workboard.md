@@ -1,6 +1,6 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: E0-DOC-06 asignada a Claude; E3-MOTOR-DETERMINISTA integrada y verificada
+> Estado: E0-DOC-06 integrada y verificada; sin trabajo activo
 > Última actualización: 2026-09-01
 > Responsable: coordinador de la etapa
 
@@ -14,11 +14,7 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 
 ## Trabajo activo
 
-| Work ID | Etapa | Objetivo | Propietario | Estado | Rama | Base | Paths reservados | Dependencias | Actualizado |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| E0-DOC-06 | 0 | Tooling de Claude Code: comandos, permisos y política de `.claude/` | Claude | Asignada | `claude/e0-doc-06-tooling` | `dbce667` | `.claude/**`, `.gitignore`, `ClaudeAgent/README.md`, `Coordination/Handoffs/Claude.md` | Ninguna | 2026-09-01 |
-
-Brief: `Coordination/Tasks/E0-DOC-06.md`.
+No hay tareas activas ni paths reservados.
 
 ## Cola próxima
 
@@ -36,6 +32,7 @@ No hay otras tareas en cola.
 | E1-FOUNDATION | 1 | Fundaciones ASP.NET Core + Next.js y compuerta conjunta | Codex | Verificada | PR #1, merge `897cec7` y compuerta sobre `main` |
 | E2-CONTRACT-DATA | 2 | Contrato, importación, migración y datos sintéticos idempotentes | Codex | Verificada | Merge `4b7bf54`, 24 tests .NET y compuerta sobre `main` |
 | E3-MOTOR-DETERMINISTA | 3 | Baseline temporal, seis reglas, scoring y evaluación sin fuga | Codex | Verificada | Merge `809ff75`, 42 tests .NET y compuerta sobre `main` |
+| E0-DOC-06 | 0 | Tooling de Claude Code: comandos `/gate`, `/handoff`, `/brief-check`, permisos y política de `.claude/` | Claude | Verificada | Merge `50eb2de`, compuerta full-stack verde sobre `main` |
 
 ## Plantilla de fila activa
 
