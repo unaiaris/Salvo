@@ -32,6 +32,9 @@ obj/
 *.db-shm
 *.db-wal
 
+# Claude Code local overrides (keep .claude/commands/ and .claude/settings.json versioned)
+.claude/settings.local.json
+
 # Tooling and operating system
 .DS_Store
 DesignAgent/.md-backup-*/

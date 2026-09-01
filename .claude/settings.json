@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet restore:*)",
+      "Bash(dotnet tool restore:*)",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet test:*)",
+      "Bash(dotnet ef migrations has-pending-model-changes:*)",
+      "Bash(npm ci:*)",
+      "Bash(npm run check:*)",
+      "Bash(npm run build:*)",
+      "Bash(./scripts/check.sh:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)"
+    ],
+    "deny": [
+      "Bash(git push:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git rebase:*)",
+      "Bash(git commit --amend:*)",
+      "Bash(git filter-branch:*)",
+      "Bash(rm:*)",
+      "Bash(git rm:*)",
+      "Read(./.env)",
+      "Read(./.env.local)",
+      "Read(./.env.development)",
+      "Read(./.env.development.local)",
+      "Read(./.env.production)",
+      "Read(./.env.production.local)",
+      "Read(./.env.test)",
+      "Read(./.env.test.local)"
+    ]
+  }
+}
