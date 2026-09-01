@@ -14,8 +14,9 @@ de este archivo. No sobrescribir entradas anteriores ni incluir secretos, PII o 
 - Etapa: 0
 - Rama/worktree: `claude/e0-doc-06-tooling`
 - Commit base: `dbce667be64e5902e3f0faa8fed123f4a3ed162b`
-- Commit final: `15b2b2a4efdc92242f4e7964a0de83110b4fd1f2` (implementación) + esta entrada de
-  handoff en un commit posterior sobre la misma rama
+- Commit final: `205bdd0fd6af95976b3367f34c3a514dfe325e19` (`docs: add E0-DOC-06 handoff entry`,
+  incluye la implementación de `15b2b2a` y la entrada de handoff); esta corrección se agrega en un
+  commit posterior sobre la misma rama
 - Fecha: 2026-09-01
 
 ### Resultado
@@ -51,6 +52,9 @@ Code 2.1.257 instalado y verificado, smoke test de imports de `CLAUDE.md` ejecut
 | Verificación manual de `/brief-check` sobre `Coordination/Tasks/E0-DOC-06.md` | Secciones completas contra la plantilla; `git show --stat dbce667` confirma que el commit base existe; `Coordination/Workboard.md` no registra otro trabajo activo que se solape con los paths reservados; sin contradicción con `AGENTS.md` — brief válido, sin faltantes |
 | `git status --porcelain` | Solo `.gitignore`, `ClaudeAgent/README.md` y `.claude/` (nuevo) — ningún archivo fuera de los paths autorizados |
 | Regla de denegación de lectura de `.env` | No probada de forma destructiva por diseño; verificada por inspección: `.claude/settings.json` deniega `Read(./.env)` y las variantes estándar de Next.js (`.local`, `.development`, `.production`, `.test`), sin denegar `Read(./.env.example)` |
+| `/gate` (sesión nueva, invocado como skill) sobre `205bdd0` | Compuerta full-stack verde: restore NuGet locked, build Release 0 warnings/0 errores, sin cambios de modelo EF pendientes, 24 tests `Salvo.Domain.Tests` + 18 tests `Salvo.Api.IntegrationTests` (42 total, 0 fallos), `npm run check` (typecheck + ESLint + 3 tests Vitest) y build de producción Next.js 16.3.3 (webpack) sin errores |
+| `/brief-check Coordination/Tasks/E0-DOC-06.md` (sesión nueva) | Brief válido: todas las secciones obligatorias presentes y completas, commit base `dbce667` verificado con `git show --stat`, sin solapamiento con otro trabajo activo en el Workboard, sin contradicción con `AGENTS.md` ni el Blueprint |
+| `/brief-check` contra un brief incompleto de prueba (`/tmp/brief-incompleto-test.md`, fuera del repo) | Reportó inválido y se detuvo sin completar huecos: listó como faltantes Coordinador/Fecha/Rama/Commit base/Dependencias en Identificación, la sección Contexto obligatorio completa, "Fuera" y "Paths reservados" en Alcance, y las secciones Acciones autorizadas, Criterios de aceptación, Verificación y evidencia, Decisiones delegadas, Detenerse y consultar si, y Entrega requerida |
 
 ### Decisiones y supuestos
 
@@ -70,17 +74,17 @@ Code 2.1.257 instalado y verificado, smoke test de imports de `CLAUDE.md` ejecut
 - `/gate`, `/handoff` y `/brief-check` no reimplementan la compuerta ni el ritual de handoff/brief:
   delegan explícitamente en `./scripts/check.sh`, `ClaudeAgent/Claude-Handoff-Template.md` y
   `Coordination/Task-Brief-Template.md` como fuente única.
-- No se generó commit en esta rama; los archivos quedan en el working tree para que el coordinador
-  revise el diff antes de commitear, según el modo de operación de esta sesión.
+- El coordinador relajó el criterio de bloqueo de lectura de `.env`: se acepta la verificación por
+  inspección del patrón de `.claude/settings.json` en vez de una lectura real observada en runtime,
+  porque no existe ningún `.env` en el repositorio y crear uno solo para probar el bloqueo sería peor
+  que verificar el patrón declarado.
 
 ### Riesgos o pendientes
 
-- Los tres comandos nuevos no se probaron como slash commands reales dentro de esta sesión, porque
-  el registro de comandos de Claude Code se carga al iniciar el proceso y estos archivos se crearon
-  durante la sesión activa. Recomendación: en una sesión nueva de Claude Code sobre esta rama,
-  ejecutar `/memory`, `/gate` y `/brief-check Coordination/Tasks/E0-DOC-06.md` (y opcionalmente
-  contra un brief incompleto de prueba) para confirmar que el harness los reconoce y ejecutan como
-  se documentó aquí.
+- Los tres comandos se probaron en una sesión nueva de Claude Code sobre esta rama (ver tabla de
+  verificación arriba): `/gate` corrió la compuerta completa y reportó verde, `/brief-check` validó
+  el brief real sin faltantes, y `/brief-check` sobre un brief incompleto de prueba reportó los
+  faltantes exactos y se detuvo sin completarlos.
 - La regla de denegación de lectura de `.env` se verificó por inspección del patrón, no intentando
   una lectura real y observando el bloqueo en runtime, para no ejecutar una acción fuera del alcance
   de esta tarea de forma innecesaria.

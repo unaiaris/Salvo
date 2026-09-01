@@ -59,13 +59,9 @@ cargan correctamente, cerrando el riesgo abierto en el handoff `E0-DOC-04`.
 
 | Comando | Uso |
 | --- | --- |
-| `/gate` | Ejecuta `./scripts/check.sh` desde la raíz y reporta la compuerta full-stack en verde o
-en rojo, sin ejecutar sus pasos sueltos ni reimplementarlos. |
-| `/handoff [work-id]` | Arma una entrada siguiendo `Claude-Handoff-Template.md` con rama, commit
-base y commit final obtenidos de Git, y la agrega al final de `Coordination/Handoffs/Claude.md`
-sin sobrescribir entradas previas. |
-| `/brief-check [ruta]` | Valida un task brief contra `Coordination/Task-Brief-Template.md`,
-`AGENTS.md` y el Blueprint; ante cualquier falta se detiene y la reporta en vez de completarla. |
+| `/gate` | Ejecuta `./scripts/check.sh` desde la raíz y reporta la compuerta full-stack en verde o en rojo, sin ejecutar sus pasos sueltos ni reimplementarlos. |
+| `/handoff [work-id]` | Arma una entrada siguiendo `Claude-Handoff-Template.md` con rama, commit base y commit final obtenidos de Git, y la agrega al final de `Coordination/Handoffs/Claude.md` sin sobrescribir entradas previas. |
+| `/brief-check [ruta]` | Valida un task brief contra `Coordination/Task-Brief-Template.md`, `AGENTS.md` y el Blueprint; ante cualquier falta se detiene y la reporta en vez de completarla. |
 
 `.claude/settings.json` preautoriza únicamente los comandos verificables y reversibles listados en
 el brief `E0-DOC-06` (restore/build/test de .NET, `npm run check`/`build`, `./scripts/check.sh` y
