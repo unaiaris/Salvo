@@ -1,7 +1,7 @@
 # Salvo — Kit de trabajo para Claude
 
-> Estado: preparado; Claude Code no está instalado actualmente en este entorno
-> Última actualización: 2026-08-31
+> Estado: activo; Claude Code 2.1.257 instalado y verificado en este entorno
+> Última actualización: 2026-09-01
 > Entrada automática: `../CLAUDE.md`
 
 ## Propósito
@@ -44,6 +44,31 @@ contradicción material, Claude debe detenerse y reportarla.
 
 No ejecutar `/init`: el `CLAUDE.md` del proyecto ya existe y fue diseñado para compartir contexto
 con Codex.
+
+### Entorno verificado
+
+Claude Code 2.1.257 está instalado en este entorno. El 2026-09-01 se ejecutó `/memory` y confirmó
+que `CLAUDE.md` y sus cinco imports (`AGENTS.md`, `DesignAgent/Salvo-Overview.md`,
+`DesignAgent/Salvo-Progress.md`, `Coordination/Workboard.md`, `ClaudeAgent/Claude-Workflow.md`)
+cargan correctamente, cerrando el riesgo abierto en el handoff `E0-DOC-04`.
+
+### Comandos de sesión
+
+`.claude/commands/` versiona tres comandos que automatizan el ritual descrito en
+`Coordination/README.md` y `Claude-Workflow.md` sin reimplementarlo:
+
+| Comando | Uso |
+| --- | --- |
+| `/gate` | Ejecuta `./scripts/check.sh` desde la raíz y reporta la compuerta full-stack en verde o en rojo, sin ejecutar sus pasos sueltos ni reimplementarlos. |
+| `/handoff [work-id]` | Arma una entrada siguiendo `Claude-Handoff-Template.md` con rama, commit base y commit final obtenidos de Git, y la agrega al final de `Coordination/Handoffs/Claude.md` sin sobrescribir entradas previas. |
+| `/brief-check [ruta]` | Valida un task brief contra `Coordination/Task-Brief-Template.md`, `AGENTS.md` y el Blueprint; ante cualquier falta se detiene y la reporta en vez de completarla. |
+
+`.claude/settings.json` preautoriza únicamente los comandos verificables y reversibles listados en
+el brief `E0-DOC-06` (restore/build/test de .NET, `npm run check`/`build`, `./scripts/check.sh` y
+lecturas de Git) y deniega explícitamente `git push`, `git reset --hard` y reescritura de historia,
+borrado de archivos, y la lectura de `.env` y sus variantes distintas de `.env.example`. No amplía
+la política de autonomía de `AGENTS.md`; solo la expresa como permisos verificables. Overrides
+personales van en `.claude/settings.local.json`, que queda fuera de control de versiones.
 
 ## Uso con Claude.ai sin Claude Code
 

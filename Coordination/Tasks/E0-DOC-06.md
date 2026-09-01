@@ -9,7 +9,7 @@
 - Coordinador: Unai Arismendes
 - Fecha: 2026-09-01
 - Rama/worktree: `claude/e0-doc-06-tooling`
-- Commit base: `7e07a17b0899619d5e40f16dc499c0dcd1e736e1`
+- Commit base: `dbce667be64e5902e3f0faa8fed123f4a3ed162b`
 - Dependencias: ninguna. No hay trabajo activo ni paths reservados en el Workboard.
 
 ## Resultado esperado
@@ -136,14 +136,14 @@ autoriza escrituras externas, acciones destructivas ni ampliaciones de alcance.
 
 | Comando/comprobación | Resultado esperado |
 | --- | --- |
-| `git rev-parse HEAD` antes de empezar | `7e07a17b0899619d5e40f16dc499c0dcd1e736e1` |
+| `git rev-parse HEAD` antes de empezar | `dbce667be64e5902e3f0faa8fed123f4a3ed162b` |
 | `./scripts/check.sh` | Compuerta full-stack verde: 0 warnings, 42 tests .NET, sin cambios de modelo pendientes, `npm run check` y build de producción |
 | `/memory` | `CLAUDE.md` y sus cinco imports cargados |
 | `/gate` | Ejecuta la compuerta y reporta el resultado real, no uno asumido |
 | `/brief-check` sobre este brief | Validación sin faltantes |
 | `git status --porcelain` | Solo paths autorizados |
 | `git diff --check` | Pasa |
-| `git log --oneline` | Commits de la rama con base `7e07a17` |
+| `git log --oneline` | Commits de la rama con base `dbce667` |
 
 ## Decisiones delegadas
 
