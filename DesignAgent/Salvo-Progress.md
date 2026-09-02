@@ -9,10 +9,10 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado del proyecto | Etapa 4 — Alertas y casos de uso, diseñada y aprobada |
-| Etapa completada | Etapa 3 — Motor determinista |
-| Próxima etapa | Etapa 4 — Alertas y casos de uso |
-| Estado de la próxima etapa | Aprobada; se ejecuta en `E4A-PERSISTENCIA` y `E4B-ALERTAS` |
+| Estado del proyecto | Etapa 4 — Alertas y casos de uso, completada y verificada |
+| Etapa completada | Etapa 4 — Alertas y casos de uso |
+| Próxima etapa | Etapa 5 — UI |
+| Estado de la próxima etapa | Pendiente de diseño y de aprobación explícita del usuario |
 | Bloqueo actual | Ninguno |
 | Dependencias externas | Ninguna para el núcleo local |
 | Anthropic | Previsto para después del núcleo |
@@ -39,7 +39,7 @@ Solo puede existir una etapa `En curso` a la vez.
 | 1 | Fundaciones reproducibles | Completada | Builds, tests y arranque de ASP.NET Core + Next.js | Merge `897cec7` + compuerta verde |
 | 2 | Contrato y datos sintéticos | Completada | Seed idempotente + parser validado | Merge `4b7bf54` + 24 tests .NET + compuerta verde en `main` |
 | 3 | Motor determinista | Completada | Tests por regla + métricas sin fuga | Merge `809ff75` + 42 tests .NET + compuerta verde en `main` |
-| 4 | Alertas y casos de uso | En curso | Idempotencia + consistencia transaccional | `E4A` integrada: merge `1d9ee83`, 71 tests .NET, compuerta verde; `E4B` pendiente |
+| 4 | Alertas y casos de uso | Completada | Idempotencia + consistencia transaccional | Merges `1d9ee83` y `c35878b`; 109 tests .NET; compuerta verde en `main`; corpus demo con 18 alertas (13 `MEDIUM`, 5 `CRITICAL`) verificado contra la base |
 | 5 | UI y dashboard | Pendiente | Recorrido completo y estados vacíos/error | Pendiente |
 | 6 | Proveedor antifraude mock | Pendiente | Estados y callbacks replay-safe | Pendiente |
 | 7 | Explicabilidad | Pendiente | Funciona sin red; Anthropic opcional | Pendiente |
@@ -136,8 +136,10 @@ La lista exacta se confirmará al iniciar la etapa. Como mínimo:
 - El build Turbopack no puede validarse bajo la restricción de puertos del entorno; la compuerta usa
   `next build --webpack`, opción soportada por Next.js 16.3.3 y verificada en producción local.
 
-La Etapa 3 quedó integrada y verificada sobre `main`. Etapa 4 permanece pendiente: requiere diseño,
-brief y autorización independientes antes de persistir evaluaciones o crear alertas.
+La Etapa 4 quedó integrada y verificada sobre `main` en dos ítems, `E4A-PERSISTENCIA` y
+`E4B-ALERTAS`. La verificación se hizo además contra la base real: tres corridas de scoring sobre el
+corpus demo, la segunda y la tercera reusando las 300 evaluaciones, y 18 alertas abiertas por la
+tercera. Etapa 5 permanece pendiente: requiere diseño, brief y autorización independientes.
 
 ## Checklists por etapa
 
@@ -180,9 +182,9 @@ brief y autorización independientes antes de persistir evaluaciones o crear ale
 ### Etapa 4 — Alertas
 
 - [x] Persistir evaluaciones locales.
-- [ ] Crear alertas idempotentes.
-- [ ] Revisar alerta y pedido en una transacción DB.
-- [ ] Proteger estados ya revisados durante re-scoring.
+- [x] Crear alertas idempotentes.
+- [x] Revisar alerta y escribir su auditoría en una transacción DB.
+- [x] Proteger estados ya revisados durante re-scoring.
 
 ### Etapa 5 — UI
 
@@ -269,6 +271,9 @@ brief y autorización independientes antes de persistir evaluaciones o crear ale
 | 2026-09-02 | 4 | Inicio de E4A-PERSISTENCIA | Brief y rama `claude/e4a-persistencia` desde `1215a2d` | En curso |
 | 2026-09-02 | 4 | Evaluaciones, corridas, fingerprint canónico y endpoints implementados | Commits `73c1b17` y `32bfffc`; 71 tests .NET; rebote 0→40→0 cubierto | Lista para integrar |
 | 2026-09-02 | 4 | Integración y verificación canónica de E4A | Merge `1d9ee83` + `./scripts/check.sh` sobre `main` | Completada |
+| 2026-09-02 | 4 | Inicio de E4B-ALERTAS | Brief y rama `claude/e4b-alertas` desde `05ddb4a`; Opus 5 · high acordado | En curso |
+| 2026-09-02 | 4 | Alertas con escalada, revisión transaccional y token de concurrencia | Commits `c6e945b` y `50a9bc3`; 109 tests .NET; carrera de revisión sobre base en archivo | Lista para integrar |
+| 2026-09-02 | 4 | Integración y verificación canónica de E4B | Merge `c35878b` + `./scripts/check.sh` sobre `main` + 18 alertas (13 `MEDIUM`, 5 `CRITICAL`, 0 `HIGH`) verificadas en `salvo.db` | Completada |
 
 ## Protocolo de actualización
 
