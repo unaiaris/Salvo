@@ -24,7 +24,10 @@ public sealed class ScoringRun
         DateTimeOffset completedAt,
         int orderCount,
         int evaluationsCreated,
-        int evaluationsReused)
+        int evaluationsReused,
+        int alertsCreated,
+        int alertsSkippedOpen,
+        int alertsSkippedReviewed)
     {
         Id = id;
         Sequence = sequence;
@@ -34,6 +37,9 @@ public sealed class ScoringRun
         OrderCount = orderCount;
         EvaluationsCreated = evaluationsCreated;
         EvaluationsReused = evaluationsReused;
+        AlertsCreated = alertsCreated;
+        AlertsSkippedOpen = alertsSkippedOpen;
+        AlertsSkippedReviewed = alertsSkippedReviewed;
     }
 
     public Guid Id { get; private set; }
@@ -52,6 +58,18 @@ public sealed class ScoringRun
 
     public int EvaluationsReused { get; private set; }
 
+    /// <summary>Alerts the run opened.</summary>
+    public int AlertsCreated { get; private set; }
+
+    /// <summary>Flagged orders the run left alone because they already had an open alert.</summary>
+    public int AlertsSkippedOpen { get; private set; }
+
+    /// <summary>
+    /// Flagged orders the run left alone because their only alerts are reviewed and the current
+    /// severity band did not escalate.
+    /// </summary>
+    public int AlertsSkippedReviewed { get; private set; }
+
     public static ScoringRun Complete(
         Guid id,
         long sequence,
@@ -60,13 +78,19 @@ public sealed class ScoringRun
         DateTimeOffset completedAt,
         int orderCount,
         int evaluationsCreated,
-        int evaluationsReused)
+        int evaluationsReused,
+        int alertsCreated,
+        int alertsSkippedOpen,
+        int alertsSkippedReviewed)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(ruleConfigVersion);
         ArgumentOutOfRangeException.ThrowIfLessThan(sequence, 1);
         ArgumentOutOfRangeException.ThrowIfNegative(orderCount);
         ArgumentOutOfRangeException.ThrowIfNegative(evaluationsCreated);
         ArgumentOutOfRangeException.ThrowIfNegative(evaluationsReused);
+        ArgumentOutOfRangeException.ThrowIfNegative(alertsCreated);
+        ArgumentOutOfRangeException.ThrowIfNegative(alertsSkippedOpen);
+        ArgumentOutOfRangeException.ThrowIfNegative(alertsSkippedReviewed);
 
         if (id == Guid.Empty)
         {
@@ -89,6 +113,15 @@ public sealed class ScoringRun
                 nameof(orderCount));
         }
 
+        // Alert outcomes are a partition of the flagged orders, which are a subset of the scored
+        // ones: a run can never report more alert decisions than orders it covered.
+        if (alertsCreated + alertsSkippedOpen + alertsSkippedReviewed > orderCount)
+        {
+            throw new ArgumentException(
+                "A run cannot report more alert outcomes than the orders it scored.",
+                nameof(orderCount));
+        }
+
         return new(
             id,
             sequence,
@@ -97,6 +130,9 @@ public sealed class ScoringRun
             completedAtUtc,
             orderCount,
             evaluationsCreated,
-            evaluationsReused);
+            evaluationsReused,
+            alertsCreated,
+            alertsSkippedOpen,
+            alertsSkippedReviewed);
     }
 }

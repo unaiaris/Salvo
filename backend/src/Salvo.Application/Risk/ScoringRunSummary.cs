@@ -8,4 +8,7 @@ public sealed record ScoringRunSummary(
     DateTimeOffset CompletedAt,
     int OrderCount,
     int EvaluationsCreated,
-    int EvaluationsReused);
+    int EvaluationsReused,
+    int AlertsCreated,
+    int AlertsSkippedOpen,
+    int AlertsSkippedReviewed);

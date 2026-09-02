@@ -1,3 +1,5 @@
+using Salvo.Application.Alerts;
+using Salvo.Domain.Alerts;
 using Salvo.Domain.Risk;
 
 namespace Salvo.Application.Risk;
@@ -19,16 +21,27 @@ public interface IScoringRunStore
         CancellationToken cancellationToken);
 
     /// <summary>
-    /// Persists the run, the evaluations it appends and its per-order references as a single unit of
-    /// work. A failure leaves none of the three behind.
+    /// The persisted alert history of the given orders, for the orders that have one. Reading it
+    /// from the database rather than from the delta of the run is what keeps the creation predicate
+    /// honest when several runs happen over a growing corpus.
+    /// </summary>
+    Task<IReadOnlyDictionary<Guid, OrderAlertState>> GetAlertStatesAsync(
+        IReadOnlyCollection<Guid> orderIds,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Persists the run, the evaluations it appends, its per-order references and the alerts it
+    /// opens as a single unit of work. A failure leaves none of the four behind.
     /// </summary>
     /// <exception cref="ScoringRunConflictException">
-    /// A concurrent run already persisted conflicting state.
+    /// A concurrent run already persisted conflicting state, or another run already opened an alert
+    /// for one of these orders.
     /// </exception>
     Task SaveRunAsync(
         ScoringRun run,
         IReadOnlyCollection<RiskEvaluation> evaluationsToAppend,
         IReadOnlyCollection<RunEvaluation> runEvaluations,
+        IReadOnlyCollection<Alert> alertsToOpen,
         CancellationToken cancellationToken);
 
     /// <summary>

@@ -1,4 +1,5 @@
 using Salvo.Domain;
+using Salvo.Domain.Alerts;
 using Salvo.Domain.Evaluation;
 using Salvo.Domain.Risk;
 
@@ -43,7 +44,14 @@ public sealed class ArchitectureSmokeTests
     [Fact]
     public void PersistedRiskEntitiesCarryNoGroundTruthLabel()
     {
-        foreach (var type in new[] { typeof(RiskEvaluation), typeof(ScoringRun), typeof(RunEvaluation) })
+        foreach (var type in new[]
+        {
+            typeof(RiskEvaluation),
+            typeof(ScoringRun),
+            typeof(RunEvaluation),
+            typeof(Alert),
+            typeof(AlertReview),
+        })
         {
             Assert.DoesNotContain(
                 type.GetProperties(),
