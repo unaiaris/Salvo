@@ -31,6 +31,7 @@ public sealed class Program
             .WithTags("System");
 
         app.MapOrderEndpoints(builder.Configuration);
+        app.MapRiskEvaluationEndpoints();
 
         app.Run();
     }

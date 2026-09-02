@@ -1,4 +1,5 @@
 using System.Globalization;
+using Salvo.Application.Orders;
 using Salvo.Application.Orders.Importing;
 using Salvo.Application.Orders.Seed;
 
@@ -21,6 +22,12 @@ public static class OrderEndpoints
             .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
             .ProducesProblem(StatusCodes.Status415UnsupportedMediaType)
             .DisableAntiforgery();
+
+        endpoints.MapGet("/api/orders", ListOrdersAsync)
+            .WithName("ListOrders")
+            .WithTags("Orders")
+            .Produces<ListOrdersResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest);
 
         if (configuration.GetValue<bool>("DemoData:Enabled"))
         {
@@ -104,6 +111,35 @@ public static class OrderEndpoints
         }
     }
 
+    private static async Task<IResult> ListOrdersAsync(
+        ListOrdersHandler handler,
+        CancellationToken cancellationToken,
+        int? page = null,
+        int? pageSize = null)
+    {
+        var requestedPage = page ?? 1;
+        var requestedPageSize = pageSize ?? ListOrdersHandler.DefaultPageSize;
+
+        if (requestedPage < 1)
+        {
+            return CreateProblem(
+                StatusCodes.Status400BadRequest,
+                "INVALID_PAGE",
+                "page must be greater than or equal to 1.");
+        }
+
+        if (requestedPageSize < 1 || requestedPageSize > ListOrdersHandler.MaximumPageSize)
+        {
+            return CreateProblem(
+                StatusCodes.Status400BadRequest,
+                "INVALID_PAGE_SIZE",
+                $"pageSize must be between 1 and {ListOrdersHandler.MaximumPageSize.ToString(CultureInfo.InvariantCulture)}.");
+        }
+
+        return TypedResults.Ok(
+            await handler.HandleAsync(requestedPage, requestedPageSize, cancellationToken));
+    }
+
     private static async Task<IResult> SeedDemoOrdersAsync(
         SeedDemoOrdersHandler handler,
         CancellationToken cancellationToken)
@@ -144,7 +180,7 @@ public static class OrderEndpoints
     {
         return Results.Problem(
             statusCode: statusCode,
-            title: "Order import request rejected",
+            title: "Order request rejected",
             detail: detail,
             extensions: new Dictionary<string, object?>
             {
