@@ -24,6 +24,9 @@ public sealed class ScoringRunConfiguration : IEntityTypeConfiguration<ScoringRu
                 table.HasCheckConstraint(
                     "ck_scoring_runs_counts",
                     "order_count >= 0 AND evaluations_created >= 0 AND evaluations_reused >= 0 AND evaluations_created + evaluations_reused = order_count");
+                table.HasCheckConstraint(
+                    "ck_scoring_runs_alert_counts",
+                    "alerts_created >= 0 AND alerts_skipped_open >= 0 AND alerts_skipped_reviewed >= 0 AND alerts_created + alerts_skipped_open + alerts_skipped_reviewed <= order_count");
             });
 
         builder.HasKey(run => run.Id);
@@ -59,6 +62,15 @@ public sealed class ScoringRunConfiguration : IEntityTypeConfiguration<ScoringRu
             .IsRequired();
         builder.Property(run => run.EvaluationsReused)
             .HasColumnName("evaluations_reused")
+            .IsRequired();
+        builder.Property(run => run.AlertsCreated)
+            .HasColumnName("alerts_created")
+            .IsRequired();
+        builder.Property(run => run.AlertsSkippedOpen)
+            .HasColumnName("alerts_skipped_open")
+            .IsRequired();
+        builder.Property(run => run.AlertsSkippedReviewed)
+            .HasColumnName("alerts_skipped_reviewed")
             .IsRequired();
 
         // Two runs that race for the same position collide here instead of leaving an ambiguous

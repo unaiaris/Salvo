@@ -17,7 +17,10 @@ public sealed class ScoringRunTests
             StartedAt.AddSeconds(4),
             300,
             12,
-            288);
+            288,
+            4,
+            2,
+            1);
 
         Assert.Equal(TimeSpan.Zero, run.StartedAt.Offset);
         Assert.Equal(StartedAt, run.StartedAt);
@@ -25,6 +28,9 @@ public sealed class ScoringRunTests
         Assert.Equal(300, run.OrderCount);
         Assert.Equal(12, run.EvaluationsCreated);
         Assert.Equal(288, run.EvaluationsReused);
+        Assert.Equal(4, run.AlertsCreated);
+        Assert.Equal(2, run.AlertsSkippedOpen);
+        Assert.Equal(1, run.AlertsSkippedReviewed);
     }
 
     [Fact]
@@ -38,7 +44,27 @@ public sealed class ScoringRunTests
             StartedAt,
             300,
             10,
-            10));
+            10,
+            0,
+            0,
+            0));
+    }
+
+    [Fact]
+    public void RunRejectsMoreAlertOutcomesThanScoredOrders()
+    {
+        Assert.Throws<ArgumentException>(() => ScoringRun.Complete(
+            Guid.NewGuid(),
+            1,
+            "e3-v1",
+            StartedAt,
+            StartedAt,
+            2,
+            2,
+            0,
+            2,
+            1,
+            0));
     }
 
     [Fact]
@@ -50,6 +76,9 @@ public sealed class ScoringRunTests
             "e3-v1",
             StartedAt,
             StartedAt.AddSeconds(-1),
+            0,
+            0,
+            0,
             0,
             0,
             0));
@@ -66,6 +95,9 @@ public sealed class ScoringRunTests
             StartedAt,
             0,
             0,
+            0,
+            0,
+            0,
             0));
         Assert.Throws<ArgumentOutOfRangeException>(() => ScoringRun.Complete(
             Guid.NewGuid(),
@@ -73,6 +105,9 @@ public sealed class ScoringRunTests
             "e3-v1",
             StartedAt,
             StartedAt,
+            0,
+            0,
+            0,
             0,
             0,
             0));

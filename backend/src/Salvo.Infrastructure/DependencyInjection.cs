@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Salvo.Application.Alerts;
 using Salvo.Application.Orders;
 using Salvo.Application.Orders.Importing;
 using Salvo.Application.Orders.Seed;
@@ -25,11 +26,13 @@ public static class DependencyInjection
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<IOrderIdGenerator, SystemOrderIdGenerator>();
         services.AddSingleton<IRiskIdGenerator, SystemRiskIdGenerator>();
+        services.AddSingleton<IAlertIdGenerator, SystemAlertIdGenerator>();
         services.AddScoped<IOrderDataStore, EfOrderDataStore>();
         services.AddScoped<IOrderImportParser, OrderImportParser>();
         services.AddScoped<IDemoOrderSource, EmbeddedDemoOrderSource>();
         services.AddScoped<IRiskOrderReader, EfRiskOrderReader>();
         services.AddScoped<IScoringRunStore, EfScoringRunStore>();
+        services.AddScoped<IAlertStore, EfAlertStore>();
         services.AddScoped<IOrderPageReader, EfOrderPageReader>();
         services.AddScoped<IEvaluationLabelReader, EfEvaluationLabelReader>();
         services.AddScoped<ImportOrdersHandler>();
@@ -37,6 +40,9 @@ public static class DependencyInjection
         services.AddScoped<EvaluateLocalRiskHandler>();
         services.AddScoped<RunScoringHandler>();
         services.AddScoped<ListOrdersHandler>();
+        services.AddScoped<ListAlertsHandler>();
+        services.AddScoped<GetAlertHandler>();
+        services.AddScoped<ReviewAlertHandler>();
 
         return services;
     }

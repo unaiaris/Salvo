@@ -4,7 +4,9 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Salvo.Application.Alerts;
 using Salvo.Application.Risk;
+using Salvo.Domain.Alerts;
 using Salvo.Domain.Risk;
 using Salvo.Infrastructure.Persistence;
 
@@ -205,6 +207,9 @@ public sealed class ScoringRunPersistenceTests
             DateTimeOffset.UnixEpoch,
             1,
             1,
+            0,
+            0,
+            0,
             0);
 
         // The reference points at an evaluation the run never appended, so the write fails after
@@ -213,6 +218,7 @@ public sealed class ScoringRunPersistenceTests
             run,
             [evaluation],
             [RunEvaluation.Create(runId, orderId, Guid.NewGuid())],
+            [],
             CancellationToken.None));
 
         await using var verificationScope = factory.Services.CreateAsyncScope();
@@ -253,9 +259,10 @@ public sealed class ScoringRunPersistenceTests
 
         Assert.Equal(first.EvaluationFingerprint, duplicate.EvaluationFingerprint);
         await Assert.ThrowsAsync<ScoringRunConflictException>(() => store.SaveRunAsync(
-            ScoringRun.Complete(runId, 1, "e3-v1", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, 1, 1, 0),
+            ScoringRun.Complete(runId, 1, "e3-v1", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, 1, 1, 0, 0, 0, 0),
             [first, duplicate],
             [RunEvaluation.Create(runId, orderId, first.Id)],
+            [],
             CancellationToken.None));
     }
 
@@ -268,13 +275,13 @@ public sealed class ScoringRunPersistenceTests
         await using var scope = factory.Services.CreateAsyncScope();
         var store = scope.ServiceProvider.GetRequiredService<IScoringRunStore>();
 
-        await store.SaveRunAsync(CreateEmptyRun(1), [], [], CancellationToken.None);
+        await store.SaveRunAsync(CreateEmptyRun(1), [], [], [], CancellationToken.None);
 
         await using var conflictingScope = factory.Services.CreateAsyncScope();
         var conflictingStore = conflictingScope.ServiceProvider.GetRequiredService<IScoringRunStore>();
 
         await Assert.ThrowsAsync<ScoringRunConflictException>(() =>
-            conflictingStore.SaveRunAsync(CreateEmptyRun(1), [], [], CancellationToken.None));
+            conflictingStore.SaveRunAsync(CreateEmptyRun(1), [], [], [], CancellationToken.None));
         Assert.Equal(1, await store.GetLastRunSequenceAsync(CancellationToken.None));
     }
 
@@ -304,6 +311,9 @@ public sealed class ScoringRunPersistenceTests
             "e3-v1",
             DateTimeOffset.UnixEpoch,
             DateTimeOffset.UnixEpoch,
+            0,
+            0,
+            0,
             0,
             0,
             0);
@@ -371,10 +381,19 @@ public sealed class ScoringRunPersistenceTests
             return Task.FromResult<IReadOnlyDictionary<string, Guid>>(new Dictionary<string, Guid>());
         }
 
+        public Task<IReadOnlyDictionary<Guid, OrderAlertState>> GetAlertStatesAsync(
+            IReadOnlyCollection<Guid> orderIds,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult<IReadOnlyDictionary<Guid, OrderAlertState>>(
+                new Dictionary<Guid, OrderAlertState>());
+        }
+
         public Task SaveRunAsync(
             ScoringRun run,
             IReadOnlyCollection<RiskEvaluation> evaluationsToAppend,
             IReadOnlyCollection<RunEvaluation> runEvaluations,
+            IReadOnlyCollection<Alert> alertsToOpen,
             CancellationToken cancellationToken)
         {
             throw new ScoringRunConflictException();

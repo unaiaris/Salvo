@@ -16,6 +16,11 @@ namespace Salvo.Domain.Risk;
 /// </remarks>
 public static class RiskSignalSerializer
 {
+    private static readonly JsonSerializerOptions ReadOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+    };
+
     public static string Serialize(IReadOnlyList<RiskSignal> signals)
     {
         ArgumentNullException.ThrowIfNull(signals);
@@ -38,6 +43,20 @@ public static class RiskSignalSerializer
         }
 
         return Encoding.UTF8.GetString(buffer.WrittenSpan);
+    }
+
+    /// <summary>
+    /// Reads back a canonical signal string. Used by read models that present a stored evaluation;
+    /// it is never used to recompute a fingerprint, which is always derived from the stored text.
+    /// </summary>
+    public static IReadOnlyList<RiskSignal> Deserialize(string canonical)
+    {
+        ArgumentNullException.ThrowIfNull(canonical);
+
+        var signals = JsonSerializer.Deserialize<RiskSignal[]>(canonical, ReadOptions)
+            ?? throw new ArgumentException("The canonical signal string must be a JSON array.", nameof(canonical));
+
+        return signals.AsReadOnly();
     }
 
     private static RiskSignal[] Order(IReadOnlyList<RiskSignal> signals)
