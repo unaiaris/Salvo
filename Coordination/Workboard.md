@@ -1,6 +1,6 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: E0-DOC-06 integrada y verificada; sin trabajo activo
+> Estado: E0-DOC-07 asignada a Claude; E0-DOC-06 integrada y verificada
 > Última actualización: 2026-09-01
 > Responsable: coordinador de la etapa
 
@@ -14,7 +14,11 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 
 ## Trabajo activo
 
-No hay tareas activas ni paths reservados.
+| Work ID | Etapa | Objetivo | Propietario | Estado | Rama | Base | Paths reservados | Dependencias | Actualizado |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| E0-DOC-07 | 0 | Política de modelo y esfuerzo, e instrucciones del Proyecto de Claude.ai | Claude | Asignada | `claude/e0-doc-07-project-and-models` | pendiente de fijar al crear la rama | `ClaudeAgent/Claude-Model-Policy.md`, `ClaudeAgent/README.md`, `DesignAgent/Salvo-Project-Instructions.md`, `DesignAgent/Salvo-MOC.md`, `Coordination/Task-Brief-Template.md`, `Coordination/Handoffs/Claude.md` | E0-DOC-06 integrada | 2026-09-01 |
+
+Brief: `Coordination/Tasks/E0-DOC-07.md`.
 
 ## Cola próxima
 
