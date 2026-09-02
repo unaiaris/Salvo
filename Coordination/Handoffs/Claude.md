@@ -99,3 +99,80 @@ Code 2.1.257 instalado y verificado, smoke test de imports de `CLAUDE.md` ejecut
   según `Coordination/Workboard.md`.
 - Verificación posterior al merge: repetir `./scripts/check.sh` sobre `main` tras la integración,
   como exige el protocolo de `Coordination/README.md`.
+
+## `E0-DOC-07` — Política de modelo y esfuerzo, e instrucciones del Proyecto de Claude.ai
+
+### Identificación
+
+- Estado de la rama: `Lista para integrar`
+- Etapa: 0
+- Rama/worktree: `claude/e0-doc-07-project-and-models`
+- Commit base: `aa002e3` (`docs: assign E0-DOC-07 with coordinator drafts`)
+- Commit final: `6afa4c478ff4acf029d6955474a67cb7e740308c` (`docs: connect E0-DOC-07 model policy
+  and project instructions`)
+- Fecha: 2026-09-02
+
+### Resultado
+
+Se revisaron los dos borradores del coordinador (`ClaudeAgent/Claude-Model-Policy.md` y
+`DesignAgent/Salvo-Project-Instructions.md`) contra `AGENTS.md`, `Coordination/README.md` y el
+Blueprint: no se encontró contradicción que requiriera corrección. La tabla de modelos y precios se
+verificó contra la documentación oficial vigente de Anthropic (fetch en vivo, no memoria) y coincide
+exactamente, así que no requirió cambios. Se conectaron ambos documentos con el resto del
+repositorio: `Coordination/Task-Brief-Template.md` incorpora el campo `Modelo y esfuerzo acordados:`
+en Identificación, `ClaudeAgent/README.md` ya no mantiene una segunda lista de adjuntos de
+Claude.ai (remite a `Salvo-Project-Instructions.md` y agrega `Claude-Model-Policy.md` a su tabla de
+archivos), y `DesignAgent/Salvo-MOC.md` indexa `Claude-Model-Policy.md`. Ningún comportamiento de
+aplicación cambió; `./scripts/check.sh` sigue verde. No se tocaron `AGENTS.md`, `CLAUDE.md`, el
+Blueprint, el Progress ni el Workboard.
+
+### Archivos modificados
+
+- `ClaudeAgent/README.md` (fila de `Claude-Model-Policy.md` en la tabla de archivos; sección «Uso
+  con Claude.ai sin Claude Code» reemplazada por una remisión a `Salvo-Project-Instructions.md`)
+- `Coordination/Task-Brief-Template.md` (campo `Modelo y esfuerzo acordados:` agregado en
+  Identificación, entre `Commit base:` y `Dependencias:`)
+- `DesignAgent/Salvo-MOC.md` (entrada nueva para `Claude-Model-Policy.md`)
+- `Coordination/Handoffs/Claude.md` (esta entrada)
+- Revisados sin cambios: `ClaudeAgent/Claude-Model-Policy.md`, `DesignAgent/Salvo-Project-Instructions.md`
+  (ya estaban commiteados en `aa002e3` como borradores del coordinador; no contradicen `AGENTS.md`,
+  `Coordination/README.md` ni el Blueprint)
+
+### Verificación
+
+| Comando | Resultado |
+| --- | --- |
+| `/brief-check Coordination/Tasks/E0-DOC-07.md` | Brief válido: todas las secciones obligatorias presentes y completas, commit base `aa002e3` confirmado con `git log`, `E0-DOC-07` como única tarea activa en el Workboard sin solapamiento, sin contradicción con `AGENTS.md` ni el Blueprint |
+| Consulta en vivo de `https://platform.claude.com/docs/en/about-claude/models/overview` (vía WebFetch, redirigido desde `docs.claude.com`) | Tabla de modelos, contexto y precios confirmada idéntica al borrador: Fable 5.1 $10/$50 · 1M · `claude-fable-5-1`; Opus 5 $5/$25 · 1M · `claude-opus-5`; Sonnet 5 $2/$10 · 1M · `claude-sonnet-5`; Haiku 4.5 $1/$5 · 200K · alias `claude-haiku-4-5` (ID pinneado `claude-haiku-4-5-20251001`); sin correcciones necesarias |
+| `grep -n "Modelo y esfuerzo" Coordination/Task-Brief-Template.md` | Campo presente en Identificación, entre `Commit base:` y `Dependencias:` |
+| `./scripts/check.sh` (`/gate`) sobre `6afa4c4` | Compuerta full-stack verde: restore NuGet actualizado (incluye `dotnet-ef` 10.0.11), build Release 0 advertencias/0 errores, sin cambios de modelo EF pendientes, 24 tests `Salvo.Domain.Tests` + 18 tests `Salvo.Api.IntegrationTests` (42 total, 0 fallos), `npm run check` (typecheck + ESLint 0 warnings + 3 tests Vitest) y build de producción Next.js 16.3.3 (webpack) sin errores |
+| `git status --porcelain` (tras commit) | Limpio; solo los tres paths autorizados aparecieron modificados antes del commit |
+| `git diff --check` | Pasa, sin marcadores de conflicto ni espacios en blanco problemáticos |
+
+### Decisiones y supuestos
+
+- La tabla de modelos del borrador ya coincidía con la documentación oficial vigente; se declara
+  la verificación en vez de reescribir una tabla que no tenía errores, siguiendo el criterio del
+  brief ("si un dato cambió, corregilo y declaralo" — en este caso no cambió).
+- El texto exacto de la remisión que reemplaza «Uso con Claude.ai sin Claude Code» en
+  `ClaudeAgent/README.md` y la ubicación de las filas nuevas en las tablas de `ClaudeAgent/README.md`
+  y `Salvo-MOC.md` fueron decisiones delegadas explícitamente por el brief.
+- No se modificó `ClaudeAgent/Claude-Model-Policy.md` ni `DesignAgent/Salvo-Project-Instructions.md`:
+  tras revisarlos contra `AGENTS.md`, el Blueprint y `Coordination/README.md`, no se encontró
+  contradicción que ameritara una corrección.
+
+### Riesgos o pendientes
+
+- Ninguno. Todos los criterios de aceptación del brief se verificaron con comandos reales.
+
+### Integración
+
+- Orden sugerido: revisar el diff, confirmar que `Claude-Model-Policy.md` y
+  `Salvo-Project-Instructions.md` siguen sin contradicción tras cualquier cambio posterior del
+  coordinador, luego fusionar sin pasos manuales adicionales.
+- Migraciones o pasos manuales: ninguno.
+- Posibles conflictos: ninguno esperado; los paths tocados no se solapan con otro trabajo activo
+  según `Coordination/Workboard.md`. El coordinador debe agregar la fila de
+  `Claude-Model-Policy.md` al §14 del Blueprint al integrar, según indica el brief.
+- Verificación posterior al merge: repetir `./scripts/check.sh` sobre `main` tras la integración,
+  como exige el protocolo de `Coordination/README.md`.

@@ -15,6 +15,7 @@ los requisitos siguen siendo compartidos con Codex.
 | --- | --- |
 | `../CLAUDE.md` | Memoria raíz cargada por Claude Code |
 | `Claude-Workflow.md` | Protocolo permanente específico de Claude |
+| `Claude-Model-Policy.md` | Criterio para elegir modelo y esfuerzo por tipo de tarea |
 | `../Coordination/Task-Brief-Template.md` | Plantilla compartida para asignar una tarea acotada |
 | `Claude-Handoff-Template.md` | Plantilla de entrega al terminar |
 
@@ -72,16 +73,9 @@ personales van en `.claude/settings.local.json`, que queda fuera de control de v
 
 ## Uso con Claude.ai sin Claude Code
 
-Subir o adjuntar únicamente:
-
-- `DesignAgent/Salvo-Blueprint.md`;
-- `DesignAgent/Salvo-Overview.md`;
-- `DesignAgent/Salvo-Progress.md`;
-- `ClaudeAgent/Claude-Workflow.md`;
-- el task brief actual.
-
-Claude.ai no debe inferir que puede editar el repositorio. Los cambios deben volver como propuesta,
-patch o handoff y ser integrados por el coordinador.
+Configuración, lista de adjuntos y límites del Proyecto de Claude.ai:
+`DesignAgent/Salvo-Project-Instructions.md`. No mantener aquí una segunda lista de adjuntos: ese
+documento es la única fuente para esta superficie.
 
 ## Referencia oficial
 

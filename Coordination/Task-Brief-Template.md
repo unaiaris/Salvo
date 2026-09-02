@@ -13,6 +13,7 @@ y los límites de una tarea; no modifica el estado canónico por sí mismo.
 - Fecha:
 - Rama/worktree:
 - Commit base:
+- Modelo y esfuerzo acordados:
 - Dependencias:
 
 ## Resultado esperado

@@ -18,6 +18,8 @@
 - `../AGENTS.md` — instrucciones permanentes para Codex.
 - `../CLAUDE.md` — memoria raíz para Claude Code.
 - `../ClaudeAgent/README.md` — kit operativo y plantillas de Claude.
+- `../ClaudeAgent/Claude-Model-Policy.md` — criterio para elegir modelo y esfuerzo por tipo de
+  tarea.
 - `../Coordination/README.md` — protocolo Codex–Claude, Workboard y handoffs.
 - `../Coordination/Task-Brief-Template.md` — resultado, límites y verificación de cada tarea.
 - `../README.md` — entrada pública al repositorio.
