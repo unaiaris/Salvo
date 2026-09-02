@@ -1,6 +1,6 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: E4A-PERSISTENCIA integrada y verificada; E4B-ALERTAS pendiente de asignación
+> Estado: E4A-PERSISTENCIA verificada; E4B-ALERTAS asignada y pendiente de ejecución
 > Última actualización: 2026-09-02
 > Responsable: coordinador de la etapa
 
@@ -14,13 +14,15 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 
 ## Trabajo activo
 
-No hay tareas activas ni paths reservados.
+| Work ID | Etapa | Objetivo | Propietario | Estado | Rama | Base | Paths reservados | Dependencias | Actualizado |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| E4B-ALERTAS | 4 | Alertas con escalada, revisión transaccional y control de concurrencia | Claude | Asignada | `claude/e4b-alertas` | commit de `main` que incorpora el brief | `backend/src/Salvo.Domain/Alerts/**`, `backend/src/Salvo.Application/Alerts/**`, `backend/src/Salvo.Infrastructure/**`, `backend/src/Salvo.Api/**` | `E4A-PERSISTENCIA` integrada | 2026-09-02 |
+
+Modelo y esfuerzo acordados para `E4B-ALERTAS`: Opus 5 · `high`.
 
 ## Cola próxima
 
-| Work ID | Etapa | Objetivo | Dependencias |
-| --- | --- | --- | --- |
-| E4B-ALERTAS | 4 | Alertas con escalada, revisión transaccional y control de concurrencia | `E4A-PERSISTENCIA` integrada |
+No hay tareas en cola. La Etapa 5 no se inicia sin aprobación explícita del usuario.
 
 ## Historial integrado
 
