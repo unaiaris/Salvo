@@ -1,7 +1,7 @@
 # Salvo — Blueprint del MVP
 
 > Estado del documento: vigente
-> Estado del proyecto: Etapa 3 integrada y verificada; Etapa 4 pendiente de autorización
+> Estado del proyecto: Etapa 3 integrada y verificada; Etapa 4 diseñada y aprobada, en ejecución
 > Última actualización: 2026-09-02
 > Seguimiento operativo: [[Salvo-Progress]]
 
@@ -198,12 +198,20 @@ Diseño aprobado para E3:
 
 ### 4.3 Alertas y revisión
 
-- Una alerta por evaluación local marcada.
-- `severity` se deriva del score mediante una función determinista y no se duplica en la base salvo
-  que se decida guardarla como snapshot.
-- Estados de alerta: `OPEN`, `CONFIRMED_SAFE`, `REPORTED_FRAUD`.
-- La revisión actualiza alerta y pedido en una única transacción de base de datos.
-- El score copiado a la alerta es un snapshot auditable de la evaluación que la originó.
+- Como máximo una alerta `OPEN` por pedido. Una evaluación marcada crea alerta solo si el pedido no
+  tiene alerta abierta y no fue revisado, o si la banda de severidad vigente supera la de la última
+  alerta; en ese caso la alerta nueva enlaza a la anterior mediante `supersedesAlertId`.
+- `severity` se deriva del score mediante una función determinista y no se persiste. Sí se persiste
+  `alertPolicyVersion`, para que una política futura no reclasifique alertas históricas.
+- Estados de alerta: `OPEN`, `CONFIRMED_SAFE`, `REPORTED_FRAUD`. El veredicto es terminal: una
+  alerta revisada no se reabre.
+- La revisión actualiza la alerta y escribe su registro de auditoría en una única transacción de
+  base de datos. El pedido no cambia: sus hechos son inmutables.
+- La transacción no basta por sí sola. `status` actúa como token de concurrencia para que dos
+  revisiones simultáneas terminen en conflicto y no en sobrescritura silenciosa.
+- El score copiado a la alerta es un snapshot auditable de la evaluación que la originó y no se
+  actualiza. La lectura expone además la evaluación vigente y su divergencia de banda; revisar con
+  bandas divergentes exige reconocerlo explícitamente.
 - La métrica `amountAtRisk` suma alertas abiertas; el fraude ya reportado se presenta por separado.
 
 ### 4.4 Interfaz
@@ -581,6 +589,15 @@ completo el MVP local.
 | 25 | Scoring y lectura de labels usan fronteras separadas | Hacer estructural la prohibición de usar ground truth como feature | 2026-08-31 |
 | 26 | Calibración usa un split temporal 2/3–1/3 y holdout sin retuning | Medir el umbral sin usar el futuro ni presentar el entrenamiento como evaluación | 2026-08-31 |
 | 27 | E3 no persiste assessments ni crea alertas | Mantener RiskEvaluation y efectos idempotentes dentro de E4 | 2026-08-31 |
+| 28 | `Order` permanece inmutable; el estado de revisión vive en `Alert` | El veredicto de un analista es juicio operativo, no un hecho del pedido; §4.3 se corrige | 2026-09-02 |
+| 29 | `RiskEvaluation` es append-only con identidad por fingerprint de contenido, acotada a `source = LOCAL` | El motor depende del corpus, no solo de la config; el ciclo de vida externo es mutable y se decide en E6 | 2026-09-02 |
+| 30 | La serialización canónica de señales vive en Domain y usa el orden de reglas del motor | Un recálculo desde la fila almacenada debe reproducir su propio fingerprint | 2026-09-02 |
+| 31 | `ScoringRun` se persiste y define cuál es la evaluación vigente de un pedido | Un baseline puede volver a un estado anterior y hacer rebotar el fingerprint, dejando vigente un resultado obsoleto | 2026-09-02 |
+| 32 | Como máximo una alerta `OPEN` por pedido; se re-alerta solo por escalada de banda | Evitar duplicados sin perder el fraude que revela una importación retroactiva | 2026-09-02 |
+| 33 | Una alerta abierta no se actualiza, pero su divergencia con la evaluación vigente se expone y se reconoce al revisar | El snapshot es el registro auditable; ocultar el cambio de corpus induce decisiones falsas | 2026-09-02 |
+| 34 | La severidad se deriva del score y se persiste `alertPolicyVersion` | Evitar que una política futura reclasifique retroactivamente alertas ya revisadas | 2026-09-02 |
+| 35 | La revisión escribe alerta y auditoría en una transacción, con `status` como token de concurrencia | Una transacción atómica no protege un check-then-act; sin token, un veredicto pisa al otro | 2026-09-02 |
+| 36 | La corrida de scoring invoca `TemporalRiskEngine` directamente; el camino de métricas queda separado | `EvaluateLocalRiskHandler` exige etiquetas completas que una importación no produce | 2026-09-02 |
 
 ## 14. Mapa de documentación
 

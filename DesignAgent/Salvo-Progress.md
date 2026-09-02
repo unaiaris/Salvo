@@ -9,10 +9,10 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado del proyecto | Etapa 3 — Motor determinista completada |
+| Estado del proyecto | Etapa 4 — Alertas y casos de uso, diseñada y aprobada |
 | Etapa completada | Etapa 3 — Motor determinista |
 | Próxima etapa | Etapa 4 — Alertas y casos de uso |
-| Estado de la próxima etapa | Pendiente de diseño y autorización |
+| Estado de la próxima etapa | Aprobada; se ejecuta en `E4A-PERSISTENCIA` y `E4B-ALERTAS` |
 | Bloqueo actual | Ninguno |
 | Dependencias externas | Ninguna para el núcleo local |
 | Anthropic | Previsto para después del núcleo |
@@ -39,7 +39,7 @@ Solo puede existir una etapa `En curso` a la vez.
 | 1 | Fundaciones reproducibles | Completada | Builds, tests y arranque de ASP.NET Core + Next.js | Merge `897cec7` + compuerta verde |
 | 2 | Contrato y datos sintéticos | Completada | Seed idempotente + parser validado | Merge `4b7bf54` + 24 tests .NET + compuerta verde en `main` |
 | 3 | Motor determinista | Completada | Tests por regla + métricas sin fuga | Merge `809ff75` + 42 tests .NET + compuerta verde en `main` |
-| 4 | Alertas y casos de uso | Pendiente | Idempotencia + consistencia transaccional | Pendiente |
+| 4 | Alertas y casos de uso | En curso | Idempotencia + consistencia transaccional | Diseño aprobado; decisiones 28–36 del Blueprint |
 | 5 | UI y dashboard | Pendiente | Recorrido completo y estados vacíos/error | Pendiente |
 | 6 | Proveedor antifraude mock | Pendiente | Estados y callbacks replay-safe | Pendiente |
 | 7 | Explicabilidad | Pendiente | Funciona sin red; Anthropic opcional | Pendiente |
@@ -263,6 +263,9 @@ brief y autorización independientes antes de persistir evaluaciones o crear ale
 | 2026-09-02 | 0 | Inicio de E0-DOC-07 | Brief `Coordination/Tasks/E0-DOC-07.md` y rama `claude/e0-doc-07-project-and-models` desde `aa002e3` | En curso |
 | 2026-09-02 | 0 | Política de modelos y instrucciones del Proyecto conectadas al repositorio | Commits `6afa4c4` y `45381a0`; tabla de modelos validada contra documentación oficial; `/brief-check`, `/gate` y `/handoff` ejecutados | Lista para integrar |
 | 2026-09-02 | 0 | Integración y verificación canónica | Merge `a3f8ac4` + `./scripts/check.sh` sobre `main` | Completada |
+| 2026-09-02 | Preparación E4 | Diseño de alertas, evaluaciones y revisión transaccional | Aprobación del usuario | Aprobada |
+| 2026-09-02 | Preparación E4 | Revisión adversarial del diseño con Fable 5.1 | 10 hallazgos, 4 de severidad alta, verificados contra código real | Completada |
+| 2026-09-02 | Preparación E4 | Diseño v2 con los diez hallazgos incorporados y partición en E4A/E4B | Aprobación del usuario + decisiones 28–36 en la bitácora | Aprobada; no iniciada |
 
 ## Protocolo de actualización
 

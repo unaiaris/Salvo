@@ -1,6 +1,6 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: E0-DOC-07 integrada y verificada; sin trabajo activo
+> Estado: E4A-PERSISTENCIA asignada a Claude; Etapa 4 en curso
 > Última actualización: 2026-09-02
 > Responsable: coordinador de la etapa
 
@@ -14,11 +14,18 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 
 ## Trabajo activo
 
-No hay tareas activas ni paths reservados.
+| Work ID | Etapa | Objetivo | Propietario | Estado | Rama | Base | Paths reservados | Dependencias | Actualizado |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| E4A-PERSISTENCIA | 4 | Persistir evaluaciones locales y corridas de scoring de forma idempotente | Claude | Asignada | `claude/e4a-persistencia` | pendiente de fijar al crear la rama | `backend/**` | Ninguna | 2026-09-02 |
+
+Brief: `Coordination/Tasks/E4A-PERSISTENCIA.md`. Diseño: `Coordination/Tasks/E4-DISENO.md`.
+Revisión adversarial: `Coordination/Tasks/E4-revision-adversarial.md`.
 
 ## Cola próxima
 
-No hay otras tareas en cola.
+| Work ID | Etapa | Objetivo | Dependencias |
+| --- | --- | --- | --- |
+| E4B-ALERTAS | 4 | Alertas con escalada, revisión transaccional y control de concurrencia | `E4A-PERSISTENCIA` integrada |
 
 ## Historial integrado
 
