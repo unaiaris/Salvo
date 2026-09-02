@@ -1,7 +1,7 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: E0-DOC-07 asignada a Claude; E0-DOC-06 integrada y verificada
-> Última actualización: 2026-09-01
+> Estado: E0-DOC-07 integrada y verificada; sin trabajo activo
+> Última actualización: 2026-09-02
 > Responsable: coordinador de la etapa
 
 ## Estados
@@ -14,11 +14,7 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 
 ## Trabajo activo
 
-| Work ID | Etapa | Objetivo | Propietario | Estado | Rama | Base | Paths reservados | Dependencias | Actualizado |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| E0-DOC-07 | 0 | Política de modelo y esfuerzo, e instrucciones del Proyecto de Claude.ai | Claude | Asignada | `claude/e0-doc-07-project-and-models` | pendiente de fijar al crear la rama | `ClaudeAgent/Claude-Model-Policy.md`, `ClaudeAgent/README.md`, `DesignAgent/Salvo-Project-Instructions.md`, `DesignAgent/Salvo-MOC.md`, `Coordination/Task-Brief-Template.md`, `Coordination/Handoffs/Claude.md` | E0-DOC-06 integrada | 2026-09-01 |
-
-Brief: `Coordination/Tasks/E0-DOC-07.md`.
+No hay tareas activas ni paths reservados.
 
 ## Cola próxima
 
@@ -37,6 +33,7 @@ No hay otras tareas en cola.
 | E2-CONTRACT-DATA | 2 | Contrato, importación, migración y datos sintéticos idempotentes | Codex | Verificada | Merge `4b7bf54`, 24 tests .NET y compuerta sobre `main` |
 | E3-MOTOR-DETERMINISTA | 3 | Baseline temporal, seis reglas, scoring y evaluación sin fuga | Codex | Verificada | Merge `809ff75`, 42 tests .NET y compuerta sobre `main` |
 | E0-DOC-06 | 0 | Tooling de Claude Code: comandos `/gate`, `/handoff`, `/brief-check`, permisos y política de `.claude/` | Claude | Verificada | Merge `50eb2de`, compuerta full-stack verde sobre `main` |
+| E0-DOC-07 | 0 | Política de modelo y esfuerzo, e instrucciones del Proyecto de Claude.ai | Claude | Verificada | Merge `a3f8ac4`, compuerta full-stack verde sobre `main` |
 
 ## Plantilla de fila activa
 

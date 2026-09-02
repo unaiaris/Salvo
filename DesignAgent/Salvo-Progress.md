@@ -1,7 +1,7 @@
 # Salvo — Seguimiento de implementación
 
 > Estado del documento: activo
-> Última actualización: 2026-09-01
+> Última actualización: 2026-09-02
 > Fuente de alcance: [[Salvo-Blueprint]]
 > Regla: actualizar este archivo al comenzar y cerrar cada etapa
 
@@ -156,6 +156,7 @@ brief y autorización independientes antes de persistir evaluaciones o crear ale
 - [x] Verificar que no exista código de aplicación versionado.
 - [x] Verificar la carga real de los imports de `CLAUDE.md` con Claude Code instalado.
 - [x] Versionar el tooling de Claude Code: comandos, permisos y política de `.claude/`.
+- [x] Documentar el criterio de modelo y esfuerzo, y la configuración del Proyecto de Claude.ai.
 
 ### Etapa 2 — Contrato y datos
 
@@ -259,6 +260,9 @@ brief y autorización independientes antes de persistir evaluaciones o crear ale
 | 2026-09-01 | 0 | Inicio de E0-DOC-06 | Brief `Coordination/Tasks/E0-DOC-06.md` y rama `claude/e0-doc-06-tooling` desde `dbce667` | En curso |
 | 2026-09-01 | 0 | Tooling implementado y corregido tras revisión del coordinador | Commits `15b2b2a`, `205bdd0` y `bffb018`; `/gate` y `/brief-check` ejecutados en sesión nueva | Lista para integrar |
 | 2026-09-01 | 0 | Integración y verificación canónica | Merge `50eb2de` + `./scripts/check.sh` sobre `main` | Completada |
+| 2026-09-02 | 0 | Inicio de E0-DOC-07 | Brief `Coordination/Tasks/E0-DOC-07.md` y rama `claude/e0-doc-07-project-and-models` desde `aa002e3` | En curso |
+| 2026-09-02 | 0 | Política de modelos y instrucciones del Proyecto conectadas al repositorio | Commits `6afa4c4` y `45381a0`; tabla de modelos validada contra documentación oficial; `/brief-check`, `/gate` y `/handoff` ejecutados | Lista para integrar |
+| 2026-09-02 | 0 | Integración y verificación canónica | Merge `a3f8ac4` + `./scripts/check.sh` sobre `main` | Completada |
 
 ## Protocolo de actualización
 

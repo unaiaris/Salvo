@@ -2,7 +2,7 @@
 
 > Estado del documento: vigente
 > Estado del proyecto: Etapa 3 integrada y verificada; Etapa 4 pendiente de autorización
-> Última actualización: 2026-08-31
+> Última actualización: 2026-09-02
 > Seguimiento operativo: [[Salvo-Progress]]
 
 Fuente de verdad del producto, alcance y arquitectura. Salvo es una consola antifraude B2B para un
@@ -589,6 +589,7 @@ completo el MVP local.
 | `AGENTS.md` | Instrucciones permanentes para Codex |
 | `CLAUDE.md` | Entrada automática de Claude Code; importa contexto compartido |
 | `ClaudeAgent/` | Workflow y plantillas específicas de Claude |
+| `ClaudeAgent/Claude-Model-Policy.md` | Criterio de modelo y esfuerzo por tipo de tarea |
 | `Coordination/` | Workboard, ownership y handoffs Codex–Claude |
 | `Coordination/Task-Brief-Template.md` | Brief compartido para delimitar tareas de Codex o Claude |
 | `DesignAgent/Salvo-Blueprint.md` | Fuente de verdad del diseño y roadmap |
