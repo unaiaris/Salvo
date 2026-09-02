@@ -375,3 +375,215 @@ Commit `73c1b17`, 44 archivos, todos dentro de los paths autorizados del brief.
 - Verificación posterior al merge: repetir `./scripts/check.sh` sobre `main` y confirmar que el test
   dorado de fingerprints sigue verde sobre el estado integrado, según el protocolo de
   `Coordination/README.md`.
+
+---
+
+## `E4B-ALERTAS` — Alertas con escalada, revisión transaccional y control de concurrencia
+
+### Identificación
+
+- Estado de la rama: `Lista para integrar`
+- Etapa: 4
+- Rama/worktree: `claude/e4b-alertas`
+- Commit base: `05ddb4a` (`chore: assign E4B-ALERTAS`, punta de `main`)
+- Commit final: `c6e945b` (implementación completa; esta entrada de handoff se agrega en el commit
+  siguiente, que solo toca `Coordination/Handoffs/Claude.md`)
+- Fecha: 2026-09-02
+
+### Resultado
+
+Una evaluación local marcada produce una alerta operable. La corrida de scoring abre las alertas
+dentro de su único `SaveChangesAsync`; el listado y el detalle las exponen junto con la evaluación
+vigente y su divergencia de banda; y `POST /api/alerts/{id}/review` emite un veredicto terminal que
+queda auditado. Dos revisiones simultáneas de la misma alerta terminan en un `200` y un `409`, con
+un solo `AlertReview` persistido.
+
+Piezas entregadas:
+
+- **Dominio.** `AlertStatus` (`OPEN`, `CONFIRMED_SAFE`, `REPORTED_FRAUD`), `AlertSeverity`
+  (`MEDIUM`, `HIGH`, `CRITICAL`), `AlertPolicy e4-v1` inmutable con bandas 60–69 / 70–89 / 90–100,
+  `Alert` y `AlertReview`. La severidad es propiedad calculada, resuelta por la versión de política
+  que la alerta guarda; no existe como columna.
+- **Validación de arranque.** `AlertPolicy.Validate(RuleConfig)` exige que el piso de la banda más
+  baja sea igual a `RuleConfig.FlagThreshold`, que las bandas cubran sin huecos ni solapes hasta
+  `ScoreCap` y que la severidad crezca. `Program.Main` la invoca antes de construir el host.
+- **Creación dentro de la corrida.** `RunScoringHandler` evalúa el predicado sobre estado
+  persistido (`IScoringRunStore.GetAlertStatesAsync`) y entrega las alertas a `SaveRunAsync`, que
+  las escribe en el mismo `SaveChangesAsync` de la corrida. `ScoringRun` gana `alertsCreated`,
+  `alertsSkippedOpen` y `alertsSkippedReviewed`.
+- **Escalada.** Sin alerta abierta, se crea alerta nueva si el pedido nunca fue alertado o si la
+  banda vigente supera la de la última alerta; en ese caso enlaza con `supersedesAlertId`. Subir de
+  puntos dentro de la misma banda no crea nada.
+- **Revisión transaccional.** `ReviewAlertHandler` escribe alerta y auditoría en un solo
+  `SaveChangesAsync`. `alerts.status` es token de concurrencia y `UNIQUE(alert_reviews.alert_id)` lo
+  respalda a nivel base. Idempotencia y conflicto siguen exactamente la tabla de D7.
+- **Divergencia.** El detalle devuelve snapshot, evaluación vigente y un bloque `divergence`;
+  revisar con bandas divergentes exige `acknowledgedDivergence: true`.
+- **Corrección de arrastre.** `SalvoDbContextFactory` ya no fija `salvo.design.db`: resuelve
+  `ConnectionStrings__SalvoDb`, luego `appsettings.{Environment}.json`, luego `appsettings.json`, y
+  sólo entonces cae a `salvo.design.db`.
+
+### Archivos modificados
+
+Dominio (`backend/src/Salvo.Domain/`):
+
+- `Alerts/Alert.cs`, `Alerts/AlertReview.cs`, `Alerts/AlertPolicy.cs`, `Alerts/AlertSeverityBand.cs`
+- `Alerts/AlertStatus.cs`, `Alerts/AlertSeverity.cs`, `Alerts/AlertWireNames.cs`,
+  `Alerts/AlertTransitionException.cs`
+- `Risk/ScoringRun.cs` (tres contadoras nuevas), `Risk/RiskSignalSerializer.cs` (`Deserialize`)
+
+Aplicación (`backend/src/Salvo.Application/`):
+
+- `Alerts/IAlertStore.cs`, `Alerts/IAlertIdGenerator.cs`, `Alerts/AlertContext.cs`,
+  `Alerts/AlertPage.cs`, `Alerts/OrderAlertState.cs`
+- `Alerts/AlertViews.cs`, `Alerts/AlertProjection.cs`
+- `Alerts/ListAlertsHandler.cs`, `Alerts/GetAlertHandler.cs`, `Alerts/ReviewAlertHandler.cs`,
+  `Alerts/ReviewAlertCommand.cs`
+- `Alerts/AlertReviewConflictException.cs`, `Alerts/AlertReviewConflictReason.cs`
+- `Risk/IScoringRunStore.cs`, `Risk/RunScoringHandler.cs`, `Risk/ScoringRunSummary.cs`
+
+Infraestructura (`backend/src/Salvo.Infrastructure/`):
+
+- `Persistence/Configurations/AlertConfiguration.cs`,
+  `Persistence/Configurations/AlertReviewConfiguration.cs`,
+  `Persistence/Configurations/ScoringRunConfiguration.cs`
+- `Persistence/AlertStatusConverter.cs`, `Persistence/EfAlertStore.cs`,
+  `Persistence/EfScoringRunStore.cs`, `Persistence/SalvoDbContext.cs`,
+  `Persistence/SalvoDbContextFactory.cs`
+- `Persistence/Migrations/20260902204944_AlertsAndReview.cs` y su `.Designer.cs`,
+  `Persistence/Migrations/SalvoDbContextModelSnapshot.cs`
+- `DependencyInjection.cs`, `SystemAlertIdGenerator.cs`
+
+API (`backend/src/Salvo.Api/`):
+
+- `AlertEndpoints.cs`, `Program.cs`
+
+Tests (`backend/tests/`):
+
+- `Salvo.Domain.Tests/AlertPolicyTests.cs`, `Salvo.Domain.Tests/AlertTests.cs`
+- `Salvo.Domain.Tests/ArchitectureSmokeTests.cs`, `Salvo.Domain.Tests/ScoringRunTests.cs`
+- `Salvo.Api.IntegrationTests/AlertCreationTests.cs`,
+  `Salvo.Api.IntegrationTests/AlertReviewTests.cs`,
+  `Salvo.Api.IntegrationTests/AlertSchemaTests.cs`,
+  `Salvo.Api.IntegrationTests/AlertEndpointTests.cs`,
+  `Salvo.Api.IntegrationTests/AlertTestCorpus.cs`,
+  `Salvo.Api.IntegrationTests/SalvoDbContextFactoryTests.cs`
+- `Salvo.Api.IntegrationTests/SalvoApiFactory.cs`,
+  `Salvo.Api.IntegrationTests/ScoringRunPersistenceTests.cs`,
+  `Salvo.Api.IntegrationTests/RiskEvaluationTests.cs`
+
+No se tocó `Directory.Packages.props`, ningún lockfile, `frontend/`, el Blueprint, el Progress ni el
+Workboard.
+
+### Verificación
+
+| Comando | Resultado |
+| --- | --- |
+| `/brief-check Coordination/Tasks/E4B-ALERTAS.md` | Brief válido: once secciones completas, commit base resuelto a `05ddb4a`, sin solapamiento de paths, sin contradicción con `AGENTS.md` ni el Blueprint |
+| `dotnet ef migrations add AlertsAndReview` | Migración `20260902204944_AlertsAndReview` creada |
+| `dotnet ef migrations has-pending-model-changes` | «No changes have been made to the model since the last migration» |
+| `dotnet test Salvo.slnx` | 55 tests de dominio + 54 de integración, todos verdes (antes: 40 + 32) |
+| Test de carrera sobre base en archivo (`TwoConcurrentReviewsLeaveOneVerdictAndExactlyOneAudit`) | Un `200` y un `409`; exactamente un `AlertReview`; el estado final coincide con el veredicto ganador. Repetido cinco veces seguidas, verde en todas |
+| Token de concurrencia aislado (`AStaleVerdictLosesToTheConcurrencyTokenEvenWithoutTheAuditIndex`) | El segundo `SaveChangesAsync`, que sólo actualiza la alerta, lanza `DbUpdateConcurrencyException` |
+| Test de escalada (`AnEscalationAfterABackfillOpensANewAlertLinkedToTheReviewedOne`) | 60 `MEDIUM` revisada → 100 `CRITICAL` con `supersedesAlertId` apuntando a la anterior |
+| Test de banda estable (`AHigherScoreInsideTheSameBandOpensNothing`) | 90 → 100, ambas `CRITICAL`: `alertsCreated = 0`, `alertsSkippedReviewed = 1` |
+| Test de distribución del corpus demo | 18 alertas: 13 `MEDIUM`, 0 `HIGH`, 5 `CRITICAL` |
+| Segunda corrida sin cambios | `alertsCreated = 0`, `alertsSkippedOpen = 18` |
+| `GET /api/alerts` sin `isFraudLabel` | Ningún nombre de campo del listado ni del detalle contiene «label»; un parámetro desconocido `isFraudLabel=true` devuelve exactamente la misma respuesta |
+| `./scripts/check.sh` | **Verde**, código de salida `0`: restore bloqueado, build Release con 0 advertencias y 0 errores, migraciones sin cambios pendientes, 109 tests .NET, `npm run check` y build de producción Next.js 16.3.3 |
+| `git status --porcelain` | Limpio tras el commit; todos los archivos dentro de los paths autorizados |
+| `git diff --check` | Pasa |
+
+### Decisiones y supuestos
+
+- **`AlertReview` no atribuye la decisión a nadie.** Sin autenticación no hay identidad de revisor,
+  y fabricar un campo de identidad produciría un rastro de auditoría falso. Queda declarado, como
+  pide el brief; el campo pertenece al trabajo post-MVP de autenticación.
+- **`Alert.Severity` resuelve la política por versión, no por la política vigente.**
+  `AlertPolicy.ForVersion(AlertPolicyVersion)` es lo que hace que `alertPolicyVersion` sirva para
+  algo: una alerta abierta bajo `e4-v1` conserva su banda aunque exista una `e4-v2`. `AlertPolicy`
+  expone un registro `All` con las versiones conocidas.
+- **`AlertPolicy` tiene constructor público.** `RuleConfig` usa constructor privado, pero
+  `Validate()` sólo es comprobable si se puede construir una política inválida. Las bandas
+  aprobadas siguen viviendo en el singleton `AlertPolicy.E4V1` y la validación estructural ocurre en
+  `Validate`, no en el constructor, para que el fallo sea el del arranque y no el de un
+  `TypeInitializationException`.
+- **El filtro por severidad se traduce a rangos de score.** Al no ser columna, `EfAlertStore`
+  construye el predicado desde las bandas de cada `AlertPolicy` conocida, emparejando versión y
+  rango. Con una sola política registrada degenera en un `WHERE` simple.
+- **Orden del listado: `createdAt` descendente y luego `id`.** Es un orden determinista y estable
+  para paginar. El orden del feed por score vigente es Etapa 5 y queda fuera; el listado ya devuelve
+  ambos scores y el indicador de divergencia para que E5 pueda ordenarlo sin cambiar el contrato.
+- **La divergencia se calcula contra la evaluación vigente del pedido.** Si un pedido no tuviera
+  evaluación vigente —imposible una vez que existe una alerta, porque la corrida cubre todo el
+  corpus— no se reporta divergencia y `currentScore` queda nulo, para no bloquear revisiones
+  legítimas por ausencia de dato.
+- **Sin `acknowledgedDivergence`, sólo se bloquea la transición desde `OPEN`.** Repetir el mismo
+  veredicto con la misma nota sobre una alerta ya revisada devuelve `200` sin comprobar divergencia:
+  la decisión ya está tomada y el reintento no la cambia.
+- **Pedir un `newStatus` que no es veredicto es `400`, no `409`,** incluso sobre una alerta ya
+  revisada. `OPEN` no es un veredicto y nada reabre una alerta.
+- **`SalvoApiFactory` conserva un único constructor público.** xUnit exige exactamente uno en un
+  class fixture, así que la base en archivo se obtiene con `SalvoApiFactory.WithFileDatabase()`. Los
+  tests existentes siguen usando la conexión `:memory:` compartida y no cambian de comportamiento.
+- **El test de carrera fuerza el entrelazado con un decorador de `IAlertStore`.** Ambas requests
+  terminan de leer antes de que cualquiera escriba, y las escrituras se serializan. Sin eso el
+  entrelazado dependería del planificador y el test sería inestable en vez de una prueba. Se hizo al
+  primer intento; no fue necesario invocar la excepción de esfuerzo del brief.
+- **`SalvoDbContextFactory` no incorpora `Microsoft.Extensions.Configuration`.** Ese paquete no está
+  entre las dependencias del proyecto y añadirlo habría exigido consulta previa y regenerar
+  lockfiles. La fábrica lee la variable de entorno y, si falta, el `appsettings` con
+  `System.Text.Json`, que ya está en la BCL. La lógica vive en un método público y puro,
+  `ResolveConnectionString`, cubierto por cinco tests, uno de los cuales resuelve contra el
+  `appsettings.json` real de `Salvo.Api`.
+- **`RiskSignalSerializer.Deserialize`.** El detalle presenta las señales del snapshot como objetos,
+  no como texto crudo. La lectura se añadió junto a la escritura canónica para que ambas se
+  mantengan juntas; nunca se usa para recalcular un fingerprint, que sigue derivándose del texto
+  almacenado.
+- **`RuleConfig`, `TemporalRiskEngine`, `Order`, el importador, el seed, las métricas de E3 y la
+  migración de E4A no se tocaron.** Se consumen tal como están.
+
+### Riesgos o pendientes
+
+- **Dos tests previos cambiaron de premisa, ambos por obsolescencia declarada.**
+  `RiskEvaluationTests` (`…WithoutPersistenceEffects`) afirmaba que no existía ninguna tabla cuyo
+  nombre contuviera «alert» —es decir, codificaba «E4B todavía no ocurrió»—. Esa cláusula se
+  reemplazó por una comprobación más fuerte y vigente: el camino de métricas sigue sin escribir
+  nada, con `alerts` y `alert_reviews` en cero filas además de las tres tablas de E4A.
+  `ScoringRunTests` y las llamadas directas a `SaveRunAsync` se ampliaron con los argumentos nuevos.
+- **El token de concurrencia y el único de `alert_reviews` se solapan en la práctica.** Como los
+  estados son terminales, toda carrera de revisión choca también con `UNIQUE(alert_reviews.alert_id)`,
+  y EF ejecuta el `INSERT` antes del `UPDATE`, de modo que en el camino HTTP la excepción que llega
+  es la de unicidad. Ambas se mapean a `409` y la transacción revierte el `UPDATE` de la alerta, así
+  que el comportamiento observable es el prometido. El token se verifica de forma aislada en
+  `AStaleVerdictLosesToTheConcurrencyTokenEvenWithoutTheAuditIndex`, donde no hay fila de auditoría
+  en juego. Es defensa en profundidad deliberada, no redundancia accidental.
+- **Los corpus sintéticos de los tests fijan scores exactos.** Están construidos para que sólo el
+  pedido bajo prueba cruce el umbral, y cada helper documenta de qué reglas sale su score. Cambiar
+  `RuleConfig` los rompería de forma ruidosa, que es lo deseable.
+- **`POST /api/risk-evaluations:run` recalcula el corpus completo y ahora también relee el estado de
+  alertas de los pedidos marcados.** Con 300 pedidos y 18 marcados es trivial. Riesgo de volumen ya
+  declarado en `E4-DISENO.md`, no introducido aquí.
+- **`amountAtRisk`, el orden del feed y toda la UI quedan fuera**, como fija el brief: son Etapa 5.
+  Tampoco se crearon las columnas de explicabilidad de Etapa 7.
+- **`AGENTS.md` §«Estado actual» describe `E4B-ALERTAS` como pendiente.** Actualizarlo corresponde
+  al coordinador tras la integración; está fuera de los paths autorizados de esta tarea.
+- Sin dependencias nuevas, sin cambios en `Directory.Packages.props` ni en lockfiles, sin escrituras
+  externas, sin `git push`, sin PR y sin borrar ni recrear ninguna base local.
+
+### Integración
+
+- Orden sugerido: rama única; `E4A-PERSISTENCIA` ya está integrada en `main` y es su única
+  dependencia.
+- Migraciones o pasos manuales: `20260902204944_AlertsAndReview` es aditiva. Crea `alerts` y
+  `alert_reviews` y añade `alerts_created`, `alerts_skipped_open` y `alerts_skipped_reviewed` a
+  `scoring_runs` con `defaultValue: 0`, más el check `ck_scoring_runs_alert_counts`. Una base local
+  existente se actualiza con `dotnet ef database update` sin recrearse ni perder datos. Tras la
+  corrección de la fábrica de diseño, ese comando ya migra la base que la API abre
+  (`ConnectionStrings:SalvoDb`, `salvo.db` por defecto) y no `salvo.design.db`; si alguien migró
+  antes contra `salvo.design.db`, ese archivo queda huérfano y puede ignorarse.
+- Posibles conflictos: ninguno esperado. La rama parte de la punta de `main` y no hay otra tarea
+  activa sobre los mismos paths.
+- Verificación posterior al merge: repetir `./scripts/check.sh` sobre `main`, y confirmar que el
+  test dorado de fingerprints de E4A y la distribución 18 / 13 / 5 del corpus demo siguen verdes
+  sobre el estado integrado, según el protocolo de `Coordination/README.md`.
