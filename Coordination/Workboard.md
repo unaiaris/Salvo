@@ -1,6 +1,6 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: E4A-PERSISTENCIA asignada a Claude; Etapa 4 en curso
+> Estado: E4A-PERSISTENCIA integrada y verificada; E4B-ALERTAS pendiente de asignación
 > Última actualización: 2026-09-02
 > Responsable: coordinador de la etapa
 
@@ -14,12 +14,7 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 
 ## Trabajo activo
 
-| Work ID | Etapa | Objetivo | Propietario | Estado | Rama | Base | Paths reservados | Dependencias | Actualizado |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| E4A-PERSISTENCIA | 4 | Persistir evaluaciones locales y corridas de scoring de forma idempotente | Claude | Asignada | `claude/e4a-persistencia` | pendiente de fijar al crear la rama | `backend/**` | Ninguna | 2026-09-02 |
-
-Brief: `Coordination/Tasks/E4A-PERSISTENCIA.md`. Diseño: `Coordination/Tasks/E4-DISENO.md`.
-Revisión adversarial: `Coordination/Tasks/E4-revision-adversarial.md`.
+No hay tareas activas ni paths reservados.
 
 ## Cola próxima
 
@@ -41,6 +36,7 @@ Revisión adversarial: `Coordination/Tasks/E4-revision-adversarial.md`.
 | E3-MOTOR-DETERMINISTA | 3 | Baseline temporal, seis reglas, scoring y evaluación sin fuga | Codex | Verificada | Merge `809ff75`, 42 tests .NET y compuerta sobre `main` |
 | E0-DOC-06 | 0 | Tooling de Claude Code: comandos `/gate`, `/handoff`, `/brief-check`, permisos y política de `.claude/` | Claude | Verificada | Merge `50eb2de`, compuerta full-stack verde sobre `main` |
 | E0-DOC-07 | 0 | Política de modelo y esfuerzo, e instrucciones del Proyecto de Claude.ai | Claude | Verificada | Merge `a3f8ac4`, compuerta full-stack verde sobre `main` |
+| E4A-PERSISTENCIA | 4 | Persistencia idempotente de evaluaciones locales y corridas de scoring | Claude | Verificada | Merge `1d9ee83`, 71 tests .NET y compuerta verde sobre `main` |
 
 ## Plantilla de fila activa
 

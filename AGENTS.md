@@ -28,8 +28,13 @@ cambia alcance o arquitectura, actualizar primero su bitácora y después los do
 - Etapa 1 integrada y verificada sobre `main`.
 - Etapa 2 integrada en `main` mediante `4b7bf54` y verificada con la compuerta full-stack.
 - Etapa 3 integrada en `main` mediante `809ff75` y verificada con la compuerta full-stack.
-- No hay tareas activas; Etapa 4 permanece pendiente de autorización explícita.
-- No iniciar Etapa 4 ni incorporar alertas, revisión o persistencia de evaluaciones sin aprobación.
+- Etapa 4 aprobada por el usuario y en curso. Se ejecuta en dos ítems: `E4A-PERSISTENCIA`,
+  integrada en `main` mediante `1d9ee83` y verificada con la compuerta full-stack, y `E4B-ALERTAS`,
+  pendiente.
+- Las decisiones de diseño de la Etapa 4 son las entradas 28 a 36 de la bitácora del Blueprint. El
+  diseño y su revisión adversarial viven en `Coordination/Tasks/E4-DISENO.md` y
+  `Coordination/Tasks/E4-revision-adversarial.md`.
+- No incorporar alertas ni revisión fuera del alcance de `E4B-ALERTAS`.
 - No iniciar una etapa nueva sin petición o aprobación explícita del usuario.
 - El estado operativo, checklists y evidencias viven en `DesignAgent/Salvo-Progress.md`.
 

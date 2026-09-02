@@ -39,7 +39,7 @@ Solo puede existir una etapa `En curso` a la vez.
 | 1 | Fundaciones reproducibles | Completada | Builds, tests y arranque de ASP.NET Core + Next.js | Merge `897cec7` + compuerta verde |
 | 2 | Contrato y datos sintéticos | Completada | Seed idempotente + parser validado | Merge `4b7bf54` + 24 tests .NET + compuerta verde en `main` |
 | 3 | Motor determinista | Completada | Tests por regla + métricas sin fuga | Merge `809ff75` + 42 tests .NET + compuerta verde en `main` |
-| 4 | Alertas y casos de uso | En curso | Idempotencia + consistencia transaccional | Diseño aprobado; decisiones 28–36 del Blueprint |
+| 4 | Alertas y casos de uso | En curso | Idempotencia + consistencia transaccional | `E4A` integrada: merge `1d9ee83`, 71 tests .NET, compuerta verde; `E4B` pendiente |
 | 5 | UI y dashboard | Pendiente | Recorrido completo y estados vacíos/error | Pendiente |
 | 6 | Proveedor antifraude mock | Pendiente | Estados y callbacks replay-safe | Pendiente |
 | 7 | Explicabilidad | Pendiente | Funciona sin red; Anthropic opcional | Pendiente |
@@ -179,7 +179,7 @@ brief y autorización independientes antes de persistir evaluaciones o crear ale
 
 ### Etapa 4 — Alertas
 
-- [ ] Persistir evaluaciones locales.
+- [x] Persistir evaluaciones locales.
 - [ ] Crear alertas idempotentes.
 - [ ] Revisar alerta y pedido en una transacción DB.
 - [ ] Proteger estados ya revisados durante re-scoring.
@@ -266,6 +266,9 @@ brief y autorización independientes antes de persistir evaluaciones o crear ale
 | 2026-09-02 | Preparación E4 | Diseño de alertas, evaluaciones y revisión transaccional | Aprobación del usuario | Aprobada |
 | 2026-09-02 | Preparación E4 | Revisión adversarial del diseño con Fable 5.1 | 10 hallazgos, 4 de severidad alta, verificados contra código real | Completada |
 | 2026-09-02 | Preparación E4 | Diseño v2 con los diez hallazgos incorporados y partición en E4A/E4B | Aprobación del usuario + decisiones 28–36 en la bitácora | Aprobada; no iniciada |
+| 2026-09-02 | 4 | Inicio de E4A-PERSISTENCIA | Brief y rama `claude/e4a-persistencia` desde `1215a2d` | En curso |
+| 2026-09-02 | 4 | Evaluaciones, corridas, fingerprint canónico y endpoints implementados | Commits `73c1b17` y `32bfffc`; 71 tests .NET; rebote 0→40→0 cubierto | Lista para integrar |
+| 2026-09-02 | 4 | Integración y verificación canónica de E4A | Merge `1d9ee83` + `./scripts/check.sh` sobre `main` | Completada |
 
 ## Protocolo de actualización
 
