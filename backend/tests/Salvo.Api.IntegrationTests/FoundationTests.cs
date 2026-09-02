@@ -42,6 +42,8 @@ public sealed class FoundationTests : IClassFixture<SalvoApiFactory>
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("/api/order-imports", document, StringComparison.Ordinal);
         Assert.Contains("/api/demo-data/seed", document, StringComparison.Ordinal);
+        Assert.Contains("/api/orders", document, StringComparison.Ordinal);
+        Assert.Contains("/api/risk-evaluations:run", document, StringComparison.Ordinal);
         Assert.DoesNotContain("isFraudLabel", document, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -58,6 +60,9 @@ public sealed class FoundationTests : IClassFixture<SalvoApiFactory>
             "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name;");
         Assert.Contains("orders", tables);
         Assert.Contains("order_evaluation_labels", tables);
+        Assert.Contains("risk_evaluations", tables);
+        Assert.Contains("scoring_runs", tables);
+        Assert.Contains("run_evaluations", tables);
         Assert.DoesNotContain("foundation_checkpoints", tables);
 
         var indexes = await ReadFirstColumnAsync(connection, "PRAGMA index_list('orders');", 1);

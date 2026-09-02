@@ -24,14 +24,19 @@ public static class DependencyInjection
         services.AddDbContext<SalvoDbContext>(options => options.UseSqlite(connectionString));
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<IOrderIdGenerator, SystemOrderIdGenerator>();
+        services.AddSingleton<IRiskIdGenerator, SystemRiskIdGenerator>();
         services.AddScoped<IOrderDataStore, EfOrderDataStore>();
         services.AddScoped<IOrderImportParser, OrderImportParser>();
         services.AddScoped<IDemoOrderSource, EmbeddedDemoOrderSource>();
         services.AddScoped<IRiskOrderReader, EfRiskOrderReader>();
+        services.AddScoped<IScoringRunStore, EfScoringRunStore>();
+        services.AddScoped<IOrderPageReader, EfOrderPageReader>();
         services.AddScoped<IEvaluationLabelReader, EfEvaluationLabelReader>();
         services.AddScoped<ImportOrdersHandler>();
         services.AddScoped<SeedDemoOrdersHandler>();
         services.AddScoped<EvaluateLocalRiskHandler>();
+        services.AddScoped<RunScoringHandler>();
+        services.AddScoped<ListOrdersHandler>();
 
         return services;
     }

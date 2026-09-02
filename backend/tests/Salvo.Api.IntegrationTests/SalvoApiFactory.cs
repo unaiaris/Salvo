@@ -13,6 +13,12 @@ public sealed class SalvoApiFactory : WebApplicationFactory<Program>
 {
     private readonly SqliteConnection connection = new("Data Source=:memory:");
 
+    /// <summary>
+    /// Optional service overrides, applied after the test database is registered. Set it before the
+    /// first client or service is resolved.
+    /// </summary>
+    public Action<IServiceCollection>? ConfigureTestServices { get; set; }
+
     public async Task<HttpClient> CreateMigratedClientAsync()
     {
         var client = CreateClient();
@@ -37,6 +43,7 @@ public sealed class SalvoApiFactory : WebApplicationFactory<Program>
             services.RemoveAll<DbContextOptions<SalvoDbContext>>();
             services.RemoveAll<SalvoDbContext>();
             services.AddDbContext<SalvoDbContext>(options => options.UseSqlite(connection));
+            ConfigureTestServices?.Invoke(services);
         });
     }
 

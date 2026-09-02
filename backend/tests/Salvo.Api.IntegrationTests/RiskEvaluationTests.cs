@@ -66,9 +66,14 @@ public sealed class RiskEvaluationTests : IClassFixture<SalvoApiFactory>
         Assert.Equal(orderCountBefore, await dbContext.Orders.CountAsync());
         Assert.Equal(labelCountBefore, await dbContext.OrderEvaluationLabels.CountAsync());
         Assert.Equal(tableNamesBefore, await ReadTableNamesAsync(dbContext));
+
+        // Scoring for metrics is a read-only path: persisting an evaluation is the job of a scoring
+        // run, and nothing here may append one.
+        Assert.Equal(0, await dbContext.RiskEvaluations.CountAsync());
+        Assert.Equal(0, await dbContext.ScoringRuns.CountAsync());
+        Assert.Equal(0, await dbContext.RunEvaluations.CountAsync());
         Assert.DoesNotContain(tableNamesBefore, table =>
-            table.Contains("risk", StringComparison.OrdinalIgnoreCase)
-            || table.Contains("alert", StringComparison.OrdinalIgnoreCase));
+            table.Contains("alert", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
