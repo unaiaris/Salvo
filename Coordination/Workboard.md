@@ -1,6 +1,6 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: Etapa 5 en curso. `E5B-ALERTAS-UI` asignada y pendiente de ejecución
+> Estado: Etapa 5 en curso. `E5C-IMPORT-DASHBOARD` asignada; es el último ítem de la etapa
 > Última actualización: 2026-09-02
 > Responsable: coordinador de la etapa
 
@@ -16,19 +16,27 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 
 | Work ID | Etapa | Objetivo | Propietario | Estado | Rama | Base | Paths reservados | Dependencias | Actualizado |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| E5B-ALERTAS-UI | 5 | Cliente tipado, feed, detalle, divergencia y revisión | Claude | Asignada | `claude/e5b-alertas-ui` | commit de `main` que incorpora el brief | `frontend/**`, `scripts/check.sh` | `E5A-API-LECTURA` integrada | 2026-09-03 |
+| E5C-IMPORT-DASHBOARD | 5 | Importación con corrida, dashboard, gráfico y smoke de recorrido | Claude | Asignada | `claude/e5c-import-dashboard` | commit de `main` que incorpora el brief | `frontend/**`, `scripts/**`, `backend/tests/**` | `E5A` y `E5B` integradas | 2026-09-03 |
 
-Modelo y esfuerzo acordados para `E5B-ALERTAS-UI`: Opus 5 · `high`.
+Modelo y esfuerzo acordados para `E5C-IMPORT-DASHBOARD`: Opus 5 · `high`. El coordinador
+recomendó `Sonnet 5 · high`; el usuario optó por no arriesgar en el ítem que cierra la etapa.
 
 ## Cola próxima
 
-| Work ID | Etapa | Objetivo | Dependencias |
-| --- | --- | --- | --- |
-| E5C-IMPORT-DASHBOARD | 5 | Importación con corrida, dashboard, gráfico y smoke de recorrido | `E5A` y `E5B` integradas |
+No hay tareas en cola. La Etapa 6 no se inicia sin aprobación explícita del usuario.
 
-Nota de reserva de paths: el brief de `E5C` debe declarar `frontend/**`, `scripts/**` y
-`backend/tests/**` entre sus paths reservados, y citar la entrada «Etapa 5 — UI y dashboard» de
-`DesignAgent/Salvo-Progress.md` en su contexto obligatorio.
+Candidatas registradas para la Etapa 8, acordadas con el usuario:
+
+- **Señales estructuradas e internacionalización.** El motor emite campos tipados en vez de prosa
+  (sube a `e3-v2` e invalida los fingerprints a propósito); la UI compone el texto y el portugués
+  pasa a ser un diccionario más. Hoy los detalles de las señales están en inglés dentro del
+  fingerprint y traducir solo la cáscara sería cosmético.
+- **Enriquecer la fixture con casos duros.** El corpus demo tiene un solo arquetipo de fraude
+  —monto atípico desde país extranjero—: las 18 alertas llevan `amount_anomaly` y `foreign_country`,
+  y tres de las seis reglas nunca abren una alerta. Además `score ≥ 60 ⇔ isFraudLabel`, por lo que
+  F1 vale 1,00 y las métricas prueban el pipeline, no el criterio.
+- Pasada de accesibilidad con lector de pantalla real.
+- Decidir si `scripts/smoke-ui.sh` se integra a la compuerta.
 
 ## Historial integrado
 
@@ -47,6 +55,7 @@ Nota de reserva de paths: el brief de `E5C` debe declarar `frontend/**`, `script
 | E4A-PERSISTENCIA | 4 | Persistencia idempotente de evaluaciones locales y corridas de scoring | Claude | Verificada | Merge `1d9ee83`, 71 tests .NET y compuerta verde sobre `main` |
 | E4B-ALERTAS | 4 | Alertas con escalada, revisión transaccional y control de concurrencia | Claude | Verificada | Merge `c35878b`, 109 tests .NET, compuerta verde sobre `main` y 18 alertas (13 `MEDIUM`, 5 `CRITICAL`) verificadas en `salvo.db` |
 | E5A-API-LECTURA | 5 | Superficie de lectura: dashboard, métricas, capacidades y orden del feed | Claude | Verificada | Merge `5f48db0`, 127 tests .NET, compuerta verde sobre `main`; falsación del test diferencial documentada y agregados verificados contra `salvo.db` |
+| E5B-ALERTAS-UI | 5 | Cliente tipado, feed de alertas, detalle y revisión | Claude | Verificada | Merge `278e100`, 97 tests de frontend y 127 .NET, compuerta verde sobre `main`; build con la API apagada y recorrido manual de `/alerts` con datos reales |
 
 ## Plantilla de fila activa
 
