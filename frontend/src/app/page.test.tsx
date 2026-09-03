@@ -15,4 +15,13 @@ describe("Home", () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/contrato OpenAPI/i)).toBeInTheDocument();
   });
+
+  it("lleva a la cola de alertas", () => {
+    render(<Home />);
+
+    expect(screen.getByRole("link", { name: /cola de alertas/i })).toHaveAttribute(
+      "href",
+      "/alerts",
+    );
+  });
 });

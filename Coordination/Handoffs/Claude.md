@@ -727,3 +727,229 @@ devuelve cero coincidencias y la compuerta se ejecutó sobre el estado revertido
 - Verificación posterior al merge: repetir `./scripts/check.sh` sobre `main` y confirmar que sigue
   verde el test diferencial de etiquetas y la distribución 18 / 13 / 5 del corpus demo, según el
   protocolo de `Coordination/README.md`.
+
+## `E5B-ALERTAS-UI` — Cliente tipado, feed de alertas, detalle y revisión
+
+### Identificación
+
+- Estado de la rama: `Lista para integrar`
+- Etapa: 5
+- Rama/worktree: `claude/e5b-alertas-ui`
+- Commit base: `35e6b14` («chore: assign E5B-ALERTAS-UI»), punta de `main` al empezar
+- Commit final: `1774277`
+- Fecha: 2026-09-03
+
+### Resultado
+
+Una analista abre `/alerts`, ve la cola de alertas abiertas ordenada por score local de la evaluación
+vigente y con la corrida de procedencia en cabecera; entra a `/alerts/[id]`, lee el snapshot que abrió
+la alerta y la evaluación vigente como dos bloques separados, cada uno con su propia procedencia; y
+emite un veredicto que queda registrado, o recibe en castellano el motivo exacto por el que no se
+pudo. Ningún campo que la API no proyecte llega al navegador, y `npm run build` pasa con la API
+apagada dejando las rutas de datos como dinámicas.
+
+Se ejecutó en dos commits: `6d087f2` dejó la capa de datos (captura de OpenAPI, tipos generados,
+guardas, cliente `server-only`, catálogo de mensajes y formateadores) y `1774277` la superficie de
+aplicación con todos los tests.
+
+### Archivos modificados
+
+Contrato y generación de tipos:
+
+- `frontend/openapi/salvo-openapi.json` — documento OpenAPI capturado y versionado.
+- `frontend/scripts/capture-openapi.mjs` — recaptura el documento desde una API levantada.
+- `frontend/scripts/check-openapi-types.mjs` — detecta deriva sin abrir ningún puerto.
+- `frontend/src/lib/api/schema.d.ts` — generado por `openapi-typescript`, versionado.
+- `frontend/package.json`, `frontend/package-lock.json` — `openapi-typescript@7.13.0` fijada y
+  scripts `api:capture`, `api:types`, `api:types:check`.
+- `scripts/check.sh` — `api:types:check` como primer paso de la compuerta.
+
+Capa de datos:
+
+- `frontend/src/lib/api/contract.ts`, `failures.ts`, `guards.ts`, `server-client.ts`, `alerts.ts`,
+  `messages.ts`, `taint.ts`
+- `frontend/src/lib/format.ts`
+- `frontend/next.config.ts` — `experimental.taint`.
+
+Aplicación:
+
+- `frontend/src/app/layout.tsx`, `page.tsx`, `frontend/src/components/*` (cabecera, badge de
+  severidad, aviso de fallo, procedencia).
+- `frontend/src/app/alerts/page.tsx`, `alert-table.tsx`, `empty-states.tsx`
+- `frontend/src/app/alerts/[id]/page.tsx`, `evaluation-blocks.tsx`, `order-block.tsx`,
+  `review-panel.tsx`, `review-form.tsx`, `review-action.ts`, `review-state.ts`, `divergence.ts`
+
+Tests e infraestructura de test:
+
+- `frontend/src/test/boundary.test.ts`, `server-tree.ts`, `fixtures.ts`, `server-only-stub.ts`
+- `frontend/src/lib/api/guards.test.ts`, `messages.test.ts`, `server-client.test.ts`
+- `frontend/src/app/alerts/page.test.tsx`, `frontend/src/app/alerts/[id]/*.test.ts(x)`
+- `frontend/src/app/page.test.tsx`, `frontend/vitest.config.mts`, `frontend/vitest.setup.ts`
+
+Sin cambios en `backend/`: `git diff --stat 35e6b14..HEAD` no lista ningún path bajo `backend/`.
+
+### Verificación
+
+| Comando | Resultado |
+| --- | --- |
+| `/brief-check Coordination/Tasks/E5B-ALERTAS-UI.md` | Brief válido: 11 secciones completas, base `35e6b14` existente, sin solapamiento de paths, sin contradicción con `AGENTS.md` ni el Blueprint |
+| `SALVO_API_BASE_URL=http://127.0.0.1:9 npm run build` | Pasa; `/` y `/_not-found` estáticas (`○`), `/alerts` y `/alerts/[id]` dinámicas (`ƒ`). Salida completa abajo |
+| `npm run api:types:check` | «OpenAPI types are up to date». Falsado: con una línea agregada a mano en `schema.d.ts` sale con código 1 y el mensaje «does not match the captured OpenAPI document» |
+| `npx vitest run src/test/boundary.test.ts` | 6/6. Falsación documentada abajo |
+| `npx vitest run src/lib/api/guards.test.ts` | 21/21 |
+| `npx vitest run src/lib/api/messages.test.ts` | 11/11 |
+| `npx vitest run src/lib/api/server-client.test.ts` | 12/12 |
+| `npx vitest run "src/app/alerts/[id]/review-form.test.tsx"` | 9/9. Falsado: sembrando los campos con `""` en vez de con lo enviado, fallan «la nota sobrevive a un 409» y «mantiene marcado el reconocimiento tras un conflicto» |
+| `npm run check --prefix frontend` | Typecheck ✓, ESLint `--max-warnings=0` ✓, Vitest 97/97 en 11 archivos |
+| `./scripts/check.sh` | **Verde**, exit `0`: restore bloqueado, build Release 0 advertencias / 0 errores, sin cambios de modelo pendientes, 127 tests .NET (55 dominio + 72 integración), `npm run check` y build de producción de Next.js |
+| `git status --porcelain` | Limpio; ningún path de `backend/` tocado |
+
+#### Salida de `next build` con la API apagada
+
+Ejecutado con `SALVO_API_BASE_URL=http://127.0.0.1:9`, un puerto sin nada escuchando:
+
+```
+▲ Next.js 16.3.3 (webpack)
+✓ Running next.config.ts took 55ms
+- Experiments (use with caution):
+  ✓ taint
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 1328ms
+  Running TypeScript ...
+  Finished TypeScript in 1226ms ...
+  Collecting page data using 6 workers ...
+  Generating static pages using 6 workers (0/3) ...
+✓ Generating static pages using 6 workers (3/3) in 253ms
+  Finalizing page optimization ...
+  Collecting build traces ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /alerts
+└ ƒ /alerts/[id]
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+```
+
+Las dos rutas de datos aparecen como `ƒ`. La portada queda estática a propósito: no lee la API, y
+que siga en `○` es la prueba de que `force-dynamic` está puesto donde hace falta y no en todas
+partes.
+
+#### Falsación del test de la frontera servidor–cliente
+
+El test viejo —«el HTML no contiene `isFraudLabel`»— pasaba vacuamente, porque la API no emite ese
+campo y ninguna fuente podía producir el texto. Se reemplazó por `src/test/boundary.test.ts`, que
+recorre el árbol real de la página (`AlertDetailPage` y `AlertsPage`), invoca los componentes de
+servidor, se detiene en los de cliente y afirma dos cosas sobre lo que cruza:
+
+1. **Forma**: toda prop que recibe un componente cliente es primitiva.
+2. **Contenido**: con `fetch` simulado devolviendo `isFraudLabel: true`, `internalNotes` y
+   `labelSource` en cada objeto del payload, ninguno aparece ni en las props ni en el render.
+
+El registro de componentes cliente se descubre leyendo `src/` en busca de módulos `"use client"`, no
+se mantiene a mano, y un test aparte exige que el descubrimiento no venga vacío.
+
+**Se comprobó que falla cuando debe**, en dos pasos:
+
+- Pasando `detail={detail}` a `ReviewForm` (con la guarda intacta) falla la afirmación de forma:
+
+  ```
+  AssertionError: ReviewForm recibe la prop no primitiva «detail»: {"id":"2f2b7f3e-…","order":{…},
+  "snapshot":{…},"currentEvaluation":{…},"divergence":{…},"review":null}: expected false to be true
+  ```
+
+  La afirmación de contenido **no** falla en este paso, y es correcto: la guarda ya había descartado
+  los campos desconocidos. Es lo que separa las dos protecciones.
+
+- Debilitando además `projectAlertDetail` a un `return { ...raw }` —una guarda-predicado como la de
+  `health.ts`— falla también la de contenido:
+
+  ```
+  AssertionError: expected '[{"alertId":"2f2b7f3e-…' not to contain 'isFraudLabel'
+  ```
+
+Con el código restaurado, las seis vuelven a pasar. Es la misma técnica que el test diferencial de
+`E5A`: no depende de saber por dónde entraría la fuga.
+
+### Decisiones y supuestos
+
+- **La deriva de tipos se verifica contra un documento capturado.** `frontend/openapi/salvo-openapi.json`
+  se capturó de la API real con `DemoData__Enabled=true` —si no, `/api/demo-data/seed` y
+  `/api/evaluation-metrics` no se mapean y el documento no sería el superconjunto que `E5C` necesita—
+  y el `servers` se normaliza a `/` porque de otro modo arrastraría el puerto de la captura. La
+  compuerta regenera y diffea, sin abrir ningún puerto.
+- **Las vistas se derivan de los tipos generados**, no se escriben a mano: `ApiView<T>` toma
+  `components["schemas"][…]` y estrecha a `number` los enteros. ASP.NET Core 10 declara todo entero
+  como `["integer","string"]`, así que la forma de cadena decimal es parte del contrato y las guardas
+  la aceptan y la normalizan. Como consecuencia, un campo que la API agregue o quite rompe la
+  compilación en la guarda, que es donde conviene que rompa.
+- **La cola muestra `status=OPEN`.** El feed es la cola de revisión y el tercer estado vacío está
+  redactado como «sin alertas abiertas»; una alerta revisada sale de la cola y se sigue viendo por su
+  detalle. No se agregó filtro de estado: el brief no lo pide.
+- **`GET /api/orders` se consulta solo en el camino vacío**, con `pageSize=1`, para distinguir «sin
+  pedidos» de «con pedidos y sin corrida». El feed de alertas no puede separarlos por sí solo.
+- **Los campos del formulario se remontan por `submissionId`.** Controlarlos no alcanzaba: React 19
+  resetea el `<form action>` al terminar la acción escribiendo el DOM directamente, y para un radio o
+  una casilla React no vuelve a escribirlos porque su estado no cambió, de modo que la casilla queda
+  visualmente vacía mientras el componente la cree marcada. Se verificó en jsdom antes de cambiar el
+  enfoque.
+- **La acción de servidor se importa en el componente cliente**, no se pasa como prop, para que las
+  props sigan siendo primitivas; el id de la alerta viaja en un campo oculto.
+- **`experimental.taint` quedó habilitado** y marca la respuesta cruda en `server-client.ts`. Se
+  verificó primero con un build de prueba: la bandera cambia el canal de React del directorio `app`,
+  y `experimental_taintObjectReference` se lee del namespace en vez de importarse por nombre, porque
+  React 19.2.8 —el que resuelve Vitest— no lo exporta. Es respaldo, no el mecanismo: el mecanismo es
+  que los componentes cliente reciben primitivas.
+- **Formato con `es-UY`, zona `America/Montevideo` y hora de 24 h.** La zona es la misma
+  `RuleConfig.BusinessTimeZone` con la que las reglas leen el día; las 24 h se fijaron explícitamente
+  para no obligar a la analista a resolver «8:41 p. m.» contra un log de auditoría.
+- **Sin dependencias nuevas más allá de `openapi-typescript@7.13.0`.** Los tests de formulario usan
+  `fireEvent` en lugar de `@testing-library/user-event`, que no está instalado y no está autorizado.
+- Vitest resuelve `server-only` a un stub para poder importar los módulos; a cambio,
+  `boundary.test.ts` lee el código fuente y exige que `import "server-only";` siga presente en
+  `server-client.ts` y `alerts.ts`, y que ningún componente cliente los importe.
+
+### Riesgos o pendientes
+
+- **El documento OpenAPI capturado puede quedar atrás respecto de la API.** La compuerta detecta la
+  deriva entre el documento y los tipos, no entre la API y el documento. La red de contención es
+  `tsc`, porque las guardas proyectan cada clave obligatoria por nombre, más `npm run api:capture` al
+  cambiar el contrato. El cierre limpio sería un test de integración que compare el documento servido
+  por `WebApplicationFactory` contra el archivo versionado, pero vive en `backend/tests/**`, que esta
+  tarea no tiene autorizado; `E5C` sí lo reserva y es el lugar natural.
+- **`SCORING_RUN_CONFLICT` y `METRICS_UNAVAILABLE` todavía caen en el mensaje genérico.** Son de D13
+  pero pertenecen a endpoints de `/import` y `/dashboard`; agregarlos ahora sería código muerto sin
+  pantalla que los produzca. `E5C` debe sumarlos a `messages.ts` y a `messages.test.ts`.
+- **`frontend/src/lib/api/health.ts` quedó intacto** y ya no lo usa ninguna pantalla. Conserva el
+  patrón de URL relativa y sigue sin timeout explícito, lo que roza la regla de `AGENTS.md` sobre red
+  externa. Es evidencia de la Etapa 1 y borrarla o reescribirla excede este brief; conviene decidirlo
+  al cerrar la Etapa 5.
+- **La accesibilidad se verificó por estructura, no con un lector de pantalla**: encabezados de tabla
+  con `scope`, `caption`, regiones rotuladas con `aria-labelledby`, `role="alert"` y `role="status"`
+  en los avisos, foco visible en todo lo interactivo y ningún significado confiado solo al color. Una
+  pasada real con lector de pantalla queda para la Etapa 8.
+- **El recorrido completo sigue sin smoke HTTP.** Vitest resuelve el árbol de servidor a mano, que es
+  fiel pero no es el framework: `revalidatePath` y la serialización RSC real no se ejercitan.
+  `scripts/smoke-ui.sh` es criterio de aceptación de `E5C` (D15) y es lo que cierra ese hueco.
+- **Siguen pendientes**, del coordinador: la corrección de §4.4 del Blueprint sobre dónde se dispara
+  el scoring, y la línea de `AGENTS.md` que todavía lista Recharts como stack de UI pese a la
+  decisión 43.
+
+### Integración
+
+- Orden sugerido: rama única. Depende de `E5A-API-LECTURA`, ya integrada en `5f48db0`.
+  `E5C-IMPORT-DASHBOARD` la requiere integrada.
+- Migraciones o pasos manuales: ninguno. `dotnet ef migrations has-pending-model-changes` no reporta
+  cambios y no se tocó el modelo. `npm ci` en `frontend/` incorpora `openapi-typescript@7.13.0`.
+- Posibles conflictos: la rama reserva `frontend/**` y `scripts/check.sh` completos y no hay otra
+  tarea activa. `scripts/check.sh` gana un paso al principio; `E5C` lo tocará también, para
+  `smoke-ui.sh`.
+- Verificación posterior al merge: repetir `./scripts/check.sh` sobre `main`, y además el build con
+  la API apagada (`SALVO_API_BASE_URL=http://127.0.0.1:9 npm run build --prefix frontend`)
+  confirmando que `/alerts` y `/alerts/[id]` siguen listadas como `ƒ`. Para una comprobación con
+  datos reales: levantar la API con `DemoData__Enabled=true`, hacer seed y corrida, y recorrer
+  `/alerts` y un detalle.
