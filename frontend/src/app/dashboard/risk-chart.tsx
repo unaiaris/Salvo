@@ -46,6 +46,14 @@ export function RiskOverTimeChart({ buckets }: { readonly buckets: readonly Dash
   const barWidth = Math.max(2, slot * 0.68);
   const totalOrders = buckets.reduce((sum, bucket) => sum + bucket.orderCount, 0);
   const totalFlagged = buckets.reduce((sum, bucket) => sum + bucket.flaggedCount, 0);
+  const first = buckets.at(0);
+  const last = buckets.at(-1);
+  // The caller does not render this component for an empty corpus. Deriving the range from what is
+  // actually there — instead of asserting it is — keeps the description from inventing a date if
+  // that ever stops being true.
+  const range = first === undefined || last === undefined
+    ? ""
+    : `, de ${formatCalendarDate(first.weekStart)} a ${formatCalendarDate(last.weekStart)}`;
 
   const scale = (value: number): number => (value / maximum) * plotHeight;
   const ticks = [0, maximum / 2, maximum];
@@ -65,8 +73,7 @@ export function RiskOverTimeChart({ buckets }: { readonly buckets: readonly Dash
           Pedidos por semana y cuántos de ellos denegó la corrida vigente
         </title>
         <desc id="risk-chart-desc">
-          {`${String(buckets.length)} semanas, de ${formatCalendarDate(buckets[0]?.weekStart ?? "")} `
-            + `a ${formatCalendarDate(buckets.at(-1)?.weekStart ?? "")}. `
+          {`${String(buckets.length)} semanas${range}. `
             + `${formatCount(totalOrders)} pedidos en total, de los cuales `
             + `${formatCount(totalFlagged)} quedaron denegados. `
             + "Los mismos números están en la tabla que sigue al gráfico."}
