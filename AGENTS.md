@@ -31,6 +31,15 @@ cambia alcance o arquitectura, actualizar primero su bitácora y después los do
 - Etapa 4 completada. Se ejecutó en dos ítems: `E4A-PERSISTENCIA`, integrada mediante `1d9ee83`, y
   `E4B-ALERTAS`, integrada mediante `c35878b`. Ambas verificadas con la compuerta full-stack sobre
   `main`.
+- Etapa 5 aprobada por el usuario y en curso. Se ejecuta en tres ítems: `E5A-API-LECTURA`,
+  `E5B-ALERTAS-UI` y `E5C-IMPORT-DASHBOARD`, en ese orden y con la anterior integrada.
+- Las decisiones de diseño de la Etapa 5 son las entradas 37 a 43 de la bitácora del Blueprint. El
+  diseño v2 y su revisión adversarial viven en `Coordination/Tasks/E5-DISENO.md` y
+  `Coordination/Tasks/E5-revision-adversarial.md`.
+- El dashboard operativo no lee `OrderEvaluationLabel` por ningún camino, ni directo ni indirecto.
+  La calidad del criterio es otra superficie, tras `DemoData:Enabled`.
+- Ninguna lectura de estado vigente consulta `risk_evaluations.status` a secas: siempre vía
+  `run_evaluations` de la corrida vigente.
 - Las decisiones de diseño de la Etapa 4 son las entradas 28 a 36 de la bitácora del Blueprint. El
   diseño y su revisión adversarial viven en `Coordination/Tasks/E4-DISENO.md` y
   `Coordination/Tasks/E4-revision-adversarial.md`.
@@ -60,7 +69,8 @@ cambia alcance o arquitectura, actualizar primero su bitácora y después los do
 - Persistencia: EF Core + SQLite local.
 - Contrato HTTP: OpenAPI generado por ASP.NET Core y cliente TypeScript tipado.
 - Tests: xUnit e integración ASP.NET Core en backend; Vitest/Testing Library en frontend.
-- UI: Tailwind y Recharts.
+- UI: Tailwind. Los gráficos se dibujan en SVG renderizado en el servidor; sin librería de
+  gráficos (decisión 43).
 - `global.json`, `Directory.Packages.props` y `.nvmrc` quedaron fijados en la Etapa 1.
 - Fijar versiones exactas y versionar `package-lock.json`; no usar versiones flotantes ni `@latest`
   en instrucciones reproducibles.

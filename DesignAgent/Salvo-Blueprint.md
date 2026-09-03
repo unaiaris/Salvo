@@ -216,13 +216,20 @@ Diseño aprobado para E3:
 
 ### 4.4 Interfaz
 
-- `/import`: carga demo o importa un archivo y presenta errores por fila.
-- `/alerts`: feed de alertas abiertas ordenadas por score.
-- `/alerts/[id]`: contexto, señales, score y acciones de revisión.
-- `/dashboard`: alertas abiertas, monto en riesgo, fraude reportado, tasa de flags, riesgo temporal y
-  señales principales.
+- `/import`: carga demo o importa un archivo, presenta errores por fila y **dispara la corrida de
+  scoring**, mostrando su resumen. Sin este paso no hay evaluaciones ni alertas: importar no
+  procesa.
+- `/alerts`: feed de alertas abiertas ordenadas por el score local de la evaluación vigente.
+- `/alerts/[id]`: contexto, señales del snapshot, evaluación vigente, divergencia y acciones de
+  revisión.
+- `/dashboard`: alertas abiertas, monto en riesgo desglosado por moneda, fraude reportado por
+  pedido, tasa de marcado, riesgo temporal y señales principales.
+- **Toda pantalla de datos declara su procedencia**: de qué corrida es lo que muestra, y cuántos
+  pedidos quedaron sin puntuar.
+- El monto en riesgo nunca se totaliza entre monedas.
 - Severidad expresada con texto además de color.
-- Estados vacíos, carga y error accesibles.
+- Estados vacíos, carga y error accesibles. Hay tres estados vacíos distintos: sin pedidos, con
+  pedidos y sin corrida, y con corrida y sin alertas abiertas.
 
 ### 4.5 Evaluación
 
@@ -397,7 +404,7 @@ y logs redactados.
 | Validación | DTOs y dominio en .NET; Zod solo en bordes de UI que lo requieran |
 | Tests backend | xUnit + tests de integración ASP.NET Core |
 | Tests frontend | Vitest + Testing Library |
-| Gráficos | Recharts |
+| Gráficos | SVG renderizado en el servidor; sin librería de gráficos |
 | CSV | biblioteca .NET mantenida + validación autoritativa; no parser manual |
 | IA posterior | cliente server-side detrás de `IExplanationProvider` |
 | Koin posterior | `HttpClient` tipado detrás de `IAntifraudProvider` |
@@ -598,6 +605,13 @@ completo el MVP local.
 | 34 | La severidad se deriva del score y se persiste `alertPolicyVersion` | Evitar que una política futura reclasifique retroactivamente alertas ya revisadas | 2026-09-02 |
 | 35 | La revisión escribe alerta y auditoría en una transacción, con `status` como token de concurrencia | Una transacción atómica no protege un check-then-act; sin token, un veredicto pisa al otro | 2026-09-02 |
 | 36 | La corrida de scoring invoca `TemporalRiskEngine` directamente; el camino de métricas queda separado | `EvaluateLocalRiskHandler` exige etiquetas completas que una importación no produce | 2026-09-02 |
+| 37 | El dashboard operativo no lee la etiqueta; la calidad del criterio es otra superficie, tras `DemoData:Enabled` | La verdad de campo no existe en producción: un comercio conoce el veredicto de su analista, no cuáles pedidos eran fraude | 2026-09-03 |
+| 38 | Esa frontera se verifica invirtiendo las etiquetas en la base y exigiendo una respuesta idéntica, no por reflexión sobre constructores | La reflexión no ve un `JOIN` en la implementación EF, ni una dependencia indirecta, ni el segundo puerto de etiquetas | 2026-09-03 |
+| 39 | La corrida de scoring se dispara desde la consola y toda pantalla de datos declara su procedencia | §4.4 no decía dónde se procesaba: la analista importaba y el feed quedaba vacío para siempre | 2026-09-03 |
+| 40 | Los tipos del cliente se generan desde OpenAPI y las guardas de ejecución proyectan en vez de comprobar | Evitar el contrato duplicado de la decisión 14, e impedir que un campo futuro llegue al navegador antes de decidir mostrarlo | 2026-09-03 |
+| 41 | Las rutas de datos se declaran dinámicas y el build debe pasar sin API levantada | Next.js prerenderiza en build y congelaría un estado de error como HTML estático | 2026-09-03 |
+| 42 | Los componentes cliente reciben primitivas; ningún objeto de API cruza la frontera servidor–cliente | En React Server Components toda prop de un componente cliente se serializa entera en el HTML | 2026-09-03 |
+| 43 | El gráfico del dashboard es SVG renderizado en el servidor; Recharts sale del stack | Una librería de gráficos obliga a componente cliente y reabre la superficie que cierra la decisión 42 | 2026-09-03 |
 
 ## 14. Mapa de documentación
 

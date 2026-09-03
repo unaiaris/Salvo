@@ -1,6 +1,6 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: Etapa 4 completa. E4A-PERSISTENCIA y E4B-ALERTAS integradas y verificadas
+> Estado: Etapa 5 aprobada. `E5A-API-LECTURA` pendiente de brief y de acuerdo de modelo
 > Última actualización: 2026-09-02
 > Responsable: coordinador de la etapa
 
@@ -18,7 +18,11 @@ No hay tareas activas ni paths reservados.
 
 ## Cola próxima
 
-No hay tareas en cola. La Etapa 5 no se inicia sin aprobación explícita del usuario.
+| Work ID | Etapa | Objetivo | Dependencias |
+| --- | --- | --- | --- |
+| E5A-API-LECTURA | 5 | Endpoints de dashboard, métricas y capacidades; orden del feed; test diferencial de etiquetas | — |
+| E5B-ALERTAS-UI | 5 | Cliente tipado, feed, detalle, divergencia y revisión | `E5A` integrada |
+| E5C-IMPORT-DASHBOARD | 5 | Importación con corrida, dashboard, gráfico y smoke de recorrido | `E5A` y `E5B` integradas |
 
 ## Historial integrado
 
