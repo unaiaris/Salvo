@@ -1,6 +1,6 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: Etapa 5 aprobada. `E5A-API-LECTURA` pendiente de brief y de acuerdo de modelo
+> Estado: Etapa 5 en curso. `E5A-API-LECTURA` asignada y pendiente de ejecución
 > Última actualización: 2026-09-02
 > Responsable: coordinador de la etapa
 
@@ -14,13 +14,16 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 
 ## Trabajo activo
 
-No hay tareas activas ni paths reservados.
+| Work ID | Etapa | Objetivo | Propietario | Estado | Rama | Base | Paths reservados | Dependencias | Actualizado |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| E5A-API-LECTURA | 5 | Endpoints de dashboard, métricas y capacidades; orden del feed; test diferencial de etiquetas | Claude | Asignada | `claude/e5a-api-lectura` | commit de `main` que incorpora el brief | `backend/src/Salvo.Application/Dashboard/**`, `backend/src/Salvo.Application/Metrics/**`, `backend/src/Salvo.Application/Alerts/IAlertStore.cs`, `backend/src/Salvo.Application/Alerts/ListAlertsHandler.cs`, `backend/src/Salvo.Infrastructure/**`, `backend/src/Salvo.Api/**` | — | 2026-09-03 |
+
+Modelo y esfuerzo acordados para `E5A-API-LECTURA`: Opus 5 · `high`.
 
 ## Cola próxima
 
 | Work ID | Etapa | Objetivo | Dependencias |
 | --- | --- | --- | --- |
-| E5A-API-LECTURA | 5 | Endpoints de dashboard, métricas y capacidades; orden del feed; test diferencial de etiquetas | — |
 | E5B-ALERTAS-UI | 5 | Cliente tipado, feed, detalle, divergencia y revisión | `E5A` integrada |
 | E5C-IMPORT-DASHBOARD | 5 | Importación con corrida, dashboard, gráfico y smoke de recorrido | `E5A` y `E5B` integradas |
 
