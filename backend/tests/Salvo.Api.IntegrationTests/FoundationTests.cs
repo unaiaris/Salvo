@@ -47,6 +47,28 @@ public sealed class FoundationTests : IClassFixture<SalvoApiFactory>
         Assert.DoesNotContain("isFraudLabel", document, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// The read surface of stage 5 is published, because the typed client of the console is
+    /// generated from this document: a route missing here is a route the interface cannot call.
+    /// </summary>
+    [Fact]
+    public async Task OpenApiPublishesTheReadSurfaceOfTheConsole()
+    {
+        using var client = await factory.CreateMigratedClientAsync();
+
+        var response = await client.GetAsync("/openapi/v1.json");
+        var document = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("/api/dashboard", document, StringComparison.Ordinal);
+        Assert.Contains("/api/evaluation-metrics", document, StringComparison.Ordinal);
+        Assert.Contains("/api/system/capabilities", document, StringComparison.Ordinal);
+        Assert.Contains("/api/alerts", document, StringComparison.Ordinal);
+        Assert.Contains("amountAtRisk", document, StringComparison.Ordinal);
+        Assert.Contains("scoringRunSequence", document, StringComparison.Ordinal);
+        Assert.Contains("currentRun", document, StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task InitialMigrationCreatesExpectedTablesAndIndexes()
     {

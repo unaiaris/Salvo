@@ -10,6 +10,7 @@ public sealed class ListAlertsHandler(IAlertStore store)
     public async Task<ListAlertsResult> HandleAsync(
         AlertStatus? status,
         AlertSeverity? severity,
+        AlertSortOrder sort,
         int page,
         int pageSize,
         CancellationToken cancellationToken)
@@ -18,12 +19,14 @@ public sealed class ListAlertsHandler(IAlertStore store)
         ArgumentOutOfRangeException.ThrowIfLessThan(pageSize, 1);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(pageSize, MaximumPageSize);
 
-        var result = await store.GetPageAsync(status, severity, page, pageSize, cancellationToken);
+        var result = await store.GetPageAsync(status, severity, sort, page, pageSize, cancellationToken);
 
         return new(
             result.Items.Select(AlertProjection.ToListItem).ToArray(),
             page,
             pageSize,
-            result.TotalCount);
+            result.TotalCount,
+            result.CurrentRun?.Sequence,
+            result.CurrentRun);
     }
 }

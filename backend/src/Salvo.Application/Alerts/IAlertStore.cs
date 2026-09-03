@@ -5,13 +5,20 @@ namespace Salvo.Application.Alerts;
 public interface IAlertStore
 {
     /// <summary>
-    /// Reads one page of alerts, newest first, optionally narrowed by status and by severity.
-    /// Severity is not a column, so the filter is resolved through the score bands of every known
-    /// <see cref="AlertPolicy"/>.
+    /// Reads one page of alerts, ordered as <paramref name="sort"/> asks and optionally narrowed by
+    /// status and by severity.
     /// </summary>
+    /// <remarks>
+    /// Severity is not a column, so the filter is resolved through the score bands of every known
+    /// <see cref="AlertPolicy"/>, applied to the frozen snapshot of each alert.
+    /// <see cref="AlertSortOrder.LocalScoreDesc"/>, in contrast, orders by the evaluation that is
+    /// current now: filtering by <c>MEDIUM</c> and sorting by score are questions about two
+    /// different moments, and the contract says so rather than pretending they agree.
+    /// </remarks>
     Task<AlertPage> GetPageAsync(
         AlertStatus? status,
         AlertSeverity? severity,
+        AlertSortOrder sort,
         int page,
         int pageSize,
         CancellationToken cancellationToken);

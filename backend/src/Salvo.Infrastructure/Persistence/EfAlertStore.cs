@@ -14,6 +14,7 @@ public sealed class EfAlertStore(SalvoDbContext dbContext) : IAlertStore
     public async Task<AlertPage> GetPageAsync(
         AlertStatus? status,
         AlertSeverity? severity,
+        AlertSortOrder sort,
         int page,
         int pageSize,
         CancellationToken cancellationToken)
@@ -31,17 +32,64 @@ public sealed class EfAlertStore(SalvoDbContext dbContext) : IAlertStore
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
+        var lastRun = await GetLastRunAsync(cancellationToken);
+        var alerts = await OrderAndPage(query, sort, lastRun?.Id, page, pageSize)
+            .ToListAsync(cancellationToken);
+
+        return new(
+            await ComposeAsync(alerts, lastRun, cancellationToken),
+            totalCount,
+            ToReference(lastRun));
+    }
+
+    /// <summary>
+    /// Applies the requested order and takes one page of it.
+    /// </summary>
+    /// <remarks>
+    /// The join that resolves the current score is part of this query, ahead of
+    /// <c>Skip</c>/<c>Take</c>. Composing it afterwards would order each page by a score the
+    /// database never saw, which is to say it would not order the feed at all.
+    /// <para>
+    /// An alert whose order the current run did not cover has no current score. In SQLite a null
+    /// sorts below every value, so those alerts land at the end of a descending order, which is
+    /// where an alert nobody can compare belongs.
+    /// </para>
+    /// </remarks>
+    private IQueryable<Alert> OrderAndPage(
+        IQueryable<Alert> query,
+        AlertSortOrder sort,
+        Guid? runId,
+        int page,
+        int pageSize)
+    {
+        var skip = (page - 1) * pageSize;
 
         // Timestamps are stored as fixed-width ISO 8601 in UTC, so ordering them as text is
         // ordering them chronologically. The identifier breaks ties and keeps paging stable.
-        var alerts = await query
-            .OrderByDescending(alert => alert.CreatedAt)
-            .ThenBy(alert => alert.Id)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync(cancellationToken);
+        if (sort != AlertSortOrder.LocalScoreDesc || runId is not { } id)
+        {
+            return query
+                .OrderByDescending(alert => alert.CreatedAt)
+                .ThenBy(alert => alert.Id)
+                .Skip(skip)
+                .Take(pageSize);
+        }
 
-        return new(await ComposeAsync(alerts, cancellationToken), totalCount);
+        var currentScores = from link in dbContext.RunEvaluations.AsNoTracking()
+                            where link.RunId == id
+                            join evaluation in dbContext.RiskEvaluations.AsNoTracking()
+                                on link.EvaluationId equals evaluation.Id
+                            select new { link.OrderId, evaluation.Score };
+
+        var ordered = from alert in query
+                      join current in currentScores on alert.OrderId equals current.OrderId into matches
+                      from current in matches.DefaultIfEmpty()
+                      orderby (current == null ? null : current.Score) descending,
+                          alert.CreatedAt descending,
+                          alert.Id
+                      select alert;
+
+        return ordered.Skip(skip).Take(pageSize);
     }
 
     public async Task<AlertContext?> FindAsync(Guid alertId, CancellationToken cancellationToken)
@@ -50,7 +98,12 @@ public sealed class EfAlertStore(SalvoDbContext dbContext) : IAlertStore
             .AsNoTracking()
             .FirstOrDefaultAsync(candidate => candidate.Id == alertId, cancellationToken);
 
-        return alert is null ? null : (await ComposeAsync([alert], cancellationToken))[0];
+        return alert is null
+            ? null
+            : (await ComposeAsync(
+                [alert],
+                await GetLastRunAsync(cancellationToken),
+                cancellationToken))[0];
     }
 
     public async Task<AlertContext?> FindForReviewAsync(Guid alertId, CancellationToken cancellationToken)
@@ -58,7 +111,12 @@ public sealed class EfAlertStore(SalvoDbContext dbContext) : IAlertStore
         var alert = await dbContext.Alerts
             .FirstOrDefaultAsync(candidate => candidate.Id == alertId, cancellationToken);
 
-        return alert is null ? null : (await ComposeAsync([alert], cancellationToken))[0];
+        return alert is null
+            ? null
+            : (await ComposeAsync(
+                [alert],
+                await GetLastRunAsync(cancellationToken),
+                cancellationToken))[0];
     }
 
     public async Task SaveReviewAsync(Alert alert, AlertReview review, CancellationToken cancellationToken)
@@ -119,6 +177,7 @@ public sealed class EfAlertStore(SalvoDbContext dbContext) : IAlertStore
 
     private async Task<AlertContext[]> ComposeAsync(
         List<Alert> alerts,
+        ScoringRun? lastRun,
         CancellationToken cancellationToken)
     {
         if (alerts.Count == 0)
@@ -133,7 +192,7 @@ public sealed class EfAlertStore(SalvoDbContext dbContext) : IAlertStore
             .AsNoTracking()
             .Where(order => orderIds.Contains(order.Id))
             .ToDictionaryAsync(order => order.Id, cancellationToken);
-        var currentEvaluations = await GetCurrentEvaluationsAsync(orderIds, cancellationToken);
+        var currentEvaluations = await GetCurrentEvaluationsAsync(orderIds, lastRun, cancellationToken);
         var reviews = await dbContext.AlertReviews
             .AsNoTracking()
             .Where(review => alertIds.Contains(review.AlertId))
@@ -144,31 +203,42 @@ public sealed class EfAlertStore(SalvoDbContext dbContext) : IAlertStore
                 alert,
                 orders[alert.OrderId],
                 currentEvaluations.GetValueOrDefault(alert.OrderId),
-                reviews.GetValueOrDefault(alert.Id)))
+                reviews.GetValueOrDefault(alert.Id),
+                ToReference(lastRun)))
             .ToArray();
     }
 
     /// <summary>
-    /// The evaluation the latest scoring run referenced for each of the given orders. Reading it
-    /// through the run rather than by insertion time is what keeps a score that bounced back to an
-    /// earlier value from resolving to a stale row.
+    /// The run that defines the current state of every order, or <see langword="null"/> when the
+    /// corpus was never scored.
     /// </summary>
-    private async Task<Dictionary<Guid, RiskEvaluation>> GetCurrentEvaluationsAsync(
-        IReadOnlyCollection<Guid> orderIds,
-        CancellationToken cancellationToken)
+    private async Task<ScoringRun?> GetLastRunAsync(CancellationToken cancellationToken)
     {
-        var lastRun = await dbContext.ScoringRuns
+        return await dbContext.ScoringRuns
             .AsNoTracking()
             .OrderByDescending(run => run.Sequence)
             .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// The evaluation <paramref name="lastRun"/> referenced for each of the given orders. Reading
+    /// it through the run rather than by insertion time is what keeps a score that bounced back to
+    /// an earlier value from resolving to a stale row.
+    /// </summary>
+    private async Task<Dictionary<Guid, RiskEvaluation>> GetCurrentEvaluationsAsync(
+        IReadOnlyCollection<Guid> orderIds,
+        ScoringRun? lastRun,
+        CancellationToken cancellationToken)
+    {
         if (lastRun is null)
         {
             return [];
         }
 
+        var runId = lastRun.Id;
         var current = await dbContext.RunEvaluations
             .AsNoTracking()
-            .Where(link => link.RunId == lastRun.Id && orderIds.Contains(link.OrderId))
+            .Where(link => link.RunId == runId && orderIds.Contains(link.OrderId))
             .Join(
                 dbContext.RiskEvaluations.AsNoTracking(),
                 link => link.EvaluationId,
@@ -177,6 +247,11 @@ public sealed class EfAlertStore(SalvoDbContext dbContext) : IAlertStore
             .ToListAsync(cancellationToken);
 
         return current.ToDictionary(entry => entry.OrderId, entry => entry.Evaluation);
+    }
+
+    private static ScoringRunReference? ToReference(ScoringRun? run)
+    {
+        return run is null ? null : new(run.Sequence, run.CompletedAt);
     }
 
     private static bool IsUniquenessViolation(DbUpdateException exception)

@@ -18,6 +18,11 @@ public sealed record AlertSnapshotView(
 /// <param name="Severity">
 /// <see langword="null"/> when the current score no longer reaches the alerting floor.
 /// </param>
+/// <param name="EvaluatedAt">
+/// When this evaluation was first computed, which is not when it became current: an unchanged
+/// evaluation is reused by every later run and keeps the timestamp of the run that inserted it. The
+/// instant of the current state is <c>currentRun.completedAt</c>.
+/// </param>
 public sealed record AlertEvaluationView(
     Guid EvaluationId,
     int Score,
@@ -82,11 +87,23 @@ public sealed record AlertListItem(
     DateTimeOffset CreatedAt,
     DateTimeOffset? ReviewedAt);
 
+/// <param name="ScoringRunSequence">
+/// Sequence of the run the page is current as of, or <see langword="null"/> when the corpus was
+/// never scored. No ordering of this feed survives a run that happens between two pages — a run
+/// inserts new alerts at the front and can move the score an alert is ordered by — so a client that
+/// pages compares this value and restarts from the first page when it changes.
+/// </param>
+/// <param name="CurrentRun">
+/// The same run, with the instant it completed, for screens that state the provenance of what they
+/// show.
+/// </param>
 public sealed record ListAlertsResult(
     IReadOnlyList<AlertListItem> Items,
     int Page,
     int PageSize,
-    int TotalCount);
+    int TotalCount,
+    long? ScoringRunSequence,
+    ScoringRunReference? CurrentRun);
 
 public sealed record AlertDetail(
     Guid Id,
@@ -100,6 +117,7 @@ public sealed record AlertDetail(
     AlertOrderView Order,
     AlertSnapshotView Snapshot,
     AlertEvaluationView? CurrentEvaluation,
+    ScoringRunReference? CurrentRun,
     AlertDivergenceView Divergence,
     AlertReviewView? Review);
 

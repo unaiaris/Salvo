@@ -13,6 +13,13 @@ public static class AlertEndpoints
         endpoints.MapGet("/api/alerts", ListAlertsAsync)
             .WithName("ListAlerts")
             .WithTags("Alerts")
+            .WithDescription(
+                "One page of alerts. 'severity' filters on the frozen snapshot each alert was "
+                + "opened with, while 'sort=SCORE_DESC' orders by the local score of the evaluation "
+                + "the current run made current: the two describe different moments. An alert with "
+                + "no current evaluation has no score to compare and sorts last. 'scoringRunSequence' "
+                + "identifies the state the page was read from; a client that pages restarts when it "
+                + "changes.")
             .Produces<ListAlertsResult>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest);
 
@@ -38,6 +45,7 @@ public static class AlertEndpoints
         CancellationToken cancellationToken,
         string? status = null,
         string? severity = null,
+        string? sort = null,
         int? page = null,
         int? pageSize = null)
     {
@@ -69,6 +77,15 @@ public static class AlertEndpoints
             requestedSeverity = parsedSeverity;
         }
 
+        var requestedSort = AlertSortOrder.CreatedDesc;
+        if (sort is not null && !AlertSortWireNames.TryParse(sort, out requestedSort))
+        {
+            return CreateProblem(
+                StatusCodes.Status400BadRequest,
+                "INVALID_SORT",
+                $"sort must be {AlertSortWireNames.CreatedDesc} or {AlertSortWireNames.ScoreDesc}.");
+        }
+
         var requestedPage = page ?? 1;
         var requestedPageSize = pageSize ?? ListAlertsHandler.DefaultPageSize;
 
@@ -91,6 +108,7 @@ public static class AlertEndpoints
         return TypedResults.Ok(await handler.HandleAsync(
             requestedStatus,
             requestedSeverity,
+            requestedSort,
             requestedPage,
             requestedPageSize,
             cancellationToken));
