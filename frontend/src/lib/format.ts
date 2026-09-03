@@ -12,10 +12,13 @@
 const LOCALE = "es-UY";
 export const BUSINESS_TIME_ZONE = "America/Montevideo";
 
+// 24-hour time, stated rather than inherited: an operations console should not make an analyst
+// resolve "8:41 p. m." against a timestamp she is comparing with an audit log.
 const instantFormatter = new Intl.DateTimeFormat(LOCALE, {
   timeZone: BUSINESS_TIME_ZONE,
   dateStyle: "medium",
   timeStyle: "short",
+  hour12: false,
 });
 
 const dateFormatter = new Intl.DateTimeFormat(LOCALE, {
