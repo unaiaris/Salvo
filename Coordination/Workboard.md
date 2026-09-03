@@ -1,6 +1,6 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: Etapa 5 en curso. `E5A-API-LECTURA` integrada y verificada; `E5B-ALERTAS-UI` pendiente de brief
+> Estado: Etapa 5 en curso. `E5B-ALERTAS-UI` asignada y pendiente de ejecución
 > Última actualización: 2026-09-02
 > Responsable: coordinador de la etapa
 
@@ -14,19 +14,21 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 
 ## Trabajo activo
 
-No hay tareas activas ni paths reservados.
+| Work ID | Etapa | Objetivo | Propietario | Estado | Rama | Base | Paths reservados | Dependencias | Actualizado |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| E5B-ALERTAS-UI | 5 | Cliente tipado, feed, detalle, divergencia y revisión | Claude | Asignada | `claude/e5b-alertas-ui` | commit de `main` que incorpora el brief | `frontend/**`, `scripts/check.sh` | `E5A-API-LECTURA` integrada | 2026-09-03 |
+
+Modelo y esfuerzo acordados para `E5B-ALERTAS-UI`: Opus 5 · `high`.
 
 ## Cola próxima
 
 | Work ID | Etapa | Objetivo | Dependencias |
 | --- | --- | --- | --- |
-| E5B-ALERTAS-UI | 5 | Cliente tipado, feed, detalle, divergencia y revisión | `E5A` integrada |
 | E5C-IMPORT-DASHBOARD | 5 | Importación con corrida, dashboard, gráfico y smoke de recorrido | `E5A` y `E5B` integradas |
 
-Nota de reserva de paths: los briefs de `E5B` y `E5C` deben declarar `backend/tests/**` y
-`frontend/**` entre sus paths reservados, y citar la entrada «Etapa 5 — UI y dashboard» de
-`DesignAgent/Salvo-Progress.md` en su contexto obligatorio. Ambas desviaciones se detectaron en el
-handoff de `E5A`.
+Nota de reserva de paths: el brief de `E5C` debe declarar `frontend/**`, `scripts/**` y
+`backend/tests/**` entre sus paths reservados, y citar la entrada «Etapa 5 — UI y dashboard» de
+`DesignAgent/Salvo-Progress.md` en su contexto obligatorio.
 
 ## Historial integrado
 
