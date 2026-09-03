@@ -953,3 +953,309 @@ Con el código restaurado, las seis vuelven a pasar. Es la misma técnica que el
   confirmando que `/alerts` y `/alerts/[id]` siguen listadas como `ƒ`. Para una comprobación con
   datos reales: levantar la API con `DemoData__Enabled=true`, hacer seed y corrida, y recorrer
   `/alerts` y un detalle.
+
+## `E5C-IMPORT-DASHBOARD` — Importación con corrida, dashboard, gráfico SVG y smoke de recorrido
+
+### Identificación
+
+- Estado de la rama: `Lista para integrar`
+- Etapa: 5
+- Rama/worktree: `claude/e5c-import-dashboard`
+- Commit base: `bb4cf620373a7c7dc4870efd6219e7f67ba0337a` (`chore: assign E5C-IMPORT-DASHBOARD`),
+  punta de `main` al empezar y el commit que incorpora el brief, como declara la Identificación del
+  task brief
+- Commit final: `2db4722327818e967025da6f0dc72f9e35aeea9f`
+- Fecha: 2026-09-03
+
+### Resultado
+
+El recorrido queda cerrado de punta a punta. Una analista entra a `/import`, carga el corpus de
+demostración o importa un archivo, lee registro por registro qué se rechazó y por qué, y **ejecuta
+la corrida de scoring desde la propia consola**; entra a `/dashboard` y ve el estado operativo de la
+corrida vigente, con el monto en riesgo desglosado por moneda, el riesgo temporal como SVG escrito
+por el servidor y, solo si la instancia se declara de demostración, la calidad del criterio con su
+rótulo fijo. Todo eso se verifica con `scripts/smoke-ui.sh`, que levanta la API y `next start` de
+verdad y comprueba las cuatro rutas en los tres escenarios del Blueprint.
+
+Se ejecutó en cinco commits, para no repetir lo que pasó en `E5B`, donde un error de servidor cortó
+la sesión sin checkpoint: `514b3ed` la capa de datos, `115a2a5` la pantalla de importación,
+`83edbda` el dashboard, `4d7f32a` el test de deriva de OpenAPI y `2db4722` el smoke.
+
+Con esto la Etapa 5 tiene entregados todos sus ítems. Declararla completa es del coordinador.
+
+### Archivos modificados
+
+Capa de datos (`frontend/src/lib/`):
+
+- `api/console.ts` (nuevo) — lecturas y escrituras de `/import` y `/dashboard`.
+- `api/contract.ts`, `api/guards.ts`, `api/guards.test.ts` — tipos y guardas que proyectan para
+  dashboard, métricas, importación, corrida, semilla y capacidades.
+- `api/messages.ts`, `api/messages.test.ts` — diecisiete códigos nuevos.
+- `api/server-client.ts` — cuerpos `FormData` para la importación multipart.
+- `format.ts` — etiqueta neutral de `amount_anomaly` y formateadores de porcentaje, cantidad y fecha
+  de calendario.
+- `api/health.ts` y `api/health.test.ts` — **eliminados**.
+
+Pantalla de importación (`frontend/src/app/import/`, todo nuevo):
+
+- `page.tsx`, `page.test.tsx`, `actions.ts`, `actions.test.ts`, `action-state.ts`,
+  `action-outcome.tsx`, `action-section.tsx`, `import-form.tsx`, `corpus-actions.tsx`
+
+Dashboard (`frontend/src/app/dashboard/`, todo nuevo):
+
+- `page.tsx`, `page.test.tsx`, `panels.tsx`, `risk-chart.tsx`, `quality-section.tsx`,
+  `empty-states.tsx`
+
+Verificación:
+
+- `backend/tests/Salvo.Api.IntegrationTests/OpenApiDriftTests.cs` (nuevo) — único archivo fuera de
+  `frontend/**` y `scripts/**`, y el único path de `backend/tests/**` que el brief autoriza.
+- `scripts/smoke-ui.sh` (nuevo)
+- `frontend/src/test/boundary.test.ts`, `frontend/src/test/fixtures.ts`
+
+Otros:
+
+- `frontend/package.json` — solo el script `dev`.
+
+`git diff --stat bb4cf62..HEAD`: 30 archivos, 3953 inserciones, 87 supresiones. Ningún path bajo
+`backend/src/`; `package-lock.json` y `Directory.Packages.props` intactos: **cero dependencias
+nuevas**.
+
+### Verificación
+
+| Comando | Resultado |
+| --- | --- |
+| `/brief-check Coordination/Tasks/E5C-IMPORT-DASHBOARD.md` | Brief válido: 11 secciones completas, base `bb4cf62` existente, sin solapamiento de paths, sin contradicción con `AGENTS.md` ni el Blueprint |
+| `./scripts/check.sh` | **Verde**, exit `0`. Salida por paso abajo |
+| `./scripts/smoke-ui.sh` | **Verde**, exit `0`: 21 comprobaciones, 0 fallas. Salida completa abajo |
+| Test de deriva de OpenAPI | 2/2 en verde; **falsado dos veces**, detalle abajo |
+| `SALVO_API_BASE_URL=http://127.0.0.1:9 npm run build` | Pasa. `/` y `/_not-found` estáticas (`○`); `/alerts`, `/alerts/[id]`, `/dashboard` e `/import` dinámicas (`ƒ`) |
+| `npx vitest run src/test/boundary.test.ts` | 9/9, con `/import` y `/dashboard` cubiertos |
+| `git status --porcelain` | Limpio |
+| `git diff --name-only bb4cf62..HEAD \| grep '^backend/src/'` | Sin resultados |
+
+#### `./scripts/check.sh`
+
+| Paso | Resultado |
+| --- | --- |
+| `api:types:check` | «OpenAPI types are up to date with openapi/salvo-openapi.json.» |
+| `dotnet restore --locked-mode` | Restauración correcta, 6 proyectos |
+| `dotnet build --configuration Release` | Compilación correcta, **0 advertencias, 0 errores** |
+| `dotnet ef migrations has-pending-model-changes` | «No changes have been made to the model since the last migration.» |
+| `dotnet test` | **129 tests**: 55 de dominio y 74 de integración, 0 fallos. Eran 127; los dos nuevos son los de deriva |
+| `npm run check` | Typecheck ✓, ESLint `--max-warnings=0` ✓, **153 tests de Vitest** en 13 archivos. Eran 97 |
+| `npm run build` | Next.js 16.3.3 con Webpack ✓ |
+
+#### Salida de `scripts/smoke-ui.sh`
+
+```
+Salvo — recorrido de la consola
+API http://127.0.0.1:5199 · consola http://127.0.0.1:3199
+
+Compilando la API y la consola…
+Migrando las dos bases temporales…
+Levantando la consola…
+
+── Escenario: con datos
+Listo: API responde en http://127.0.0.1:5199/health
+Listo: consola responde en http://127.0.0.1:3199
+Cargando el corpus de demostración y ejecutando la corrida…
+Alerta de ejemplo: 0367f5d3-ebca-474e-adbd-f87c3b8b83f3
+  ok     /                            «Consola antifraude»
+  ok     /import                      «Importación y scoring»
+  ok     /import                      «Todos los pedidos de la base están cubiertos»
+  ok     /alerts                      «Cola de alertas»
+  ok     /alerts/0367f5d3-…-f87c3b8b83f3 «Snapshot que abrió la alerta»
+  ok     /alerts/0367f5d3-…-f87c3b8b83f3 «Evaluación vigente»
+  ok     /dashboard                   «Monto en riesgo»
+  ok     /dashboard                   «Fraude reportado»
+  ok     /dashboard                   «Pedidos y denegados por semana»
+  ok     /dashboard                   «Calidad del criterio»
+  ok     /dashboard                   «no la calidad del criterio de detección»
+  ok     /dashboard                   sin «3.942.246»
+
+── Escenario: base vacía
+Detenido: API (pid 50166)
+Listo: API responde en http://127.0.0.1:5199/health
+  ok     /import                      «todavía no hay ninguno en la base»
+  ok     /alerts                      «Todavía no hay pedidos»
+  ok     /dashboard                   «Todavía no hay pedidos»
+  ok     /alerts/00000000-0000-4000-8000-000000000000 «Esta alerta ya no existe»
+
+── Escenario: API apagada
+Detenido: API (pid 50275)
+  ok     /                            «Consola antifraude»
+  ok     /import                      «No se pudo contactar a la API»
+  ok     /alerts                      «No se pudo contactar a la API»
+  ok     /alerts/00000000-0000-4000-8000-000000000000 «No se pudo contactar a la API»
+  ok     /dashboard                   «No se pudo contactar a la API»
+
+Recorrido verde: 21 comprobaciones, 0 fallas.
+Detenido: consola (pid 50165)
+
+Directorio de trabajo (no se borra nada): …/salvo-smoke-WzwKah
+  base con datos: …/salvo-smoke-WzwKah/with-data.db
+  base vacía:     …/salvo-smoke-WzwKah/empty.db
+  registros:      …/salvo-smoke-WzwKah/api.log, …/salvo-smoke-WzwKah/web.log
+Puerto 5199 libre.
+Puerto 3199 libre.
+```
+
+La liberación de procesos y puertos se comprobó de tres maneras, no se asumió:
+
+1. **Corrida verde**: ambos puertos libres, sin procesos huérfanos, como muestra la salida.
+2. **Corrida en rojo**: se rompió a propósito una expectativa (`Cola de alertas` cambiada por un
+   texto inexistente). Salió con código `1`, imprimió «Recorrido en rojo: 1 de 21 comprobaciones
+   fallaron», detuvo API y consola, y dejó ambos puertos libres.
+3. **Ctrl-C**: simulado como lo hace una terminal de verdad, con `SIGINT` al **grupo de procesos**.
+   Murió `next start`, el script lo detectó («el proceso de consola murió durante el arranque»),
+   detuvo la API por el trap y dejó los dos puertos libres y ningún proceso vivo.
+
+Un detalle que sí conviene saber y quedó escrito junto al trap: un `kill -INT` dirigido **solo** al
+pid del script no aborta la corrida. Bash difiere una señal atrapada hasta que termina el comando en
+primer plano y, como el hijo no murió, sigue adelante; el trap `EXIT` corre igual al final. Se aisló
+en un script de seis líneas para confirmar que es comportamiento de bash y no del smoke. Ctrl-C real
+no tiene ese problema porque señaliza al grupo entero.
+
+#### Falsación del test de deriva de OpenAPI
+
+Se comprobó que **falla al alterar el documento versionado**, dos veces, restaurando el archivo byte
+a byte después de cada una (`shasum -a 256` idéntico y `git status` limpio):
+
+1. **Campo renombrado.** En `DashboardAmountAtRiskView` se cambió `amountCents` por
+   `amountMinorUnits`, que es exactamente la forma de la deriva que preocupa: alguien renombra un
+   campo en la vista y no recaptura. Falló la comparación profunda con el mensaje que incluye las
+   tres instrucciones de recaptura:
+
+   ```
+   The OpenAPI document this API serves is not the one committed at …/frontend/openapi/salvo-openapi.json.
+
+   Re-capture it:
+     DemoData__Enabled=true dotnet run --project backend/src/Salvo.Api
+     npm run api:capture --prefix frontend
+     npm run api:types --prefix frontend
+   ```
+
+2. **Ruta eliminada.** Se borró `/api/dashboard` del documento. Falló antes, en la comparación de
+   nombres de rutas, que es la mitad legible del fallo:
+
+   ```
+   Assert.Equal() Failure: Collections differ
+                                            ↓ (pos 3)
+   Expected: [···, "/api/alerts/{id}/review", "/api/demo-data/seed", ···]
+   Actual:   [···, "/api/alerts/{id}/review", "/api/dashboard", ···]
+   ```
+
+Restaurado el documento, los dos tests vuelven a pasar.
+
+#### Falsación de dos garantías del dashboard
+
+- **Monto sin total.** Se agregó a `AmountAtRiskPanel` una fila «Total» con la suma de las tres
+  monedas: falla el test con `expected … not to contain '3.942.246'`. La cifra es la suma real del
+  corpus demo y es una cifra sin unidad.
+- **Compuerta de capacidades.** Se hizo que `/dashboard` pidiera las métricas sin consultar
+  `/api/system/capabilities`: falla el test que exige que con `demoDataEnabled: false` no aparezca la
+  sección de calidad ni se llame al endpoint.
+
+### Decisiones y supuestos
+
+- **Las cuatro correcciones de arrastre**, con su justificación:
+  - **`format.ts`.** `amount_anomaly` pasó de «Monto atípico para el comprador» a **«Monto atípico»**.
+    `TemporalRiskEngine` usa la mediana del comprador cuando hay historia suficiente y **cae a la del
+    comercio** cuando no, y el `detail` de la señal nombra cuál de las dos usó
+    (`…x the {scope} median…`, `TemporalRiskEngine.cs:108`). El título viejo contradecía a la frase
+    que tiene debajo en todos los pedidos que caían al comercio. Hay un test que exige el título
+    neutral y que el viejo no esté.
+  - **`messages.ts`.** Se agregaron `SCORING_RUN_CONFLICT` y `METRICS_UNAVAILABLE`, que `E5B` dejó sin
+    mensaje propio, y además los quince códigos de transporte y de documento que puede emitir la
+    importación —`FILE_REQUIRED`, `FILE_TOO_LARGE`, `TOO_MANY_RECORDS`, `UNSUPPORTED_MEDIA_TYPE`,
+    `UNSUPPORTED_FORMAT`, `EMPTY_FILE`, `INVALID_ENCODING`, `INVALID_CSV`, `INVALID_JSON`,
+    `INVALID_JSON_ROOT`, `MISSING_HEADER`, `INVALID_HEADER`, `DUPLICATE_HEADER`, `UNKNOWN_HEADER`— y
+    `DEMO_DATA_CONFLICT` de la semilla. El brief pide que 413, 415 y 400 tengan mensaje propio, y D13
+    pide un texto por código. El test que exigía la lista exacta se reescribió: el código que usaba
+    como ejemplo de «desconocido» era justamente `SCORING_RUN_CONFLICT`, y ahora usa uno de la Etapa 6.
+  - **`package.json`.** `dev` pasó de `next dev` a **`next dev --webpack`**, alineado con `build`. En
+    Next.js 16 `next dev` usa Turbopack por defecto y `--webpack` está documentado para `dev`
+    (`node_modules/next/dist/docs/01-app/03-api-reference/06-cli/next.md`, línea 69). Desarrollar
+    sobre un bundler y verificar el build sobre otro deja sin cubrir toda una clase de errores que
+    solo aparecen al construir; la compuerta usa Webpack por la restricción de puertos que quedó
+    registrada como riesgo de la Etapa 1.
+  - **`health.ts`.** **Eliminado, con su test.** Era código muerto —ningún módulo lo importaba desde
+    `E5B`; solo lo referenciaban su propio test y dos comentarios— y además modelaba la
+    guarda-predicado que `guards.ts` documenta como antipatrón, con URL relativa (un `TypeError`
+    dentro de un componente de servidor) y sin timeout explícito, contra la regla de red externa de
+    `AGENTS.md`. El descubrimiento en tiempo de ejecución que podría justificarlo ya lo cubre
+    `GET /api/system/capabilities` (decisión D10). Se ajustó el comentario de `server-client.ts` que
+    lo mencionaba y el de `guards.ts`, que ahora describe el antipatrón sin apuntar a un módulo
+    inexistente. El borrado lo ejecutó el usuario desde su terminal: `rm` y `git rm` están denegados
+    por política en la sesión del agente.
+- **Los errores por fila viajan como oraciones ya escritas.** `useActionState` serializa su estado
+  entero dentro del payload RSC, igual que una prop, así que la regla de la decisión 42 le aplica: el
+  estado de `/import` es plano y solo de primitivas, y el servidor traduce el código del importador
+  antes de que el texto cruce. `isPrimitiveProp` acepta arreglos de primitivas, que es lo que se usa.
+- **El dashboard no cruza la frontera ni una vez.** `boundary.test.ts` no afirma «las props son
+  primitivas» sino que la lista de cruces es **vacía**: la pantalla entera, gráfico incluido, se
+  renderiza en el servidor. Es la forma observable de la decisión 43, y una librería de gráficos la
+  rompería con solo entrar, porque obligaría a que el componente del gráfico fuera de cliente.
+- **El gráfico es SVG a mano, con tabla siempre visible.** `<title>` y `<desc>` en la raíz con
+  `role="img"` y `aria-labelledby`, un `<title>` por barra, y la tabla equivalente **fuera** de un
+  `<details>`: en un `<details>` cerrado la tabla queda fuera del árbol de accesibilidad, que es
+  justo lo contrario de lo que pide el criterio.
+- **Los tres estados vacíos del dashboard se distinguen sin una segunda consulta.** Sin corrida,
+  `CountOrdersPendingScoringAsync(null, …)` cuenta *todos* los pedidos
+  (`GetDashboardHandler.cs:24-36`), así que `ordersPendingScoring` separa «base vacía» de «sin
+  corrida». El feed de `E5B` necesitaba `GET /api/orders` para lo mismo; el dashboard no.
+- **Las bandas de severidad en cero se muestran igual.** La API solo informa las bandas que tienen
+  alertas, y el corpus demo no tiene ninguna `HIGH`: omitir la fila haría leer «no existe la banda»
+  donde la verdad es «hoy está vacía».
+- **El rótulo de la fixture se renderiza antes que las cifras y no es plegable**, ni siquiera cuando
+  las métricas fallan con `409`. Hay un test para ese caso concreto.
+- **La sección de calidad muestra el barrido de umbrales en un `<details>`.** Es evidencia de una
+  decisión ya tomada, no algo sobre lo que la analista actúe; `<details>` lo pliega sin JavaScript y
+  por lo tanto sin convertir nada en componente cliente.
+- **Timeouts propios para el trabajo pesado**: 60 s la importación y la semilla, 120 s la corrida. El
+  timeout general de 5 s es correcto para una lectura que bloquea un render, pero abortar a los cinco
+  segundos una corrida sobre trescientos pedidos reportaría un timeout de trabajo que la API sí
+  terminó de escribir.
+- **El smoke no borra nada.** Deja su directorio temporal y lo imprime. Es deliberado: un script de
+  verificación que ejecuta `rm -rf` sobre una ruta calculada es un riesgo que no compensa el
+  beneficio, y el sistema operativo recoge `TMPDIR`. Tampoco toca `salvo.db`: migra dos bases propias.
+- **El smoke se niega a arrancar si los puertos ya están ocupados**, antes que matar el proceso de
+  otro. Usa 5199 y 3199, no los de desarrollo, y ambos son configurables.
+- **No se agregó `smoke-ui.sh` a `scripts/check.sh`**, como pide el brief: esa decisión es del cierre
+  de etapa. Cuesta una compilación completa de las dos toolchains más dos arranques.
+
+### Riesgos o pendientes
+
+- **El smoke no está en la compuerta**, así que hoy depende de que alguien lo corra. Es la decisión
+  que el brief difiere al cierre de la Etapa 5.
+- **La accesibilidad se verificó por estructura, no con un lector de pantalla**: `role="img"` con
+  `aria-labelledby` en el SVG, tabla equivalente con `caption` y `scope`, regiones rotuladas,
+  `role="alert"` y `role="status"` en los avisos, foco visible y ningún significado confiado solo al
+  color. La pasada con lector real sigue agendada para la Etapa 8.
+- **El gráfico dibuja etiquetas de eje una de cada `ceil(n/6)` semanas.** Con las 17 semanas del
+  corpus demo entran bien; con un corpus de años, el eje quedaría escaso y la tabla pasaría a ser la
+  lectura principal. No es un problema hoy y no se optimizó por adelantado.
+- **`describeRecordError` traduce cinco códigos de fila** —`REQUIRED`, `INVALID_FORMAT`,
+  `OUT_OF_RANGE`, `UNSUPPORTED_VALUE`, `REFERENCE_CONFLICT`—, que son los que emiten hoy `Order.cs` y
+  `ImportOrdersHandler.cs`. Un código nuevo se muestra tal cual, sin romper nada, pero en inglés.
+- **Las señales del motor siguen en inglés dentro del `detail`**, como ya estaba registrado: la
+  consola traduce el nombre de la regla y no el detalle. Estructurarlas es tarea de la Etapa 8 y ya
+  está acordada como candidata en el Workboard.
+- **Sigue pendiente, del coordinador**, cerrar los ítems de la Etapa 5 en `Salvo-Progress.md` y el
+  Workboard. Se comprobó contra el archivo, como pide el brief, que §4.4 del Blueprint y la línea de
+  Recharts de `AGENTS.md` **ya están corregidas** desde `c759d58`: no son pendientes.
+
+### Integración
+
+- Orden sugerido: rama única, sin dependencias. Requiere `E5A` y `E5B` integradas, y lo están.
+- Migraciones o pasos manuales: **ninguno**. No se tocó `backend/src/**` ni el modelo;
+  `dotnet ef migrations has-pending-model-changes` no reporta cambios. Tampoco hay dependencias
+  nuevas, así que no hace falta `npm ci`.
+- Posibles conflictos: la rama parte de la punta de `main` y no hay otra tarea activa. El único
+  archivo fuera de `frontend/**` y `scripts/**` es `OpenApiDriftTests.cs`, en el path de
+  `backend/tests/**` que el brief reserva para esta tarea.
+- Verificación posterior al merge: repetir `./scripts/check.sh` sobre `main` y, además,
+  `./scripts/smoke-ui.sh`, que es la comprobación que la compuerta no hace. Conviene confirmar sobre
+  el estado integrado que el dashboard sigue coincidiendo con `salvo.db`: 18 alertas abiertas,
+  13 `MEDIUM` y 5 `CRITICAL`, y el monto en riesgo en tres filas —BRL, USD y UYU— sin ningún total.

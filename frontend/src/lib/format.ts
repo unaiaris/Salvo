@@ -74,9 +74,16 @@ export function statusLabel(status: string): string {
   return STATUS_LABELS[status] ?? status;
 }
 
-/** The six deterministic rules of `RiskRuleNames`, in their canonical order. */
+/**
+ * The six deterministic rules of `RiskRuleNames`, in their canonical order.
+ *
+ * `amount_anomaly` is deliberately silent about *whose* median the amount was compared against.
+ * `TemporalRiskEngine` uses the buyer's median when the buyer has enough history and falls back to
+ * the merchant's when they do not, and it says which one in the signal's own `detail`. A title that
+ * named the buyer would contradict the sentence right below it on every order that fell back.
+ */
 const RULE_LABELS: Readonly<Record<string, string>> = {
-  amount_anomaly: "Monto atípico para el comprador",
+  amount_anomaly: "Monto atípico",
   velocity: "Ráfaga de pedidos",
   cross_border_velocity: "Ráfaga entre países",
   unusual_hour: "Hora inusual",
@@ -87,4 +94,57 @@ const RULE_LABELS: Readonly<Record<string, string>> = {
 /** The rule name in the analyst's language; an unmapped rule shows its own identifier. */
 export function ruleLabel(rule: string): string {
   return RULE_LABELS[rule] ?? rule;
+}
+
+/**
+ * A ratio as a percentage. Rates are shown with one decimal because the corpus is small enough that
+ * rounding to whole points would collapse distinct runs onto the same figure.
+ */
+const percentFormatter = new Intl.NumberFormat(LOCALE, {
+  style: "percent",
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
+
+export function formatPercent(ratio: number): string {
+  return percentFormatter.format(ratio);
+}
+
+const integerFormatter = new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 0 });
+
+/** A count with the thousands separator of the fixed locale. */
+export function formatCount(value: number): string {
+  return integerFormatter.format(value);
+}
+
+/**
+ * A `YYYY-MM-DD` calendar date, rendered without going through an instant.
+ *
+ * `DateOnly` has no time and no zone; parsing it as a `Date` would place it at midnight UTC and the
+ * business time zone would then shift it a day back for anybody west of Greenwich, which is exactly
+ * where this console lives. Splitting the string keeps the day the API meant.
+ */
+export function formatCalendarDate(calendarDate: string): string {
+  const [year, month, day] = calendarDate.split("-").map(Number);
+
+  return dateFormatter.format(new Date(year ?? 0, (month ?? 1) - 1, day ?? 1));
+}
+
+/**
+ * The per-record codes an import can report, in the analyst's language.
+ *
+ * They describe a row of her file rather than a failure of the request, so they never travel through
+ * the failure catalogue: an import that rejects forty rows and writes the rest is a success with a
+ * list of rejections attached.
+ */
+const IMPORT_ERROR_LABELS: Readonly<Record<string, string>> = {
+  REQUIRED: "Falta un campo obligatorio",
+  INVALID_FORMAT: "El valor no tiene el formato esperado",
+  OUT_OF_RANGE: "El valor está fuera del rango admitido",
+  UNSUPPORTED_VALUE: "El valor no es uno de los admitidos",
+  REFERENCE_CONFLICT: "La referencia ya existe con otros datos",
+};
+
+export function importErrorLabel(code: string): string {
+  return IMPORT_ERROR_LABELS[code] ?? code;
 }

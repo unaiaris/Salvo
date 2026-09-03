@@ -58,3 +58,46 @@ export const ALERT_FEED_PAGE_SIZE = 200;
 
 /** `AlertEndpoints.MaximumNoteLength`. */
 export const REVIEW_NOTE_MAX_LENGTH = 2000;
+
+export type Capabilities = ApiView<Schemas["CapabilitiesResponse"]>;
+
+export type DashboardScoringRun = ApiView<Schemas["DashboardScoringRunView"]>;
+export type DashboardSeverityCount = ApiView<Schemas["DashboardSeverityCountView"]>;
+export type DashboardOpenAlerts = ApiView<Schemas["DashboardOpenAlertsView"]>;
+export type DashboardAmountAtRisk = ApiView<Schemas["DashboardAmountAtRiskView"]>;
+export type DashboardReportedFraud = ApiView<Schemas["DashboardReportedFraudView"]>;
+export type DashboardRiskBucket = ApiView<Schemas["DashboardRiskBucketView"]>;
+export type DashboardSignal = ApiView<Schemas["DashboardSignalView"]>;
+export type Dashboard = ApiView<Schemas["DashboardResult"]>;
+
+export type ConfusionMatrix = ApiView<Schemas["ConfusionMatrixView"]>;
+export type MetricsFigures = ApiView<Schemas["EvaluationMetricsView"]>;
+export type ThresholdMetrics = ApiView<Schemas["ThresholdMetricsView"]>;
+export type EvaluationMetrics = ApiView<Schemas["EvaluationMetricsResult"]>;
+
+export type ImportRecordError = ApiView<Schemas["ImportRecordError"]>;
+export type ImportResult = ApiView<Schemas["ImportOrdersResult"]>;
+export type ScoringRunSummary = ApiView<Schemas["ScoringRunSummary"]>;
+export type SeedResult = ApiView<Schemas["SeedDemoOrdersResult"]>;
+
+/**
+ * The severity bands the dashboard always shows, in the order it shows them.
+ *
+ * The API answers with the bands that actually have open alerts, so a band that dropped to zero
+ * simply disappears from `bySeverity`. Reading that as "there is no such band" is exactly the wrong
+ * conclusion: the demo corpus has no `HIGH` alert at all, and an analyst who never sees the row
+ * cannot tell an empty band from a band that does not exist.
+ */
+export const DASHBOARD_SEVERITY_ORDER = [
+  ALERT_SEVERITY.critical,
+  ALERT_SEVERITY.high,
+  ALERT_SEVERITY.medium,
+] as const;
+
+/** `OrderEndpoints.MaximumFileSizeBytes`, mirrored so the form can say the limit before sending. */
+export const IMPORT_MAX_FILE_BYTES = 5 * 1024 * 1024;
+
+/** Wire values of the `format` field of `POST /api/order-imports`. */
+export const IMPORT_FORMATS = ["CSV", "JSON"] as const;
+
+export type ImportFormat = (typeof IMPORT_FORMATS)[number];

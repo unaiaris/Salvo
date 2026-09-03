@@ -11,7 +11,7 @@ import { describeFailure, isKnownFailureCode, knownFailureCodes } from "./messag
  */
 
 /** Every `code` the alert endpoints can emit, read off `AlertEndpoints.cs`. */
-const API_CODES = [
+const ALERT_CODES = [
   "ALERT_NOT_FOUND",
   "INVALID_STATUS",
   "NOTE_TOO_LONG",
@@ -25,12 +25,42 @@ const API_CODES = [
   "INVALID_PAGE_SIZE",
 ] as const;
 
+/**
+ * What `/import` and `/dashboard` can be answered with: the transport-level rejections of
+ * `OrderEndpoints.cs`, the document-level ones every parser under `Salvo.Infrastructure/Imports`
+ * throws, and the two conflicts of `RiskEvaluationEndpoints.cs` and `EvaluationMetricsEndpoints.cs`.
+ *
+ * Per-record errors are deliberately absent: they arrive inside a `200` as `ImportOrdersResult.errors`
+ * and describe a row of the analyst's file, not a failure of her request.
+ */
+const CONSOLE_CODES = [
+  "FILE_REQUIRED",
+  "FILE_TOO_LARGE",
+  "UNSUPPORTED_MEDIA_TYPE",
+  "UNSUPPORTED_FORMAT",
+  "TOO_MANY_RECORDS",
+  "EMPTY_FILE",
+  "INVALID_ENCODING",
+  "INVALID_CSV",
+  "INVALID_JSON",
+  "INVALID_JSON_ROOT",
+  "MISSING_HEADER",
+  "INVALID_HEADER",
+  "DUPLICATE_HEADER",
+  "UNKNOWN_HEADER",
+  "DEMO_DATA_CONFLICT",
+  "SCORING_RUN_CONFLICT",
+  "METRICS_UNAVAILABLE",
+] as const;
+
+const API_CODES = [...ALERT_CODES, ...CONSOLE_CODES] as const;
+
 function problem(code: string, status = 409): ApiFailure {
   return { kind: "problem", status, code, detail: "detalle técnico de la API" };
 }
 
 describe("mensajes de error", () => {
-  it("cubre todos los códigos que emiten los endpoints de alertas", () => {
+  it("cubre todos los códigos que emiten los endpoints, y ninguno de más", () => {
     for (const code of API_CODES) {
       expect(isKnownFailureCode(code), code).toBe(true);
     }
@@ -71,10 +101,30 @@ describe("mensajes de error", () => {
     }
   });
 
-  it("marca como errores de formulario solo los dos que lo son", () => {
+  it("marca como error de formulario lo que la analista puede corregir en el formulario", () => {
     const formErrors = API_CODES.filter((code) => describeFailure(problem(code)).isFormError);
 
-    expect([...formErrors].sort()).toEqual(["INVALID_STATUS", "NOTE_TOO_LONG"]);
+    // Un archivo mal formado o de formato equivocado se corrige eligiendo otro archivo, ahí mismo.
+    // Un conflicto de corrida o de datos de demo no: no hay campo que cambiar.
+    expect([...formErrors].sort()).toEqual(
+      [
+        "DUPLICATE_HEADER",
+        "EMPTY_FILE",
+        "FILE_REQUIRED",
+        "FILE_TOO_LARGE",
+        "INVALID_CSV",
+        "INVALID_ENCODING",
+        "INVALID_HEADER",
+        "INVALID_JSON",
+        "INVALID_JSON_ROOT",
+        "INVALID_STATUS",
+        "MISSING_HEADER",
+        "NOTE_TOO_LONG",
+        "TOO_MANY_RECORDS",
+        "UNKNOWN_HEADER",
+        "UNSUPPORTED_FORMAT",
+      ].sort(),
+    );
   });
 
   it("nombra el límite real de la nota", () => {
@@ -100,9 +150,19 @@ describe("mensajes de error", () => {
   });
 
   it("traduce un código desconocido sin fingir que lo entiende", () => {
-    const message = describeFailure(problem("SCORING_RUN_CONFLICT", 409));
+    // Un código de una etapa futura: la 6 traerá los del proveedor externo.
+    const message = describeFailure(problem("EXTERNAL_PROVIDER_TIMEOUT", 409));
 
     expect(message.title).toMatch(/rechazó la operación/i);
     expect(message.body).toContain("409");
+  });
+
+  it("ofrece ejecutar la corrida cuando faltan las métricas, y reintentar cuando la corrida chocó", () => {
+    expect(describeFailure(problem("METRICS_UNAVAILABLE")).recovery).toMatch(/corrida de scoring/i);
+    expect(describeFailure(problem("SCORING_RUN_CONFLICT")).recovery).toMatch(/volvé a ejecutar/i);
+  });
+
+  it("nombra el límite real del archivo de importación", () => {
+    expect(describeFailure(problem("FILE_TOO_LARGE", 413)).body).toContain("5 MiB");
   });
 });
