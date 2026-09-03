@@ -31,9 +31,14 @@ cambia alcance o arquitectura, actualizar primero su bitácora y después los do
 - Etapa 4 completada. Se ejecutó en dos ítems: `E4A-PERSISTENCIA`, integrada mediante `1d9ee83`, y
   `E4B-ALERTAS`, integrada mediante `c35878b`. Ambas verificadas con la compuerta full-stack sobre
   `main`.
-- Etapa 5 aprobada por el usuario y en curso. Se ejecuta en tres ítems: `E5A-API-LECTURA`,
-  integrada mediante `5f48db0`, `E5B-ALERTAS-UI`, integrada mediante `278e100`, ambas verificadas
-  con la compuerta full-stack, y `E5C-IMPORT-DASHBOARD`, pendiente.
+- Etapa 5 completada. Se ejecutó en tres ítems: `E5A-API-LECTURA` (`5f48db0`), `E5B-ALERTAS-UI`
+  (`278e100`) y `E5C-IMPORT-DASHBOARD`, todos integrados y verificados con la compuerta full-stack y
+  con `scripts/smoke-ui.sh` sobre el estado integrado.
+- El recorrido completo se verifica con `scripts/smoke-ui.sh`, que no forma parte de
+  `scripts/check.sh`: se ejecuta tras cada integración de etapa, junto con la compuerta.
+- El gráfico del dashboard es SVG de servidor. Ningún componente del dashboard es de cliente y
+  `boundary.test.ts` exige que su lista de cruces servidor–cliente sea vacía.
+- No iniciar la Etapa 6 sin petición o aprobación explícita del usuario.
 - Ningún componente cliente recibe objetos de la API: solo primitivas. Las guardas de
   `frontend/src/lib/api/guards.ts` proyectan, nunca comprueban sobre el mismo objeto.
 - Las rutas de datos declaran `dynamic = 'force-dynamic'`. El build debe pasar con la API apagada.

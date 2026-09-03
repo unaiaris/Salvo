@@ -9,10 +9,10 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado del proyecto | Etapa 5 — UI y dashboard, en curso; `E5A` integrada |
-| Etapa completada | Etapa 4 — Alertas y casos de uso |
-| Próxima etapa | Etapa 5 — UI y dashboard |
-| Estado de la próxima etapa | Aprobada; se ejecuta en `E5A-API-LECTURA`, `E5B-ALERTAS-UI` y `E5C-IMPORT-DASHBOARD` |
+| Estado del proyecto | Etapa 5 — UI y dashboard, completada y verificada |
+| Etapa completada | Etapa 5 — UI y dashboard |
+| Próxima etapa | Etapa 6 — Proveedor antifraude mock |
+| Estado de la próxima etapa | Pendiente de diseño y de aprobación explícita del usuario |
 | Bloqueo actual | Ninguno |
 | Dependencias externas | Ninguna para el núcleo local |
 | Anthropic | Previsto para después del núcleo |
@@ -40,7 +40,7 @@ Solo puede existir una etapa `En curso` a la vez.
 | 2 | Contrato y datos sintéticos | Completada | Seed idempotente + parser validado | Merge `4b7bf54` + 24 tests .NET + compuerta verde en `main` |
 | 3 | Motor determinista | Completada | Tests por regla + métricas sin fuga | Merge `809ff75` + 42 tests .NET + compuerta verde en `main` |
 | 4 | Alertas y casos de uso | Completada | Idempotencia + consistencia transaccional | Merges `1d9ee83` y `c35878b`; 109 tests .NET; compuerta verde en `main`; corpus demo con 18 alertas (13 `MEDIUM`, 5 `CRITICAL`) verificado contra la base |
-| 5 | UI y dashboard | Pendiente | Recorrido completo y estados vacíos/error | Pendiente |
+| 5 | UI y dashboard | Completada | Recorrido completo y estados vacíos/error | Merges `5f48db0`, `278e100` y el de `E5C`; 129 tests .NET y 153 de frontend; `check.sh` y `smoke-ui.sh` verdes sobre `main` (21 comprobaciones, 0 fallas) |
 | 6 | Proveedor antifraude mock | Pendiente | Estados y callbacks replay-safe | Pendiente |
 | 7 | Explicabilidad | Pendiente | Funciona sin red; Anthropic opcional | Pendiente |
 | 8 | Calidad y portfolio | Pendiente | Instalación limpia + demo reproducible | Pendiente |
@@ -192,13 +192,13 @@ tercera. Etapa 5 permanece pendiente: requiere diseño, brief y autorización in
 - [x] Orden del feed en la API, con el `JOIN` antes de paginar.
 - [x] Test diferencial: invertir etiquetas no cambia el dashboard.
 - [x] Cliente `server-only` con tipos generados desde OpenAPI y guardas que proyectan.
-- [ ] Importación, errores por fila y ejecución de la corrida de scoring.
+- [x] Importación, errores por fila y ejecución de la corrida de scoring.
 - [x] Feed de alertas.
 - [x] Detalle, divergencia y revisión.
-- [ ] Dashboard con monto por moneda y gráfico SVG de servidor.
+- [x] Dashboard con monto por moneda y gráfico SVG de servidor.
 - [x] Rutas dinámicas: el build pasa sin API levantada.
-- [ ] Estados vacíos —los tres—, carga, error y accesibilidad.
-- [ ] `scripts/smoke-ui.sh` con los tres escenarios.
+- [x] Estados vacíos —los tres—, carga, error y accesibilidad estructural.
+- [x] `scripts/smoke-ui.sh` con los tres escenarios.
 
 ### Etapa 6 — Proveedor externo mock
 
@@ -290,6 +290,9 @@ tercera. Etapa 5 permanece pendiente: requiere diseño, brief y autorización in
 | 2026-09-03 | 5 | Inicio de E5B-ALERTAS-UI | Brief y rama `claude/e5b-alertas-ui` desde `35e6b14`; Opus 5 · high acordado | En curso |
 | 2026-09-03 | 5 | Cliente tipado, feed, detalle y revisión | Commits `6d087f2`, `1774277` y `a147a8a`; 97 tests de frontend; build con la API apagada y falsación en dos pasos del test de frontera | Lista para integrar |
 | 2026-09-03 | 5 | Integración y verificación canónica de E5B | Merge `278e100` + `./scripts/check.sh` sobre `main` + recorrido manual de `/alerts` con datos reales | Completada |
+| 2026-09-03 | 5 | Inicio de E5C-IMPORT-DASHBOARD | Brief y rama `claude/e5c-import-dashboard` desde `bb4cf62`; Opus 5 · high acordado tras recomendar Sonnet | En curso |
+| 2026-09-03 | 5 | Importación con corrida, dashboard con SVG de servidor, test de deriva de OpenAPI y smoke de recorrido | Cinco commits; 129 tests .NET y 153 de frontend; smoke falsado de tres maneras y test de deriva falsado dos veces | Lista para integrar |
+| 2026-09-03 | 5 | Integración y cierre de la Etapa 5 | Merge de `claude/e5c-import-dashboard` + `./scripts/check.sh` y `./scripts/smoke-ui.sh` verdes sobre `main`: 21 comprobaciones, 0 fallas | Completada |
 
 ## Protocolo de actualización
 
@@ -305,9 +308,12 @@ Al terminar:
 2. ejecutar la compuerta completa;
 3. registrar comandos, resultado y riesgos restantes;
 4. marcar `Completada` solo si todos los criterios obligatorios pasan;
-5. pulsar *Sync* en la integración de GitHub del Proyecto de Claude.ai, para que el conocimiento del
+5. ejecutar `scripts/smoke-ui.sh` sobre el estado integrado. No forma parte de `scripts/check.sh`
+   —cuesta compilar las dos toolchains y arrancar dos procesos— pero es lo único que verifica el
+   recorrido completo con datos, sin datos y con la API caída, que el Blueprint exige;
+6. pulsar *Sync* en la integración de GitHub del Proyecto de Claude.ai, para que el conocimiento del
    Proyecto deje de ir por detrás de `main`. La sincronización no es automática al hacer push;
-6. señalar la próxima etapa sin iniciarla automáticamente.
+7. señalar la próxima etapa sin iniciarla automáticamente.
 
 ### Excepción para trabajo paralelo
 
