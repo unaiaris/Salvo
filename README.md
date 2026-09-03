@@ -3,8 +3,56 @@
 Consola antifraude B2B de portfolio para e-commerce, diseñada alrededor de reglas deterministas,
 alertas auditables e integración desacoplada con proveedores externos.
 
-Estado: fundación y contrato de pedidos/datos sintéticos integrados y verificados; las reglas
-antifraude comienzan en una etapa posterior.
+Estado: cinco etapas integradas y verificadas. El sistema importa pedidos, los puntúa con seis
+reglas deterministas sobre historia estrictamente anterior, persiste evaluaciones idempotentes, abre
+alertas con escalada por banda, permite revisarlas con veredicto terminal y expone un dashboard
+operativo — todo con interfaz. Las Etapas 6 a 8 —proveedor externo, explicabilidad y portfolio—
+están pendientes.
+
+## Levantar la consola
+
+Con .NET 10.0.400, Node.js 24.20.0 y npm 11.19.0 en `PATH`. Hacen falta **tres terminales**: las dos
+primeras quedan ocupadas mientras los procesos corren.
+
+**Terminal A — la API**, en `http://127.0.0.1:5100`:
+
+```bash
+cd backend/src/Salvo.Api
+dotnet run
+```
+
+Esperar `Now listening on: http://127.0.0.1:5100`. Si responde *address already in use*, hay otra
+instancia viva: `kill $(lsof -ti tcp:5100)` y repetir.
+
+**Terminal B — la consola**, en `http://localhost:3000`:
+
+```bash
+npm run dev --prefix frontend
+```
+
+**Terminal C — libre**, para `curl`, git y todo lo demás.
+
+Después, en el navegador:
+
+| Ruta | Qué muestra |
+| --- | --- |
+| `http://localhost:3000/import` | Cargar el corpus demo o importar un archivo, y **ejecutar la corrida de scoring** |
+| `http://localhost:3000/alerts` | Cola de alertas abiertas, de mayor a menor score vigente |
+| `http://localhost:3000/dashboard` | Estado operativo de la corrida vigente |
+
+**La primera vez, o sobre una base vacía, el orden importa**: cargar el corpus demo y ejecutar la
+corrida desde `/import`. Sin corrida no hay evaluaciones ni alertas, y el feed y el dashboard lo
+dicen explícitamente.
+
+`dotnet run` usa el entorno `Development`, donde `DemoData:Enabled` es `true`: por eso aparecen el
+botón de carga demo y la sección de calidad del criterio.
+
+Para poblar la base sin la interfaz:
+
+```bash
+curl -s -X POST http://127.0.0.1:5100/api/demo-data/seed
+curl -s -X POST http://127.0.0.1:5100/api/risk-evaluations:run
+```
 
 ## Verificación local
 
@@ -15,9 +63,20 @@ npm ci --prefix frontend
 ./scripts/check.sh
 ```
 
-La compuerta restaura NuGet y el tooling local, compila y prueba el backend en Release, verifica que
-el modelo EF no tenga cambios pendientes y ejecuta typecheck, ESLint, Vitest y el build de producción
-del frontend.
+La compuerta restaura NuGet y el tooling local, verifica que los tipos generados desde OpenAPI estén
+al día, compila y prueba el backend en Release, comprueba que el modelo EF no tenga cambios
+pendientes y ejecuta typecheck, ESLint, Vitest y el build de producción del frontend.
+
+Y el recorrido completo de la interfaz, que la compuerta no cubre:
+
+```bash
+./scripts/smoke-ui.sh
+```
+
+Levanta la API y la consola en sus propios puertos —5199 y 3199, para no chocar con los de
+desarrollo— sobre bases temporales propias, y comprueba las cuatro rutas en tres escenarios: con
+datos, con la base vacía y con la API apagada. Libera procesos y puertos al terminar, también si
+falla. Se ejecuta tras integrar cada etapa.
 
 ## Arquitectura
 
