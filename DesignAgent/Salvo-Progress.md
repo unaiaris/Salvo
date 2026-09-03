@@ -9,7 +9,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado del proyecto | Etapa 5 — UI y dashboard, diseñada y aprobada |
+| Estado del proyecto | Etapa 5 — UI y dashboard, en curso; `E5A` integrada |
 | Etapa completada | Etapa 4 — Alertas y casos de uso |
 | Próxima etapa | Etapa 5 — UI y dashboard |
 | Estado de la próxima etapa | Aprobada; se ejecuta en `E5A-API-LECTURA`, `E5B-ALERTAS-UI` y `E5C-IMPORT-DASHBOARD` |
@@ -188,9 +188,9 @@ tercera. Etapa 5 permanece pendiente: requiere diseño, brief y autorización in
 
 ### Etapa 5 — UI y dashboard
 
-- [ ] Endpoints de lectura: dashboard, métricas y capacidades.
-- [ ] Orden del feed en la API, con el `JOIN` antes de paginar.
-- [ ] Test diferencial: invertir etiquetas no cambia el dashboard.
+- [x] Endpoints de lectura: dashboard, métricas y capacidades.
+- [x] Orden del feed en la API, con el `JOIN` antes de paginar.
+- [x] Test diferencial: invertir etiquetas no cambia el dashboard.
 - [ ] Cliente `server-only` con tipos generados desde OpenAPI y guardas que proyectan.
 - [ ] Importación, errores por fila y ejecución de la corrida de scoring.
 - [ ] Feed de alertas.
@@ -284,6 +284,9 @@ tercera. Etapa 5 permanece pendiente: requiere diseño, brief y autorización in
 | 2026-09-03 | Preparación E5 | Diseño v1 de la Etapa 5 | Tres hallazgos propios: dashboard sin endpoint, `amountAtRisk` multimoneda, orden del feed | Superado por la v2 |
 | 2026-09-03 | Preparación E5 | Revisión adversarial del diseño con Fable 5.1 · `high` | 19 hallazgos, 5 de severidad alta, verificados contra código y contra la base demo; refutó el argumento de inferencia de la v1 | Completada |
 | 2026-09-03 | Preparación E5 | Diseño v2 con los diecinueve hallazgos incorporados y partición en E5A/E5B/E5C | Aprobación del usuario + decisiones 37–43 en la bitácora; §4.4 corregido y Recharts fuera del stack | Aprobada |
+| 2026-09-03 | 5 | Inicio de E5A-API-LECTURA | Brief y rama `claude/e5a-api-lectura` desde `3081bb3`; Opus 5 · high acordado | En curso |
+| 2026-09-03 | 5 | Superficie de lectura: dashboard, métricas, capacidades y orden del feed | Commits `513a980` y `9a78456`; 127 tests .NET; falsación del test diferencial documentada | Lista para integrar |
+| 2026-09-03 | 5 | Integración y verificación canónica de E5A | Merge `5f48db0` + `./scripts/check.sh` sobre `main` + agregados del dashboard verificados contra `salvo.db` | Completada |
 
 ## Protocolo de actualización
 

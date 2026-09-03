@@ -1,6 +1,6 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: Etapa 5 en curso. `E5A-API-LECTURA` asignada y pendiente de ejecución
+> Estado: Etapa 5 en curso. `E5A-API-LECTURA` integrada y verificada; `E5B-ALERTAS-UI` pendiente de brief
 > Última actualización: 2026-09-02
 > Responsable: coordinador de la etapa
 
@@ -14,11 +14,7 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 
 ## Trabajo activo
 
-| Work ID | Etapa | Objetivo | Propietario | Estado | Rama | Base | Paths reservados | Dependencias | Actualizado |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| E5A-API-LECTURA | 5 | Endpoints de dashboard, métricas y capacidades; orden del feed; test diferencial de etiquetas | Claude | Asignada | `claude/e5a-api-lectura` | commit de `main` que incorpora el brief | `backend/src/Salvo.Application/Dashboard/**`, `backend/src/Salvo.Application/Metrics/**`, `backend/src/Salvo.Application/Alerts/IAlertStore.cs`, `backend/src/Salvo.Application/Alerts/ListAlertsHandler.cs`, `backend/src/Salvo.Infrastructure/**`, `backend/src/Salvo.Api/**` | — | 2026-09-03 |
-
-Modelo y esfuerzo acordados para `E5A-API-LECTURA`: Opus 5 · `high`.
+No hay tareas activas ni paths reservados.
 
 ## Cola próxima
 
@@ -26,6 +22,11 @@ Modelo y esfuerzo acordados para `E5A-API-LECTURA`: Opus 5 · `high`.
 | --- | --- | --- | --- |
 | E5B-ALERTAS-UI | 5 | Cliente tipado, feed, detalle, divergencia y revisión | `E5A` integrada |
 | E5C-IMPORT-DASHBOARD | 5 | Importación con corrida, dashboard, gráfico y smoke de recorrido | `E5A` y `E5B` integradas |
+
+Nota de reserva de paths: los briefs de `E5B` y `E5C` deben declarar `backend/tests/**` y
+`frontend/**` entre sus paths reservados, y citar la entrada «Etapa 5 — UI y dashboard» de
+`DesignAgent/Salvo-Progress.md` en su contexto obligatorio. Ambas desviaciones se detectaron en el
+handoff de `E5A`.
 
 ## Historial integrado
 
@@ -43,6 +44,7 @@ Modelo y esfuerzo acordados para `E5A-API-LECTURA`: Opus 5 · `high`.
 | E0-DOC-07 | 0 | Política de modelo y esfuerzo, e instrucciones del Proyecto de Claude.ai | Claude | Verificada | Merge `a3f8ac4`, compuerta full-stack verde sobre `main` |
 | E4A-PERSISTENCIA | 4 | Persistencia idempotente de evaluaciones locales y corridas de scoring | Claude | Verificada | Merge `1d9ee83`, 71 tests .NET y compuerta verde sobre `main` |
 | E4B-ALERTAS | 4 | Alertas con escalada, revisión transaccional y control de concurrencia | Claude | Verificada | Merge `c35878b`, 109 tests .NET, compuerta verde sobre `main` y 18 alertas (13 `MEDIUM`, 5 `CRITICAL`) verificadas en `salvo.db` |
+| E5A-API-LECTURA | 5 | Superficie de lectura: dashboard, métricas, capacidades y orden del feed | Claude | Verificada | Merge `5f48db0`, 127 tests .NET, compuerta verde sobre `main`; falsación del test diferencial documentada y agregados verificados contra `salvo.db` |
 
 ## Plantilla de fila activa
 

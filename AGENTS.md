@@ -32,7 +32,8 @@ cambia alcance o arquitectura, actualizar primero su bitácora y después los do
   `E4B-ALERTAS`, integrada mediante `c35878b`. Ambas verificadas con la compuerta full-stack sobre
   `main`.
 - Etapa 5 aprobada por el usuario y en curso. Se ejecuta en tres ítems: `E5A-API-LECTURA`,
-  `E5B-ALERTAS-UI` y `E5C-IMPORT-DASHBOARD`, en ese orden y con la anterior integrada.
+  integrada en `main` mediante `5f48db0` y verificada con la compuerta full-stack, y
+  `E5B-ALERTAS-UI` y `E5C-IMPORT-DASHBOARD`, pendientes y en ese orden.
 - Las decisiones de diseño de la Etapa 5 son las entradas 37 a 43 de la bitácora del Blueprint. El
   diseño v2 y su revisión adversarial viven en `Coordination/Tasks/E5-DISENO.md` y
   `Coordination/Tasks/E5-revision-adversarial.md`.
