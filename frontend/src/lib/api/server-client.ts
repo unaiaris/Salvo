@@ -6,7 +6,8 @@ import { taintApiPayload } from "./taint";
 /**
  * The console's only door to the API, and it opens from the server side alone.
  *
- * Three things it does that the stage 1 health probe did not, each of them load-bearing:
+ * Three properties of it are load-bearing, and the stage 1 health probe — deleted in this stage —
+ * had none of them:
  *
  * - **Absolute URLs.** The `/api/:path*` rewrite in `next.config.ts` only exists for requests that
  *   reach the Next server from a browser. `fetch("/api/alerts")` inside a server component runs in
@@ -28,8 +29,31 @@ export interface ApiRequest {
   readonly path: string;
   readonly query?: Readonly<Record<string, string | number | undefined>>;
   readonly method?: "GET" | "POST";
+  /**
+   * A JSON body, or a `FormData` for the multipart import. The two are encoded differently and the
+   * distinction is made here rather than at the call sites.
+   */
   readonly body?: unknown;
   readonly timeoutMs?: number;
+}
+
+/**
+ * The default is deliberately short, because every read behind it renders a page an analyst is
+ * waiting on. Writes that do real work — an import of ten thousand records, a scoring run over the
+ * whole corpus — pass their own, longer value: aborting those at five seconds would abandon a
+ * request the API is still committing, and the console would report a timeout for work that
+ * succeeded.
+ */
+function encodeBody(body: unknown): { body: BodyInit; headers?: Record<string, string> } {
+  if (body instanceof FormData) {
+    // No `Content-Type`: `fetch` has to set it itself so that it carries the multipart boundary.
+    return { body };
+  }
+
+  return {
+    body: JSON.stringify(body),
+    headers: { "Content-Type": "application/json" },
+  };
 }
 
 function buildUrl(request: ApiRequest): URL {
@@ -59,12 +83,7 @@ export async function requestJson(request: ApiRequest): Promise<ApiResult<unknow
       method,
       cache: "no-store",
       signal: AbortSignal.timeout(request.timeoutMs ?? DEFAULT_TIMEOUT_MS),
-      ...(request.body === undefined
-        ? {}
-        : {
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(request.body),
-          }),
+      ...(request.body === undefined ? {} : encodeBody(request.body)),
     });
   } catch (error) {
     return fail(describeTransportError(error));

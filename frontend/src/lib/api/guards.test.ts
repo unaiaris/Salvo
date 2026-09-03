@@ -1,11 +1,29 @@
 import { describe, expect, it } from "vitest";
 
-import { wireAlertDetail, wireAlertList, wireAlertListItem, wireOrder, wireSignal } from "@/test/fixtures";
+import {
+  wireAlertDetail,
+  wireAlertList,
+  wireAlertListItem,
+  wireCapabilities,
+  wireDashboard,
+  wireEvaluationMetrics,
+  wireImportResult,
+  wireOrder,
+  wireScoringRunSummary,
+  wireSeedResult,
+  wireSignal,
+} from "@/test/fixtures";
 import {
   projectAlertDetail,
   projectAlertList,
   projectAlertListItem,
+  projectCapabilities,
+  projectDashboard,
+  projectEvaluationMetrics,
+  projectImportResult,
   projectOrder,
+  projectScoringRunSummary,
+  projectSeedResult,
   projectSignal,
 } from "./guards";
 
@@ -137,5 +155,126 @@ describe("las guardas aceptan lo que el contrato permite", () => {
     expect(projected?.items).toEqual([]);
     expect(projected?.scoringRunSequence).toBeNull();
     expect(projected?.currentRun).toBeNull();
+  });
+});
+
+describe("guardas del dashboard, las métricas y la importación", () => {
+  it("proyecta el dashboard completo y descarta lo que no declara el contrato", () => {
+    const projected = projectDashboard(
+      wireDashboard({ estimatedLoss: 999, labelSource: "order_evaluation_labels" }),
+    );
+
+    expect(projected).not.toBeNull();
+    expect(Object.keys(projected ?? {})).toEqual([
+      "scoringRun",
+      "ordersPendingScoring",
+      "openAlerts",
+      "amountAtRisk",
+      "reportedFraud",
+      "flagRate",
+      "riskOverTime",
+      "topSignals",
+    ]);
+  });
+
+  it("acepta una tasa de marcado en forma de cadena decimal", () => {
+    // `decimal` viaja como `number | string` igual que los enteros; una tasa se formatea, nunca se
+    // suma, así que se guarda como número.
+    expect(projectDashboard(wireDashboard({ flagRate: "0.0625" }))?.flagRate).toBe(0.0625);
+  });
+
+  it("distingue una tasa nula de una tasa ilegible", () => {
+    expect(projectDashboard(wireDashboard({ flagRate: null }))?.flagRate).toBeNull();
+    expect(projectDashboard(wireDashboard({ flagRate: "muchísimo" }))).toBeNull();
+  });
+
+  it("acepta un corpus sin corrida y sin alertas", () => {
+    const projected = projectDashboard(
+      wireDashboard({
+        scoringRun: null,
+        ordersPendingScoring: 300,
+        openAlerts: { total: 0, bySeverity: [] },
+        amountAtRisk: [],
+        reportedFraud: [],
+        flagRate: null,
+        riskOverTime: [],
+        topSignals: [],
+      }),
+    );
+
+    expect(projected?.scoringRun).toBeNull();
+    expect(projected?.ordersPendingScoring).toBe(300);
+    expect(projected?.amountAtRisk).toEqual([]);
+  });
+
+  it("exige que la semana sea una fecha de calendario, no un instante", () => {
+    // `DateOnly` no tiene hora ni zona. Aceptar un instante haría que el gráfico y el motor
+    // discreparan sobre a qué día pertenece un pedido.
+    const withInstant = wireDashboard({
+      riskOverTime: [{ weekStart: "2026-08-10T00:00:00Z", orderCount: 1, flaggedCount: 0 }],
+    });
+
+    expect(projectDashboard(withInstant)).toBeNull();
+  });
+
+  it("proyecta las métricas con su barrido y su holdout", () => {
+    const projected = projectEvaluationMetrics(wireEvaluationMetrics());
+
+    expect(projected?.calibrationSweep).toHaveLength(2);
+    expect(projected?.selectedThreshold.threshold).toBe(60);
+    expect(projected?.holdout.matrix.truePositives).toBe(6);
+    // El barrido trae decimales en forma de cadena en la primera fila.
+    expect(projected?.calibrationSweep[0]?.metrics.precision).toBe(0.75);
+  });
+
+  it("acepta métricas sin definir cuando no hay con qué calcularlas", () => {
+    const projected = projectEvaluationMetrics(
+      wireEvaluationMetrics({
+        holdout: {
+          matrix: { truePositives: 0, falsePositives: 0, falseNegatives: 0, trueNegatives: 0 },
+          precision: null,
+          recall: null,
+          f1: null,
+          falsePositiveRate: null,
+          flagRate: null,
+        },
+      }),
+    );
+
+    expect(projected?.holdout.precision).toBeNull();
+  });
+
+  it("proyecta el resultado de una importación con sus errores por fila", () => {
+    const projected = projectImportResult(wireImportResult());
+
+    expect(projected?.invalidRecordCount).toBe(2);
+    expect(projected?.errors).toHaveLength(2);
+    expect(projected?.errors[1]).toEqual({
+      recordNumber: 11,
+      lineNumber: null,
+      field: null,
+      code: "REFERENCE_CONFLICT",
+      message: "The merchant reference already exists with different data.",
+    });
+  });
+
+  it("rechaza un error de fila al que le falta el código", () => {
+    const broken = wireImportResult({
+      errors: [{ recordNumber: 1, lineNumber: 2, field: "amountCents", message: "sin código" }],
+    });
+
+    expect(projectImportResult(broken)).toBeNull();
+  });
+
+  it("proyecta el resumen de la corrida y el de la carga de demo", () => {
+    expect(projectScoringRunSummary(wireScoringRunSummary())?.evaluationsReused).toBe(288);
+    expect(projectSeedResult(wireSeedResult())?.insertedOrders).toBe(300);
+  });
+
+  it("proyecta las capacidades y rechaza una bandera que no es booleana", () => {
+    expect(projectCapabilities(wireCapabilities({ demoDataEnabled: false }))).toEqual({
+      demoDataEnabled: false,
+    });
+    expect(projectCapabilities(wireCapabilities({ demoDataEnabled: "true" }))).toBeNull();
   });
 });

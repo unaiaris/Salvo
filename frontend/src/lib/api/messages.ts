@@ -1,3 +1,4 @@
+import { IMPORT_MAX_FILE_BYTES } from "./contract";
 import type { ApiFailure } from "./failures";
 
 /**
@@ -22,6 +23,8 @@ export interface FailureMessage {
 }
 
 const RELOAD = "Recargá la alerta para ver el estado registrado.";
+
+const IMPORT_MAX_FILE_MIB = IMPORT_MAX_FILE_BYTES / (1024 * 1024);
 
 const BY_CODE: Readonly<Record<string, FailureMessage>> = {
   ALERT_NOT_FOUND: {
@@ -65,6 +68,108 @@ const BY_CODE: Readonly<Record<string, FailureMessage>> = {
     body: "Otra revisión sobre esta alerta se guardó mientras se procesaba la tuya, así que la tuya no se aplicó.",
     recovery: `${RELOAD} Si seguís con el mismo criterio, volvé a enviarlo.`,
     isFormError: false,
+  },
+  SCORING_RUN_CONFLICT: {
+    title: "Otra corrida de scoring se ejecutó al mismo tiempo",
+    body: "Dos corridas escribieron estado en conflicto, así que la tuya no se guardó. El corpus quedó como estaba antes de intentarlo: no hay evaluaciones ni alertas a medio escribir.",
+    recovery: "Volvé a ejecutar la corrida. Si alguien más está usando la consola, esperá a que termine.",
+    isFormError: false,
+  },
+  METRICS_UNAVAILABLE: {
+    title: "Todavía no se pueden calcular las métricas de calidad",
+    body: "Medir el criterio exige una corrida de scoring y pedidos etiquetados a ambos lados de la división temporal. Falta alguna de las dos cosas.",
+    recovery: "Ejecutá una corrida de scoring sobre el corpus de demostración desde la pantalla de importación.",
+    isFormError: false,
+  },
+  DEMO_DATA_CONFLICT: {
+    title: "El corpus de demostración choca con pedidos que ya existen",
+    body: "La base tiene pedidos con las mismas referencias que la fixture pero con datos distintos. Un pedido es inmutable, así que la carga se cancela entera antes que pisar nada.",
+    recovery: "Usá una base vacía para cargar la demo, o seguí con los pedidos que ya están importados.",
+    isFormError: false,
+  },
+  FILE_REQUIRED: {
+    title: "No llegó ningún archivo",
+    body: "El formulario se envió sin archivo, o con uno de cero bytes.",
+    recovery: "Elegí un archivo CSV o JSON con al menos un pedido y volvé a enviar.",
+    isFormError: true,
+  },
+  FILE_TOO_LARGE: {
+    title: "El archivo supera el máximo admitido",
+    body: `La importación acepta hasta ${String(IMPORT_MAX_FILE_MIB)} MiB por archivo. Nada de lo que enviaste se importó.`,
+    recovery: "Partí el archivo en varios más chicos e importalos de a uno.",
+    isFormError: true,
+  },
+  TOO_MANY_RECORDS: {
+    title: "El archivo tiene demasiados registros",
+    body: "La importación acepta hasta 10.000 pedidos por archivo. Se rechaza el documento entero: no se importa una parte y se descarta el resto en silencio.",
+    recovery: "Partí el archivo en tandas de hasta 10.000 registros.",
+    isFormError: true,
+  },
+  UNSUPPORTED_MEDIA_TYPE: {
+    title: "La consola envió el formulario en un formato que la API no acepta",
+    body: "La importación viaja como `multipart/form-data`. Es un error interno: no debería ocurrir desde esta pantalla.",
+    recovery: "Recargá la página y volvé a intentarlo. Si vuelve a pasar, reportalo con la hora exacta.",
+    isFormError: false,
+  },
+  UNSUPPORTED_FORMAT: {
+    title: "Ese formato no está soportado",
+    body: "La importación admite CSV o JSON, y hay que declarar cuál es antes de enviar.",
+    recovery: "Elegí CSV o JSON según el archivo y volvé a enviar.",
+    isFormError: true,
+  },
+  EMPTY_FILE: {
+    title: "El archivo no tiene ningún pedido",
+    body: "Se leyó completo y no contiene registros: puede ser un CSV con solo la fila de encabezados, o un JSON con una lista vacía.",
+    recovery: "Revisá el archivo y volvé a enviarlo con al menos un pedido.",
+    isFormError: true,
+  },
+  INVALID_ENCODING: {
+    title: "El archivo no está en UTF-8",
+    body: "La importación lee UTF-8 y el archivo trae bytes que no lo son. No se importó nada.",
+    recovery: "Volvé a exportar el archivo en UTF-8 y reintentá.",
+    isFormError: true,
+  },
+  INVALID_CSV: {
+    title: "El CSV está mal formado",
+    body: "La estructura del archivo no se pudo leer —comillas sin cerrar, o una fila con más campos que el encabezado—, así que no se importó ninguna fila.",
+    recovery: "Corregí la estructura del archivo y volvé a enviarlo. El detalle técnico de abajo dice dónde falló.",
+    isFormError: true,
+  },
+  INVALID_JSON: {
+    title: "El JSON está mal formado",
+    body: "El archivo no es JSON válido, así que no se importó ningún pedido.",
+    recovery: "Validá el archivo y volvé a enviarlo. El detalle técnico de abajo dice dónde falló.",
+    isFormError: true,
+  },
+  INVALID_JSON_ROOT: {
+    title: "El JSON no es una lista de pedidos",
+    body: "La importación espera un arreglo en la raíz del documento, con un objeto por pedido.",
+    recovery: "Envolvé los pedidos en un arreglo `[ … ]` y volvé a enviar.",
+    isFormError: true,
+  },
+  MISSING_HEADER: {
+    title: "Al CSV le falta un encabezado obligatorio",
+    body: "El archivo no tiene fila de encabezados, o le falta alguna de las columnas que la importación exige.",
+    recovery: "Agregá la fila de encabezados con todas las columnas obligatorias. El detalle técnico dice cuál falta.",
+    isFormError: true,
+  },
+  INVALID_HEADER: {
+    title: "Un encabezado del CSV está vacío",
+    body: "Una columna del archivo no tiene nombre, así que no se puede saber qué campo es.",
+    recovery: "Nombrá todas las columnas del encabezado y volvé a enviar.",
+    isFormError: true,
+  },
+  DUPLICATE_HEADER: {
+    title: "El CSV repite un encabezado",
+    body: "Dos columnas del archivo tienen el mismo nombre y no hay forma de decidir cuál gana.",
+    recovery: "Dejá una sola columna por campo y volvé a enviar.",
+    isFormError: true,
+  },
+  UNKNOWN_HEADER: {
+    title: "El CSV trae una columna que la importación no conoce",
+    body: "El archivo se rechaza entero antes que ignorar datos en silencio: una columna desconocida suele ser un archivo equivocado o un campo mal escrito.",
+    recovery: "Quitá o corregí la columna. El detalle técnico dice cuál es.",
+    isFormError: true,
   },
   INVALID_SORT: {
     title: "La consola pidió un orden que la API no reconoce",

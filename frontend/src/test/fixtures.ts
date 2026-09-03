@@ -131,3 +131,129 @@ export function problemResponse(status: number, code: string, detail: string): R
     { status, headers: { "Content-Type": "application/problem+json" } },
   );
 }
+
+export function wireCapabilities(overrides: WirePayload = {}): WirePayload {
+  return { demoDataEnabled: true, ...overrides };
+}
+
+export function wireDashboard(overrides: WirePayload = {}): WirePayload {
+  return {
+    scoringRun: { sequence: 3, completedAt: "2026-09-02T21:14:00+00:00", orderCount: 300 },
+    ordersPendingScoring: 0,
+    openAlerts: {
+      total: 18,
+      // The API only reports the bands that have alerts: `HIGH` is absent because the demo corpus
+      // has none, and the dashboard is what has to show the empty band anyway.
+      bySeverity: [
+        { severity: "CRITICAL", alertCount: 5 },
+        { severity: "MEDIUM", alertCount: 13 },
+      ],
+    },
+    amountAtRisk: [
+      { currencyCode: "BRL", amountCents: 1_284_512, alertCount: 6 },
+      { currencyCode: "USD", amountCents: 1_142_890, alertCount: 6 },
+      { currencyCode: "UYU", amountCents: 1_514_844, alertCount: 6 },
+    ],
+    reportedFraud: [{ currencyCode: "UYU", amountCents: 402_100, orderCount: 2 }],
+    flagRate: 0.06,
+    riskOverTime: [
+      { weekStart: "2026-08-10", orderCount: 21, flaggedCount: 2 },
+      { weekStart: "2026-08-17", orderCount: 18, flaggedCount: 0 },
+      { weekStart: "2026-08-24", orderCount: 24, flaggedCount: 5 },
+    ],
+    topSignals: [
+      { rule: "amount_anomaly", alertCount: 18 },
+      { rule: "foreign_country", alertCount: 18 },
+    ],
+    ...overrides,
+  };
+}
+
+function wireFigures(overrides: WirePayload = {}): WirePayload {
+  return {
+    matrix: { truePositives: 6, falsePositives: 0, falseNegatives: 0, trueNegatives: 94 },
+    precision: 1,
+    recall: 1,
+    f1: 1,
+    falsePositiveRate: 0,
+    flagRate: 0.06,
+    ...overrides,
+  };
+}
+
+export function wireEvaluationMetrics(overrides: WirePayload = {}): WirePayload {
+  return {
+    scoringRunSequence: 3,
+    scoringRunCompletedAt: "2026-09-02T21:14:00+00:00",
+    ruleConfigVersion: "e3-v1",
+    scoredOrders: 300,
+    labeledOrders: 300,
+    unlabeledOrders: 0,
+    calibrationOrders: 200,
+    holdoutOrders: 100,
+    calibrationSweep: [
+      { threshold: 40, metrics: wireFigures({ precision: "0.75", falsePositiveRate: "0.02" }) },
+      { threshold: 60, metrics: wireFigures() },
+    ],
+    selectedThreshold: { threshold: 60, metrics: wireFigures() },
+    holdout: wireFigures(),
+    ...overrides,
+  };
+}
+
+export function wireImportResult(overrides: WirePayload = {}): WirePayload {
+  return {
+    totalRecords: 12,
+    importedCount: 9,
+    duplicateCount: 1,
+    invalidRecordCount: 2,
+    errorsTruncated: false,
+    errors: [
+      {
+        recordNumber: 4,
+        lineNumber: 5,
+        field: "amountCents",
+        code: "OUT_OF_RANGE",
+        message: "amountCents must be greater than zero.",
+      },
+      {
+        recordNumber: 11,
+        lineNumber: null,
+        field: null,
+        code: "REFERENCE_CONFLICT",
+        message: "The merchant reference already exists with different data.",
+      },
+    ],
+    ...overrides,
+  };
+}
+
+export function wireScoringRunSummary(overrides: WirePayload = {}): WirePayload {
+  return {
+    runId: "4f4b7f3e-0000-4000-8000-000000000004",
+    sequence: 4,
+    ruleConfigVersion: "e3-v1",
+    startedAt: "2026-09-03T12:00:00+00:00",
+    completedAt: "2026-09-03T12:00:11+00:00",
+    orderCount: 300,
+    evaluationsCreated: 12,
+    evaluationsReused: 288,
+    alertsCreated: 2,
+    alertsSkippedOpen: 16,
+    alertsSkippedReviewed: 0,
+    ...overrides,
+  };
+}
+
+export function wireSeedResult(overrides: WirePayload = {}): WirePayload {
+  return {
+    datasetVersion: "demo-v1",
+    totalOrders: 300,
+    insertedOrders: 300,
+    duplicateOrders: 0,
+    totalLabels: 300,
+    insertedLabels: 300,
+    fraudLabelCount: 18,
+    ...overrides,
+  };
+}
