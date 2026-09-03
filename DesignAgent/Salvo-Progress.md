@@ -274,6 +274,7 @@ tercera. Etapa 5 permanece pendiente: requiere diseño, brief y autorización in
 | 2026-09-02 | 4 | Inicio de E4B-ALERTAS | Brief y rama `claude/e4b-alertas` desde `05ddb4a`; Opus 5 · high acordado | En curso |
 | 2026-09-02 | 4 | Alertas con escalada, revisión transaccional y token de concurrencia | Commits `c6e945b` y `50a9bc3`; 109 tests .NET; carrera de revisión sobre base en archivo | Lista para integrar |
 | 2026-09-02 | 4 | Integración y verificación canónica de E4B | Merge `c35878b` + `./scripts/check.sh` sobre `main` + 18 alertas (13 `MEDIUM`, 5 `CRITICAL`, 0 `HIGH`) verificadas en `salvo.db` | Completada |
+| 2026-09-02 | 0 | Preparación de entrevista fuera del control de versiones y política de modelo ampliada | `Salvo-Interview-Prep.md` movido a `_local/` con la sección de valor frente a Koin plegada; referencias vivas limpiadas; `Claude-Model-Policy.md` documenta el cambio de tipo de tarea a mitad de sesión; el protocolo de cierre incluye el *Sync* del Proyecto | Completada |
 
 ## Protocolo de actualización
 
@@ -289,7 +290,9 @@ Al terminar:
 2. ejecutar la compuerta completa;
 3. registrar comandos, resultado y riesgos restantes;
 4. marcar `Completada` solo si todos los criterios obligatorios pasan;
-5. señalar la próxima etapa sin iniciarla automáticamente.
+5. pulsar *Sync* en la integración de GitHub del Proyecto de Claude.ai, para que el conocimiento del
+   Proyecto deje de ir por detrás de `main`. La sincronización no es automática al hacer push;
+6. señalar la próxima etapa sin iniciarla automáticamente.
 
 ### Excepción para trabajo paralelo
 

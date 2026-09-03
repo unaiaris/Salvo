@@ -613,7 +613,6 @@ completo el MVP local.
 | `DesignAgent/Salvo-Overview.md` | Resumen ejecutivo |
 | `DesignAgent/Salvo-MOC.md` | Índice de documentación |
 | `DesignAgent/Salvo-Getting-Started.md` | Preparación y flujo operativo |
-| `DesignAgent/Salvo-Interview-Prep.md` | Narrativa para entrevistas |
 | `DesignAgent/Salvo-Portability.md` | Portabilidad de proveedores/agentes |
 | `DesignAgent/Salvo-Progress.md` | Estado operativo, checklists y evidencias por etapa |
 | `DesignAgent/Salvo-Project-Instructions.md` | Instrucciones opcionales para sala de diseño |

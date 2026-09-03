@@ -62,12 +62,17 @@ repositorio, que lo verifica antes de despacharlo.
 
 Adjuntar al Proyecto:
 
-- [[Salvo-Blueprint]] — fuente de verdad de producto y arquitectura.
-- [[Salvo-Progress]] — estado por etapa. Es el que se desactualiza más rápido.
-- [[Salvo-Overview]] — resumen ejecutivo.
-- [[Salvo-Interview-Prep]] — solo si el Proyecto se usa para preparar la entrevista con Koin.
+**Vía integración de GitHub**, que es la forma preferida para todo lo que vive en el repositorio:
+en el panel de conocimiento del Proyecto, `+` → GitHub → URL del repositorio → seleccionar
+`DesignAgent/Salvo-Blueprint.md`, `DesignAgent/Salvo-Progress.md`, `DesignAgent/Salvo-Overview.md`
+y `AGENTS.md`. El botón *Sync* trae la última versión; no hay sincronización automática al hacer
+push, así que se pulsa al cerrar cada etapa.
 
-Al adjuntar, anotar la fecha y el commit de `main` desde el que se tomó la copia.
+**Como archivo subido a mano**, solo para material que no vive en el repositorio: la preparación de
+entrevista de `_local/`, que está fuera del control de versiones a propósito.
+
+Con la integración de GitHub ya no hace falta anotar el commit de cada adjunto: el panel muestra el
+estado de la sincronización.
 
 ## Mantenimiento
 

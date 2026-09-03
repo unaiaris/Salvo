@@ -37,7 +37,6 @@ del frontend.
 | [Resumen ejecutivo](DesignAgent/Salvo-Overview.md) | Visión rápida del MVP |
 | [Mapa de contenido](DesignAgent/Salvo-MOC.md) | Navegación de toda la documentación |
 | [Guía de arranque](DesignAgent/Salvo-Getting-Started.md) | Entorno y forma de trabajo |
-| [Entrevista con Koin](DesignAgent/Salvo-Interview-Prep.md) | Pitch, preguntas y límites honestos |
 | [Portabilidad](DesignAgent/Salvo-Portability.md) | Separación de agentes y proveedores |
 | [Instrucciones para Codex](AGENTS.md) | Reglas permanentes de implementación |
 | [Kit para Claude](ClaudeAgent/README.md) | Contexto, workflow y plantillas de Claude |

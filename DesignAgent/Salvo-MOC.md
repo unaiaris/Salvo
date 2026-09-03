@@ -12,7 +12,6 @@
 - [[Salvo-Overview|Overview]] — resumen ejecutivo.
 - [[Salvo-Progress|Progress]] — estado vivo, checklists, compuertas y evidencias.
 - [[Salvo-Getting-Started|Getting Started]] — requisitos y flujo operativo.
-- [[Salvo-Interview-Prep|Interview Prep]] — narrativa y preguntas de entrevista.
 - [[Salvo-Portability|Portabilidad]] — separación entre agente, IA y proveedor antifraude.
 - [[Salvo-Project-Instructions|Project Instructions]] — instrucciones opcionales para una sala de diseño.
 - `../AGENTS.md` — instrucciones permanentes para Codex.

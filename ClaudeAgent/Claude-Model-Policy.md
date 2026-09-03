@@ -1,7 +1,7 @@
 # Salvo — Política de modelo y esfuerzo
 
 > Estado del documento: vigente
-> Última actualización: 2026-09-01
+> Última actualización: 2026-09-02
 > Aplicación: toda sesión de Claude Code o Claude.ai que trabaje sobre este repositorio
 
 Elegir modelo y esfuerzo es una decisión de coordinación, no una preferencia de la sesión. Este
@@ -15,6 +15,30 @@ documento fija el criterio; la elección concreta se registra en el task brief d
 3. Si durante la tarea el trabajo resulta materialmente distinto al previsto —aparece una decisión
    de arquitectura donde se esperaba ejecución— el agente se detiene y lo reporta en vez de
    continuar con un modelo inadecuado.
+
+## Una tarea puede cambiar de tipo a mitad de sesión
+
+El modelo se elige por **el tipo de trabajo, no por la sesión**. Una sesión abierta con Fable 5.1 ·
+`xhigh` para revisar un diseño sigue en Fable · `xhigh` cuando después se le pide transcribir un
+informe a Markdown, que es trabajo mecánico. Nadie lo nota, porque el resultado es correcto; lo que
+se pierde es dinero y tiempo.
+
+Caso real, 2026-09-02: tras la revisión adversarial de la Etapa 4 con Fable · `xhigh` se pidió, en
+la misma sesión, guardar la salida como archivo. Copiar y pegar texto es `Haiku 4.5 · low` según la
+última fila de la matriz. El coordinador no lo advirtió y el usuario lo señaló.
+
+Reglas que salen de ahí:
+
+1. **El cambio de tipo se detecta en el pedido, no al terminar.** Antes de despachar una petición
+   dentro de una sesión ya abierta, comparar el tipo de trabajo con la fila de la matriz que aplica.
+2. **Bajar de modelo también es una decisión de coordinación.** Cuando el coordinador nota el
+   cambio, entrega el comando concreto —`/model haiku` y `/effort low`— en vez de mencionar que
+   convendría bajar.
+3. **La transición vale la pena a partir de trabajo no trivial.** Para un pedido de una línea, el
+   costo de cambiar y volver supera el ahorro; para transcribir un informe, formatear un handoff o
+   leer un log largo, no.
+4. **Al volver al trabajo de fondo, restituir el modelo.** Quedarse en `haiku · low` para la tarea
+   siguiente de diseño es el error simétrico y más caro.
 
 ## Principio
 
