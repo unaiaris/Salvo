@@ -38,9 +38,12 @@ public sealed class Program
             .WithName("GetHealth")
             .WithTags("System");
 
+        app.MapSystemEndpoints(builder.Configuration);
         app.MapOrderEndpoints(builder.Configuration);
         app.MapRiskEvaluationEndpoints();
         app.MapAlertEndpoints();
+        app.MapDashboardEndpoints();
+        app.MapEvaluationMetricsEndpoints(builder.Configuration);
 
         app.Run();
     }

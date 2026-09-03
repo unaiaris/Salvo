@@ -190,11 +190,12 @@ public sealed class AlertReviewTests
         public Task<AlertPage> GetPageAsync(
             AlertStatus? status,
             AlertSeverity? severity,
+            AlertSortOrder sort,
             int page,
             int pageSize,
             CancellationToken cancellationToken)
         {
-            return inner.GetPageAsync(status, severity, page, pageSize, cancellationToken);
+            return inner.GetPageAsync(status, severity, sort, page, pageSize, cancellationToken);
         }
 
         public Task<AlertContext?> FindAsync(Guid alertId, CancellationToken cancellationToken)

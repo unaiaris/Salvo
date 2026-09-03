@@ -52,6 +52,17 @@ public sealed class SalvoApiFactory : WebApplicationFactory<Program>
     /// </summary>
     public Action<IServiceCollection>? ConfigureTestServices { get; set; }
 
+    /// <summary>
+    /// Whether the hosted API registers the demo data routes. Set it before the first client or
+    /// service is resolved.
+    /// </summary>
+    /// <remarks>
+    /// Both configurations are real deployments: the demo seed and the quality metrics only exist
+    /// where the corpus is synthetic. Tests that assert what a client sees with
+    /// <see langword="false"/> are the only place where the gate is actually exercised.
+    /// </remarks>
+    public bool DemoDataEnabled { get; set; } = true;
+
     public async Task<HttpClient> CreateMigratedClientAsync()
     {
         var client = CreateClient();
@@ -69,7 +80,7 @@ public sealed class SalvoApiFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         sharedConnection?.Open();
-        builder.UseSetting("DemoData:Enabled", "true");
+        builder.UseSetting("DemoData:Enabled", DemoDataEnabled ? "true" : "false");
 
         builder.ConfigureServices(services =>
         {

@@ -62,6 +62,7 @@ public static class AlertProjection
                 AlertWireNames.ToWire(alert.Severity),
                 ToSignalViews(alert.SignalsSnapshotJson)),
             ToEvaluationView(alert, context.CurrentEvaluation),
+            context.CurrentRun,
             ToDivergence(alert, context.CurrentEvaluation),
             ToReviewView(context.Review));
     }

@@ -3,6 +3,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Salvo.Application.Alerts;
+using Salvo.Application.Dashboard;
+using Salvo.Application.Metrics;
 using Salvo.Application.Orders;
 using Salvo.Application.Orders.Importing;
 using Salvo.Application.Orders.Seed;
@@ -35,6 +37,8 @@ public static class DependencyInjection
         services.AddScoped<IAlertStore, EfAlertStore>();
         services.AddScoped<IOrderPageReader, EfOrderPageReader>();
         services.AddScoped<IEvaluationLabelReader, EfEvaluationLabelReader>();
+        services.AddScoped<IDashboardReader, EfDashboardReader>();
+        services.AddScoped<IEvaluationMetricsReader, EfEvaluationMetricsReader>();
         services.AddScoped<ImportOrdersHandler>();
         services.AddScoped<SeedDemoOrdersHandler>();
         services.AddScoped<EvaluateLocalRiskHandler>();
@@ -43,6 +47,8 @@ public static class DependencyInjection
         services.AddScoped<ListAlertsHandler>();
         services.AddScoped<GetAlertHandler>();
         services.AddScoped<ReviewAlertHandler>();
+        services.AddScoped<GetDashboardHandler>();
+        services.AddScoped<GetEvaluationMetricsHandler>();
 
         return services;
     }
