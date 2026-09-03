@@ -191,12 +191,12 @@ tercera. Etapa 5 permanece pendiente: requiere diseño, brief y autorización in
 - [x] Endpoints de lectura: dashboard, métricas y capacidades.
 - [x] Orden del feed en la API, con el `JOIN` antes de paginar.
 - [x] Test diferencial: invertir etiquetas no cambia el dashboard.
-- [ ] Cliente `server-only` con tipos generados desde OpenAPI y guardas que proyectan.
+- [x] Cliente `server-only` con tipos generados desde OpenAPI y guardas que proyectan.
 - [ ] Importación, errores por fila y ejecución de la corrida de scoring.
-- [ ] Feed de alertas.
-- [ ] Detalle, divergencia y revisión.
+- [x] Feed de alertas.
+- [x] Detalle, divergencia y revisión.
 - [ ] Dashboard con monto por moneda y gráfico SVG de servidor.
-- [ ] Rutas dinámicas: el build pasa sin API levantada.
+- [x] Rutas dinámicas: el build pasa sin API levantada.
 - [ ] Estados vacíos —los tres—, carga, error y accesibilidad.
 - [ ] `scripts/smoke-ui.sh` con los tres escenarios.
 
@@ -287,6 +287,9 @@ tercera. Etapa 5 permanece pendiente: requiere diseño, brief y autorización in
 | 2026-09-03 | 5 | Inicio de E5A-API-LECTURA | Brief y rama `claude/e5a-api-lectura` desde `3081bb3`; Opus 5 · high acordado | En curso |
 | 2026-09-03 | 5 | Superficie de lectura: dashboard, métricas, capacidades y orden del feed | Commits `513a980` y `9a78456`; 127 tests .NET; falsación del test diferencial documentada | Lista para integrar |
 | 2026-09-03 | 5 | Integración y verificación canónica de E5A | Merge `5f48db0` + `./scripts/check.sh` sobre `main` + agregados del dashboard verificados contra `salvo.db` | Completada |
+| 2026-09-03 | 5 | Inicio de E5B-ALERTAS-UI | Brief y rama `claude/e5b-alertas-ui` desde `35e6b14`; Opus 5 · high acordado | En curso |
+| 2026-09-03 | 5 | Cliente tipado, feed, detalle y revisión | Commits `6d087f2`, `1774277` y `a147a8a`; 97 tests de frontend; build con la API apagada y falsación en dos pasos del test de frontera | Lista para integrar |
+| 2026-09-03 | 5 | Integración y verificación canónica de E5B | Merge `278e100` + `./scripts/check.sh` sobre `main` + recorrido manual de `/alerts` con datos reales | Completada |
 
 ## Protocolo de actualización
 
