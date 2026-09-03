@@ -587,3 +587,143 @@ Workboard.
 - Verificación posterior al merge: repetir `./scripts/check.sh` sobre `main`, y confirmar que el
   test dorado de fingerprints de E4A y la distribución 18 / 13 / 5 del corpus demo siguen verdes
   sobre el estado integrado, según el protocolo de `Coordination/README.md`.
+
+## `E5A-API-LECTURA` — Superficie de lectura de la consola
+
+### Identificación
+
+- Estado de la rama: `Lista para integrar`
+- Etapa: 5
+- Rama/worktree: `claude/e5a-api-lectura`
+- Commit base: `3081bb3` (`chore: assign E5A-API-LECTURA`, punta de `main`)
+- Commit final: `513a980` (implementación completa; esta entrada de handoff se agrega en el
+  commit siguiente, que queda como punta de la rama)
+- Fecha: 2026-09-03
+
+### Resultado
+
+La API expone lo que la consola necesita leer. `GET /api/dashboard` devuelve la corrida vigente,
+los pedidos pendientes de puntuar, las alertas abiertas por severidad derivada, el monto en riesgo
+por moneda, el fraude reportado por pedido distinto, la tasa de marcado, el riesgo temporal en
+cubetas semanales de `America/Montevideo` y las reglas detrás de la cola abierta; ningún campo sale
+de `OrderEvaluationLabel`. `GET /api/evaluation-metrics` es la superficie de calidad, registrada
+solo con `DemoData:Enabled`, con manejador propio sobre la corrida persistida, `unlabeledOrders` en
+lugar de excepción y `409 METRICS_UNAVAILABLE` cuando no hay nada que medir.
+`GET /api/system/capabilities` publica `demoDataEnabled`. `GET /api/alerts` gana `sort=SCORE_DESC`
+—score local de la evaluación vigente, con el `JOIN` dentro de la consulta y antes de `Skip`/`Take`—,
+más `scoringRunSequence` y `currentRun`; `AlertDetail` también rotula su corrida vigente.
+
+### Archivos modificados
+
+- `backend/src/Salvo.Api/DashboardEndpoints.cs`, `EvaluationMetricsEndpoints.cs`,
+  `SystemEndpoints.cs` (nuevos); `AlertEndpoints.cs` y `Program.cs` (modificados).
+- `backend/src/Salvo.Application/Dashboard/`: `IDashboardReader.cs`, `DashboardViews.cs`,
+  `GetDashboardHandler.cs` (nuevos).
+- `backend/src/Salvo.Application/Metrics/`: `IEvaluationMetricsReader.cs`,
+  `EvaluationMetricsViews.cs`, `GetEvaluationMetricsHandler.cs`,
+  `EvaluationMetricsUnavailableException.cs` (nuevos).
+- `backend/src/Salvo.Application/Alerts/`: `AlertSortOrder.cs` y `ScoringRunReference.cs` (nuevos);
+  `IAlertStore.cs`, `ListAlertsHandler.cs`, `AlertPage.cs`, `AlertContext.cs`, `AlertViews.cs` y
+  `AlertProjection.cs` (modificados).
+- `backend/src/Salvo.Infrastructure/Persistence/`: `EfDashboardReader.cs` y
+  `EfEvaluationMetricsReader.cs` (nuevos); `EfAlertStore.cs` (modificado).
+  `backend/src/Salvo.Infrastructure/DependencyInjection.cs` (modificado).
+- `backend/tests/Salvo.Api.IntegrationTests/`: `DashboardEndpointTests.cs`,
+  `EvaluationMetricsEndpointTests.cs`, `SystemCapabilitiesTests.cs`, `AlertFeedOrderTests.cs`
+  (nuevos); `SalvoApiFactory.cs`, `FoundationTests.cs` y `AlertReviewTests.cs` (modificados).
+- Sin cambios en `frontend/`, en migraciones, en `Directory.Packages.props` ni en lockfiles.
+
+### Verificación
+
+| Comando | Resultado |
+| --- | --- |
+| `./scripts/check.sh` | Verde, exit `0`: restore bloqueado, build Release con 0 advertencias y 0 errores, `No changes have been made to the model since the last migration.`, 127 tests .NET, `npm run check` y `next build --webpack` |
+| `dotnet test` | 127 verdes (55 dominio + 72 integración); los 109 previos siguen pasando, 18 nuevos |
+| `TheDashboardIsIndependentOfGroundTruth` | Verde. Invierte las 300 `is_fraud_label` con `UPDATE order_evaluation_labels SET is_fraud_label = 1 - is_fraud_label` y exige respuesta idéntica; afirma además que se afectaron 300 filas para que no pase en vacío |
+| Falsación del test diferencial | **Falla cuando debe.** Ver abajo |
+| `AmountAtRiskIsPerCurrencyAndCarriesNoTotal` | Verde: `BRL`, `USD`, `UYU`, seis alertas cada una, y cada entrada tiene exactamente `currencyCode`, `amountCents`, `alertCount` |
+| `ReportedFraudCountsAnEscalatedOrderOnce` | Verde: dos alertas `REPORTED_FRAUD` del mismo pedido, un solo importe y `orderCount = 1` |
+| `OrdersWithoutGroundTruthAreCountedInsteadOfFailingTheRequest` | Verde: `200` con 304 puntuados, 300 etiquetados, `unlabeledOrders = 4` |
+| `WithoutAScoringRunTheMetricsAreUnavailableRatherThanAServerError` y `WithoutGroundTruthAtAllTheMetricsAreUnavailable` | Verde: `409` con código `METRICS_UNAVAILABLE` |
+| `WithoutDemoDataTheSeedAndTheMetricsDoNotExist` | Verde: con `DemoData:Enabled = false`, `404` en seed y métricas, `demoDataEnabled: false`, y `/api/dashboard` y `/api/alerts` siguen en `200` |
+| `ScoreDescOrdersTheWholeFeedBeforeItIsPaged` | Verde: cuatro páginas de cinco reconstruyen exactamente el orden de la página única, sin solapamiento |
+| Sonda temporal de SQL (eliminada) | El comando real de `SCORE_DESC` es `LEFT JOIN (…run_evaluations INNER JOIN risk_evaluations… WHERE run_id = @id) ON … ORDER BY "s"."score" DESC, "a"."created_at_utc" DESC, "a"."id" LIMIT @p OFFSET @p`: el `JOIN` precede al `LIMIT`/`OFFSET` |
+| `git status --porcelain` | Limpio tras el commit; ningún path fuera de `backend/**` |
+
+**Cómo se comprobó que el test diferencial falla cuando debe.** Se inyectó de forma temporal en
+`EfDashboardReader.GetCurrentEvaluationsAsync` exactamente la fuga que describe el hallazgo 4: un
+`join` con `dbContext.OrderEvaluationLabels` que hace `IsFlagged` dependiente de la etiqueta. Ningún
+tipo de `Salvo.Application` cambia con esa edición. Resultado:
+
+- `TheDashboardIsIndependentOfGroundTruth` **falló**, con el diff exacto
+  `Expected: …"flagRate":0.06,… / Actual: …"flagRate":0,…` en la posición 497 de la respuesta.
+- `TheDashboardContractNeverExposesGroundTruth` —el test de nombres de propiedad— **pasó igual** con
+  la fuga presente, lo que confirma que el diferencial es el único de los dos que cierra la vía.
+
+La fuga se revirtió desde una copia previa; `grep -rn "OrderEvaluationLabels" EfDashboardReader.cs`
+devuelve cero coincidencias y la compuerta se ejecutó sobre el estado revertido.
+
+### Decisiones y supuestos
+
+- **`reportedFraud` usa `orderCount`, no `alertCount`.** El brief pide «misma forma» que
+  `amountAtRisk`; se conservó la forma `{ currencyCode, amountCents, … }` pero se nombró el contador
+  por lo que realmente cuenta. Llamarlo `alertCount` describiría mal el agregado que el propio
+  criterio exige. El `DISTINCT` se hace en SQL sobre `order_id`.
+- **`scoringRunSequence` y `currentRun.sequence` conviven aunque coincidan.** No es redundancia
+  accidental: `scoringRunSequence` es el testigo con el que un cliente detecta que el corpus cambió
+  entre dos páginas, y `currentRun` es la procedencia que toda pantalla de datos declara. El brief
+  pide ambos de forma explícita.
+- **`riskOverTime` emite semanas contiguas, rellenando con ceros las vacías**, y fija el lunes local
+  como inicio de semana. Una serie con huecos haría que una semana sin pedidos se leyera como una
+  barra más baja junto a su vecina en vez de como un hueco.
+- **`openAlerts.bySeverity` publica las tres bandas de la política vigente, incluidas las de conteo
+  cero** —el corpus demo tiene 0 `HIGH`—, ordenadas de mayor a menor severidad. La severidad se
+  deriva siempre con la versión de política con la que se abrió cada alerta.
+- **El barrido se colapsa al umbral más alto de cada matriz idéntica**, no al más bajo. Es la única
+  dirección que garantiza que el umbral seleccionado esté entre las filas devueltas, porque
+  `RiskMetricsEvaluator.SelectBest` desempata hacia el umbral mayor. El test lo afirma.
+- **El manejador de métricas reutiliza `IEvaluationLabelReader`** en vez de crear un segundo puerto
+  de etiquetas, y su propio puerto (`IEvaluationMetricsReader`) no las expone. `IDashboardReader` es
+  deliberadamente un puerto aparte que no puede devolver verdad de campo.
+- **`SalvoApiFactory` gana la propiedad `DemoDataEnabled`** en lugar de una segunda fábrica estática:
+  xUnit exige un único constructor público para las fixtures, y el patrón sigue al de
+  `ConfigureTestServices`, que ya se fija antes de resolver el primer cliente.
+- **Los instantes persistidos se truncan a milisegundos** (ISO 8601 de 24 caracteres). El
+  `ScoringRunSummary` que vuelve en memoria es más fino que lo que se relee de la base, así que el
+  test compara `completedAt` truncado. No es un defecto del dashboard sino la precisión del
+  almacenamiento, ya fijada en E2.
+- Se añadió a `FoundationTests` la comprobación de que las tres rutas nuevas y `amountAtRisk`,
+  `scoringRunSequence` y `currentRun` aparecen en `/openapi/v1.json`: `E5B` genera sus tipos desde
+  ese documento y una ruta ausente allí sería una ruta que la UI no puede llamar.
+- Sin dependencias nuevas, sin migraciones, sin escrituras externas, sin `git push` ni PR, y sin
+  tocar `EvaluateLocalRiskHandler`, `RiskMetricsEvaluator`, `TemporalRiskEngine`, `RuleConfig`, el
+  fingerprint ni la semántica de alertas de E4B.
+
+### Riesgos o pendientes
+
+- **`GET /api/dashboard` materializa las evaluaciones de la corrida vigente en memoria** —300 filas
+  reducidas a `occurredAt` y un booleano— para calcular tasa de marcado y cubetas semanales. Es
+  trivial en el volumen del MVP; con un corpus grande convendría agregar en SQL. Riesgo de volumen
+  ya declarado, no introducido aquí.
+- **El brief del Workboard no reserva `backend/tests/**`** aunque el brief de la tarea sí lo
+  autoriza. No hubo colisión porque `E5A` es la única fila activa, pero conviene alinearlo antes de
+  despachar `E5B` y `E5C`.
+- **El *Contexto obligatorio* del brief no cita la entrada del Progress** («Etapa 5 — UI y
+  dashboard»); `/brief-check` lo reportó como desviación menor, no bloqueante.
+- **La corrección de §4.4 del Blueprint y de la línea de Recharts en `AGENTS.md`** que exige el
+  diseño v2 sigue pendiente: es estado canónico, del coordinador.
+- El rótulo obligatorio de la sección de calidad (D1) es de UI y corresponde a `E5C`; la API solo
+  devuelve las cifras.
+
+### Integración
+
+- Orden sugerido: rama única, sin dependencias. `E5B-ALERTAS-UI` la requiere integrada.
+- Migraciones o pasos manuales: ninguno. La tarea es de lectura;
+  `dotnet ef migrations has-pending-model-changes` no reporta cambios y el modelo no se tocó.
+- Posibles conflictos: la rama parte de la punta de `main` y no hay otra tarea activa. `E5A` toma
+  `IAlertStore.GetPageAsync`, `ListAlertsHandler`, `AlertPage`, `AlertContext`, `AlertViews` y
+  `AlertProjection`, que son código de E4B; el cambio es el que fija el diseño v2 (D6, D12) y está
+  reservado en el brief.
+- Verificación posterior al merge: repetir `./scripts/check.sh` sobre `main` y confirmar que sigue
+  verde el test diferencial de etiquetas y la distribución 18 / 13 / 5 del corpus demo, según el
+  protocolo de `Coordination/README.md`.
