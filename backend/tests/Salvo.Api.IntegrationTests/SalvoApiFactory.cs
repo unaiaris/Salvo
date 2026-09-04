@@ -74,6 +74,13 @@ public sealed class SalvoApiFactory : WebApplicationFactory<Program>
     /// </remarks>
     public Dictionary<string, string> Settings { get; } = [];
 
+    /// <summary>
+    /// The shared secret the callback endpoint accepts. Set to <see langword="null"/> or to the
+    /// empty string for a deployment that never configured one, where every callback must be
+    /// refused. Applied before <see cref="Settings"/>, so a test may also set the key directly.
+    /// </summary>
+    public string? CallbackSecret { get; set; } = "test-callback-secret";
+
     public async Task<HttpClient> CreateMigratedClientAsync()
     {
         var client = CreateClient();
@@ -92,6 +99,7 @@ public sealed class SalvoApiFactory : WebApplicationFactory<Program>
     {
         sharedConnection?.Open();
         builder.UseSetting("DemoData:Enabled", DemoDataEnabled ? "true" : "false");
+        builder.UseSetting(ExternalCallbackEndpoints.SecretConfigurationKey, CallbackSecret ?? string.Empty);
         foreach (var setting in Settings)
         {
             builder.UseSetting(setting.Key, setting.Value);

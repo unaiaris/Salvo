@@ -55,6 +55,50 @@ public sealed class ExternalEvaluationIsolationTests
     }
 
     /// <summary>
+    /// The same demand, one step further: not even a provider that settles the whole corpus by
+    /// callback moves anything the local criterion reports.
+    /// </summary>
+    /// <remarks>
+    /// The previous test creates the evaluations; this one delivers their callbacks, which is where
+    /// a second write path could plausibly leak into the read surfaces — a receipt joined into the
+    /// dashboard, an alert opened by an external verdict. Both would show up here as different bytes.
+    /// </remarks>
+    [Fact]
+    public async Task DeliveringCallbacksForTheWholeCorpusChangesNothingAboutTheLocalCriterion()
+    {
+        await using var factory = new SalvoApiFactory();
+        using var client = await factory.CreateMigratedClientAsync();
+        (await client.PostAsync("/api/demo-data/seed", null)).EnsureSuccessStatusCode();
+        await AlertTestCorpus.RunScoringAsync(client);
+
+        (await client.PostAsync("/api/demo-data/external-evaluations:request", null))
+            .EnsureSuccessStatusCode();
+
+        var dashboardBefore = await client.GetStringAsync("/api/dashboard");
+        var feedBefore = await client.GetStringAsync("/api/alerts?sort=SCORE_DESC");
+        var metricsBefore = await client.GetStringAsync("/api/evaluation-metrics");
+
+        (await client.PostAsync("/api/demo-data/external-callbacks:deliver", null))
+            .EnsureSuccessStatusCode();
+
+        // Without this the test would also pass against a database where no callback was ever
+        // delivered, which is the one situation in which changing nothing proves nothing.
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<SalvoDbContext>();
+            Assert.NotEmpty(await dbContext.CallbackReceipts.AsNoTracking().ToListAsync());
+            Assert.Empty(await dbContext.ExternalEvaluations
+                .AsNoTracking()
+                .Where(evaluation => evaluation.Status == ExternalEvaluationStatus.Pending)
+                .ToListAsync());
+        }
+
+        Assert.Equal(dashboardBefore, await client.GetStringAsync("/api/dashboard"));
+        Assert.Equal(feedBefore, await client.GetStringAsync("/api/alerts?sort=SCORE_DESC"));
+        Assert.Equal(metricsBefore, await client.GetStringAsync("/api/evaluation-metrics"));
+    }
+
+    /// <summary>
     /// A provider that fails must not be able to stop the local engine, which is the whole reason
     /// the two are separate.
     /// </summary>

@@ -612,6 +612,175 @@
         }
       }
     },
+    "/api/external-callbacks/{provider}": {
+      "post": {
+        "tags": [
+          "External evaluations"
+        ],
+        "description": "Receives a callback from an external antifraud provider. Authenticated with a shared secret in the X-Salvo-Callback-Secret header, compared in constant time. With no secret configured every request is refused: an unauthenticated callback endpoint would let anyone settle any evaluation. Unknown fields in the payload are ignored, because a provider adds fields without warning and that must not break reception. A duplicate is answered 200 and never 409, which would invite the provider to retry forever; 202 means the message could not be correlated yet and is a private distinction, since every provider reads any 2xx as delivered. This shared secret is not the mechanism a real integration would use.",
+        "operationId": "ReceiveExternalCallback",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalCallbackResponse"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalCallbackResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload Too Large",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/demo-data/external-callbacks:deliver": {
+      "post": {
+        "tags": [
+          "Demo data"
+        ],
+        "description": "Asks the mock provider what it would say about one pending external evaluation, or about every pending one, and feeds that answer back in as a callback through the same use case an external provider reaches. The caller chooses which evaluation and never what it reports. The provider's instant is the moment the evaluation was requested, so delivering the same one twice produces the same deduplication key and is recognised as the replay it is.",
+        "operationId": "DeliverExternalCallbacks",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DeliverExternalCallbacksRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CallbackDeliverySummary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/demo-data/external-evaluations:request": {
+      "post": {
+        "tags": [
+          "Demo data"
+        ],
+        "description": "Requests an external evaluation for every order this provider has never been asked about. It covers the orders that never produced an alert, which the alert detail cannot reach, without adding an orders screen. Each order goes through the ordinary request use case, so the reservation, the idempotence and the failure taxonomy are the same ones a single request gets.",
+        "operationId": "RequestCorpusExternalEvaluations",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorpusExternalEvaluationSummary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/dashboard": {
       "get": {
         "tags": [
@@ -682,6 +851,7 @@
           "currentEvaluation",
           "currentRun",
           "divergence",
+          "externalEvaluation",
           "review"
         ],
         "type": "object",
@@ -749,6 +919,16 @@
           },
           "divergence": {
             "$ref": "#/components/schemas/AlertDivergenceView"
+          },
+          "externalEvaluation": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AlertExternalEvaluationView"
+              }
+            ]
           },
           "review": {
             "oneOf": [
@@ -844,6 +1024,74 @@
           "evaluatedAt": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "AlertExternalEvaluationView": {
+        "required": [
+          "id",
+          "provider",
+          "status",
+          "score",
+          "errorCode",
+          "lastErrorCode",
+          "settledBy",
+          "requestedAt",
+          "settledAt",
+          "hasContradictoryCallback"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "score": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "errorCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lastErrorCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "settledBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "requestedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "settledAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "hasContradictoryCallback": {
+            "type": "boolean"
           }
         }
       },
@@ -1120,13 +1368,69 @@
           }
         }
       },
+      "CallbackDeliverySummary": {
+        "required": [
+          "examined",
+          "delivered",
+          "settled",
+          "replayed",
+          "unavailable"
+        ],
+        "type": "object",
+        "properties": {
+          "examined": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "delivered": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "settled": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "replayed": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "unavailable": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "CapabilitiesResponse": {
         "required": [
-          "demoDataEnabled"
+          "demoDataEnabled",
+          "externalCallbackTriggerEnabled"
         ],
         "type": "object",
         "properties": {
           "demoDataEnabled": {
+            "type": "boolean"
+          },
+          "externalCallbackTriggerEnabled": {
             "type": "boolean"
           }
         }
@@ -1165,6 +1469,58 @@
             "format": "int32"
           },
           "trueNegatives": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "CorpusExternalEvaluationSummary": {
+        "required": [
+          "examined",
+          "requested",
+          "settled",
+          "stillPending",
+          "skipped"
+        ],
+        "type": "object",
+        "properties": {
+          "examined": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "requested": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "settled": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "stillPending": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "skipped": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "integer",
@@ -1424,6 +1780,21 @@
           }
         }
       },
+      "DeliverExternalCallbacksRequest": {
+        "required": [
+          "externalEvaluationId"
+        ],
+        "type": "object",
+        "properties": {
+          "externalEvaluationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
       "EvaluationMetricsResult": {
         "required": [
           "scoringRunSequence",
@@ -1567,6 +1938,45 @@
               "string"
             ],
             "format": "double"
+          }
+        }
+      },
+      "ExternalCallbackResponse": {
+        "required": [
+          "receiptStatus",
+          "isReplay",
+          "replayCount",
+          "externalEvaluationId",
+          "evaluationStatus"
+        ],
+        "type": "object",
+        "properties": {
+          "receiptStatus": {
+            "type": "string"
+          },
+          "isReplay": {
+            "type": "boolean"
+          },
+          "replayCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "externalEvaluationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "evaluationStatus": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -2017,6 +2427,7 @@
           "stillPending",
           "failed",
           "conflicted",
+          "linked",
           "reconciledAt"
         ],
         "type": "object",
@@ -2054,6 +2465,14 @@
             "format": "int32"
           },
           "conflicted": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "linked": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "integer",

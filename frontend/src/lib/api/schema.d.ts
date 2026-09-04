@@ -200,6 +200,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/external-callbacks/{provider}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Receives a callback from an external antifraud provider. Authenticated with a shared secret in the X-Salvo-Callback-Secret header, compared in constant time. With no secret configured every request is refused: an unauthenticated callback endpoint would let anyone settle any evaluation. Unknown fields in the payload are ignored, because a provider adds fields without warning and that must not break reception. A duplicate is answered 200 and never 409, which would invite the provider to retry forever; 202 means the message could not be correlated yet and is a private distinction, since every provider reads any 2xx as delivered. This shared secret is not the mechanism a real integration would use. */
+        post: operations["ReceiveExternalCallback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/demo-data/external-callbacks:deliver": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Asks the mock provider what it would say about one pending external evaluation, or about every pending one, and feeds that answer back in as a callback through the same use case an external provider reaches. The caller chooses which evaluation and never what it reports. The provider's instant is the moment the evaluation was requested, so delivering the same one twice produces the same deduplication key and is recognised as the replay it is. */
+        post: operations["DeliverExternalCallbacks"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/demo-data/external-evaluations:request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Requests an external evaluation for every order this provider has never been asked about. It covers the orders that never produced an alert, which the alert detail cannot reach, without adding an orders screen. Each order goes through the ordinary request use case, so the reservation, the idempotence and the failure taxonomy are the same ones a single request gets. */
+        post: operations["RequestCorpusExternalEvaluations"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dashboard": {
         parameters: {
             query?: never;
@@ -257,6 +308,7 @@ export interface components {
             currentEvaluation: null | components["schemas"]["AlertEvaluationView"];
             currentRun: null | components["schemas"]["ScoringRunReference"];
             divergence: components["schemas"]["AlertDivergenceView"];
+            externalEvaluation: null | components["schemas"]["AlertExternalEvaluationView"];
             review: null | components["schemas"]["AlertReviewView"];
         };
         AlertDivergenceView: {
@@ -278,6 +330,22 @@ export interface components {
             signals: components["schemas"]["AlertSignalView"][];
             /** Format: date-time */
             evaluatedAt: string;
+        };
+        AlertExternalEvaluationView: {
+            /** Format: uuid */
+            id: string;
+            provider: string;
+            status: string;
+            /** Format: int32 */
+            score: null | number | string;
+            errorCode: null | string;
+            lastErrorCode: null | string;
+            settledBy: null | string;
+            /** Format: date-time */
+            requestedAt: string;
+            /** Format: date-time */
+            settledAt: null | string;
+            hasContradictoryCallback: boolean;
         };
         AlertListItem: {
             /** Format: uuid */
@@ -350,8 +418,21 @@ export interface components {
             severity: string;
             signals: components["schemas"]["AlertSignalView"][];
         };
+        CallbackDeliverySummary: {
+            /** Format: int32 */
+            examined: number | string;
+            /** Format: int32 */
+            delivered: number | string;
+            /** Format: int32 */
+            settled: number | string;
+            /** Format: int32 */
+            replayed: number | string;
+            /** Format: int32 */
+            unavailable: number | string;
+        };
         CapabilitiesResponse: {
             demoDataEnabled: boolean;
+            externalCallbackTriggerEnabled: boolean;
         };
         ConfusionMatrixView: {
             /** Format: int32 */
@@ -362,6 +443,18 @@ export interface components {
             falseNegatives: number | string;
             /** Format: int32 */
             trueNegatives: number | string;
+        };
+        CorpusExternalEvaluationSummary: {
+            /** Format: int32 */
+            examined: number | string;
+            /** Format: int32 */
+            requested: number | string;
+            /** Format: int32 */
+            settled: number | string;
+            /** Format: int32 */
+            stillPending: number | string;
+            /** Format: int32 */
+            skipped: number | string;
         };
         DashboardAmountAtRiskView: {
             currencyCode: string;
@@ -420,6 +513,10 @@ export interface components {
             /** Format: int32 */
             alertCount: number | string;
         };
+        DeliverExternalCallbacksRequest: {
+            /** Format: uuid */
+            externalEvaluationId: null | string;
+        };
         EvaluationMetricsResult: {
             /** Format: int64 */
             scoringRunSequence: number | string;
@@ -452,6 +549,15 @@ export interface components {
             falsePositiveRate: null | number | string;
             /** Format: double */
             flagRate: null | number | string;
+        };
+        ExternalCallbackResponse: {
+            receiptStatus: string;
+            isReplay: boolean;
+            /** Format: int32 */
+            replayCount: number | string;
+            /** Format: uuid */
+            externalEvaluationId: null | string;
+            evaluationStatus: null | string;
         };
         ExternalEvaluationView: {
             /** Format: uuid */
@@ -566,6 +672,8 @@ export interface components {
             failed: number | string;
             /** Format: int32 */
             conflicted: number | string;
+            /** Format: int32 */
+            linked: number | string;
             /** Format: date-time */
             reconciledAt: string;
         };
@@ -1075,6 +1183,144 @@ export interface operations {
             };
             /** @description Conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ReceiveExternalCallback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExternalCallbackResponse"];
+                };
+            };
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExternalCallbackResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Payload Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    DeliverExternalCallbacks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["DeliverExternalCallbacksRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CallbackDeliverySummary"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RequestCorpusExternalEvaluations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CorpusExternalEvaluationSummary"];
+                };
+            };
+            /** @description Not Found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
