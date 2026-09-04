@@ -48,10 +48,16 @@ public sealed record OrderExternalEvaluationsResult(
 /// Evaluations another writer moved while the sweep was working on them. They are left alone: the
 /// other writer had newer information.
 /// </param>
+/// <param name="Linked">
+/// Callbacks that had arrived before their evaluation existed and were attached to it here. They are
+/// counted apart from <paramref name="Settled"/> because they are a different event: not something
+/// the provider was asked, but something it had already said and nothing had picked up.
+/// </param>
 public sealed record ReconciliationSummary(
     int Examined,
     int Settled,
     int StillPending,
     int Failed,
     int Conflicted,
+    int Linked,
     DateTimeOffset ReconciledAt);

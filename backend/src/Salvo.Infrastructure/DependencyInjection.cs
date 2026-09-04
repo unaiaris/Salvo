@@ -34,6 +34,7 @@ public static class DependencyInjection
         services.AddSingleton<IRiskIdGenerator, SystemRiskIdGenerator>();
         services.AddSingleton<IAlertIdGenerator, SystemAlertIdGenerator>();
         services.AddSingleton<IExternalEvaluationIdGenerator, SystemExternalEvaluationIdGenerator>();
+        services.AddSingleton<ICallbackReceiptIdGenerator, SystemCallbackReceiptIdGenerator>();
         services.AddScoped<IOrderDataStore, EfOrderDataStore>();
         services.AddScoped<IOrderImportParser, OrderImportParser>();
         services.AddScoped<IDemoOrderSource, EmbeddedDemoOrderSource>();
@@ -41,6 +42,7 @@ public static class DependencyInjection
         services.AddScoped<IScoringRunStore, EfScoringRunStore>();
         services.AddScoped<IAlertStore, EfAlertStore>();
         services.AddScoped<IExternalEvaluationStore, EfExternalEvaluationStore>();
+        services.AddScoped<IExternalCallbackStore, EfExternalCallbackStore>();
         services.AddScoped<IOrderPageReader, EfOrderPageReader>();
         services.AddScoped<IEvaluationLabelReader, EfEvaluationLabelReader>();
         services.AddScoped<IDashboardReader, EfDashboardReader>();
@@ -59,6 +61,10 @@ public static class DependencyInjection
         services.AddScoped<ReconcileExternalEvaluationsHandler>();
         services.AddScoped<GetExternalEvaluationHandler>();
         services.AddScoped<ListOrderExternalEvaluationsHandler>();
+        services.AddScoped<ApplyExternalCallbackHandler>();
+        services.AddScoped<LinkUnmatchedCallbacksHandler>();
+        services.AddScoped<DeliverPendingCallbacksHandler>();
+        services.AddScoped<RequestCorpusExternalEvaluationsHandler>();
 
         return services;
     }

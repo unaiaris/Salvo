@@ -180,6 +180,9 @@ public sealed class ExternalEvaluationReconciliationTests
         var handler = new ReconcileExternalEvaluationsHandler(
             new EfExternalEvaluationStore(dbContext),
             new SingleProviderRegistry(new HijackingProvider(factory, reference)),
+            new LinkUnmatchedCallbacksHandler(
+                new EfExternalCallbackStore(dbContext),
+                TimeProvider.System),
             ExternalEvaluationOptions.Default,
             TimeProvider.System);
 

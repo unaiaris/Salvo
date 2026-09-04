@@ -68,6 +68,22 @@ public sealed class EfExternalEvaluationStore(SalvoDbContext dbContext) : IExter
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Guid>> ListOrdersWithoutEvaluationAsync(
+        ExternalProvider provider,
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        return await dbContext.Orders
+            .AsNoTracking()
+            .Where(order => !dbContext.ExternalEvaluations
+                .Any(evaluation => evaluation.OrderId == order.Id && evaluation.Provider == provider))
+            .OrderBy(order => order.OccurredAt)
+            .ThenBy(order => order.Id)
+            .Select(order => order.Id)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task ReserveAsync(ExternalEvaluation evaluation, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(evaluation);

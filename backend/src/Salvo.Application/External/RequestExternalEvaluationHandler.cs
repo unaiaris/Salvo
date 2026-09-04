@@ -18,11 +18,18 @@ namespace Salvo.Application.External;
 /// A request that finds an evaluation already in place changes nothing and says so, which is what
 /// makes a double click harmless.
 /// </para>
+/// <para>
+/// It ends by looking back at the callbacks that could not be correlated. That is the other half of
+/// the fix: the reservation gives a message something to correlate <em>by reference</em>, and late
+/// linking catches the message that names only the identifier this request was in the middle of
+/// learning.
+/// </para>
 /// </remarks>
 public sealed class RequestExternalEvaluationHandler(
     IExternalEvaluationStore store,
     IAntifraudProviderRegistry registry,
     IExternalEvaluationIdGenerator idGenerator,
+    LinkUnmatchedCallbacksHandler linker,
     ExternalEvaluationOptions options,
     TimeProvider timeProvider)
 {
@@ -101,7 +108,13 @@ public sealed class RequestExternalEvaluationHandler(
             return new(true, ExternalEvaluationProjection.ToView(settled));
         }
 
-        return new(true, ExternalEvaluationProjection.ToView(evaluation));
+        // The row now carries whatever identifier the provider gave, so a callback that arrived
+        // while this request was in flight can finally be attached to it.
+        await linker.HandleAsync(evaluation.Id, cancellationToken);
+
+        var linked = await store.FindAsync(evaluation.Id, cancellationToken);
+
+        return new(true, ExternalEvaluationProjection.ToView(linked ?? evaluation));
     }
 
     private static void Refuse(ExternalEvaluation current)
