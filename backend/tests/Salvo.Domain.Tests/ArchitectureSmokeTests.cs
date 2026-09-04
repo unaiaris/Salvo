@@ -51,6 +51,7 @@ public sealed class ArchitectureSmokeTests
             typeof(ScoringRun),
             typeof(RunEvaluation),
             typeof(ExternalEvaluation),
+            typeof(CallbackReceipt),
             typeof(Alert),
             typeof(AlertReview),
         })

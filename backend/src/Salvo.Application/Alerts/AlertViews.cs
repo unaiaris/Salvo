@@ -105,6 +105,36 @@ public sealed record ListAlertsResult(
     long? ScoringRunSequence,
     ScoringRunReference? CurrentRun);
 
+/// <summary>
+/// What an external provider was asked about this order and what it answered.
+/// </summary>
+/// <remarks>
+/// A sub-object of its own rather than a handful of loose fields, so that stage 7 can add an
+/// explanation beside it without touching either. The verdict here is a second opinion: it is never
+/// combined with the local one into a single answer, and its score is never placed beside the local
+/// 0–100 as if the two were comparable — they are different scales of different systems.
+/// </remarks>
+/// <param name="SettledBy">
+/// Which path brought the verdict: <c>SYNC</c>, <c>CALLBACK</c> or <c>RECONCILIATION</c>. Provenance
+/// is part of the record, because an answer that arrived on its own and one this API went looking
+/// for are not the same fact.
+/// </param>
+/// <param name="HasContradictoryCallback">
+/// The provider sent a verdict contradicting one it had already given. The first verdict stands —
+/// nothing reopens a settled evaluation — and the contradiction is reported rather than dropped.
+/// </param>
+public sealed record AlertExternalEvaluationView(
+    Guid Id,
+    string Provider,
+    string Status,
+    int? Score,
+    string? ErrorCode,
+    string? LastErrorCode,
+    string? SettledBy,
+    DateTimeOffset RequestedAt,
+    DateTimeOffset? SettledAt,
+    bool HasContradictoryCallback);
+
 public sealed record AlertDetail(
     Guid Id,
     Guid OrderId,
@@ -119,6 +149,7 @@ public sealed record AlertDetail(
     AlertEvaluationView? CurrentEvaluation,
     ScoringRunReference? CurrentRun,
     AlertDivergenceView Divergence,
+    AlertExternalEvaluationView? ExternalEvaluation,
     AlertReviewView? Review);
 
 /// <param name="Applied">

@@ -2,6 +2,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Salvo.Application.Alerts;
 using Salvo.Domain.Alerts;
+using Salvo.Domain.External;
 using Salvo.Domain.Risk;
 
 namespace Salvo.Infrastructure.Persistence;
@@ -37,7 +38,7 @@ public sealed class EfAlertStore(SalvoDbContext dbContext) : IAlertStore
             .ToListAsync(cancellationToken);
 
         return new(
-            await ComposeAsync(alerts, lastRun, cancellationToken),
+            await ComposeAsync(alerts, lastRun, withExternal: false, cancellationToken),
             totalCount,
             ToReference(lastRun));
     }
@@ -103,6 +104,7 @@ public sealed class EfAlertStore(SalvoDbContext dbContext) : IAlertStore
             : (await ComposeAsync(
                 [alert],
                 await GetLastRunAsync(cancellationToken),
+                withExternal: true,
                 cancellationToken))[0];
     }
 
@@ -116,6 +118,7 @@ public sealed class EfAlertStore(SalvoDbContext dbContext) : IAlertStore
             : (await ComposeAsync(
                 [alert],
                 await GetLastRunAsync(cancellationToken),
+                withExternal: true,
                 cancellationToken))[0];
     }
 
@@ -175,9 +178,18 @@ public sealed class EfAlertStore(SalvoDbContext dbContext) : IAlertStore
         return filtered ?? query.Where(alert => false);
     }
 
+    /// <summary>
+    /// Assembles the contexts a caller needs.
+    /// </summary>
+    /// <param name="withExternal">
+    /// Whether to also read the external evaluation of each order. Off for the feed: the listing
+    /// does not show it, and paying two more queries per page for a column nobody renders would be a
+    /// cost the feed has no reason to carry.
+    /// </param>
     private async Task<AlertContext[]> ComposeAsync(
         List<Alert> alerts,
         ScoringRun? lastRun,
+        bool withExternal,
         CancellationToken cancellationToken)
     {
         if (alerts.Count == 0)
@@ -198,14 +210,95 @@ public sealed class EfAlertStore(SalvoDbContext dbContext) : IAlertStore
             .Where(review => alertIds.Contains(review.AlertId))
             .ToDictionaryAsync(review => review.AlertId, cancellationToken);
 
+        var external = withExternal
+            ? await GetExternalEvaluationsAsync(orderIds, cancellationToken)
+            : [];
+        var contradicted = withExternal
+            ? await GetContradictedAsync(external.Values, cancellationToken)
+            : [];
+
         return alerts
             .Select(alert => new AlertContext(
                 alert,
                 orders[alert.OrderId],
                 currentEvaluations.GetValueOrDefault(alert.OrderId),
                 reviews.GetValueOrDefault(alert.Id),
-                ToReference(lastRun)))
+                ToReference(lastRun),
+                external.GetValueOrDefault(alert.OrderId),
+                external.GetValueOrDefault(alert.OrderId) is { } one && contradicted.Contains(one.Id)))
             .ToArray();
+    }
+
+    /// <summary>
+    /// The external evaluation that speaks for each order right now: the one still waiting for an
+    /// answer if there is one, and otherwise the most recently requested. The same rule the request
+    /// path uses, so the console and the API never disagree about which row is current.
+    /// </summary>
+    private async Task<Dictionary<Guid, ExternalEvaluation>> GetExternalEvaluationsAsync(
+        IReadOnlyCollection<Guid> orderIds,
+        CancellationToken cancellationToken)
+    {
+        var candidates = await dbContext.ExternalEvaluations
+            .AsNoTracking()
+            .Where(evaluation => orderIds.Contains(evaluation.OrderId))
+            .ToListAsync(cancellationToken);
+
+        return candidates
+            .GroupBy(evaluation => evaluation.OrderId)
+            .ToDictionary(
+                group => group.Key,
+                group => group
+                    .OrderBy(evaluation => evaluation.Status == ExternalEvaluationStatus.Pending ? 0 : 1)
+                    .ThenByDescending(evaluation => evaluation.RequestedAt)
+                    .ThenByDescending(evaluation => evaluation.Id)
+                    .First());
+    }
+
+    /// <summary>
+    /// Which of these evaluations the provider contradicted itself about.
+    /// </summary>
+    /// <remarks>
+    /// A conflicting receipt is kept precisely so it can be shown. Correlating it back is done by
+    /// the same two halves the callback correlated by in the first place: the provider identifier
+    /// once the row has one, and the order reference until then.
+    /// </remarks>
+    private async Task<HashSet<Guid>> GetContradictedAsync(
+        IEnumerable<ExternalEvaluation> evaluations,
+        CancellationToken cancellationToken)
+    {
+        var byOrder = evaluations.ToArray();
+        if (byOrder.Length == 0)
+        {
+            return [];
+        }
+
+        var identifiers = byOrder
+            .Select(evaluation => evaluation.ExternalEvaluationId)
+            .Where(identifier => identifier is not null)
+            .ToArray();
+        var references = byOrder.Select(evaluation => evaluation.ReferenceId).ToArray();
+
+        var conflicting = await dbContext.CallbackReceipts
+            .AsNoTracking()
+            .Where(receipt => receipt.Status == CallbackReceiptStatus.Conflicting
+                && (identifiers.Contains(receipt.ExternalEvaluationId)
+                    || references.Contains(receipt.ReferenceId)))
+            .Select(receipt => new
+            {
+                receipt.Provider,
+                receipt.ExternalEvaluationId,
+                receipt.ReferenceId,
+            })
+            .ToListAsync(cancellationToken);
+
+        return byOrder
+            .Where(evaluation => conflicting.Any(receipt =>
+                receipt.Provider == evaluation.Provider
+                && (evaluation.ExternalEvaluationId is null
+                    ? receipt.ReferenceId == evaluation.ReferenceId
+                    : receipt.ExternalEvaluationId == evaluation.ExternalEvaluationId)))
+            .Select(evaluation => evaluation.Id)
+            .ToHashSet();
     }
 
     /// <summary>

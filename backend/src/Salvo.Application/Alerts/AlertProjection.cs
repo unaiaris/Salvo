@@ -1,4 +1,5 @@
 using Salvo.Domain.Alerts;
+using Salvo.Domain.External;
 using Salvo.Domain.Orders;
 using Salvo.Domain.Risk;
 
@@ -64,6 +65,7 @@ public static class AlertProjection
             ToEvaluationView(alert, context.CurrentEvaluation),
             context.CurrentRun,
             ToDivergence(alert, context.CurrentEvaluation),
+            ToExternalView(context.ExternalEvaluation, context.HasContradictoryCallback),
             ToReviewView(context.Review));
     }
 
@@ -107,6 +109,31 @@ public static class AlertProjection
             evaluation.IsFlagged,
             ToSignalViews(evaluation.SignalsJson),
             evaluation.CreatedAt);
+    }
+
+    private static AlertExternalEvaluationView? ToExternalView(
+        ExternalEvaluation? evaluation,
+        bool hasContradictoryCallback)
+    {
+        return evaluation is null
+            ? null
+            : new(
+                evaluation.Id,
+                ExternalEvaluationWireNames.ToWire(evaluation.Provider),
+                ExternalEvaluationWireNames.ToWire(evaluation.Status),
+                evaluation.Score,
+                evaluation.ErrorCode is { } errorCode
+                    ? ExternalEvaluationWireNames.ToWire(errorCode)
+                    : null,
+                evaluation.LastErrorCode is { } lastErrorCode
+                    ? ExternalEvaluationWireNames.ToWire(lastErrorCode)
+                    : null,
+                evaluation.SettledBy is { } settledBy
+                    ? ExternalEvaluationWireNames.ToWire(settledBy)
+                    : null,
+                evaluation.RequestedAt,
+                evaluation.SettledAt,
+                hasContradictoryCallback);
     }
 
     private static AlertOrderView ToOrderView(Order order)
