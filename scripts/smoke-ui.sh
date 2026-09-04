@@ -8,11 +8,15 @@
 # levanta la API y `next start` de verdad y le pide las cuatro rutas a un servidor HTTP, buscando
 # textos fijos que distinguen un escenario del otro.
 #
-# Los tres escenarios son los del Blueprint:
+# Los tres escenarios del Blueprint, más el recorrido externo que agregó la Etapa 6:
 #
-#   1. Con datos      — corpus demo cargado y puntuado.
-#   2. Base vacía     — la misma API contra una base migrada y sin un solo pedido.
-#   3. API apagada    — el proceso de la API muerto, la consola en pie.
+#   1.  Con datos             — corpus demo cargado y puntuado.
+#   1b. Evaluación externa    — el mismo corpus, con la opinión del proveedor pedida y entregada.
+#   2.  Base vacía            — la misma API contra una base migrada y sin un solo pedido.
+#   3.  API apagada           — el proceso de la API muerto, la consola en pie.
+#
+# El 1b va después del 1 y no antes: el bloque externo tiene dos estados en pantalla —sin pedir y
+# con veredicto— y comprobar el segundo destruye el primero.
 #
 # Reglas que este script se impone:
 #
@@ -293,6 +297,10 @@ expect_text "/import" "Todos los pedidos de la base están cubiertos"
 expect_text "/alerts" "Cola de alertas"
 expect_text "/alerts/${alert_id}" "Snapshot que abrió la alerta"
 expect_text "/alerts/${alert_id}" "Evaluación vigente"
+# El tercer bloque de la Etapa 6, en su estado inicial: nadie pidió todavía la opinión del proveedor.
+expect_text "/alerts/${alert_id}" "Evaluación externa"
+expect_text "/alerts/${alert_id}" "Solicitar evaluación externa"
+expect_text "/import" "Proveedor antifraude externo"
 expect_text "/dashboard" "Monto en riesgo"
 expect_text "/dashboard" "Fraude reportado"
 expect_text "/dashboard" "Pedidos y denegados por semana"
@@ -301,6 +309,52 @@ expect_text "/dashboard" "Calidad del criterio"
 expect_text "/dashboard" "no la calidad del criterio de detección"
 # La suma de las tres monedas del corpus demo. Es una cifra sin unidad y no puede estar en pantalla.
 expect_no_text "/dashboard" "3.942.246"
+
+# ------------------------------------------------------------------- 1b. con evaluación externa
+#
+# El recorrido de la Etapa 6, sobre el mismo corpus: pedir la opinión del proveedor, entregar sus
+# callbacks y comprobar que el veredicto y su procedencia aparecen en pantalla. Es lo único que
+# ejercita el bloque externo con datos reales, y no puede hacerse antes porque hasta acá ninguna
+# evaluación externa existe.
+
+scenario "con evaluación externa"
+
+echo "Solicitando la evaluación externa del corpus y entregando los callbacks…"
+curl -sS -X POST --max-time 120 "${api_base}/api/demo-data/external-evaluations:request" >/dev/null \
+  || fail "falló la solicitud de evaluaciones externas del corpus."
+curl -sS -X POST --max-time 120 -H 'Content-Type: application/json' -d '{}' \
+  "${api_base}/api/demo-data/external-callbacks:deliver" >/dev/null \
+  || fail "falló la entrega de callbacks."
+
+# La opinión del proveedor, con su procedencia. Y el vocabulario: ningún «pendiente» a secas, y los
+# dos scores nunca puestos uno al lado del otro.
+expect_text "/alerts/${alert_id}" "por el proveedor"
+expect_text "/alerts/${alert_id}" "no se compara con el score local"
+expect_no_text "/alerts/${alert_id}" "Solicitar evaluación externa"
+
+# El callback autenticado falla cerrado: esta API arranca sin secreto configurado, así que no entra
+# ninguna petición, con cabecera o sin ella. Se comprueba contra la API y no contra la consola,
+# porque la consola no envía callbacks nunca y no tiene el secreto.
+check_callback_closed() {
+  local label="$1" status
+  shift
+
+  checks_run=$((checks_run + 1))
+  status="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 -X POST \
+    -H 'Content-Type: application/json' "$@" \
+    -d '{"externalEvaluationId":"MOCK-SMOKE","status":"APPROVED"}' \
+    "${api_base}/api/external-callbacks/EXTERNAL_MOCK" || true)"
+
+  if [[ "$status" == "401" ]]; then
+    printf '  ok     %-28s %s → 401\n' "callback cerrado" "$label"
+  else
+    checks_failed=$((checks_failed + 1))
+    printf '  FALLA  %-28s %s → HTTP %s (se esperaba 401)\n' "callback cerrado" "$label" "${status:-sin respuesta}"
+  fi
+}
+
+check_callback_closed "sin cabecera"
+check_callback_closed "con un secreto cualquiera" -H 'X-Salvo-Callback-Secret: cualquier-cosa'
 
 # ---------------------------------------------------------------------------- 2. base vacía
 

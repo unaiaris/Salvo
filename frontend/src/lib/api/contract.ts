@@ -26,6 +26,7 @@ export type ScoringRun = ApiView<Schemas["ScoringRunReference"]>;
 export type AlertListItem = ApiView<Schemas["AlertListItem"]>;
 export type AlertList = ApiView<Schemas["ListAlertsResult"]>;
 export type AlertDetail = ApiView<Schemas["AlertDetail"]>;
+export type AlertExternalEvaluation = ApiView<Schemas["AlertExternalEvaluationView"]>;
 export type AlertReviewOutcome = ApiView<Schemas["AlertReviewResult"]>;
 export type OrderList = ApiView<Schemas["ListOrdersResult"]>;
 
@@ -60,6 +61,32 @@ export const ALERT_FEED_PAGE_SIZE = 200;
 export const REVIEW_NOTE_MAX_LENGTH = 2000;
 
 export type Capabilities = ApiView<Schemas["CapabilitiesResponse"]>;
+
+export type CallbackDelivery = ApiView<Schemas["CallbackDeliverySummary"]>;
+export type CorpusExternalEvaluations = ApiView<Schemas["CorpusExternalEvaluationSummary"]>;
+export type ExternalEvaluationRequest = ApiView<Schemas["RequestExternalEvaluationResult"]>;
+
+/**
+ * Wire values of `ExternalEvaluationStatus`, mirrored from
+ * `Salvo.Domain.External.ExternalEvaluationWireNames`.
+ *
+ * `PENDING` here means waiting for the provider, which is not what `OPEN` means on an alert and not
+ * what an unscored order means either. The console names all three differently and never says
+ * "pendiente" on its own.
+ */
+export const EXTERNAL_STATUS = {
+  pending: "PENDING",
+  approved: "APPROVED",
+  denied: "DENIED",
+  error: "ERROR",
+} as const;
+
+/** Wire values of `ExternalSettlementSource`. */
+export const EXTERNAL_SOURCE = {
+  sync: "SYNC",
+  callback: "CALLBACK",
+  reconciliation: "RECONCILIATION",
+} as const;
 
 export type DashboardScoringRun = ApiView<Schemas["DashboardScoringRunView"]>;
 export type DashboardSeverityCount = ApiView<Schemas["DashboardSeverityCountView"]>;

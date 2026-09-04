@@ -32,6 +32,20 @@ public interface IExternalEvaluationStore
         CancellationToken cancellationToken);
 
     /// <summary>
+    /// Orders this provider has never been asked about, oldest first, capped at
+    /// <paramref name="limit"/>.
+    /// </summary>
+    /// <remarks>
+    /// "Never asked about" and not "with no current evaluation": an order whose evaluation ended in
+    /// ERROR is deliberately left out, because asking again after a failure is a decision somebody
+    /// makes per order, not something a sweep does on its own.
+    /// </remarks>
+    Task<IReadOnlyList<Guid>> ListOrdersWithoutEvaluationAsync(
+        ExternalProvider provider,
+        int limit,
+        CancellationToken cancellationToken);
+
+    /// <summary>
     /// Persists the reservation. This runs <em>before</em> the provider is called, so that the
     /// partial unique index decides which of two concurrent requests proceeds while nothing exists
     /// on the provider side yet.

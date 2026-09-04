@@ -1419,3 +1419,252 @@ tests.
   debería seguir pasando sin cambios; si falla, es señal de regresión en la superficie existente.
   Conviene además confirmar contra `salvo.db` que tras la migración siguen las 328 evaluaciones y las
   21 alertas de la Etapa 5, y que `external_evaluations` arranca vacía.
+
+---
+
+## `E6B-CALLBACK-UI` — Recibos, callback autenticado, vinculación tardía, disparador de demo y superficie en la consola
+
+### Identificación
+
+- Estado de la rama: `Lista para integrar`
+- Etapa: 6
+- Rama/worktree: `claude/e6b-callback-ui`
+- Commit base: `d5da100` (`chore: assign E6B-CALLBACK-UI`, punta de `main`)
+- Commit final: `d8d13fc`
+- Fecha: 2026-09-04
+
+### Resultado
+
+Una evaluación externa puede cerrarse por callback, y ese callback es seguro. Un duplicado no repite
+efectos, un mensaje fuera de orden no retrocede, una contradicción del proveedor no se traga en
+silencio, y sin secreto configurado no entra ninguna petición. La analista pide la evaluación externa
+desde el detalle de una alerta, ve la opinión del proveedor junto a la propia y entiende cuándo
+discrepan. Con esto la Etapa 6 queda completa.
+
+Seis commits, uno por concern: entidad y migración, capa de aplicación, superficie HTTP, tests del
+backend con la recaptura del contrato, consola, y smoke.
+
+### Archivos modificados
+
+70 archivos, +6511 / −25. Por área:
+
+**Dominio** — `External/CallbackReceipt.cs`, `CallbackReceiptStatus.cs`, `CallbackReceiptWireNames.cs`,
+`CallbackDeduplicationKey.cs`.
+
+**Aplicación** — nuevos: `ApplyExternalCallbackHandler.cs`, `LinkUnmatchedCallbacksHandler.cs`,
+`ExternalCallbackTransition.cs`, `IExternalCallbackStore.cs`, `ExternalCallbackMessage.cs`,
+`ExternalCallbackViews.cs`, `ExternalCallbackUnavailableException.cs`,
+`ICallbackReceiptIdGenerator.cs`, `DeliverPendingCallbacksHandler.cs`,
+`RequestCorpusExternalEvaluationsHandler.cs`. Tocados: `RequestExternalEvaluationHandler.cs` y
+`ReconcileExternalEvaluationsHandler.cs` (vinculación tardía), `ExternalEvaluationViews.cs`
+(`Linked` en el resumen), `IExternalEvaluationStore.cs`, y `Alerts/AlertContext.cs`,
+`AlertViews.cs`, `AlertProjection.cs` para el sub-objeto `externalEvaluation`.
+
+**Infraestructura** — `EfExternalCallbackStore.cs`, `CallbackReceiptConfiguration.cs`,
+`CallbackReceiptStatusConverter.cs`, `SystemCallbackReceiptIdGenerator.cs`, migración
+`20260904191800_CallbackReceipts`, `SalvoDbContext.cs`, `DependencyInjection.cs`,
+`EfExternalEvaluationStore.cs`, `EfAlertStore.cs`.
+
+**API** — `ExternalCallbackEndpoints.cs`, `ExternalDemoEndpoints.cs`, `Program.cs`,
+`SystemEndpoints.cs`.
+
+**Tests backend** — `CallbackReceiptTests.cs`, `CallbackReceiptSchemaTests.cs`,
+`ExternalCallbackTransitionTests.cs`, `ExternalCallbackRaceTests.cs`,
+`ExternalCallbackEndpointTests.cs`, `ExternalCallbackTestCorpus.cs`; tocados `SalvoApiFactory.cs`,
+`ArchitectureSmokeTests.cs`, `ExternalEvaluationIsolationTests.cs`,
+`ExternalEvaluationConcurrencyTests.cs`, `ExternalEvaluationReconciliationTests.cs`.
+
+**Consola** — `alerts/[id]/external-block.tsx`, `external-actions.tsx`, `external-action.ts`,
+`external-state.ts`, `external-block.test.tsx`, `page.tsx`; `import/actions.ts`,
+`corpus-actions.tsx`, `page.tsx`, `actions.test.ts`; `lib/api/external.ts`, `contract.ts`,
+`guards.ts`, `messages.ts`, `schema.d.ts` y sus tests; `lib/format.ts`; `test/fixtures.ts`,
+`test/boundary.test.ts`; `openapi/salvo-openapi.json`.
+
+**Otros** — `.env.example` (`SALVO_CALLBACK_SHARED_SECRET` y `KOIN_CALLBACK_SHARED_SECRET`),
+`scripts/smoke-ui.sh`.
+
+### Verificación
+
+| Comando | Resultado |
+| --- | --- |
+| `/brief-check Coordination/Tasks/E6B-CALLBACK-UI.md` | Válido: las 11 secciones completas, commit base `d5da100` existente en `main` y en la rama, sin solapamiento en el Workboard, sin contradicción con `AGENTS.md` ni el Blueprint |
+| Copia de `salvo.db` antes de migrar | Hecha; SHA-256 idéntico al original antes de aplicar la migración |
+| `dotnet ef database update` sobre `salvo.db` | Aplicada. `PRAGMA integrity_check` → `ok`, `PRAGMA foreign_key_check` sin filas, 328 evaluaciones, 328 pedidos y 21 alertas intactos |
+| Test de duplicado exacto | `200`, **una** transición, **un** recibo, `replayCount` = 1 |
+| Tests de `SUPERSEDED` y `CONFLICTING` | Fila intacta en `APPROVED`, recibos distintos, `settledBy = CALLBACK` |
+| Mismo terminal con otro instante | `NO_OP`, `200`, no duplicado (la clave difiere) |
+| Callback correlacionado solo por referencia | `APPLIED`, encuentra la fila reservada |
+| Test del callback antes del commit | Verde. **Falsado**: comentando la llamada a `linker.HandleAsync` en `RequestExternalEvaluationHandler` (con `_ = linker;` para que compile), el test falla con `Expected: "DENIED" / Actual: "PENDING"`. El recibo queda `UNMATCHED` y el veredicto se pierde. La reconciliación no lo rescata: el proveedor de prueba responde `PENDING` a todo sondeo. Restaurado y reverificado |
+| Carrera callback–reconciliación sobre base en archivo | Una transición (`DENIED`, `settledBy = CALLBACK`, `attemptCount = 0`), un recibo. El barrido perdió su única fila y responde `409 RECONCILIATION_CONFLICT`, el disparador que fijó `E6A` |
+| Test del secreto | `401` y **cero** recibos, para tres formas de «no configurado» (ausente, vacío, en blanco) × cuatro secretos presentados, y para cinco secretos incorrectos incluidos uno más corto y uno más largo |
+| Proveedor desconocido en la ruta | `404 PROVIDER_NOT_REGISTERED` con secreto válido; `401` sin él, así que un llamador no autenticado no aprende qué proveedores existen |
+| Payload con campos desconocidos | Aceptado, `202`, recibo escrito |
+| Cuerpo por encima del límite | `413`, cero recibos |
+| Disparador de demo sin `DemoData:Enabled` | `404` en las dos rutas; `externalCallbackTriggerEnabled` es `false` |
+| El disparador no acepta un estado del cliente | El contrato tiene un solo miembro, `ExternalEvaluationId`; un `status` enviado igual se ignora y la evaluación cierra como el proveedor decide |
+| Test diferencial | `GET /api/dashboard`, `GET /api/alerts?sort=SCORE_DESC` y `GET /api/evaluation-metrics` byte a byte idénticos antes y después de entregar los callbacks del corpus entero, con la aserción de que hubo recibos y que no quedó ninguna evaluación esperando al proveedor |
+| `boundary.test.ts` | Cubre el bloque nuevo. **Falsado**: pasándole el objeto externo a `ExternalActions` falla con «ExternalActions recibe la prop no primitiva «leaked»». Restaurado |
+| `SALVO_API_BASE_URL=http://127.0.0.1:9 npm run build` | Pasa; las cuatro rutas de datos siguen `ƒ` |
+| `npm run api:types:check --prefix frontend` | Tipos al día con el documento recapturado |
+| `./scripts/smoke-ui.sh` | **Verde: 29 comprobaciones, 0 fallas** (eran 21). Salida completa abajo |
+| `/gate` (`./scripts/check.sh`) | **Verde**, salida `0`: restore bloqueado, build Release con 0 advertencias y 0 errores, sin cambios de modelo pendientes, 196 tests .NET (74 dominio + 122 integración), typecheck, ESLint `--max-warnings=0`, 172 tests de frontend y build de producción de Next.js |
+| `git status --porcelain` | Vacío |
+
+Salida de `./scripts/smoke-ui.sh`:
+
+```
+API http://127.0.0.1:5199 · consola http://127.0.0.1:3199
+
+Compilando la API y la consola…
+Migrando las dos bases temporales…
+Levantando la consola…
+
+── Escenario: con datos
+Listo: API responde en http://127.0.0.1:5199/health
+Listo: consola responde en http://127.0.0.1:3199
+Cargando el corpus de demostración y ejecutando la corrida…
+Alerta de ejemplo: 02844db1-5668-40e7-96aa-4b438535b65a
+  ok     /                            «Consola antifraude»
+  ok     /import                      «Importación y scoring»
+  ok     /import                      «Todos los pedidos de la base están cubiertos»
+  ok     /alerts                      «Cola de alertas»
+  ok     /alerts/02844db1-… «Snapshot que abrió la alerta»
+  ok     /alerts/02844db1-… «Evaluación vigente»
+  ok     /alerts/02844db1-… «Evaluación externa»
+  ok     /alerts/02844db1-… «Solicitar evaluación externa»
+  ok     /import                      «Proveedor antifraude externo»
+  ok     /dashboard                   «Monto en riesgo»
+  ok     /dashboard                   «Fraude reportado»
+  ok     /dashboard                   «Pedidos y denegados por semana»
+  ok     /dashboard                   «Calidad del criterio»
+  ok     /dashboard                   «no la calidad del criterio de detección»
+  ok     /dashboard                   sin «3.942.246»
+
+── Escenario: con evaluación externa
+Solicitando la evaluación externa del corpus y entregando los callbacks…
+  ok     /alerts/02844db1-… «por el proveedor»
+  ok     /alerts/02844db1-… «no se compara con el score local»
+  ok     /alerts/02844db1-… sin «Solicitar evaluación externa»
+  ok     callback cerrado             sin cabecera → 401
+  ok     callback cerrado             con un secreto cualquiera → 401
+
+── Escenario: base vacía
+Detenido: API (pid 63463)
+Listo: API responde en http://127.0.0.1:5199/health
+  ok     /import                      «todavía no hay ninguno en la base»
+  ok     /alerts                      «Todavía no hay pedidos»
+  ok     /dashboard                   «Todavía no hay pedidos»
+  ok     /alerts/00000000-0000-4000-8000-000000000000 «Esta alerta ya no existe»
+
+── Escenario: API apagada
+Detenido: API (pid 63615)
+  ok     /                            «Consola antifraude»
+  ok     /import                      «No se pudo contactar a la API»
+  ok     /alerts                      «No se pudo contactar a la API»
+  ok     /alerts/00000000-0000-4000-8000-000000000000 «No se pudo contactar a la API»
+  ok     /dashboard                   «No se pudo contactar a la API»
+
+Recorrido verde: 29 comprobaciones, 0 fallas.
+Detenido: consola (pid 63462)
+```
+
+(Los identificadores de alerta van abreviados en esta transcripción; en la salida real aparecen
+completos.)
+
+### Decisiones y supuestos
+
+- **Recibo y transición comparten puerto, no solo transacción.** `IExternalCallbackStore` es un solo
+  puerto porque son una sola unidad de trabajo. Dos puertos sobre el mismo `DbContext` habrían
+  funcionado por accidente de composición y no por diseño, y ese acoplamiento implícito es
+  exactamente el que se rompe cuando alguien cambia el ciclo de vida de un servicio.
+- **El recibo persiste lo que el mensaje dijo, no solo con qué correlacionarlo.** §7 lista campos de
+  correlación; la vinculación tardía es imposible sin el veredicto reportado, porque aplica un recibo
+  cuya fila no existía. Se agregaron `reported_status`, `reported_score` y `provider_instant_utc`.
+  No es payload y no es PII: el estado y el instante ya viajan dentro de la clave de deduplicación,
+  y el score es una cifra del proveedor.
+- **La clave de deduplicación cae a la referencia cuando no hay identificador.** El diseño la fija
+  como `provider|externalEvaluationId|status|providerInstant` suponiendo que el identificador existe.
+  Sin él, el hueco vacío daría a todo mensaje sin identificador del mismo estado e instante la misma
+  clave, y un callback sobre un pedido se descartaría como duplicado de otro. El slot lleva
+  `ref:{referenceId}`, etiquetado para que los dos no puedan confundirse. La forma de cuatro partes
+  se conserva y el caso normal produce exactamente el texto que el diseño fija; un test de dominio lo
+  clava.
+- **Un callback `ERROR` cierra la evaluación como `PROVIDER_REJECTED`.** Un proveedor que se toma el
+  trabajo de mandar un callback diciendo que falló ya decidió; eso no es el silencio de un timeout,
+  que es el único caso para el que existe el camino pendiente. La transición pasa por
+  `ExternalProviderExchange`, así que el `errorCode` lo fija el outcome y no el mensaje.
+- **Una excepción de transición del dominio se clasifica como `CONFLICTING`.** Un mensaje que
+  correlaciona con una fila pero contradice un invariante suyo —un segundo identificador de proveedor
+  distinto, por ejemplo— es el proveedor discrepando consigo mismo, no un error del servidor.
+- **Endpoint extra no listado en el brief: `POST /api/demo-data/external-evaluations:request`.** El
+  brief exige la acción en `/import` que pide evaluación externa del corpus vigente, y su sección de
+  API solo lista el callback y el disparador de entrega. Sin este endpoint la única alternativa era
+  que la acción de servidor hiciera trescientas llamadas HTTP desde Next. Está bajo `DemoData:Enabled`
+  con el mismo patrón que el seed, en un path autorizado, y no es una ruta de la consola: `/orders`
+  sigue siendo candidata de Etapa 8, como pide el brief.
+- **El disparador estampa el instante del proveedor con `requestedAt` de la evaluación, no con el
+  reloj.** Así reentregar la misma evaluación produce la misma clave y se reconoce como la reentrega
+  que es. Con el reloj, cada pulsación habría acuñado un mensaje nuevo que la tabla clasifica como
+  `NO_OP`, y el camino del duplicado no se ejercitaría nunca en la demo.
+- **La ruta de callback se mapea siempre y responde `401` sin secreto**, en vez de no mapearse. Las
+  dos opciones que el brief admite son equivalentes en seguridad, pero no mapearla haría que el
+  documento OpenAPI publicado dependiera del entorno, y `OpenApiDriftTests` compara ese documento.
+- **`externalCallbackTriggerEnabled` es un campo propio aunque hoy valga lo mismo que
+  `demoDataEnabled`.** La consola necesita saber si puede ofrecer ese botón, y esa no es la misma
+  pregunta que si se puede sembrar un corpus. Separarlo ahora evita que una división futura mienta.
+- **El feed no lee la evaluación externa.** `ComposeAsync` recibe una bandera: el detalle la pide y
+  el listado no. Pagar dos consultas por página por una columna que nadie renderiza no tenía razón.
+- **La grilla del detalle no se volvió de tres columnas.** El snapshot y la evaluación vigente son dos
+  momentos del mismo criterio y siguen emparejados; la opinión del proveedor es otro criterio y ocupa
+  su propia fila, para que no se lea como una versión más de lo mismo.
+- **`AlertContext` recibió los dos miembros nuevos con valor por defecto**, así que el resto de sus
+  usos no cambió. Es la forma menos invasiva de extender un `record` posicional con tantos llamadores.
+- **Se tocó `.env.example`**, que no está en los paths autorizados pero sí lo exige la sección
+  «Dentro» del brief. Se agregó también `KOIN_CALLBACK_SHARED_SECRET`, que §9 del Blueprint ya
+  declara y el archivo no tenía.
+- **La reconciliación vincula recibos después del bucle, no dentro.** La vinculación puede tener que
+  vaciar el rastreador de cambios, y hacerlo a mitad del barrido desprendería las filas que a las
+  iteraciones siguientes todavía les hacen falta.
+
+### Riesgos o pendientes
+
+- **El README no declara D8.** El diseño pide decir en el código y en el README que el secreto
+  compartido no es el mecanismo real. En el código está —XML docs y la descripción del endpoint, que
+  viaja al OpenAPI—; el README quedó fuera porque no está en los paths autorizados ni en el alcance
+  del brief. Le toca al coordinador.
+- **`ReconciliationSummary.Settled` no cuenta lo que la vinculación cerró.** El barrido vincula
+  después de contar, así que una fila que cerró por un recibo tardío aparece en `Linked` y no en
+  `Settled`. Es deliberado —son eventos distintos— pero los dos números no suman lo que un lector
+  distraído esperaría.
+- **La correlación de recibos con una evaluación es por referencia mientras la fila no tenga
+  identificador.** Un pedido con varias evaluaciones externas a lo largo del tiempo, todas sin
+  identificador, vería los recibos de las anteriores. En la práctica toda fila cerrada tiene
+  identificador; queda anotado.
+- **Sigue abierta la ventana estrecha de duplicación entre dos solicitudes** que `E6A` registró: el
+  único parcial solo cubre las `PENDING`. No se cerró, por la misma razón que entonces —exigiría un
+  único total sobre `(order_id, provider)`, que contradice §7—.
+- **`attemptCount` sigue sin tope**, pendiente de `E6A`. Falta decidir el N tras el cual una
+  `PENDING` pasa a `ERROR`.
+- **La entrega de callbacks del corpus es secuencial y sin paginado**, como la reconciliación. Con 21
+  pendientes del corpus demo sobra.
+- **La copia de seguridad de `salvo.db` quedó en el scratchpad de la sesión**, fuera del repositorio.
+  Si se quiere conservar, hay que moverla.
+- **El coordinador tiene pendiente** cerrar `E6B` y la Etapa 6 en `Salvo-Progress.md` y el Workboard;
+  esta rama no toca el estado canónico, como corresponde al modo paralelo.
+
+### Integración
+
+- Orden sugerido: rama única, sin dependencias. Es el último ítem de la Etapa 6.
+- Migraciones o pasos manuales: **sí**. `20260904191800_CallbackReceipts` crea `callback_receipts`.
+  Es puramente aditiva —un `CREATE TABLE` y cuatro índices, sin reconstrucción de tabla—, así que no
+  tiene el problema de `PRAGMA foreign_keys = 0` que traía la de `E6A`. Aun así, **copiar
+  `backend/src/Salvo.Api/salvo.db` antes de `database update`**, con la regla de no borrar ni recrear
+  la base local. Ya está aplicada sobre la copia de trabajo de esta rama.
+- Posibles conflictos: ninguno con otra tarea activa. Dentro de `main`, los archivos con más
+  probabilidad de conflicto si algo más los tocó son `frontend/openapi/salvo-openapi.json`,
+  `schema.d.ts`, `messages.ts`, `guards.ts` y `SalvoDbContextModelSnapshot.cs`.
+- Verificación posterior al merge: repetir `./scripts/check.sh` sobre `main` y, además,
+  `./scripts/smoke-ui.sh`, que la compuerta no ejecuta y que ahora hace 29 comprobaciones. Conviene
+  confirmar contra `salvo.db` que tras la migración siguen las 328 evaluaciones y las 21 alertas, que
+  `callback_receipts` arranca vacía, y hacer el recorrido a mano: pedir la evaluación externa de una
+  alerta, entregar su callback y ver el veredicto con su procedencia.

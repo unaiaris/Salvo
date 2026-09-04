@@ -16,10 +16,16 @@ namespace Salvo.Application.External;
 /// The unit of work is one row. A conflict on one evaluation must not roll back the ones the sweep
 /// already resolved, so each is saved on its own and a loser is counted and skipped.
 /// </para>
+/// <para>
+/// The sweep also looks back at the callbacks that never found a row. It does so after the loop
+/// rather than inside it: linking may have to drop everything this context is tracking, and doing
+/// that mid-sweep would detach the rows the remaining iterations still need.
+/// </para>
 /// </remarks>
 public sealed class ReconcileExternalEvaluationsHandler(
     IExternalEvaluationStore store,
     IAntifraudProviderRegistry registry,
+    LinkUnmatchedCallbacksHandler linker,
     ExternalEvaluationOptions options,
     TimeProvider timeProvider)
 {
@@ -32,6 +38,7 @@ public sealed class ReconcileExternalEvaluationsHandler(
         var stillPending = 0;
         var failed = 0;
         var conflicted = 0;
+        var examined = new List<Guid>(pending.Count);
 
         foreach (var evaluation in pending)
         {
@@ -44,6 +51,7 @@ public sealed class ReconcileExternalEvaluationsHandler(
                 continue;
             }
 
+            examined.Add(evaluation.Id);
             var lookup = new ExternalEvaluationLookup(evaluation.ExternalEvaluationId, evaluation.ReferenceId);
             var result = await ExternalProviderExchange.CallAsync(
                 token => adapter.GetStatusAsync(lookup, token),
@@ -81,6 +89,12 @@ public sealed class ReconcileExternalEvaluationsHandler(
             }
         }
 
-        return new(pending.Count, settled, stillPending, failed, conflicted, now);
+        var linked = 0;
+        foreach (var id in examined)
+        {
+            linked += (await linker.HandleAsync(id, cancellationToken)).Linked;
+        }
+
+        return new(pending.Count, settled, stillPending, failed, conflicted, linked, now);
     }
 }

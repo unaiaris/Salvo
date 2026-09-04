@@ -189,6 +189,118 @@ namespace Salvo.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Salvo.Domain.External.CallbackReceipt", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(36)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<string>("DeduplicationKey")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("deduplication_key");
+
+                    b.Property<string>("ExternalEvaluationId")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("external_evaluation_id");
+
+                    b.Property<string>("LastSeenAt")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("last_seen_at_utc");
+
+                    b.Property<string>("ProcessedAt")
+                        .HasMaxLength(24)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("processed_at_utc");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(13)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("provider");
+
+                    b.Property<string>("ProviderInstant")
+                        .HasMaxLength(24)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("provider_instant_utc");
+
+                    b.Property<string>("ReceivedAt")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("received_at_utc");
+
+                    b.Property<string>("ReferenceId")
+                        .HasMaxLength(129)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("reference_id");
+
+                    b.Property<int>("ReplayCount")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("replay_count");
+
+                    b.Property<int?>("ReportedScore")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("reported_score");
+
+                    b.Property<string>("ReportedStatus")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("reported_status");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(11)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Provider", "DeduplicationKey")
+                        .IsUnique()
+                        .HasDatabaseName("ux_callback_receipts_provider_key");
+
+                    b.HasIndex("Provider", "ExternalEvaluationId")
+                        .HasDatabaseName("ix_callback_receipts_provider_identifier");
+
+                    b.HasIndex("Provider", "ReferenceId")
+                        .HasDatabaseName("ix_callback_receipts_provider_reference");
+
+                    b.HasIndex("Provider", "Status")
+                        .HasDatabaseName("ix_callback_receipts_provider_status");
+
+                    b.ToTable("callback_receipts", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_callback_receipts_correlation", "external_evaluation_id IS NOT NULL OR reference_id IS NOT NULL");
+
+                            t.HasCheckConstraint("ck_callback_receipts_last_seen_at_utc", "length(last_seen_at_utc) = 24 AND substr(last_seen_at_utc, 24, 1) = 'Z' AND last_seen_at_utc >= received_at_utc");
+
+                            t.HasCheckConstraint("ck_callback_receipts_processed", "(status = 'UNMATCHED' AND processed_at_utc IS NULL) OR (status <> 'UNMATCHED' AND processed_at_utc IS NOT NULL)");
+
+                            t.HasCheckConstraint("ck_callback_receipts_processed_at_utc", "processed_at_utc IS NULL OR (length(processed_at_utc) = 24 AND substr(processed_at_utc, 24, 1) = 'Z')");
+
+                            t.HasCheckConstraint("ck_callback_receipts_provider", "provider IN ('EXTERNAL_MOCK', 'KOIN_SANDBOX')");
+
+                            t.HasCheckConstraint("ck_callback_receipts_provider_instant_utc", "provider_instant_utc IS NULL OR (length(provider_instant_utc) = 24 AND substr(provider_instant_utc, 24, 1) = 'Z')");
+
+                            t.HasCheckConstraint("ck_callback_receipts_received_at_utc", "length(received_at_utc) = 24 AND substr(received_at_utc, 24, 1) = 'Z'");
+
+                            t.HasCheckConstraint("ck_callback_receipts_replay_count", "replay_count >= 0");
+
+                            t.HasCheckConstraint("ck_callback_receipts_reported_score", "reported_score IS NULL OR reported_score >= 0");
+
+                            t.HasCheckConstraint("ck_callback_receipts_reported_status", "reported_status IN ('PENDING', 'APPROVED', 'DENIED', 'ERROR')");
+
+                            t.HasCheckConstraint("ck_callback_receipts_status", "status IN ('APPLIED', 'NO_OP', 'SUPERSEDED', 'CONFLICTING', 'UNMATCHED')");
+                        });
+                });
+
             modelBuilder.Entity("Salvo.Domain.External.ExternalEvaluation", b =>
                 {
                     b.Property<string>("Id")

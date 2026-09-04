@@ -1,4 +1,5 @@
 using Salvo.Domain.Alerts;
+using Salvo.Domain.External;
 using Salvo.Domain.Orders;
 using Salvo.Domain.Risk;
 
@@ -16,9 +17,21 @@ namespace Salvo.Application.Alerts;
 /// The run <paramref name="CurrentEvaluation"/> comes from. It is what dates the current block: the
 /// evaluation itself carries the instant it was first computed, which a later run reuses unchanged.
 /// </param>
+/// <param name="ExternalEvaluation">
+/// What the external provider was asked and what it answered, or <see langword="null"/> when nobody
+/// has asked. It is a second opinion beside the local one and never blended into it: the provider
+/// opines and the merchant decides.
+/// </param>
+/// <param name="HasContradictoryCallback">
+/// Whether the provider ever sent a verdict that contradicted the one it had already given. Kept
+/// visible rather than discarded, because a provider disagreeing with itself is a fact about the
+/// integration that an analyst reading a verdict has a right to know.
+/// </param>
 public sealed record AlertContext(
     Alert Alert,
     Order Order,
     RiskEvaluation? CurrentEvaluation,
     AlertReview? Review,
-    ScoringRunReference? CurrentRun);
+    ScoringRunReference? CurrentRun,
+    ExternalEvaluation? ExternalEvaluation = null,
+    bool HasContradictoryCallback = false);

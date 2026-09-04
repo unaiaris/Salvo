@@ -148,3 +148,59 @@ const IMPORT_ERROR_LABELS: Readonly<Record<string, string>> = {
 export function importErrorLabel(code: string): string {
   return IMPORT_ERROR_LABELS[code] ?? code;
 }
+
+/**
+ * The state of an external evaluation, in words.
+ *
+ * `PENDING` is never rendered as "pendiente" on its own. Three different things are pending in this
+ * console — an alert waiting for a human verdict, an external evaluation waiting for the provider,
+ * and an order waiting to be scored — and a screen that called all three the same word would be
+ * unreadable at exactly the moment an analyst needs to know which one is holding things up.
+ */
+const EXTERNAL_STATUS_LABELS: Readonly<Record<string, string>> = {
+  PENDING: "Esperando al proveedor",
+  APPROVED: "Aprobado por el proveedor",
+  DENIED: "Denegado por el proveedor",
+  ERROR: "La consulta al proveedor falló",
+};
+
+export function externalStatusLabel(status: string): string {
+  return EXTERNAL_STATUS_LABELS[status] ?? status;
+}
+
+/**
+ * How a verdict got here. Provenance is part of the record: an answer that arrived on its own and
+ * one this API went looking for are not the same fact about the integration.
+ */
+const EXTERNAL_SOURCE_LABELS: Readonly<Record<string, string>> = {
+  SYNC: "en la misma respuesta del proveedor",
+  CALLBACK: "por callback del proveedor",
+  RECONCILIATION: "al reconciliar, preguntándole de nuevo",
+};
+
+export function externalSourceLabel(source: string): string {
+  return EXTERNAL_SOURCE_LABELS[source] ?? source;
+}
+
+/** The closed catalogue of `ExternalEvaluationErrorCode`, sanitised at the border and named here. */
+const EXTERNAL_ERROR_LABELS: Readonly<Record<string, string>> = {
+  UNREACHABLE: "No se pudo contactar al proveedor: la consulta nunca salió",
+  PROVIDER_REJECTED: "El proveedor rechazó la consulta",
+  TIMEOUT: "El proveedor no respondió a tiempo",
+  PROVIDER_ERROR: "El proveedor respondió con un error",
+  INVALID_RESPONSE: "La respuesta del proveedor no se pudo leer",
+};
+
+export function externalErrorLabel(code: string): string {
+  return EXTERNAL_ERROR_LABELS[code] ?? code;
+}
+
+/** The provider an evaluation was asked of. */
+const PROVIDER_LABELS: Readonly<Record<string, string>> = {
+  EXTERNAL_MOCK: "Proveedor simulado",
+  KOIN_SANDBOX: "Koin sandbox",
+};
+
+export function providerLabel(provider: string): string {
+  return PROVIDER_LABELS[provider] ?? provider;
+}

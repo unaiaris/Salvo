@@ -8,7 +8,13 @@ import {
   wireSeedResult,
 } from "@/test/fixtures";
 import { INITIAL_ACTION_STATE } from "./action-state";
-import { executeScoringRun, importOrderFile, seedDemoCorpus } from "./actions";
+import {
+  deliverAllCallbacks,
+  executeScoringRun,
+  importOrderFile,
+  requestCorpusExternal,
+  seedDemoCorpus,
+} from "./actions";
 
 let fetchMock: ReturnType<typeof vi.fn>;
 
@@ -198,5 +204,92 @@ describe("corpus de demostración", () => {
     const state = await seedDemoCorpus(INITIAL_ACTION_STATE);
 
     expect(state.title).toBe("El corpus de demostración choca con pedidos que ya existen");
+  });
+});
+
+/**
+ * The corpus-wide external actions of the demo surface.
+ *
+ * They are how the orders that never produced an alert get a second opinion at all: the alert detail
+ * only reaches the ones that did, and stage 6 deliberately adds no orders screen.
+ */
+describe("evaluación externa del corpus", () => {
+  it("cuenta lo consultado y separa lo que sigue esperando al proveedor", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({ examined: 300, requested: 300, settled: 279, stillPending: 21, skipped: 0 }),
+    );
+
+    const state = await requestCorpusExternal(INITIAL_ACTION_STATE);
+
+    expect(state.outcome).toBe("done");
+    expect(state.title).toContain("300");
+    expect(state.facts).toContain("Esperando al proveedor: 21");
+    expect(state.recovery).toContain("entregando sus callbacks");
+  });
+
+  it("dice que no había nada nuevo cuando el proveedor ya conocía el corpus", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({ examined: 0, requested: 0, settled: 0, stillPending: 0, skipped: 0 }),
+    );
+
+    const state = await requestCorpusExternal(INITIAL_ACTION_STATE);
+
+    expect(state.outcome).toBe("done");
+    expect(state.title).toMatch(/ya conocía todos los pedidos/i);
+  });
+
+  it("traduce el conflicto de una evaluación que ya espera al proveedor", async () => {
+    fetchMock.mockResolvedValue(problemResponse(
+        409,
+        "EXTERNAL_EVALUATION_PENDING",
+        "Order ... already has an external evaluation waiting for the provider.",
+      ));
+
+    const state = await requestCorpusExternal(INITIAL_ACTION_STATE);
+
+    expect(state.outcome).toBe("failed");
+    expect(state.title).toMatch(/esperando al proveedor/i);
+    expect(state.title).not.toMatch(/409/);
+  });
+});
+
+describe("entrega de callbacks", () => {
+  it("dice qué se entregó y qué se cerró", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({ examined: 21, delivered: 21, settled: 21, replayed: 0, unavailable: 0 }),
+    );
+
+    const state = await deliverAllCallbacks(INITIAL_ACTION_STATE);
+
+    expect(state.outcome).toBe("done");
+    expect(state.title).toContain("21");
+    expect(state.body).toMatch(/nunca qué responde el proveedor/);
+    expect(state.facts).toContain("Cerraron con veredicto: 21");
+  });
+
+  /**
+   * Repeating the delivery is meant to be harmless, and the wording has to say that rather than
+   * report a second success that never happened.
+   */
+  it("nombra una reentrega como reentrega y no como un efecto nuevo", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({ examined: 21, delivered: 21, settled: 0, replayed: 21, unavailable: 0 }),
+    );
+
+    const state = await deliverAllCallbacks(INITIAL_ACTION_STATE);
+
+    expect(state.title).toMatch(/ya se habían recibido/i);
+    expect(state.body).toMatch(/no se repitió ningún efecto/);
+  });
+
+  it("dice qué hacer cuando no hay nada esperando al proveedor", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({ examined: 0, delivered: 0, settled: 0, replayed: 0, unavailable: 0 }),
+    );
+
+    const state = await deliverAllCallbacks(INITIAL_ACTION_STATE);
+
+    expect(state.title).toMatch(/No hay ninguna evaluación externa esperando al proveedor/);
+    expect(state.recovery).toMatch(/Solicitá evaluaciones externas/);
   });
 });

@@ -205,6 +205,14 @@ public sealed class ExternalEvaluationConcurrencyTests
             return inner.ListPendingAsync(requestedBefore, cancellationToken);
         }
 
+        public Task<IReadOnlyList<Guid>> ListOrdersWithoutEvaluationAsync(
+            ExternalProvider provider,
+            int limit,
+            CancellationToken cancellationToken)
+        {
+            return inner.ListOrdersWithoutEvaluationAsync(provider, limit, cancellationToken);
+        }
+
         public async Task ReserveAsync(ExternalEvaluation evaluation, CancellationToken cancellationToken)
         {
             await gate.EnterWriteAsync();

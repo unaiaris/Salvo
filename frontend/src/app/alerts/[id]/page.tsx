@@ -2,8 +2,10 @@ import Link from "next/link";
 import { FailureNotice } from "@/components/failure-notice";
 import { SeverityBadge } from "@/components/severity-badge";
 import { fetchAlert } from "@/lib/api/alerts";
+import { fetchCapabilities } from "@/lib/api/console";
 import { formatInstant, statusLabel } from "@/lib/format";
 import { CurrentEvaluationBlock, SnapshotBlock } from "./evaluation-blocks";
+import { ExternalEvaluationBlock } from "./external-block";
 import { OrderBlock } from "./order-block";
 import { ReviewPanel } from "./review-panel";
 
@@ -22,7 +24,10 @@ export default async function AlertDetailPage({
   readonly params: Promise<{ readonly id: string }>;
 }) {
   const { id } = await params;
-  const alert = await fetchAlert(id);
+
+  // Capabilities decide whether the demo trigger is offered at all, and a failure to read them is
+  // not a reason to refuse the page: the alert is still readable without that one button.
+  const [alert, capabilities] = await Promise.all([fetchAlert(id), fetchCapabilities()]);
 
   if (!alert.ok) {
     return (
@@ -66,6 +71,12 @@ export default async function AlertDetailPage({
 
       <OrderBlock order={detail.order} />
 
+      {/*
+        Three blocks now, and the third is not a variation of the first two. The snapshot and the
+        current evaluation are two moments of the local criterion, so they stay paired at every
+        width; the provider's opinion is a different criterion and sits on its own row rather than
+        being squeezed into a third column that would read as "one more version of the same thing".
+      */}
       <div className="grid gap-6 lg:grid-cols-2">
         <SnapshotBlock snapshot={detail.snapshot} createdAt={detail.createdAt} />
         <CurrentEvaluationBlock
@@ -73,6 +84,11 @@ export default async function AlertDetailPage({
           currentRun={detail.currentRun}
         />
       </div>
+
+      <ExternalEvaluationBlock
+        detail={detail}
+        triggerEnabled={capabilities.ok && capabilities.value.externalCallbackTriggerEnabled}
+      />
 
       <ReviewPanel detail={detail} />
     </div>
