@@ -1259,3 +1259,163 @@ Restaurado el documento, los dos tests vuelven a pasar.
   `./scripts/smoke-ui.sh`, que es la comprobación que la compuerta no hace. Conviene confirmar sobre
   el estado integrado que el dashboard sigue coincidiendo con `salvo.db`: 18 alertas abiertas,
   13 `MEDIUM` y 5 `CRITICAL`, y el monto en riesgo en tres filas —BRL, USD y UYU— sin ningún total.
+
+## `E6A-PROVEEDOR` — Entidad externa, puerto, mock determinista, reserva en dos fases y reconciliación
+
+### Identificación
+
+- Estado de la rama: `Lista para integrar`
+- Etapa: 6
+- Rama/worktree: `claude/e6a-proveedor`
+- Commit base: `8d5faf7` (`chore: assign E6A-PROVEEDOR`, punta de `main`)
+- Commit final: `faa5d6a`
+- Fecha: 2026-09-04
+
+### Resultado
+
+Salvo puede pedirle a un proveedor antifraude externo que evalúe un pedido, guarda esa evaluación
+como una entidad separada de la local, sobrevive a que el proveedor falle o tarde sin perder nada, y
+cierra las pendientes con una reconciliación explícita. La evaluación local, las alertas, el
+dashboard y las métricas no cambian: hay un test que lo exige byte a byte.
+
+Cinco commits, uno por concern: dominio, migración, aplicación e infraestructura, API y contrato,
+tests.
+
+### Archivos modificados
+
+61 archivos, +5176/−62. Todos dentro de los paths autorizados.
+
+- **Dominio nuevo**, `backend/src/Salvo.Domain/External/`: `ExternalEvaluation`, `ExternalProvider`,
+  `ExternalEvaluationStatus`, `ExternalEvaluationErrorCode`, `ExternalSettlementSource`,
+  `ExternalEvaluationWireNames`, `ExternalEvaluationReference`,
+  `ExternalEvaluationTransitionException`.
+- **Dominio acotado**: `Risk/RiskEvaluation.cs` pierde `ExternalEvaluationId` y `ErrorCode`;
+  `RiskEvaluationSource` queda en `Local`; `RiskEvaluationStatus` queda en `Approved` y `Denied`;
+  `RiskEvaluationWireNames` acompaña.
+- **Aplicación nueva**, `backend/src/Salvo.Application/External/`: `IAntifraudProvider`,
+  `IAntifraudProviderRegistry`, `IExternalEvaluationStore`, `IExternalEvaluationIdGenerator`,
+  `ExternalEvaluationInput/Lookup/Result`, `ExternalProviderOutcome`, `ExternalProviderExchange`,
+  `ExternalEvaluationOptions`, `ExternalEvaluationProjection`, `ExternalEvaluationViews`, las dos
+  excepciones y los cuatro handlers.
+- **Infraestructura**: `External/MockAntifraudProvider`, `MockAntifraudProviderOptions`,
+  `AntifraudProviderRegistry`; `Persistence/EfExternalEvaluationStore`, los cuatro convertidores,
+  `Configurations/ExternalEvaluationConfiguration`, `RiskEvaluationConfiguration` endurecida,
+  `SalvoDbContext`, `SystemExternalEvaluationIdGenerator`, `DependencyInjection`.
+- **Migración**: `20260904150633_ExternalEvaluations` y el snapshot del modelo.
+- **API**: `ExternalEvaluationEndpoints` y una línea en `Program.cs`.
+- **Tests**: `Salvo.Domain.Tests/ExternalEvaluationTests`;
+  `Salvo.Api.IntegrationTests/ExternalEvaluation{TestCorpus,SchemaTests,RequestTests,ConcurrencyTests,ReconciliationTests,IsolationTests}`;
+  `SalvoApiFactory` gana un diccionario `Settings`; `ArchitectureSmokeTests` incluye la entidad nueva
+  y `RiskEvaluationIdentityTests` pierde las dos aserciones que la migración invalida.
+- **Contrato**: `frontend/openapi/salvo-openapi.json` y `frontend/src/lib/api/schema.d.ts`,
+  recapturado y regenerado. Solo agregan; ningún otro archivo de `frontend/` se tocó.
+
+### Verificación
+
+| Comando | Resultado |
+| --- | --- |
+| `/brief-check Coordination/Tasks/E6A-PROVEEDOR.md` | Válido: las 11 secciones completas, commit base existente, sin solapamiento, sin contradicción con `AGENTS.md` ni el Blueprint |
+| Copia de `salvo.db` antes de migrar | Tomada antes de `database update` y movida fuera del árbol del repositorio, a `salvo.db.pre-e6a.bak` en el scratchpad de la sesión |
+| `dotnet ef database update` sobre `backend/src/Salvo.Api/salvo.db` | Aplicada. EF advirtió, como estaba previsto, que `PRAGMA foreign_keys = 0` corre fuera de transacción |
+| Fingerprints tras la migración | **328 antes y 328 después, byte a byte idénticos**: mismo SHA-256 del volcado ordenado, `a25156ab2e0e864a44922cde02bea790b561ee45d551bcb4c3ec3b8039106e75` |
+| Integridad de la base migrada | `PRAGMA integrity_check` = ok; `PRAGMA foreign_key_check` sin filas; 328 evaluaciones, 300 pedidos, 21 alertas, 2141 vínculos de corrida; el índice de fingerprint sigue con `WHERE source = 'LOCAL'` |
+| Test de concurrencia | Un `200`, un `409 EXTERNAL_EVALUATION_PENDING` y **una** invocación al proveedor. Verde cinco veces seguidas |
+| **Falsación del test de concurrencia** | Invirtiendo las dos fases en `RequestExternalEvaluationHandler` —llamar al proveedor antes de reservar— **falla**, tres veces de tres: `Assert.Equal(1, counter.Count)` obtiene 2, en la línea 72. Las aserciones anteriores, incluida la del `409`, siguen pasando: el contador es lo único que distingue los dos órdenes |
+| Test de timeout + reconciliación | Una sola fila, en `DENIED`, `settledBy = RECONCILIATION`, `attemptCount = 1`, y el lookup usó la referencia porque el identificador nunca llegó |
+| Test diferencial | `GET /api/dashboard`, `GET /api/alerts?sort=SCORE_DESC` y `GET /api/evaluation-metrics` idénticos antes y después de crear evaluaciones externas en los cuatro estados, con la aserción que exige que los cuatro se hayan alcanzado |
+| **Falsación del test diferencial** | Sumando `dbContext.ExternalEvaluations.Any(...)` al conteo de `CountOrdersPendingScoringAsync` de `EfDashboardReader`, **falla**: `"ordersPendingScoring":0` contra `"ordersPendingScoring":4` |
+| Conteos del mock sobre el corpus demo | 225 aprobados, 45 denegados, 21 pendientes, 9 con error |
+| `KOIN_MODE=sandbox` | `InvalidOperationException` al construir el host, citando §5.3. `KOIN_MODE=mock` arranca normalmente |
+| `dotnet test Salvo.slnx` | 66 de dominio + 94 de integración = **160**, 0 fallas, repetido tres veces |
+| `dotnet ef migrations has-pending-model-changes` | «No changes have been made to the model since the last migration» |
+| `npm run api:types:check --prefix frontend` | Tipos al día con el documento capturado |
+| `/gate` (`./scripts/check.sh`) | **Verde**, salida `0`: restore bloqueado, build Release con 0 advertencias y 0 errores, sin cambios de modelo pendientes, 160 tests .NET, typecheck, ESLint `--max-warnings=0`, 153 tests de frontend y build de producción de Next.js con las cuatro rutas de datos dinámicas |
+| `git status --porcelain` | Vacío |
+
+### Decisiones y supuestos
+
+- **Tipos propios de punta a punta.** `Salvo.Domain/External/` no referencia `Salvo.Domain/Risk/`, y
+  un test lo afirma por reflexión sobre los tipos de las propiedades además de comparar los dos
+  pares de enumeraciones. Compartir la enumeración habría reintroducido a nivel de tipo la mezcla
+  que la separación de tablas combate.
+- **La taxonomía de fallo vive en un solo lugar.** `ExternalProviderExchange` es el único punto donde
+  se llama a un proveedor y el único donde su respuesta se convierte en transición, para que la
+  solicitud y la reconciliación no puedan divergir. El `errorCode` de `UNREACHABLE` y
+  `PROVIDER_REJECTED` lo fija el outcome, no el adaptador: así ningún adaptador puede declarar «no
+  se envió» nombrando un timeout.
+- **Una excepción inesperada del proveedor se clasifica como transitoria**, nunca como fallo que
+  cierra. Una vez que la solicitud pudo haber salido del proceso, la lectura segura del silencio es
+  «no se sabe». Es lo que exige D4 y lo que hace que el veredicto real no se pierda.
+- **Código nuevo `EXTERNAL_EVALUATION_SETTLED`, `409`.** El brief pide refutar «solicitud nueva» con
+  una terminal vigente que no sea `ERROR`, y la tabla de códigos no cubría ese caso;
+  `EXTERNAL_EVALUATION_PENDING` habría mentido. `messages.ts` no se tocó —es `frontend/` y es de
+  `E6B`—: hoy cae en el mensaje genérico, igual que el test de `E5` ya anticipaba para los códigos
+  de esta etapa.
+- **`RECONCILIATION_CONFLICT` se emite cuando el barrido examinó filas y las perdió todas.** El
+  diseño listaba el código sin fijar su disparador. Una pérdida parcial es normal y va en el
+  resumen; una pérdida total significa que otro escritor tiene el trabajo entero y lo útil es
+  decirlo, no devolver un resumen de ceros.
+- **La banda pendiente del mock se resuelve por la paridad del resto**: par aprueba, impar deniega.
+  «El estado terminal de la misma función» necesitaba una regla concreta, y esta mantiene el control
+  de la distribución en manos de quien escribe la fixture.
+- **Una referencia sin sufijo numérico cae a los primeros cuatro bytes de su SHA-256.** El hash
+  administrado de `string` no servía: está aleatorizado por proceso, así que el mismo pedido caería
+  en bandas distintas en cada arranque. La fixture nunca produce ese caso; una importación sí puede.
+- **El registro de proveedores resuelve por última registración**, como cualquier reemplazo de
+  servicio en este contenedor. Fallar habría convertido un override de test en un `500` en la
+  primera solicitud.
+- **`SalvoApiFactory` gana un diccionario `Settings`** porque `KOIN_MODE` se lee al componer la
+  colección de servicios y puede impedir el arranque; `ConfigureTestServices` corre después y no
+  alcanza esa ruta.
+- **La compuerta del test de concurrencia tiene dos barreras, no una.** La primera fuerza que ambas
+  solicitudes lean antes de que ninguna reserve; la segunda, que ambas reserven antes de que ninguna
+  cierre. Sin la segunda el test era intermitente —el ganador cerraba su fila y el único parcial, que
+  solo cubre las pendientes, dejaba de tener con qué chocar—. Se detectó porque falló en la corrida
+  completa de la suite.
+- **El índice parcial de fingerprint y la nulabilidad de `RiskEvaluation` quedaron como estaban**,
+  según D13. El filtro `WHERE source = 'LOCAL'` es hoy redundante con el check endurecido y se
+  conserva a propósito.
+
+### Riesgos o pendientes
+
+- **Ventana estrecha de duplicación entre dos solicitudes concurrentes.** El único parcial solo cubre
+  las filas `PENDING`, así que si la solicitud A completa su ciclo entero —reservar, llamar, cerrar—
+  entre que B lee «no hay evaluación» y B inserta, B reserva sin chocar y el pedido termina con dos
+  evaluaciones. Es la ventana que hizo intermitente el test antes de agregar la segunda barrera. No
+  se cerró porque cerrarla exige un único total sobre `(order_id, provider)`, que contradice §7 —un
+  pedido acumula evaluaciones externas a lo largo del tiempo— y el alcance que el brief autoriza. La
+  reserva sigue eliminando el caso que importa, el de dos solicitudes realmente simultáneas; queda
+  registrado para decidirlo en `E6B` o en la Etapa 8.
+- **La vinculación tardía de recibos `UNMATCHED` no está**, y es de `E6B` por diseño. Hasta entonces,
+  el único camino que cierra una fila que quedó entre las dos fases es la reconciliación.
+- **`attemptCount` no tiene tope.** D4 dice que una `PENDING` pasa a `ERROR` «tras N reconciliaciones
+  infructuosas o por acción explícita», y ni el umbral ni la acción explícita están implementados:
+  hoy una fila puede sondearse indefinidamente. Con el mock no ocurre, porque `GetStatusAsync`
+  siempre resuelve. Falta decidir el N.
+- **La reconciliación es secuencial y sin paginado.** Con 21 pendientes del corpus demo sobra; con
+  decenas de miles, el barrido entero se hace en una sola solicitud HTTP.
+- **`EXTERNAL_EVALUATION_SETTLED`, `EXTERNAL_EVALUATION_PENDING`, `PROVIDER_NOT_REGISTERED`,
+  `RECONCILIATION_CONFLICT`, `ORDER_NOT_FOUND` e `INVALID_PROVIDER` no están traducidos** en
+  `messages.ts`. Es `frontend/`, fuera del alcance de esta tarea, y le toca a `E6B`.
+- **La copia de seguridad de `salvo.db` quedó fuera del repositorio**, en el scratchpad de la sesión.
+  Si se quiere conservar más allá de la sesión, hay que moverla a un lugar propio.
+- **El coordinador tiene pendiente** cerrar `E6A` en `Salvo-Progress.md` y el Workboard; esta rama no
+  toca el estado canónico, como corresponde al modo paralelo.
+
+### Integración
+
+- Orden sugerido: rama única, sin dependencias. `E6B-CALLBACK-UI` depende de que esta quede
+  integrada.
+- Migraciones o pasos manuales: **sí**. `20260904150633_ExternalEvaluations` reconstruye
+  `risk_evaluations` y crea `external_evaluations`. **Copiar `backend/src/Salvo.Api/salvo.db` antes
+  de aplicarla**: EF ejecuta `PRAGMA foreign_keys = 0` fuera de transacción y lo advierte. En esta
+  rama ya se aplicó sobre la base local y se verificó que los 328 fingerprints quedaron idénticos. No
+  hay dependencias nuevas, así que no hace falta `npm ci`.
+- Posibles conflictos: la rama parte de la punta de `main` y no hay otra tarea activa. Los dos
+  archivos fuera de `backend/**` son el documento OpenAPI y `schema.d.ts`, ambos autorizados y ambos
+  cambian solo por agregado.
+- Verificación posterior al merge: repetir `./scripts/check.sh` sobre `main` y, además,
+  `./scripts/smoke-ui.sh`, que la compuerta no ejecuta. El smoke no conoce las rutas nuevas, así que
+  debería seguir pasando sin cambios; si falla, es señal de regresión en la superficie existente.
+  Conviene además confirmar contra `salvo.db` que tras la migración siguen las 328 evaluaciones y las
+  21 alertas de la Etapa 5, y que `external_evaluations` arranca vacía.
