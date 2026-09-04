@@ -7,21 +7,15 @@ namespace Salvo.Domain.Risk;
 public static class RiskEvaluationWireNames
 {
     public const string Local = "LOCAL";
-    public const string ExternalMock = "EXTERNAL_MOCK";
-    public const string KoinSandbox = "KOIN_SANDBOX";
 
-    public const string Pending = "PENDING";
     public const string Approved = "APPROVED";
     public const string Denied = "DENIED";
-    public const string Error = "ERROR";
 
     public static string ToWire(RiskEvaluationSource source)
     {
         return source switch
         {
             RiskEvaluationSource.Local => Local,
-            RiskEvaluationSource.ExternalMock => ExternalMock,
-            RiskEvaluationSource.KoinSandbox => KoinSandbox,
             _ => throw new ArgumentOutOfRangeException(nameof(source), source, "Unsupported evaluation source."),
         };
     }
@@ -31,8 +25,6 @@ public static class RiskEvaluationWireNames
         return value switch
         {
             Local => RiskEvaluationSource.Local,
-            ExternalMock => RiskEvaluationSource.ExternalMock,
-            KoinSandbox => RiskEvaluationSource.KoinSandbox,
             _ => throw new ArgumentException($"Unsupported evaluation source '{value}'.", nameof(value)),
         };
     }
@@ -41,10 +33,8 @@ public static class RiskEvaluationWireNames
     {
         return status switch
         {
-            RiskEvaluationStatus.Pending => Pending,
             RiskEvaluationStatus.Approved => Approved,
             RiskEvaluationStatus.Denied => Denied,
-            RiskEvaluationStatus.Error => Error,
             _ => throw new ArgumentOutOfRangeException(nameof(status), status, "Unsupported evaluation status."),
         };
     }
@@ -53,10 +43,8 @@ public static class RiskEvaluationWireNames
     {
         return value switch
         {
-            Pending => RiskEvaluationStatus.Pending,
             Approved => RiskEvaluationStatus.Approved,
             Denied => RiskEvaluationStatus.Denied,
-            Error => RiskEvaluationStatus.Error,
             _ => throw new ArgumentException($"Unsupported evaluation status '{value}'.", nameof(value)),
         };
     }

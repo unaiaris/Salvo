@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Salvo.Domain.Alerts;
 using Salvo.Domain.Evaluation;
+using Salvo.Domain.External;
 using Salvo.Domain.Orders;
 using Salvo.Domain.Risk;
 
@@ -17,6 +18,8 @@ public sealed class SalvoDbContext(DbContextOptions<SalvoDbContext> options) : D
     public DbSet<ScoringRun> ScoringRuns => Set<ScoringRun>();
 
     public DbSet<RunEvaluation> RunEvaluations => Set<RunEvaluation>();
+
+    public DbSet<ExternalEvaluation> ExternalEvaluations => Set<ExternalEvaluation>();
 
     public DbSet<Alert> Alerts => Set<Alert>();
 
