@@ -1,6 +1,6 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: Etapa 6 en curso. `E6A-PROVEEDOR` integrada y verificada; `E6B-CALLBACK-UI` pendiente de brief
+> Estado: Etapa 6 en curso. `E6B-CALLBACK-UI` asignada; es el último ítem de la etapa
 > Última actualización: 2026-09-02
 > Responsable: coordinador de la etapa
 
@@ -14,13 +14,16 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 
 ## Trabajo activo
 
-No hay tareas activas ni paths reservados.
+| Work ID | Etapa | Objetivo | Propietario | Estado | Rama | Base | Paths reservados | Dependencias | Actualizado |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| E6B-CALLBACK-UI | 6 | Recibos, callback autenticado, vinculación tardía, disparador de demo y superficie en la consola | Claude | Asignada | `claude/e6b-callback-ui` | commit de `main` que incorpora el brief | `backend/src/Salvo.Domain/External/**`, `backend/src/Salvo.Application/**`, `backend/src/Salvo.Infrastructure/**`, `backend/src/Salvo.Api/**`, `backend/tests/**`, `frontend/**`, `scripts/**` | `E6A-PROVEEDOR` integrada | 2026-09-04 |
+
+Modelo y esfuerzo acordados para `E6B-CALLBACK-UI`: Opus 5 · `high`.
 
 ## Cola próxima
 
 | Work ID | Etapa | Objetivo | Dependencias |
 | --- | --- | --- | --- |
-| E6B-CALLBACK-UI | 6 | Recibos, callback autenticado, vinculación tardía, disparador de demo y superficie en la consola | `E6A` integrada |
 
 Notas para los briefs de la Etapa 6:
 
