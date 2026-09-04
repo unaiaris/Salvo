@@ -32,8 +32,6 @@ public sealed class RiskEvaluationIdentityTests
             Assert.True(
                 char.IsAsciiDigit(character) || character is >= 'a' and <= 'f',
                 $"'{character}' is not a lowercase hexadecimal digit."));
-        Assert.Null(evaluation.ExternalEvaluationId);
-        Assert.Null(evaluation.ErrorCode);
     }
 
     [Fact]

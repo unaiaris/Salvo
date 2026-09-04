@@ -42,6 +42,7 @@ public sealed class Program
         app.MapOrderEndpoints(builder.Configuration);
         app.MapRiskEvaluationEndpoints();
         app.MapAlertEndpoints();
+        app.MapExternalEvaluationEndpoints();
         app.MapDashboardEndpoints();
         app.MapEvaluationMetricsEndpoints(builder.Configuration);
 

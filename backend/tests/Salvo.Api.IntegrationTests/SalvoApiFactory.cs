@@ -63,6 +63,17 @@ public sealed class SalvoApiFactory : WebApplicationFactory<Program>
     /// </remarks>
     public bool DemoDataEnabled { get; set; } = true;
 
+    /// <summary>
+    /// Extra host settings, applied before the application is built. Set them before the first
+    /// client or service is resolved.
+    /// </summary>
+    /// <remarks>
+    /// Some configuration is read while the service collection is composed and can therefore stop
+    /// the host from starting at all. That is a behaviour worth testing, and it cannot be reached
+    /// through <see cref="ConfigureTestServices"/>, which runs after.
+    /// </remarks>
+    public Dictionary<string, string> Settings { get; } = [];
+
     public async Task<HttpClient> CreateMigratedClientAsync()
     {
         var client = CreateClient();
@@ -81,6 +92,10 @@ public sealed class SalvoApiFactory : WebApplicationFactory<Program>
     {
         sharedConnection?.Open();
         builder.UseSetting("DemoData:Enabled", DemoDataEnabled ? "true" : "false");
+        foreach (var setting in Settings)
+        {
+            builder.UseSetting(setting.Key, setting.Value);
+        }
 
         builder.ConfigureServices(services =>
         {

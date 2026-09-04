@@ -13,12 +13,14 @@ public sealed class RiskEvaluationConfiguration : IEntityTypeConfiguration<RiskE
             "risk_evaluations",
             table =>
             {
+                // Both narrowed in E6: the external lifecycle moved to its own table, so a row
+                // here can only be a local evaluation and a local evaluation always has an answer.
                 table.HasCheckConstraint(
                     "ck_risk_evaluations_source",
-                    "source IN ('LOCAL', 'EXTERNAL_MOCK', 'KOIN_SANDBOX')");
+                    "source = 'LOCAL'");
                 table.HasCheckConstraint(
                     "ck_risk_evaluations_status",
-                    "status IN ('PENDING', 'APPROVED', 'DENIED', 'ERROR')");
+                    "status IN ('APPROVED', 'DENIED')");
                 table.HasCheckConstraint(
                     "ck_risk_evaluations_score",
                     "score IS NULL OR (score >= 0 AND score <= 100)");
@@ -65,12 +67,6 @@ public sealed class RiskEvaluationConfiguration : IEntityTypeConfiguration<RiskE
         builder.Property(evaluation => evaluation.EvaluationFingerprint)
             .HasColumnName("evaluation_fingerprint")
             .HasMaxLength(RiskEvaluationFingerprint.Length);
-        builder.Property(evaluation => evaluation.ExternalEvaluationId)
-            .HasColumnName("external_evaluation_id")
-            .HasMaxLength(128);
-        builder.Property(evaluation => evaluation.ErrorCode)
-            .HasColumnName("error_code")
-            .HasMaxLength(64);
         builder.Property(evaluation => evaluation.CreatedAt)
             .HasColumnName("created_at_utc")
             .HasConversion<UtcDateTimeOffsetConverter>()
@@ -79,9 +75,9 @@ public sealed class RiskEvaluationConfiguration : IEntityTypeConfiguration<RiskE
 
         builder.Ignore(evaluation => evaluation.IsFlagged);
 
-        // Partial unique index: content identity is defined only for locally produced evaluations.
-        // An external evaluation carries no fingerprint and its lifecycle is mutable, so it must not
-        // be constrained by this index.
+        // Partial unique index. The filter is redundant with the source check today, and it stays:
+        // it is what documents that content identity is a property of a locally produced
+        // evaluation, and removing it is a schema change no behaviour of this stage needs.
         builder.HasIndex(evaluation => evaluation.EvaluationFingerprint)
             .IsUnique()
             .HasFilter("source = 'LOCAL'")

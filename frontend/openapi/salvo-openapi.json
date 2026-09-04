@@ -422,6 +422,196 @@
         }
       }
     },
+    "/api/orders/{orderId}/external-evaluations": {
+      "post": {
+        "tags": [
+          "External evaluations"
+        ],
+        "description": "Asks an external provider to evaluate the order. Idempotent: when the order already has an evaluation the existing one is returned with 'applied' false, so a repeated request neither creates a second evaluation on the provider side nor changes anything here. 'requestNew' asks for another evaluation anyway, and is allowed only when the current one ended in ERROR. A provider failure is not a server error for the console: the row settles in ERROR or stays PENDING and the response is 200 with that row.",
+        "operationId": "RequestExternalEvaluation",
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RequestExternalEvaluationRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestExternalEvaluationResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "External evaluations"
+        ],
+        "description": "The external evaluation history of the order, oldest first. An order may accumulate several over time; only one of them is ever waiting for an answer.",
+        "operationId": "ListOrderExternalEvaluations",
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderExternalEvaluationsResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/external-evaluations/{id}": {
+      "get": {
+        "tags": [
+          "External evaluations"
+        ],
+        "operationId": "GetExternalEvaluation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalEvaluationView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/external-evaluations:reconcile": {
+      "post": {
+        "tags": [
+          "External evaluations"
+        ],
+        "description": "Asks the provider again about every evaluation still waiting for an answer, and applies whatever it says. Explicit and manual, like the scoring run: this system has no background jobs and no automatic retries. Each evaluation is saved on its own, so one that another writer moved first is reported in 'conflicted' without rolling back the rest.",
+        "operationId": "ReconcileExternalEvaluations",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSummary"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/dashboard": {
       "get": {
         "tags": [
@@ -1380,6 +1570,100 @@
           }
         }
       },
+      "ExternalEvaluationView": {
+        "required": [
+          "id",
+          "orderId",
+          "provider",
+          "referenceId",
+          "externalEvaluationId",
+          "status",
+          "score",
+          "errorCode",
+          "lastErrorCode",
+          "attemptCount",
+          "settledBy",
+          "requestedAt",
+          "updatedAt",
+          "settledAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "orderId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "referenceId": {
+            "type": "string"
+          },
+          "externalEvaluationId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "score": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "errorCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lastErrorCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "attemptCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "settledBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "requestedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "settledAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
       "HealthResponse": {
         "required": [
           "status",
@@ -1597,6 +1881,25 @@
           }
         }
       },
+      "OrderExternalEvaluationsResult": {
+        "required": [
+          "orderId",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExternalEvaluationView"
+            }
+          }
+        }
+      },
       "OrderListItem": {
         "required": [
           "id",
@@ -1704,6 +2007,99 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "ReconciliationSummary": {
+        "required": [
+          "examined",
+          "settled",
+          "stillPending",
+          "failed",
+          "conflicted",
+          "reconciledAt"
+        ],
+        "type": "object",
+        "properties": {
+          "examined": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "settled": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "stillPending": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "failed": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "conflicted": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "reconciledAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "RequestExternalEvaluationRequest": {
+        "required": [
+          "provider",
+          "requestNew"
+        ],
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "requestNew": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        }
+      },
+      "RequestExternalEvaluationResult": {
+        "required": [
+          "applied",
+          "evaluation"
+        ],
+        "type": "object",
+        "properties": {
+          "applied": {
+            "type": "boolean"
+          },
+          "evaluation": {
+            "$ref": "#/components/schemas/ExternalEvaluationView"
           }
         }
       },
@@ -1947,6 +2343,9 @@
     },
     {
       "name": "Alerts"
+    },
+    {
+      "name": "External evaluations"
     },
     {
       "name": "Dashboard"

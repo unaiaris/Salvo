@@ -5,11 +5,11 @@ namespace Salvo.Domain.Risk;
 /// the type therefore exposes no public mutator.
 /// </summary>
 /// <remarks>
-/// For <see cref="RiskEvaluationSource.Local"/> the identity of the row is its
-/// <see cref="EvaluationFingerprint"/>, so an unchanged corpus and rule configuration reuse the
-/// existing row instead of appending a duplicate. Other sources leave the fingerprint,
-/// the score, the signals and the rule configuration version null; their lifecycle is decided when
-/// the external provider is implemented.
+/// The identity of the row is its <see cref="EvaluationFingerprint"/>, so an unchanged corpus and
+/// rule configuration reuse the existing row instead of appending a duplicate. Every row is
+/// <see cref="RiskEvaluationSource.Local"/>: the mutable lifecycle of an external provider lives in
+/// <c>ExternalEvaluation</c>, in its own table and with its own types. <see cref="Source"/> stays a
+/// column because it is part of the material the fingerprint hashes.
 /// </remarks>
 public sealed class RiskEvaluation
 {
@@ -26,8 +26,6 @@ public sealed class RiskEvaluation
         RiskEvaluationStatus status,
         string? signalsJson,
         string? evaluationFingerprint,
-        string? externalEvaluationId,
-        string? errorCode,
         DateTimeOffset createdAt)
     {
         Id = id;
@@ -38,8 +36,6 @@ public sealed class RiskEvaluation
         Status = status;
         SignalsJson = signalsJson;
         EvaluationFingerprint = evaluationFingerprint;
-        ExternalEvaluationId = externalEvaluationId;
-        ErrorCode = errorCode;
         CreatedAt = createdAt;
     }
 
@@ -58,10 +54,6 @@ public sealed class RiskEvaluation
     public string? SignalsJson { get; private set; }
 
     public string? EvaluationFingerprint { get; private set; }
-
-    public string? ExternalEvaluationId { get; private set; }
-
-    public string? ErrorCode { get; private set; }
 
     public DateTimeOffset CreatedAt { get; private set; }
 
@@ -106,8 +98,6 @@ public sealed class RiskEvaluation
             assessment.IsFlagged ? RiskEvaluationStatus.Denied : RiskEvaluationStatus.Approved,
             signalsCanonical,
             fingerprint,
-            externalEvaluationId: null,
-            errorCode: null,
             createdAt.ToUniversalTime());
     }
 

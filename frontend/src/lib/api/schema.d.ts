@@ -149,6 +149,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/orders/{orderId}/external-evaluations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The external evaluation history of the order, oldest first. An order may accumulate several over time; only one of them is ever waiting for an answer. */
+        get: operations["ListOrderExternalEvaluations"];
+        put?: never;
+        /** @description Asks an external provider to evaluate the order. Idempotent: when the order already has an evaluation the existing one is returned with 'applied' false, so a repeated request neither creates a second evaluation on the provider side nor changes anything here. 'requestNew' asks for another evaluation anyway, and is allowed only when the current one ended in ERROR. A provider failure is not a server error for the console: the row settles in ERROR or stays PENDING and the response is 200 with that row. */
+        post: operations["RequestExternalEvaluation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/external-evaluations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetExternalEvaluation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/external-evaluations:reconcile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Asks the provider again about every evaluation still waiting for an answer, and applies whatever it says. Explicit and manual, like the scoring run: this system has no background jobs and no automatic retries. Each evaluation is saved on its own, so one that another writer moved first is reported in 'conflicted' without rolling back the rest. */
+        post: operations["ReconcileExternalEvaluations"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dashboard": {
         parameters: {
             query?: never;
@@ -402,6 +453,29 @@ export interface components {
             /** Format: double */
             flagRate: null | number | string;
         };
+        ExternalEvaluationView: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            orderId: string;
+            provider: string;
+            referenceId: string;
+            externalEvaluationId: null | string;
+            status: string;
+            /** Format: int32 */
+            score: null | number | string;
+            errorCode: null | string;
+            lastErrorCode: null | string;
+            /** Format: int32 */
+            attemptCount: number | string;
+            settledBy: null | string;
+            /** Format: date-time */
+            requestedAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: date-time */
+            settledAt: null | string;
+        };
         HealthResponse: {
             status: string;
             service: string;
@@ -450,6 +524,11 @@ export interface components {
             /** Format: int32 */
             totalCount: number | string;
         };
+        OrderExternalEvaluationsResult: {
+            /** Format: uuid */
+            orderId: string;
+            items: components["schemas"]["ExternalEvaluationView"][];
+        };
         OrderListItem: {
             /** Format: uuid */
             id: string;
@@ -475,6 +554,28 @@ export interface components {
             status?: null | number | string;
             detail?: null | string;
             instance?: null | string;
+        };
+        ReconciliationSummary: {
+            /** Format: int32 */
+            examined: number | string;
+            /** Format: int32 */
+            settled: number | string;
+            /** Format: int32 */
+            stillPending: number | string;
+            /** Format: int32 */
+            failed: number | string;
+            /** Format: int32 */
+            conflicted: number | string;
+            /** Format: date-time */
+            reconciledAt: string;
+        };
+        RequestExternalEvaluationRequest: {
+            provider: null | string;
+            requestNew: null | boolean;
+        };
+        RequestExternalEvaluationResult: {
+            applied: boolean;
+            evaluation: components["schemas"]["ExternalEvaluationView"];
         };
         ReviewAlertRequest: {
             newStatus: null | string;
@@ -826,6 +927,150 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListOrderExternalEvaluations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderExternalEvaluationsResult"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RequestExternalEvaluation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["RequestExternalEvaluationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestExternalEvaluationResult"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetExternalEvaluation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExternalEvaluationView"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ReconcileExternalEvaluations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationSummary"];
                 };
             };
             /** @description Conflict */

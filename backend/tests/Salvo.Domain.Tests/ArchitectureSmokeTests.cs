@@ -1,6 +1,7 @@
 using Salvo.Domain;
 using Salvo.Domain.Alerts;
 using Salvo.Domain.Evaluation;
+using Salvo.Domain.External;
 using Salvo.Domain.Risk;
 
 namespace Salvo.Domain.Tests;
@@ -49,6 +50,7 @@ public sealed class ArchitectureSmokeTests
             typeof(RiskEvaluation),
             typeof(ScoringRun),
             typeof(RunEvaluation),
+            typeof(ExternalEvaluation),
             typeof(Alert),
             typeof(AlertReview),
         })
