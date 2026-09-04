@@ -1,6 +1,6 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: Etapa 6 aprobada. `E6A-PROVEEDOR` pendiente de brief y de acuerdo de modelo
+> Estado: Etapa 6 en curso. `E6A-PROVEEDOR` asignada y pendiente de ejecución
 > Última actualización: 2026-09-02
 > Responsable: coordinador de la etapa
 
@@ -14,13 +14,16 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 
 ## Trabajo activo
 
-No hay tareas activas ni paths reservados.
+| Work ID | Etapa | Objetivo | Propietario | Estado | Rama | Base | Paths reservados | Dependencias | Actualizado |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| E6A-PROVEEDOR | 6 | Entidad externa, puerto, mock determinista, reserva en dos fases, degradación y reconciliación | Claude | Asignada | `claude/e6a-proveedor` | commit de `main` que incorpora el brief | `backend/src/Salvo.Domain/External/**`, `backend/src/Salvo.Application/External/**`, `backend/src/Salvo.Infrastructure/**`, `backend/src/Salvo.Api/**`, `backend/tests/**`, y solo `frontend/openapi/salvo-openapi.json` y `frontend/src/lib/api/schema.d.ts` | — | 2026-09-04 |
+
+Modelo y esfuerzo acordados para `E6A-PROVEEDOR`: Opus 5 · `high`.
 
 ## Cola próxima
 
 | Work ID | Etapa | Objetivo | Dependencias |
 | --- | --- | --- | --- |
-| E6A-PROVEEDOR | 6 | Entidad externa, puerto, mock determinista, reserva en dos fases, degradación y reconciliación | — |
 | E6B-CALLBACK-UI | 6 | Recibos, callback autenticado, vinculación tardía, disparador de demo y superficie en la consola | `E6A` integrada |
 
 Notas para los briefs de la Etapa 6:
