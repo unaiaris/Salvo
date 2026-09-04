@@ -31,6 +31,12 @@ Candidatas registradas para la Etapa 8, acordadas con el usuario:
   —monto atípico desde país extranjero—: las 18 alertas llevan `amount_anomaly` y `foreign_country`,
   y tres de las seis reglas nunca abren una alerta. Además `score ≥ 60 ⇔ isFraudLabel`, por lo que
   F1 vale 1,00 y las métricas prueban el pipeline, no el criterio.
+  Verificado el 2026-09-04 importando escenarios a mano: `velocity`, `cross_border_velocity` y
+  `unusual_hour` sí funcionan, y la banda `ALTA` también, pero el corpus no las alcanza. En
+  particular `unusual_hour` es **estructuralmente inalcanzable** con esta fixture: exige una franja
+  de seis horas con ≤10% de los pedidos del comercio en treinta días, y la franja más rara de los
+  tres comercios está en 13,8%. Una fixture enriquecida debería cubrir las seis reglas y las tres
+  bandas.
 - Pasada de accesibilidad con lector de pantalla real.
 - Traducir los códigos de error de fila que hoy caen al inglés (`describeRecordError`).
 
