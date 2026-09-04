@@ -231,7 +231,36 @@ Diseño aprobado para E3:
 - Estados vacíos, carga y error accesibles. Hay tres estados vacíos distintos: sin pedidos, con
   pedidos y sin corrida, y con corrida y sin alertas abiertas.
 
-### 4.5 Evaluación
+### 4.5 Evaluación externa
+
+- La evaluación de un proveedor externo es una **entidad propia**, `ExternalEvaluation`, con ciclo
+  de vida mutable. No comparte tabla ni tipos con la evaluación local, que es append-only.
+- La fila se **reserva y se persiste antes** de llamar al proveedor, con la referencia del pedido.
+  Así el único parcial serializa las solicitudes concurrentes cuando todavía no hay nada del lado
+  del proveedor.
+- La correlación es **doble**: por `externalEvaluationId` y, si falta, por `referenceId`.
+- Un fallo posterior al envío —timeout, `5xx`, respuesta ilegible— **no cierra** la evaluación:
+  queda `PENDING` con `lastErrorCode`. Solo la cierran los fallos previos al envío y los rechazos
+  definitivos del proveedor.
+
+Tabla de transiciones:
+
+| Origen | Mensaje | Efecto | Recibo | HTTP |
+| --- | --- | --- | --- | --- |
+| `PENDING` | terminal | Transiciona, con `settledAt` y `settledBy` | `APPLIED` | 200 |
+| `PENDING` | `PENDING` | `lastErrorCode` si aplica | `NO_OP` | 200 |
+| Terminal | el mismo terminal | Ninguno | `NO_OP` | 200 |
+| Terminal | `PENDING` | Ninguno: llegó fuera de orden | `SUPERSEDED` | 200 |
+| Terminal | otro terminal | Ninguno: el proveedor se contradice | `CONFLICTING` | 200 |
+| — | sin fila correlacionable | Ninguno | `UNMATCHED` | 202 |
+
+- El recibo y la transición se persisten en una **única** unidad de trabajo.
+- La evaluación externa **no abre alertas**. El proveedor opina; el comercio decide.
+- La divergencia entre el criterio local y el externo se **expone**, con las dos procedencias. Los
+  scores no se comparan numéricamente entre sí: son escalas de sistemas distintos.
+- La reconciliación es explícita y manual, como la corrida de scoring.
+
+### 4.6 Evaluación
 
 - Ground truth disponible solo en fixtures/seed y excluido de todas las features.
 - Matriz TP/FP/FN/TN.
@@ -250,8 +279,9 @@ durante onboarding.
 ### 5.1 Lo que demuestra el MVP sin afirmar integración oficial
 
 - Contrato de proveedor externo detrás de una interfaz.
-- `referenceId` estable por pedido.
-- `externalEvaluationId` para correlación.
+- `referenceId` estable por pedido, escrito antes de llamar al proveedor.
+- `externalEvaluationId` para correlación, cuando el proveedor lo asigna.
+- Correlación **doble**: por identificador externo y, si falta o todavía no llegó, por referencia.
 - Estados externos separados: `PENDING`, `APPROVED`, `DENIED`, `ERROR`.
 - Respuesta `received` tratada como pendiente.
 - Callback idempotente y replay-safe.
@@ -269,12 +299,19 @@ public interface IAntifraudProvider
         CancellationToken cancellationToken);
 
     Task<ExternalEvaluationResult> GetStatusAsync(
-        string externalEvaluationId,
+        ExternalEvaluationLookup lookup,
         CancellationToken cancellationToken);
 }
 ```
 
-- `MockAntifraudProvider`: obligatorio en el MVP, determinista y sin red.
+`ExternalEvaluationLookup` lleva `ExternalEvaluationId` nullable y `ReferenceId`. Consultar solo por
+identificador no permite reconciliar una evaluación cuyo identificador nunca llegó, que es
+justamente el caso que la reconciliación existe para resolver.
+
+- `MockAntifraudProvider`: obligatorio en el MVP, determinista y sin red. Su resultado se deriva de
+  una función documentada de la referencia del pedido, con bandas declaradas, para que quien escriba
+  la fixture controle la distribución.
+- `KOIN_MODE=sandbox` **falla al arrancar** mientras no se cumplan los requisitos de §5.3.
 - `KoinSandboxProvider`: posterior y activado solo si existen credenciales y contrato verificado.
 
 El adaptador real deberá consultar el OpenAPI vigente. No se copiarán tipos manualmente desde
@@ -357,13 +394,35 @@ recibe como feature.
 
 - `id`
 - `orderId`
-- `source`: `LOCAL | EXTERNAL_MOCK | KOIN_SANDBOX`
-- `score` nullable para proveedores que no lo devuelvan
-- `status`: `PENDING | APPROVED | DENIED | ERROR`
-- `signalsJson` solo para evaluación local
-- `externalEvaluationId` nullable
-- `errorCode` sanitizado nullable
+- `source`: `LOCAL`. Permanece como columna porque forma parte del material que se hashea en el
+  fingerprint; quitarla invalidaría todas las evaluaciones existentes
+- `score`
+- `status`: `APPROVED | DENIED`
+- `signalsJson`
+- `evaluationFingerprint`
+- `ruleConfigVersion`
 - timestamps
+
+Es **append-only** y sin mutadores públicos. La evaluación de un proveedor externo **no** vive acá:
+tiene naturaleza incompatible —mutable, reintentable, con identificadores de correlación— y vive en
+`ExternalEvaluation`.
+
+### ExternalEvaluation
+
+- `id`, `orderId`
+- `provider`: `EXTERNAL_MOCK | KOIN_SANDBOX`
+- `referenceId`: la referencia estable del pedido, escrita en la reserva
+- `externalEvaluationId` nullable
+- `status`: `PENDING | APPROVED | DENIED | ERROR`, y token de concurrencia
+- `score` nullable
+- `errorCode` sanitizado, solo con `status = ERROR`
+- `lastErrorCode`: fallo arrastrado por una fila que sigue `PENDING`
+- `attemptCount`: sondeos de reconciliación
+- `settledBy`: `SYNC | CALLBACK | RECONCILIATION`
+- `requestedAt`, `updatedAt`, `settledAt` nullable
+
+Único parcial de `(orderId, provider)` mientras `status = 'PENDING'`: un pedido puede tener varias
+evaluaciones externas a lo largo del tiempo, pero solo una esperando respuesta.
 
 ### Alert
 
@@ -382,11 +441,15 @@ recibe como feature.
 
 - `id`
 - `provider`
-- `deduplicationKey` único o hash estable
-- `externalEvaluationId`
-- `receivedAt`
-- `processedAt`
-- `status`
+- `deduplicationKey`, único junto con `provider`. Texto canónico
+  `provider|externalEvaluationId|status|providerInstant`; nunca incluye el instante de recepción
+- `externalEvaluationId` nullable, `referenceId` nullable
+- `status`: `APPLIED | NO_OP | SUPERSEDED | CONFLICTING | UNMATCHED`
+- `replayCount`, `lastSeenAt`
+- `receivedAt`, `processedAt` nullable
+
+No existe un estado `DUPLICATE`: un duplicado es la **ausencia** de una segunda fila, detectada por
+violación de unicidad. El recibo y la transición se persisten juntos.
 
 No se persiste el payload externo completo si contiene PII. Para debug se usan fixtures sintéticos
 y logs redactados.
@@ -452,6 +515,7 @@ KOIN_PRIVATE_KEY=""
 KOIN_ORG_ID=""
 KOIN_STORE_CODE=""
 KOIN_CALLBACK_URL=""
+KOIN_CALLBACK_SHARED_SECRET=
 ```
 
 `.env.example` contiene nombres y valores seguros. `.env` nunca se versiona. Ninguna clave usa
@@ -612,6 +676,13 @@ completo el MVP local.
 | 41 | Las rutas de datos se declaran dinámicas y el build debe pasar sin API levantada | Next.js prerenderiza en build y congelaría un estado de error como HTML estático | 2026-09-03 |
 | 42 | Los componentes cliente reciben primitivas; ningún objeto de API cruza la frontera servidor–cliente | En React Server Components toda prop de un componente cliente se serializa entera en el HTML | 2026-09-03 |
 | 43 | El gráfico del dashboard es SVG renderizado en el servidor; Recharts sale del stack | Una librería de gráficos obliga a componente cliente y reabre la superficie que cierra la decisión 42 | 2026-09-03 |
+| 44 | La evaluación externa es una entidad propia, con tipos propios, y no comparte tabla ni enumeración con la evaluación local | Una es función pura del corpus, idempotente y con identidad de contenido; la otra es una conversación mutable con un sistema remoto. Compartir tabla es la mezcla que el producto declara no hacer | 2026-09-04 |
+| 45 | La fila de evaluación externa se reserva y se persiste antes de llamar al proveedor | Sin reserva, dos solicitudes concurrentes crean dos evaluaciones en el proveedor, y un callback previo al commit queda huérfano para siempre | 2026-09-04 |
+| 46 | La correlación del callback es doble: por identificador externo y por referencia del pedido | El identificador no existe hasta que el proveedor responde, y hay estados en los que nunca llega | 2026-09-04 |
+| 47 | Un fallo posterior al envío no cierra la evaluación externa; la cierra la reconciliación | Un timeout es indeterminado: cerrar en `ERROR` pierde el veredicto real y duplica la evaluación en el proveedor | 2026-09-04 |
+| 48 | El recibo del callback y la transición se persisten en una única unidad de trabajo | Si el recibo sobrevive a una transición fallida, el reintento se ve como duplicado y la transición se pierde para siempre | 2026-09-04 |
+| 49 | El disparador de callback de la demo es un endpoint de la API bajo bandera; el cliente elige qué evaluación, nunca qué estado | Un botón que compone el payload deja cerrar cualquier evaluación pendiente en el estado elegido, y obligaría a sacar el secreto de la API | 2026-09-04 |
+| 50 | La evaluación externa no abre alertas y su score no se compara numéricamente con el local | El proveedor opina y el comercio decide; dos escalas de sistemas distintos no son comparables | 2026-09-04 |
 
 ## 14. Mapa de documentación
 

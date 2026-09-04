@@ -1,6 +1,6 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: Etapa 5 completa. Cinco etapas integradas y verificadas; Etapa 6 sin iniciar
+> Estado: Etapa 6 aprobada. `E6A-PROVEEDOR` pendiente de brief y de acuerdo de modelo
 > Última actualización: 2026-09-02
 > Responsable: coordinador de la etapa
 
@@ -18,8 +18,20 @@ No hay tareas activas ni paths reservados.
 
 ## Cola próxima
 
-No hay tareas en cola. La Etapa 6 —proveedor antifraude mock— no se inicia sin aprobación explícita
-del usuario, y requiere diseño y revisión adversarial previos, como las Etapas 4 y 5.
+| Work ID | Etapa | Objetivo | Dependencias |
+| --- | --- | --- | --- |
+| E6A-PROVEEDOR | 6 | Entidad externa, puerto, mock determinista, reserva en dos fases, degradación y reconciliación | — |
+| E6B-CALLBACK-UI | 6 | Recibos, callback autenticado, vinculación tardía, disparador de demo y superficie en la consola | `E6A` integrada |
+
+Notas para los briefs de la Etapa 6:
+
+- **Copia de `salvo.db` antes de migrar.** EF ejecuta `PRAGMA foreign_keys = 0` fuera de transacción.
+- Artefactos que la etapa obliga a tocar: `RiskEvaluationIdentityTests` (dos aserciones se caen),
+  `ArchitectureSmokeTests`, `OpenApiDriftTests` con recaptura, `frontend/openapi/salvo-openapi.json`
+  y `schema.d.ts`, `messages.ts` y su test, las fixtures del frontend, `boundary.test.ts` y los
+  textos de `scripts/smoke-ui.sh`.
+- Verificar el estado canónico antes de declararlo pendiente.
+- Reservar `backend/tests/**` y, en `E6B`, `frontend/**` y `scripts/**`.
 
 Candidatas registradas para la Etapa 8, acordadas con el usuario:
 

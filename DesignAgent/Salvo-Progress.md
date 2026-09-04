@@ -9,10 +9,10 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado del proyecto | Etapa 5 — UI y dashboard, completada y verificada |
+| Estado del proyecto | Etapa 6 — Proveedor antifraude externo, diseñada y aprobada |
 | Etapa completada | Etapa 5 — UI y dashboard |
 | Próxima etapa | Etapa 6 — Proveedor antifraude mock |
-| Estado de la próxima etapa | Pendiente de diseño y de aprobación explícita del usuario |
+| Estado de la próxima etapa | Aprobada; se ejecuta en `E6A-PROVEEDOR` y `E6B-CALLBACK-UI` |
 | Bloqueo actual | Ninguno |
 | Dependencias externas | Ninguna para el núcleo local |
 | Anthropic | Previsto para después del núcleo |
@@ -41,7 +41,7 @@ Solo puede existir una etapa `En curso` a la vez.
 | 3 | Motor determinista | Completada | Tests por regla + métricas sin fuga | Merge `809ff75` + 42 tests .NET + compuerta verde en `main` |
 | 4 | Alertas y casos de uso | Completada | Idempotencia + consistencia transaccional | Merges `1d9ee83` y `c35878b`; 109 tests .NET; compuerta verde en `main`; corpus demo con 18 alertas (13 `MEDIUM`, 5 `CRITICAL`) verificado contra la base |
 | 5 | UI y dashboard | Completada | Recorrido completo y estados vacíos/error | Merges `5f48db0`, `278e100` y el de `E5C`; 129 tests .NET y 153 de frontend; `check.sh` y `smoke-ui.sh` verdes sobre `main` (21 comprobaciones, 0 fallas) |
-| 6 | Proveedor antifraude mock | Pendiente | Estados y callbacks replay-safe | Pendiente |
+| 6 | Proveedor antifraude mock | En curso | Callbacks duplicados sin efectos repetidos y pendientes que finalizan | Diseño v2 aprobado; decisiones 44–50 |
 | 7 | Explicabilidad | Pendiente | Funciona sin red; Anthropic opcional | Pendiente |
 | 8 | Calidad y portfolio | Pendiente | Instalación limpia + demo reproducible | Pendiente |
 | Post-MVP | Koin sandbox, auth, observabilidad, deploy | Pendiente | Aprobación independiente por capacidad | Pendiente |
@@ -293,6 +293,10 @@ tercera. Etapa 5 permanece pendiente: requiere diseño, brief y autorización in
 | 2026-09-03 | 5 | Inicio de E5C-IMPORT-DASHBOARD | Brief y rama `claude/e5c-import-dashboard` desde `bb4cf62`; Opus 5 · high acordado tras recomendar Sonnet | En curso |
 | 2026-09-03 | 5 | Importación con corrida, dashboard con SVG de servidor, test de deriva de OpenAPI y smoke de recorrido | Cinco commits; 129 tests .NET y 153 de frontend; smoke falsado de tres maneras y test de deriva falsado dos veces | Lista para integrar |
 | 2026-09-03 | 5 | Integración y cierre de la Etapa 5 | Merge de `claude/e5c-import-dashboard` + `./scripts/check.sh` y `./scripts/smoke-ui.sh` verdes sobre `main`: 21 comprobaciones, 0 fallas | Completada |
+| 2026-09-04 | 5 | Prueba manual de importación en los dos formatos | Cuatro caminos cubiertos: importado, duplicado, rechazado por registro y por documento. Las seis reglas del motor dispararon en datos reales y aparecieron las tres bandas de severidad | Completada |
+| 2026-09-04 | Preparación E6 | Diseño v1 de la Etapa 6 | Entidad separada, máquina de estados, callback replay-safe | Superado por la v2 |
+| 2026-09-04 | Preparación E6 | Revisión adversarial del diseño con Fable 5.1 · `xhigh` | 15 hallazgos, 4 de severidad alta; la pregunta sobre la migración se respondió ejecutándola sobre una copia de la base | Completada |
+| 2026-09-04 | Preparación E6 | Diseño v2 con los quince hallazgos incorporados y partición en E6A/E6B | Aprobación del usuario + decisiones 44–50; §4.5, §5.1, §5.2, §7 y §9 del Blueprint corregidos | Aprobada |
 
 ## Protocolo de actualización
 

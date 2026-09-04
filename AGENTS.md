@@ -38,7 +38,12 @@ cambia alcance o arquitectura, actualizar primero su bitácora y después los do
   `scripts/check.sh`: se ejecuta tras cada integración de etapa, junto con la compuerta.
 - El gráfico del dashboard es SVG de servidor. Ningún componente del dashboard es de cliente y
   `boundary.test.ts` exige que su lista de cruces servidor–cliente sea vacía.
-- No iniciar la Etapa 6 sin petición o aprobación explícita del usuario.
+- Etapa 6 aprobada por el usuario y en curso. Se ejecuta en dos ítems: `E6A-PROVEEDOR` y
+  `E6B-CALLBACK-UI`, en ese orden y con la anterior integrada.
+- Las decisiones de diseño de la Etapa 6 son las entradas 44 a 50 de la bitácora del Blueprint. El
+  diseño v2 y su revisión adversarial viven en `Coordination/Tasks/E6-DISENO.md` y
+  `Coordination/Tasks/E6-revision-adversarial.md`.
+- No iniciar la Etapa 7 sin petición o aprobación explícita del usuario.
 - Ningún componente cliente recibe objetos de la API: solo primitivas. Las guardas de
   `frontend/src/lib/api/guards.ts` proyectan, nunca comprueban sobre el mismo objeto.
 - Las rutas de datos declaran `dynamic = 'force-dynamic'`. El build debe pasar con la API apagada.
@@ -48,7 +53,12 @@ cambia alcance o arquitectura, actualizar primero su bitácora y después los do
 - El dashboard operativo no lee `OrderEvaluationLabel` por ningún camino, ni directo ni indirecto.
   La calidad del criterio es otra superficie, tras `DemoData:Enabled`.
 - Ninguna lectura de estado vigente consulta `risk_evaluations.status` a secas: siempre vía
-  `run_evaluations` de la corrida vigente.
+  `run_evaluations` de la corrida vigente. La regla se conserva aunque la evaluación externa viva en
+  otra tabla: `risk_evaluations` acumula historia y solo la corrida vigente define qué está vigente.
+- La evaluación externa vive en `ExternalEvaluation`, con tipos propios en `Salvo.Domain/External/`.
+  No comparte tabla ni enumeración con `RiskEvaluation`, que es append-only y siempre `LOCAL`.
+- Una fila de evaluación externa se reserva y se persiste **antes** de llamar al proveedor.
+- Un fallo posterior al envío deja la fila en `PENDING` con `lastErrorCode`; no la cierra.
 - Las decisiones de diseño de la Etapa 4 son las entradas 28 a 36 de la bitácora del Blueprint. El
   diseño y su revisión adversarial viven en `Coordination/Tasks/E4-DISENO.md` y
   `Coordination/Tasks/E4-revision-adversarial.md`.
