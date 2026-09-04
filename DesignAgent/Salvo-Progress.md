@@ -9,10 +9,10 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado del proyecto | Etapa 6 — Proveedor antifraude externo, en curso; `E6A` integrada |
-| Etapa completada | Etapa 5 — UI y dashboard |
-| Próxima etapa | Etapa 6 — Proveedor antifraude mock |
-| Estado de la próxima etapa | Aprobada; se ejecuta en `E6A-PROVEEDOR` y `E6B-CALLBACK-UI` |
+| Estado del proyecto | Etapa 6 — Proveedor antifraude externo, completada y verificada |
+| Etapa completada | Etapa 6 — Proveedor antifraude externo |
+| Próxima etapa | Etapa 7 — Explicabilidad |
+| Estado de la próxima etapa | Pendiente de diseño y de aprobación explícita del usuario |
 | Bloqueo actual | Ninguno |
 | Dependencias externas | Ninguna para el núcleo local |
 | Anthropic | Previsto para después del núcleo |
@@ -41,7 +41,7 @@ Solo puede existir una etapa `En curso` a la vez.
 | 3 | Motor determinista | Completada | Tests por regla + métricas sin fuga | Merge `809ff75` + 42 tests .NET + compuerta verde en `main` |
 | 4 | Alertas y casos de uso | Completada | Idempotencia + consistencia transaccional | Merges `1d9ee83` y `c35878b`; 109 tests .NET; compuerta verde en `main`; corpus demo con 18 alertas (13 `MEDIUM`, 5 `CRITICAL`) verificado contra la base |
 | 5 | UI y dashboard | Completada | Recorrido completo y estados vacíos/error | Merges `5f48db0`, `278e100` y el de `E5C`; 129 tests .NET y 153 de frontend; `check.sh` y `smoke-ui.sh` verdes sobre `main` (21 comprobaciones, 0 fallas) |
-| 6 | Proveedor antifraude mock | En curso | Callbacks duplicados sin efectos repetidos y pendientes que finalizan | Diseño v2 aprobado; decisiones 44–50 |
+| 6 | Proveedor antifraude mock | Completada | Callbacks duplicados sin efectos repetidos y pendientes que finalizan | Merges `bca2c46` y `a412693`; 196 tests .NET y 172 de frontend; compuerta y smoke verdes (29 comprobaciones) |
 | 7 | Explicabilidad | Pendiente | Funciona sin red; Anthropic opcional | Pendiente |
 | 8 | Calidad y portfolio | Pendiente | Instalación limpia + demo reproducible | Pendiente |
 | Post-MVP | Koin sandbox, auth, observabilidad, deploy | Pendiente | Aprobación independiente por capacidad | Pendiente |
@@ -202,6 +202,15 @@ tercera. Etapa 5 permanece pendiente: requiere diseño, brief y autorización in
 
 ### Etapa 6 — Proveedor externo mock
 
+- [x] Entidad externa separada, con tipos propios.
+- [x] Reserva en dos fases antes de llamar al proveedor.
+- [x] Mock determinista con bandas declaradas.
+- [x] Degradación: un fallo posterior al envío no cierra la evaluación.
+- [x] Reconciliación explícita.
+- [x] Callback autenticado, replay-safe y con transiciones monótonas.
+- [x] Vinculación tardía de recibos sin correlación.
+- [x] Superficie en la consola con la divergencia expuesta.
+
 - [ ] Implementar `IAntifraudProvider`.
 - [ ] Escenarios `approved`, `denied` y `received`.
 - [ ] Correlación por referencias.
@@ -300,6 +309,9 @@ tercera. Etapa 5 permanece pendiente: requiere diseño, brief y autorización in
 | 2026-09-04 | 6 | Inicio de E6A-PROVEEDOR | Brief y rama `claude/e6a-proveedor` desde `8d5faf7`; Opus 5 · high acordado | En curso |
 | 2026-09-04 | 6 | Entidad externa, migración, mock determinista, reserva en dos fases y reconciliación | Cinco commits; 160 tests .NET; falsación del test de concurrencia y del diferencial documentadas | Lista para integrar |
 | 2026-09-04 | 6 | Integración y verificación canónica de E6A | Merge `bca2c46` + `check.sh` y `smoke-ui.sh` verdes sobre `main`; los 328 fingerprints recalculados desde el material original coinciden con los almacenados | Completada |
+| 2026-09-04 | 6 | Inicio de E6B-CALLBACK-UI | Brief y rama `claude/e6b-callback-ui` desde `d5da100`; Opus 5 · high acordado | En curso |
+| 2026-09-04 | 6 | Recibos, callback autenticado, vinculación tardía, disparador de demo y superficie en la consola | Seis commits; 196 tests .NET y 172 de frontend; smoke de 21 a 29 comprobaciones; falsación del callback previo al commit y del test de frontera | Lista para integrar |
+| 2026-09-04 | 6 | Integración y cierre de la Etapa 6 | Merge `a412693` + `check.sh` y `smoke-ui.sh` verdes sobre `main`: 29 comprobaciones, 0 fallas | Completada |
 
 ## Protocolo de actualización
 

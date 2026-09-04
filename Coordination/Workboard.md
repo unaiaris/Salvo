@@ -1,6 +1,6 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: Etapa 6 en curso. `E6B-CALLBACK-UI` asignada; es el último ítem de la etapa
+> Estado: Etapa 6 completa. Seis etapas integradas y verificadas; Etapa 7 sin iniciar
 > Última actualización: 2026-09-02
 > Responsable: coordinador de la etapa
 
@@ -14,16 +14,9 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 
 ## Trabajo activo
 
-| Work ID | Etapa | Objetivo | Propietario | Estado | Rama | Base | Paths reservados | Dependencias | Actualizado |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| E6B-CALLBACK-UI | 6 | Recibos, callback autenticado, vinculación tardía, disparador de demo y superficie en la consola | Claude | Asignada | `claude/e6b-callback-ui` | commit de `main` que incorpora el brief | `backend/src/Salvo.Domain/External/**`, `backend/src/Salvo.Application/**`, `backend/src/Salvo.Infrastructure/**`, `backend/src/Salvo.Api/**`, `backend/tests/**`, `frontend/**`, `scripts/**` | `E6A-PROVEEDOR` integrada | 2026-09-04 |
-
-Modelo y esfuerzo acordados para `E6B-CALLBACK-UI`: Opus 5 · `high`.
+No hay tareas activas ni paths reservados.
 
 ## Cola próxima
-
-| Work ID | Etapa | Objetivo | Dependencias |
-| --- | --- | --- | --- |
 
 Notas para los briefs de la Etapa 6:
 
@@ -74,6 +67,7 @@ Candidatas registradas para la Etapa 8, acordadas con el usuario:
 | E5B-ALERTAS-UI | 5 | Cliente tipado, feed de alertas, detalle y revisión | Claude | Verificada | Merge `278e100`, 97 tests de frontend y 127 .NET, compuerta verde sobre `main`; build con la API apagada y recorrido manual de `/alerts` con datos reales |
 | E5C-IMPORT-DASHBOARD | 5 | Importación con corrida, dashboard con SVG de servidor, test de deriva de OpenAPI y smoke de recorrido | Claude | Verificada | 129 tests .NET y 153 de frontend; `check.sh` y `smoke-ui.sh` verdes sobre `main`, 21 comprobaciones y 0 fallas; smoke falsado de tres maneras y test de deriva falsado dos veces |
 | E6A-PROVEEDOR | 6 | Entidad externa, puerto, mock determinista, reserva en dos fases, degradación y reconciliación | Claude | Verificada | Merge `bca2c46`, 160 tests .NET, compuerta y smoke verdes sobre `main`; falsación del test de concurrencia y del diferencial documentadas; fingerprints recalculados e idénticos |
+| E6B-CALLBACK-UI | 6 | Recibos, callback autenticado, vinculación tardía, disparador de demo y superficie en la consola | Claude | Verificada | Merge `a412693`, 196 tests .NET y 172 de frontend, compuerta y smoke verdes sobre `main` con 29 comprobaciones; falsación del callback previo al commit y del test de frontera documentadas |
 
 ## Plantilla de fila activa
 

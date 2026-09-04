@@ -38,9 +38,14 @@ cambia alcance o arquitectura, actualizar primero su bitácora y después los do
   `scripts/check.sh`: se ejecuta tras cada integración de etapa, junto con la compuerta.
 - El gráfico del dashboard es SVG de servidor. Ningún componente del dashboard es de cliente y
   `boundary.test.ts` exige que su lista de cruces servidor–cliente sea vacía.
-- Etapa 6 aprobada por el usuario y en curso. Se ejecuta en dos ítems: `E6A-PROVEEDOR`, integrada
-  en `main` mediante `bca2c46` y verificada con la compuerta y el smoke, y `E6B-CALLBACK-UI`,
-  pendiente.
+- Etapa 6 completada. Se ejecutó en dos ítems: `E6A-PROVEEDOR` (`bca2c46`) y `E6B-CALLBACK-UI`
+  (`a412693`), ambos verificados con la compuerta y el smoke.
+- El recibo de un callback y la transición que provoca se persisten en una única unidad de trabajo.
+  Un duplicado es la ausencia de una segunda fila, detectada por violación de unicidad.
+- El endpoint de callback falla cerrado: sin secreto configurado, `401` a toda petición.
+- El disparador de callback de la demo no acepta un estado del cliente. Elige qué evaluación, nunca
+  qué resultado.
+- No iniciar la Etapa 7 sin petición o aprobación explícita del usuario.
 - `risk_evaluations` está restringida a `source = 'LOCAL'` y `status IN ('APPROVED','DENIED')` a
   nivel de base. Cualquier estado externo va en `external_evaluations`.
 - La taxonomía de fallo del proveedor vive en un solo lugar, `ExternalProviderExchange`: ningún
