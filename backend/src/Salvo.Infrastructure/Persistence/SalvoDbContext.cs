@@ -21,6 +21,8 @@ public sealed class SalvoDbContext(DbContextOptions<SalvoDbContext> options) : D
 
     public DbSet<ExternalEvaluation> ExternalEvaluations => Set<ExternalEvaluation>();
 
+    public DbSet<CallbackReceipt> CallbackReceipts => Set<CallbackReceipt>();
+
     public DbSet<Alert> Alerts => Set<Alert>();
 
     public DbSet<AlertReview> AlertReviews => Set<AlertReview>();
