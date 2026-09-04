@@ -5,7 +5,12 @@ import { fetchCapabilities, fetchDashboard } from "@/lib/api/console";
 import { IMPORT_MAX_FILE_BYTES } from "@/lib/api/contract";
 import { formatCount } from "@/lib/format";
 import { ActionSection } from "./action-section";
-import { RunScoringButton, SeedDemoButton } from "./corpus-actions";
+import {
+  DeliverCallbacksButton,
+  RequestCorpusExternalButton,
+  RunScoringButton,
+  SeedDemoButton,
+} from "./corpus-actions";
 import { ImportForm } from "./import-form";
 
 /**
@@ -88,6 +93,24 @@ export default async function ImportPage() {
       >
         <RunScoringButton />
       </ActionSection>
+
+      {capabilities.ok && capabilities.value.externalCallbackTriggerEnabled && (
+        <ActionSection
+          title="Proveedor antifraude externo"
+          description={
+            "Una segunda opinión sobre cada pedido, de un proveedor externo simulado. El detalle de "
+            + "una alerta permite pedirla de a un pedido; acá se pide para el corpus entero, que es "
+            + "lo único que alcanza a los pedidos que nunca abrieron una alerta. Entregar los "
+            + "callbacks simula la respuesta que el proveedor mandaría por su cuenta: quien lo pulsa "
+            + "elige qué evaluación, nunca qué responde el proveedor. Repetirlo no repite efectos."
+          }
+        >
+          <div className="flex flex-col gap-6">
+            <RequestCorpusExternalButton />
+            <DeliverCallbacksButton />
+          </div>
+        </ActionSection>
+      )}
     </div>
   );
 }
@@ -125,7 +148,7 @@ function CorpusStatus({
       ) : (
         <p className="mt-2 text-sm leading-6 text-slate-600">
           {run === null
-            ? "No hay pedidos pendientes porque todavía no hay ninguno en la base."
+            ? "No hay pedidos sin puntuar porque todavía no hay ninguno en la base."
             : "Todos los pedidos de la base están cubiertos por la corrida vigente."}
         </p>
       )}

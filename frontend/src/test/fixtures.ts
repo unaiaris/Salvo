@@ -69,6 +69,7 @@ export function wireAlertDetail(overrides: WirePayload = {}): WirePayload {
       currentScore: 100,
       currentSeverity: "CRITICAL",
     },
+    externalEvaluation: wireExternalEvaluation(),
     review: null,
     ...overrides,
   };
@@ -133,7 +134,27 @@ export function problemResponse(status: number, code: string, detail: string): R
 }
 
 export function wireCapabilities(overrides: WirePayload = {}): WirePayload {
-  return { demoDataEnabled: true, ...overrides };
+  return { demoDataEnabled: true, externalCallbackTriggerEnabled: true, ...overrides };
+}
+
+/**
+ * The provider's opinion on an order. Denied by default and paired with a flagged local evaluation,
+ * so the two criteria agree unless a test asks them not to.
+ */
+export function wireExternalEvaluation(overrides: WirePayload = {}): WirePayload {
+  return {
+    id: "5f5b7f3e-0000-4000-8000-000000000005",
+    provider: "EXTERNAL_MOCK",
+    status: "DENIED",
+    score: 71,
+    errorCode: null,
+    lastErrorCode: null,
+    settledBy: "CALLBACK",
+    requestedAt: "2026-09-03T10:00:00+00:00",
+    settledAt: "2026-09-03T10:00:02+00:00",
+    hasContradictoryCallback: false,
+    ...overrides,
+  };
 }
 
 export function wireDashboard(overrides: WirePayload = {}): WirePayload {

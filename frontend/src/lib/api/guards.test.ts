@@ -272,9 +272,14 @@ describe("guardas del dashboard, las métricas y la importación", () => {
   });
 
   it("proyecta las capacidades y rechaza una bandera que no es booleana", () => {
-    expect(projectCapabilities(wireCapabilities({ demoDataEnabled: false }))).toEqual({
-      demoDataEnabled: false,
-    });
+    expect(
+      projectCapabilities(
+        wireCapabilities({ demoDataEnabled: false, externalCallbackTriggerEnabled: false }),
+      ),
+    ).toEqual({ demoDataEnabled: false, externalCallbackTriggerEnabled: false });
     expect(projectCapabilities(wireCapabilities({ demoDataEnabled: "true" }))).toBeNull();
+    expect(
+      projectCapabilities(wireCapabilities({ externalCallbackTriggerEnabled: "true" })),
+    ).toBeNull();
   });
 });

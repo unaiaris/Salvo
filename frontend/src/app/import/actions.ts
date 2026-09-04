@@ -2,6 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { importOrders, runScoring, seedDemoOrders } from "@/lib/api/console";
+import {
+  deliverExternalCallbacks,
+  requestCorpusExternalEvaluations,
+} from "@/lib/api/external";
 import { IMPORT_FORMATS, type ImportFormat, type ImportRecordError } from "@/lib/api/contract";
 import type { ApiFailure } from "@/lib/api/failures";
 import { describeFailure } from "@/lib/api/messages";
@@ -154,6 +158,103 @@ export async function executeScoringRun(previous: ActionState): Promise<ActionSt
       `Alertas abiertas: ${formatCount(run.alertsCreated)}`,
       `Omitidas por tener ya una alerta abierta: ${formatCount(run.alertsSkippedOpen)}`,
       `Omitidas por tener ya un veredicto: ${formatCount(run.alertsSkippedReviewed)}`,
+    ],
+    submissionId,
+  };
+}
+
+/**
+ * Asks the provider about every order it has never seen.
+ *
+ * This is the only place the orders without an alert can get an external opinion: the alert detail
+ * only reaches the ones that produced an alert, and stage 6 deliberately adds no orders screen. It
+ * lives here, behind the demo flag, for the same reason the seed does.
+ */
+export async function requestCorpusExternal(previous: ActionState): Promise<ActionState> {
+  const submissionId = previous.submissionId + 1;
+  const result = await requestCorpusExternalEvaluations();
+
+  if (!result.ok) {
+    return failed(result.failure, submissionId);
+  }
+
+  revalidateConsole();
+  const summary = result.value;
+
+  return {
+    ...INITIAL_ACTION_STATE,
+    outcome: "done",
+    title:
+      summary.requested === 0
+        ? "El proveedor ya conocía todos los pedidos"
+        : `Se consultaron ${formatCount(summary.requested)} pedidos`,
+    body:
+      "Cada pedido pasa por el mismo caso de uso que una consulta suelta: la fila se reserva antes "
+      + "de llamar al proveedor, así que dos consultas simultáneas no crean dos evaluaciones del "
+      + "lado del proveedor.",
+    recovery:
+      summary.stillPending === 0
+        ? "El veredicto de cada pedido aparece en el detalle de su alerta."
+        : "Los que siguen esperando al proveedor se cierran entregando sus callbacks o reconciliando.",
+    facts: [
+      `Pedidos sin evaluación externa: ${formatCount(summary.examined)}`,
+      `Consultados: ${formatCount(summary.requested)}`,
+      `Con veredicto en el acto: ${formatCount(summary.settled)}`,
+      `Esperando al proveedor: ${formatCount(summary.stillPending)}`,
+      `Omitidos, ya tenían evaluación: ${formatCount(summary.skipped)}`,
+    ],
+    submissionId,
+  };
+}
+
+/**
+ * Delivers the callback of every evaluation still waiting for the provider.
+ *
+ * The console never composes a callback and never holds the shared secret: it asks the API, and the
+ * API asks the provider what it would have sent. Repeating it is harmless by construction — the
+ * deduplication key of a redelivered message is the same one, so the second press is recorded as a
+ * replay instead of doing anything twice.
+ */
+export async function deliverAllCallbacks(previous: ActionState): Promise<ActionState> {
+  const submissionId = previous.submissionId + 1;
+  const result = await deliverExternalCallbacks(null);
+
+  if (!result.ok) {
+    return failed(result.failure, submissionId);
+  }
+
+  revalidateConsole();
+  const delivery = result.value;
+
+  // A delivery where every message was already recorded is a replay, not a second round of effects,
+  // and reporting it as "delivered N" would claim work that deliberately did not happen.
+  const allReplayed = delivery.delivered > 0 && delivery.replayed === delivery.delivered;
+
+  return {
+    ...INITIAL_ACTION_STATE,
+    outcome: "done",
+    title:
+      delivery.examined === 0
+        ? "No hay ninguna evaluación externa esperando al proveedor"
+        : allReplayed
+          ? `Los ${formatCount(delivery.delivered)} callbacks ya se habían recibido`
+          : `Se entregaron ${formatCount(delivery.delivered)} callbacks`,
+    body: allReplayed
+      ? "Cada mensaje es idéntico a uno ya registrado, así que no se repitió ningún efecto: se anotó "
+        + "que el proveedor los volvió a enviar y nada más."
+      : "Los callbacks entran por el mismo caso de uso que usaría el proveedor: mismo recibo, misma "
+        + "deduplicación, mismas reglas de transición. Quien pulsa elige qué evaluación, nunca qué "
+        + "responde el proveedor.",
+    recovery:
+      delivery.examined === 0
+        ? "Solicitá evaluaciones externas del corpus para que haya algo que entregar."
+        : "El veredicto del proveedor aparece en el detalle de cada alerta.",
+    facts: [
+      `Evaluaciones esperando al proveedor: ${formatCount(delivery.examined)}`,
+      `Callbacks entregados: ${formatCount(delivery.delivered)}`,
+      `Cerraron con veredicto: ${formatCount(delivery.settled)}`,
+      `Ya se habían recibido: ${formatCount(delivery.replayed)}`,
+      `No se pudieron escribir por concurrencia: ${formatCount(delivery.unavailable)}`,
     ],
     submissionId,
   };

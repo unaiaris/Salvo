@@ -1,7 +1,12 @@
 "use client";
 
 import { useActionState } from "react";
-import { executeScoringRun, seedDemoCorpus } from "./actions";
+import {
+  deliverAllCallbacks,
+  executeScoringRun,
+  requestCorpusExternal,
+  seedDemoCorpus,
+} from "./actions";
 import { ActionOutcome } from "./action-outcome";
 import { INITIAL_ACTION_STATE } from "./action-state";
 
@@ -59,6 +64,58 @@ export function RunScoringButton() {
           unos segundos.
         </p>
       )}
+      <ActionOutcome state={state} />
+    </form>
+  );
+}
+
+/**
+ * The two demo actions of the external provider.
+ *
+ * They exist here rather than on an orders screen because most orders never produce an alert, and
+ * the alert detail is the only other place an evaluation can be asked for. Neither button composes a
+ * callback or holds a secret: the first asks the API to consult the provider, and the second asks
+ * the API to deliver what the provider would have sent.
+ */
+export function RequestCorpusExternalButton() {
+  const [state, formAction, pending] = useActionState(requestCorpusExternal, INITIAL_ACTION_STATE);
+
+  return (
+    <form action={formAction} className="flex flex-col gap-4">
+      <div>
+        <button
+          type="submit"
+          disabled={pending}
+          className="inline-flex rounded-md border border-violet-700 px-4 py-2 text-sm font-semibold text-violet-900 disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400 hover:bg-violet-700 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-900"
+        >
+          {pending ? "Consultando al proveedor…" : "Solicitar evaluación externa del corpus"}
+        </button>
+      </div>
+      {pending && (
+        <p className="text-sm text-slate-600">
+          Se consulta pedido por pedido, reservando la fila antes de llamar. En un corpus de
+          trescientos pedidos tarda unos segundos.
+        </p>
+      )}
+      <ActionOutcome state={state} />
+    </form>
+  );
+}
+
+export function DeliverCallbacksButton() {
+  const [state, formAction, pending] = useActionState(deliverAllCallbacks, INITIAL_ACTION_STATE);
+
+  return (
+    <form action={formAction} className="flex flex-col gap-4">
+      <div>
+        <button
+          type="submit"
+          disabled={pending}
+          className="inline-flex rounded-md border border-violet-700 px-4 py-2 text-sm font-semibold text-violet-900 disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400 hover:bg-violet-700 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-900"
+        >
+          {pending ? "Entregando callbacks…" : "Entregar los callbacks del proveedor"}
+        </button>
+      </div>
       <ActionOutcome state={state} />
     </form>
   );

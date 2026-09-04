@@ -53,7 +53,30 @@ const CONSOLE_CODES = [
   "METRICS_UNAVAILABLE",
 ] as const;
 
-const API_CODES = [...ALERT_CODES, ...CONSOLE_CODES] as const;
+/**
+ * What the external provider surface can be answered with: the conflicts of
+ * `ExternalEvaluationEndpoints.cs`, the rejections of `ExternalCallbackEndpoints.cs`, and the not
+ * found of `ExternalDemoEndpoints.cs`.
+ *
+ * The callback codes are here even though this console never sends a callback — it has no secret and
+ * never composes one. They are listed because the catalogue is about what the API can emit, and a
+ * proxy or a future stage reaching one of them should not land on "algo salió mal".
+ */
+const EXTERNAL_CODES = [
+  "EXTERNAL_EVALUATION_PENDING",
+  "EXTERNAL_EVALUATION_SETTLED",
+  "EXTERNAL_EVALUATION_CONFLICT",
+  "EXTERNAL_EVALUATION_NOT_FOUND",
+  "PROVIDER_NOT_REGISTERED",
+  "INVALID_PROVIDER",
+  "RECONCILIATION_CONFLICT",
+  "CALLBACK_UNAUTHORIZED",
+  "CALLBACK_UNAVAILABLE",
+  "INVALID_CALLBACK",
+  "CALLBACK_TOO_LARGE",
+] as const;
+
+const API_CODES = [...ALERT_CODES, ...CONSOLE_CODES, ...EXTERNAL_CODES] as const;
 
 function problem(code: string, status = 409): ApiFailure {
   return { kind: "problem", status, code, detail: "detalle técnico de la API" };

@@ -13,6 +13,7 @@ import {
   wireCapabilities,
   wireDashboard,
   wireEvaluationMetrics,
+  wireExternalEvaluation,
 } from "./fixtures";
 import {
   clientComponentFiles,
@@ -57,7 +58,32 @@ function contaminatedDetail(): Record<string, unknown> {
   detail.currentEvaluation = { ...evaluation, ...INTRUDERS };
   detail.divergence = { ...(detail.divergence as Record<string, unknown>), ...INTRUDERS };
 
+  // The external block is the third object on this page and the newest, so it is contaminated like
+  // the rest: a sub-object added for stage 6 must not become the one place unknown fields ride
+  // through. Denied against a flagged local evaluation, so the divergence notice renders too.
+  detail.externalEvaluation = {
+    ...wireExternalEvaluation({ status: "PENDING", settledAt: null, settledBy: null, score: null }),
+    ...INTRUDERS,
+  };
+
   return detail;
+}
+
+/**
+ * The detail page reads two endpoints. Answering both with the alert would make the capabilities
+ * projection fail and quietly hide the demo trigger, which is one of the client components this
+ * check exists to look at.
+ */
+function contaminateDetailRoutes(): void {
+  fetchMock.mockImplementation((url: URL) =>
+    Promise.resolve(
+      jsonResponse(
+        url.pathname === "/api/system/capabilities"
+          ? wireCapabilities({ ...INTRUDERS })
+          : contaminatedDetail(),
+      ),
+    ),
+  );
 }
 
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -86,7 +112,7 @@ describe("frontera servidor–cliente", () => {
   });
 
   it("no pasa ningún objeto a un componente cliente desde el detalle", async () => {
-    fetchMock.mockResolvedValue(jsonResponse(contaminatedDetail()));
+    contaminateDetailRoutes();
 
     const crossings = await crossingsOf(
       AlertDetailPage({ params: Promise.resolve({ id: "2f2b7f3e-0000-4000-8000-000000000002" }) }),
@@ -105,7 +131,7 @@ describe("frontera servidor–cliente", () => {
   });
 
   it("ningún campo desconocido de la API cruza la frontera ni llega al render", async () => {
-    fetchMock.mockResolvedValue(jsonResponse(contaminatedDetail()));
+    contaminateDetailRoutes();
 
     const tree = await AlertDetailPage({
       params: Promise.resolve({ id: "2f2b7f3e-0000-4000-8000-000000000002" }),

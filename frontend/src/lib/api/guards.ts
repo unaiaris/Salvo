@@ -3,6 +3,7 @@ import type {
   Capabilities,
   AlertDivergence,
   AlertEvaluation,
+  AlertExternalEvaluation,
   AlertList,
   AlertListItem,
   AlertOrder,
@@ -10,7 +11,9 @@ import type {
   AlertReviewOutcome,
   AlertSignal,
   AlertSnapshot,
+  CallbackDelivery,
   ConfusionMatrix,
+  CorpusExternalEvaluations,
   Dashboard,
   DashboardAmountAtRisk,
   DashboardOpenAlerts,
@@ -20,6 +23,7 @@ import type {
   DashboardSeverityCount,
   DashboardSignal,
   EvaluationMetrics,
+  ExternalEvaluationRequest,
   ImportRecordError,
   ImportResult,
   MetricsFigures,
@@ -451,6 +455,59 @@ export function projectAlertList(value: unknown): AlertList | null {
   return { items, page, pageSize, totalCount, scoringRunSequence, currentRun };
 }
 
+/**
+ * The provider's opinion, projected like everything else.
+ *
+ * `score` is kept because the block shows it with the provider's name attached, never beside the
+ * local 0–100: the two are different scales of different systems and putting them side by side would
+ * invite an arithmetic nobody can defend.
+ */
+export function projectExternalEvaluation(value: unknown): AlertExternalEvaluation | null {
+  const raw = asRecord(value);
+  if (raw === null) {
+    return null;
+  }
+
+  const id = text(raw.id);
+  const provider = text(raw.provider);
+  const status = text(raw.status);
+  const score = nullableInteger(raw.score);
+  const errorCode = nullableText(raw.errorCode);
+  const lastErrorCode = nullableText(raw.lastErrorCode);
+  const settledBy = nullableText(raw.settledBy);
+  const requestedAt = instant(raw.requestedAt);
+  const settledAt = nullableInstant(raw.settledAt);
+  const hasContradictoryCallback = flag(raw.hasContradictoryCallback);
+
+  if (
+    id === null ||
+    provider === null ||
+    status === null ||
+    score === undefined ||
+    errorCode === undefined ||
+    lastErrorCode === undefined ||
+    settledBy === undefined ||
+    requestedAt === null ||
+    settledAt === undefined ||
+    hasContradictoryCallback === null
+  ) {
+    return null;
+  }
+
+  return {
+    id,
+    provider,
+    status,
+    score,
+    errorCode,
+    lastErrorCode,
+    settledBy,
+    requestedAt,
+    settledAt,
+    hasContradictoryCallback,
+  };
+}
+
 export function projectAlertDetail(value: unknown): AlertDetail | null {
   const raw = asRecord(value);
   if (raw === null) {
@@ -470,6 +527,7 @@ export function projectAlertDetail(value: unknown): AlertDetail | null {
   const currentEvaluation = projectNullable(raw.currentEvaluation, projectEvaluation);
   const currentRun = projectNullable(raw.currentRun, projectScoringRun);
   const divergence = projectDivergence(raw.divergence);
+  const externalEvaluation = projectNullable(raw.externalEvaluation, projectExternalEvaluation);
   const review = projectNullable(raw.review, projectReview);
 
   if (
@@ -486,6 +544,7 @@ export function projectAlertDetail(value: unknown): AlertDetail | null {
     currentEvaluation === undefined ||
     currentRun === undefined ||
     divergence === null ||
+    externalEvaluation === undefined ||
     review === undefined
   ) {
     return null;
@@ -505,6 +564,7 @@ export function projectAlertDetail(value: unknown): AlertDetail | null {
     currentEvaluation,
     currentRun,
     divergence,
+    externalEvaluation,
     review,
   };
 }
@@ -547,8 +607,148 @@ export function projectCapabilities(value: unknown): Capabilities | null {
   }
 
   const demoDataEnabled = flag(raw.demoDataEnabled);
+  const externalCallbackTriggerEnabled = flag(raw.externalCallbackTriggerEnabled);
 
-  return demoDataEnabled === null ? null : { demoDataEnabled };
+  if (demoDataEnabled === null || externalCallbackTriggerEnabled === null) {
+    return null;
+  }
+
+  return { demoDataEnabled, externalCallbackTriggerEnabled };
+}
+
+export function projectExternalEvaluationRequest(
+  value: unknown,
+): ExternalEvaluationRequest | null {
+  const raw = asRecord(value);
+  if (raw === null) {
+    return null;
+  }
+
+  const applied = flag(raw.applied);
+  const evaluation = projectRequestedEvaluation(raw.evaluation);
+
+  if (applied === null || evaluation === null) {
+    return null;
+  }
+
+  return { applied, evaluation };
+}
+
+/**
+ * The full external evaluation view, as the request endpoint answers it. Wider than the sub-object
+ * of the alert detail — it carries the correlation identifiers — and projected separately for that
+ * reason rather than pretending the two shapes are one.
+ */
+function projectRequestedEvaluation(
+  value: unknown,
+): ExternalEvaluationRequest["evaluation"] | null {
+  const raw = asRecord(value);
+  if (raw === null) {
+    return null;
+  }
+
+  const id = text(raw.id);
+  const orderId = text(raw.orderId);
+  const provider = text(raw.provider);
+  const referenceId = text(raw.referenceId);
+  const externalEvaluationId = nullableText(raw.externalEvaluationId);
+  const status = text(raw.status);
+  const score = nullableInteger(raw.score);
+  const errorCode = nullableText(raw.errorCode);
+  const lastErrorCode = nullableText(raw.lastErrorCode);
+  const attemptCount = integer(raw.attemptCount);
+  const settledBy = nullableText(raw.settledBy);
+  const requestedAt = instant(raw.requestedAt);
+  const updatedAt = instant(raw.updatedAt);
+  const settledAt = nullableInstant(raw.settledAt);
+
+  if (
+    id === null ||
+    orderId === null ||
+    provider === null ||
+    referenceId === null ||
+    externalEvaluationId === undefined ||
+    status === null ||
+    score === undefined ||
+    errorCode === undefined ||
+    lastErrorCode === undefined ||
+    attemptCount === null ||
+    settledBy === undefined ||
+    requestedAt === null ||
+    updatedAt === null ||
+    settledAt === undefined
+  ) {
+    return null;
+  }
+
+  return {
+    id,
+    orderId,
+    provider,
+    referenceId,
+    externalEvaluationId,
+    status,
+    score,
+    errorCode,
+    lastErrorCode,
+    attemptCount,
+    settledBy,
+    requestedAt,
+    updatedAt,
+    settledAt,
+  };
+}
+
+export function projectCallbackDelivery(value: unknown): CallbackDelivery | null {
+  const raw = asRecord(value);
+  if (raw === null) {
+    return null;
+  }
+
+  const examined = integer(raw.examined);
+  const delivered = integer(raw.delivered);
+  const settled = integer(raw.settled);
+  const replayed = integer(raw.replayed);
+  const unavailable = integer(raw.unavailable);
+
+  if (
+    examined === null ||
+    delivered === null ||
+    settled === null ||
+    replayed === null ||
+    unavailable === null
+  ) {
+    return null;
+  }
+
+  return { examined, delivered, settled, replayed, unavailable };
+}
+
+export function projectCorpusExternalEvaluations(
+  value: unknown,
+): CorpusExternalEvaluations | null {
+  const raw = asRecord(value);
+  if (raw === null) {
+    return null;
+  }
+
+  const examined = integer(raw.examined);
+  const requested = integer(raw.requested);
+  const settled = integer(raw.settled);
+  const stillPending = integer(raw.stillPending);
+  const skipped = integer(raw.skipped);
+
+  if (
+    examined === null ||
+    requested === null ||
+    settled === null ||
+    stillPending === null ||
+    skipped === null
+  ) {
+    return null;
+  }
+
+  return { examined, requested, settled, stillPending, skipped };
 }
 
 function projectDashboardRun(value: unknown): DashboardScoringRun | null {
