@@ -1,6 +1,6 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: Etapa 6 en curso. `E6A-PROVEEDOR` asignada y pendiente de ejecución
+> Estado: Etapa 6 en curso. `E6A-PROVEEDOR` integrada y verificada; `E6B-CALLBACK-UI` pendiente de brief
 > Última actualización: 2026-09-02
 > Responsable: coordinador de la etapa
 
@@ -14,11 +14,7 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 
 ## Trabajo activo
 
-| Work ID | Etapa | Objetivo | Propietario | Estado | Rama | Base | Paths reservados | Dependencias | Actualizado |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| E6A-PROVEEDOR | 6 | Entidad externa, puerto, mock determinista, reserva en dos fases, degradación y reconciliación | Claude | Asignada | `claude/e6a-proveedor` | commit de `main` que incorpora el brief | `backend/src/Salvo.Domain/External/**`, `backend/src/Salvo.Application/External/**`, `backend/src/Salvo.Infrastructure/**`, `backend/src/Salvo.Api/**`, `backend/tests/**`, y solo `frontend/openapi/salvo-openapi.json` y `frontend/src/lib/api/schema.d.ts` | — | 2026-09-04 |
-
-Modelo y esfuerzo acordados para `E6A-PROVEEDOR`: Opus 5 · `high`.
+No hay tareas activas ni paths reservados.
 
 ## Cola próxima
 
@@ -74,6 +70,7 @@ Candidatas registradas para la Etapa 8, acordadas con el usuario:
 | E5A-API-LECTURA | 5 | Superficie de lectura: dashboard, métricas, capacidades y orden del feed | Claude | Verificada | Merge `5f48db0`, 127 tests .NET, compuerta verde sobre `main`; falsación del test diferencial documentada y agregados verificados contra `salvo.db` |
 | E5B-ALERTAS-UI | 5 | Cliente tipado, feed de alertas, detalle y revisión | Claude | Verificada | Merge `278e100`, 97 tests de frontend y 127 .NET, compuerta verde sobre `main`; build con la API apagada y recorrido manual de `/alerts` con datos reales |
 | E5C-IMPORT-DASHBOARD | 5 | Importación con corrida, dashboard con SVG de servidor, test de deriva de OpenAPI y smoke de recorrido | Claude | Verificada | 129 tests .NET y 153 de frontend; `check.sh` y `smoke-ui.sh` verdes sobre `main`, 21 comprobaciones y 0 fallas; smoke falsado de tres maneras y test de deriva falsado dos veces |
+| E6A-PROVEEDOR | 6 | Entidad externa, puerto, mock determinista, reserva en dos fases, degradación y reconciliación | Claude | Verificada | Merge `bca2c46`, 160 tests .NET, compuerta y smoke verdes sobre `main`; falsación del test de concurrencia y del diferencial documentadas; fingerprints recalculados e idénticos |
 
 ## Plantilla de fila activa
 

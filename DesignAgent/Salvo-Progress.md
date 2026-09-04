@@ -9,7 +9,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado del proyecto | Etapa 6 — Proveedor antifraude externo, diseñada y aprobada |
+| Estado del proyecto | Etapa 6 — Proveedor antifraude externo, en curso; `E6A` integrada |
 | Etapa completada | Etapa 5 — UI y dashboard |
 | Próxima etapa | Etapa 6 — Proveedor antifraude mock |
 | Estado de la próxima etapa | Aprobada; se ejecuta en `E6A-PROVEEDOR` y `E6B-CALLBACK-UI` |
@@ -297,6 +297,9 @@ tercera. Etapa 5 permanece pendiente: requiere diseño, brief y autorización in
 | 2026-09-04 | Preparación E6 | Diseño v1 de la Etapa 6 | Entidad separada, máquina de estados, callback replay-safe | Superado por la v2 |
 | 2026-09-04 | Preparación E6 | Revisión adversarial del diseño con Fable 5.1 · `xhigh` | 15 hallazgos, 4 de severidad alta; la pregunta sobre la migración se respondió ejecutándola sobre una copia de la base | Completada |
 | 2026-09-04 | Preparación E6 | Diseño v2 con los quince hallazgos incorporados y partición en E6A/E6B | Aprobación del usuario + decisiones 44–50; §4.5, §5.1, §5.2, §7 y §9 del Blueprint corregidos | Aprobada |
+| 2026-09-04 | 6 | Inicio de E6A-PROVEEDOR | Brief y rama `claude/e6a-proveedor` desde `8d5faf7`; Opus 5 · high acordado | En curso |
+| 2026-09-04 | 6 | Entidad externa, migración, mock determinista, reserva en dos fases y reconciliación | Cinco commits; 160 tests .NET; falsación del test de concurrencia y del diferencial documentadas | Lista para integrar |
+| 2026-09-04 | 6 | Integración y verificación canónica de E6A | Merge `bca2c46` + `check.sh` y `smoke-ui.sh` verdes sobre `main`; los 328 fingerprints recalculados desde el material original coinciden con los almacenados | Completada |
 
 ## Protocolo de actualización
 

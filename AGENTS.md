@@ -38,8 +38,13 @@ cambia alcance o arquitectura, actualizar primero su bitácora y después los do
   `scripts/check.sh`: se ejecuta tras cada integración de etapa, junto con la compuerta.
 - El gráfico del dashboard es SVG de servidor. Ningún componente del dashboard es de cliente y
   `boundary.test.ts` exige que su lista de cruces servidor–cliente sea vacía.
-- Etapa 6 aprobada por el usuario y en curso. Se ejecuta en dos ítems: `E6A-PROVEEDOR` y
-  `E6B-CALLBACK-UI`, en ese orden y con la anterior integrada.
+- Etapa 6 aprobada por el usuario y en curso. Se ejecuta en dos ítems: `E6A-PROVEEDOR`, integrada
+  en `main` mediante `bca2c46` y verificada con la compuerta y el smoke, y `E6B-CALLBACK-UI`,
+  pendiente.
+- `risk_evaluations` está restringida a `source = 'LOCAL'` y `status IN ('APPROVED','DENIED')` a
+  nivel de base. Cualquier estado externo va en `external_evaluations`.
+- La taxonomía de fallo del proveedor vive en un solo lugar, `ExternalProviderExchange`: ningún
+  adaptador decide por su cuenta si un fallo cierra la evaluación.
 - Las decisiones de diseño de la Etapa 6 son las entradas 44 a 50 de la bitácora del Blueprint. El
   diseño v2 y su revisión adversarial viven en `Coordination/Tasks/E6-DISENO.md` y
   `Coordination/Tasks/E6-revision-adversarial.md`.
