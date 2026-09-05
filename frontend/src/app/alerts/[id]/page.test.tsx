@@ -1,7 +1,12 @@
 import { render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { jsonResponse, problemResponse, wireAlertDetail } from "@/test/fixtures";
+import {
+  jsonResponse,
+  problemResponse,
+  wireAlertDetail,
+  wireExplanation,
+} from "@/test/fixtures";
 import { renderableServerTree } from "@/test/server-tree";
 import AlertDetailPage from "./page";
 
@@ -133,6 +138,26 @@ describe("detalle de la alerta", () => {
     expect(screen.getByText(/Coincide con el patrón de la semana pasada/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Registrar veredicto/i })).not.toBeInTheDocument();
     expect(screen.getByText(/Nada reabre una alerta revisada/i)).toBeInTheDocument();
+  });
+
+  /**
+   * The seam itself: `ReviewPanel` is where the `AlertDetail` stops, so it is the only place that
+   * can read the explanation's id and hand the form a string. A page that shows a written
+   * explanation and a form that records no id would be exactly the ambiguity D10 exists to remove.
+   */
+  it("el formulario de revisión lleva el id de la explicación que se muestra", async () => {
+    const { container } = await renderDetail({ explanation: wireExplanation() });
+
+    expect(container.querySelector('input[name="explanationId"]')).toHaveValue(
+      "6f6b7f3e-0000-4000-8000-000000000006",
+    );
+  });
+
+  it("sin explicación el campo viaja vacío y el formulario funciona igual", async () => {
+    const { container } = await renderDetail();
+
+    expect(container.querySelector('input[name="explanationId"]')).toHaveValue("");
+    expect(screen.getByRole("button", { name: /Registrar veredicto/i })).toBeInTheDocument();
   });
 
   it("una alerta inexistente ofrece volver al feed", async () => {
