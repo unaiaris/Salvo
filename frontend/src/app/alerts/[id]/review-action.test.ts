@@ -23,11 +23,18 @@ function submission({
   newStatus = "CONFIRMED_SAFE",
   note = "",
   acknowledged = false,
-}: { newStatus?: string; note?: string; acknowledged?: boolean } = {}): FormData {
+  explanationId = "",
+}: {
+  newStatus?: string;
+  note?: string;
+  acknowledged?: boolean;
+  explanationId?: string;
+} = {}): FormData {
   const form = new FormData();
   form.set("alertId", ALERT_ID);
   form.set("newStatus", newStatus);
   form.set("note", note);
+  form.set("explanationId", explanationId);
   if (acknowledged) {
     form.set("acknowledgedDivergence", "on");
   }
@@ -123,6 +130,35 @@ describe("acción de revisión", () => {
 
     expect(first.submissionId).toBe(1);
     expect(second.submissionId).toBe(2);
+  });
+
+  /**
+   * D10 again, on the other half: what the form sent has to reach the API as it stands. An empty
+   * field is `null` and not `""` — the column is a foreign key, and the absence of an explanation is
+   * a fact worth storing as an absence.
+   */
+  it("manda el id de la explicación que estaba en pantalla", async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ applied: true, alert: wireAlertDetail() }));
+
+    await reviewAlert(
+      INITIAL_REVIEW_STATE,
+      submission({ explanationId: "6f6b7f3e-0000-4000-8000-000000000006" }),
+    );
+
+    const [, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
+    expect(JSON.parse(String(init.body)).explanationId).toBe(
+      "6f6b7f3e-0000-4000-8000-000000000006",
+    );
+  });
+
+  it("sin explicación manda null, y la revisión se aplica igual", async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ applied: true, alert: wireAlertDetail() }));
+
+    const state = await reviewAlert(INITIAL_REVIEW_STATE, submission());
+
+    const [, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
+    expect(JSON.parse(String(init.body)).explanationId).toBeNull();
+    expect(state.outcome).toBe("applied");
   });
 
   it("una API caída durante el envío no rompe la acción", async () => {

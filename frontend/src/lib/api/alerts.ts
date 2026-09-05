@@ -58,6 +58,14 @@ export interface ReviewSubmission {
   readonly newStatus: string;
   readonly note: string | null;
   readonly acknowledgedDivergence: boolean;
+  /**
+   * The explanation the reviewer had in front of them, or `null` when there was none.
+   *
+   * Never a requirement: a verdict is emitted with or without an explanation, and the field only
+   * records which one was on screen. Without it, a review formed while the explanation was still
+   * being written and one formed after reading it are indistinguishable forever.
+   */
+  readonly explanationId: string | null;
 }
 
 export async function submitAlertReview(
@@ -71,6 +79,7 @@ export async function submitAlertReview(
       newStatus: submission.newStatus,
       note: submission.note,
       acknowledgedDivergence: submission.acknowledgedDivergence,
+      explanationId: submission.explanationId,
     },
   });
 

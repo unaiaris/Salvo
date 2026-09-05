@@ -57,6 +57,7 @@ describe("el cliente de la API", () => {
       newStatus: "CONFIRMED_SAFE",
       note: null,
       acknowledgedDivergence: false,
+      explanationId: null,
     });
 
     for (const call of [0, 1]) {
@@ -126,6 +127,7 @@ describe("el cliente de la API", () => {
       newStatus: "CONFIRMED_SAFE",
       note: null,
       acknowledgedDivergence: false,
+      explanationId: null,
     });
 
     expect(result.ok).toBe(false);
@@ -159,13 +161,14 @@ describe("el cliente de la API", () => {
     }
   });
 
-  it("envía la revisión como JSON con los tres campos del contrato", async () => {
+  it("envía la revisión como JSON con los cuatro campos del contrato", async () => {
     fetchMock.mockResolvedValue(jsonResponse({ applied: true, alert: wireAlertDetail() }));
 
     await submitAlertReview("2f2b7f3e-0000-4000-8000-000000000002", {
       newStatus: "REPORTED_FRAUD",
       note: "Coincide con el patrón de la semana pasada.",
       acknowledgedDivergence: true,
+      explanationId: "6f6b7f3e-0000-4000-8000-000000000006",
     });
 
     const { url, init } = requestOf(0);
@@ -175,6 +178,7 @@ describe("el cliente de la API", () => {
       newStatus: "REPORTED_FRAUD",
       note: "Coincide con el patrón de la semana pasada.",
       acknowledgedDivergence: true,
+      explanationId: "6f6b7f3e-0000-4000-8000-000000000006",
     });
   });
 
@@ -185,6 +189,7 @@ describe("el cliente de la API", () => {
       newStatus: "CONFIRMED_SAFE",
       note: null,
       acknowledgedDivergence: false,
+      explanationId: null,
     });
 
     expect(JSON.parse(String(requestOf(0).init.body)).note).toBeNull();

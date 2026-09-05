@@ -195,6 +195,50 @@ export function externalErrorLabel(code: string): string {
   return EXTERNAL_ERROR_LABELS[code] ?? code;
 }
 
+/**
+ * Why an explanation ended without text, in the analyst's language.
+ *
+ * These are values of `failureCode` inside a `200`, not rejections of a request, so they live here
+ * beside the other wire values the console renders and never travel through the failure catalogue —
+ * the same split `externalErrorLabel` makes for exactly the same reason.
+ *
+ * Two of them describe a rejection this system performed on its own provider, and they say so. An
+ * explanation whose figure was not backed by the evaluation is not a glitch to apologise for: it is
+ * the verification working, and the analyst reading the block is entitled to know that the text was
+ * withheld on purpose rather than lost.
+ */
+const EXPLANATION_FAILURE_LABELS: Readonly<Record<string, string>> = {
+  PROVIDER_UNAVAILABLE: "No se pudo redactar: el proveedor falló antes de responder",
+  PROVIDER_TIMEOUT: "El proveedor no respondió dentro del tiempo permitido",
+  PROVIDER_REFUSED: "El proveedor respondió sin texto",
+  MALFORMED_OUTPUT: "El texto devuelto no era utilizable: vino vacío o con marcado",
+  NOT_GROUNDED_NUMBER:
+    "El texto traía una cifra que la evaluación no respalda, así que se descartó entero",
+  NOT_GROUNDED_RULE:
+    "El texto nombraba una regla que esta evaluación no disparó, así que se descartó entero",
+  TOO_LONG: "El texto superó el largo máximo admitido",
+  CANCELLED: "La petición se abandonó antes de que el proveedor respondiera",
+  ATTEMPT_LIMIT_REACHED: "Se agotaron los intentos de redacción para esta evaluación",
+};
+
+export function explanationFailureLabel(code: string): string {
+  return EXPLANATION_FAILURE_LABELS[code] ?? code;
+}
+
+/**
+ * Who wrote the explanation. Kept apart from `providerLabel`, which names antifraud providers: the
+ * two catalogues share no value and merging them would let a future `ANTHROPIC` be read as somebody
+ * who might have decided something about the order.
+ */
+const EXPLANATION_PROVIDER_LABELS: Readonly<Record<string, string>> = {
+  MOCK: "plantilla determinista",
+  ANTHROPIC: "Anthropic",
+};
+
+export function explanationProviderLabel(provider: string): string {
+  return EXPLANATION_PROVIDER_LABELS[provider] ?? provider;
+}
+
 /** The provider an evaluation was asked of. */
 const PROVIDER_LABELS: Readonly<Record<string, string>> = {
   EXTERNAL_MOCK: "Proveedor simulado",

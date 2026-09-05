@@ -12,11 +12,12 @@
 #
 #   1.  Con datos             — corpus demo cargado y puntuado.
 #   1b. Evaluación externa    — el mismo corpus, con la opinión del proveedor pedida y entregada.
+#   1c. Con explicación       — el mismo corpus, con la evaluación del snapshot puesta en palabras.
 #   2.  Base vacía            — la misma API contra una base migrada y sin un solo pedido.
 #   3.  API apagada           — el proceso de la API muerto, la consola en pie.
 #
-# El 1b va después del 1 y no antes: el bloque externo tiene dos estados en pantalla —sin pedir y
-# con veredicto— y comprobar el segundo destruye el primero.
+# El 1b y el 1c van después del 1 y no antes: el bloque externo y el de explicación tienen dos
+# estados en pantalla cada uno —sin pedir y respondido— y comprobar el segundo destruye el primero.
 #
 # Reglas que este script se impone:
 #
@@ -300,6 +301,10 @@ expect_text "/alerts/${alert_id}" "Evaluación vigente"
 # El tercer bloque de la Etapa 6, en su estado inicial: nadie pidió todavía la opinión del proveedor.
 expect_text "/alerts/${alert_id}" "Evaluación externa"
 expect_text "/alerts/${alert_id}" "Solicitar evaluación externa"
+# El cuarto bloque de la Etapa 7, en su estado inicial: nadie pidió todavía el texto.
+expect_text "/alerts/${alert_id}" "Explicación"
+expect_text "/alerts/${alert_id}" "Todavía no se pidió una explicación"
+expect_text "/alerts/${alert_id}" "Explicar esta evaluación"
 expect_text "/import" "Proveedor antifraude externo"
 expect_text "/dashboard" "Monto en riesgo"
 expect_text "/dashboard" "Fraude reportado"
@@ -355,6 +360,37 @@ check_callback_closed() {
 
 check_callback_closed "sin cabecera"
 check_callback_closed "con un secreto cualquiera" -H 'X-Salvo-Callback-Secret: cualquier-cosa'
+
+# ------------------------------------------------------------------------ 1c. con explicación
+#
+# El recorrido de la Etapa 7. Va después del externo por la misma razón por la que el externo va
+# después del primero: el bloque tiene dos estados en pantalla —sin pedir y escrito— y comprobar el
+# segundo destruye el primero.
+#
+# El texto lo compone la plantilla determinista de esta instalación, y la API verifica cada cifra y
+# cada regla contra la evaluación antes de guardarlo. Que la petición devuelva un resumen y no un
+# fallo es, por eso, una comprobación de la verificación y no solo del transporte.
+
+scenario "con explicación"
+
+echo "Pidiendo la explicación de la evaluación del snapshot…"
+explanation_id="$(
+  curl -sS -X POST --max-time 60 -H 'Content-Type: application/json' -d '{}' \
+    "${api_base}/api/alerts/${alert_id}/explanation" \
+    | node -e 'let raw="";process.stdin.on("data",c=>raw+=c).on("end",()=>{const body=JSON.parse(raw);process.stdout.write(body.explanation.status === "READY" ? body.explanation.id : "");})'
+)"
+[[ -n "$explanation_id" ]] || fail "la explicación no quedó escrita: la petición no devolvió una fila READY."
+echo "Explicación de ejemplo: ${explanation_id}"
+
+# La apertura de la plantilla, que es la única frase que escribe en todos los casos.
+expect_text "/alerts/${alert_id}" "puntos sobre un umbral de"
+# Quién la escribió, dicho en la pantalla: en esta instalación no hay modelo detrás.
+expect_text "/alerts/${alert_id}" "no por un modelo"
+expect_text "/alerts/${alert_id}" "Reglas citadas"
+# Una explicación escrita no se regenera, así que el botón desaparece.
+expect_no_text "/alerts/${alert_id}" "Explicar esta evaluación"
+# D10: el formulario de revisión lleva el id de la explicación que está en pantalla.
+expect_text "/alerts/${alert_id}" "value=\"${explanation_id}\""
 
 # ---------------------------------------------------------------------------- 2. base vacía
 

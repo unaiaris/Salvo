@@ -19,10 +19,19 @@ import { INITIAL_REVIEW_STATE, REVIEW_CHOICES, type ReviewFormState } from "./re
  */
 export function ReviewForm({
   alertId,
+  explanationId,
   requiresAcknowledgement,
   divergenceSummary,
 }: {
   readonly alertId: string;
+  /**
+   * The explanation on screen while this verdict is formed, or empty when there is none.
+   *
+   * It travels as a hidden field and nothing else: the note is never seeded with the summary, and
+   * the form has no way to read a word of it. Decision D10 records what could have been read; it
+   * does not put the provider's prose under a human signature.
+   */
+  readonly explanationId: string;
   readonly requiresAcknowledgement: boolean;
   /** Empty unless `requiresAcknowledgement`; the sentence the analyst has to confirm. */
   readonly divergenceSummary: string;
@@ -32,6 +41,7 @@ export function ReviewForm({
   return (
     <form action={formAction} className="flex flex-col gap-5">
       <input type="hidden" name="alertId" value={alertId} />
+      <input type="hidden" name="explanationId" value={explanationId} />
       <ReviewFields
         key={state.submissionId}
         state={state}

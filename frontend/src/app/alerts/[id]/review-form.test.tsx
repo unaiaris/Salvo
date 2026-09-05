@@ -57,13 +57,13 @@ afterEach(() => {
 
 describe("formulario de revisión", () => {
   it("no envía sin veredicto elegido", () => {
-    render(<ReviewForm alertId="a1" requiresAcknowledgement={false} divergenceSummary="" />);
+    render(<ReviewForm alertId="a1" explanationId="" requiresAcknowledgement={false} divergenceSummary="" />);
 
     expect(screen.getByRole("button", { name: /Registrar veredicto/i })).toBeDisabled();
   });
 
   it("habilita el envío al elegir un veredicto", async () => {
-    render(<ReviewForm alertId="a1" requiresAcknowledgement={false} divergenceSummary="" />);
+    render(<ReviewForm alertId="a1" explanationId="" requiresAcknowledgement={false} divergenceSummary="" />);
 
     choose(/Confirmar segura/i);
 
@@ -74,6 +74,7 @@ describe("formulario de revisión", () => {
     render(
       <ReviewForm
         alertId="a1"
+        explanationId=""
         requiresAcknowledgement
         divergenceSummary="La alerta se abrió en CRÍTICA con score 100. La evaluación vigente está en MEDIA con score 45."
       />,
@@ -92,7 +93,7 @@ describe("formulario de revisión", () => {
   });
 
   it("sin divergencia de banda no hay casilla que bloquee", async () => {
-    render(<ReviewForm alertId="a1" requiresAcknowledgement={false} divergenceSummary="" />);
+    render(<ReviewForm alertId="a1" explanationId="" requiresAcknowledgement={false} divergenceSummary="" />);
 
     choose(/Confirmar segura/i);
 
@@ -106,7 +107,7 @@ describe("formulario de revisión", () => {
     const note = "El comprador tiene tres pedidos previos entregados sin contracargo.";
     reviewAlert.mockResolvedValue(conflict({ submittedNote: note, submittedStatus: "CONFIRMED_SAFE" }));
 
-    render(<ReviewForm alertId="a1" requiresAcknowledgement={false} divergenceSummary="" />);
+    render(<ReviewForm alertId="a1" explanationId="" requiresAcknowledgement={false} divergenceSummary="" />);
 
     choose(/Confirmar segura/i);
     typeNote(note);
@@ -122,7 +123,7 @@ describe("formulario de revisión", () => {
       conflict({ submittedNote: "", submittedStatus: "REPORTED_FRAUD", acknowledged: true }),
     );
 
-    render(<ReviewForm alertId="a1" requiresAcknowledgement divergenceSummary="Cambió la banda." />);
+    render(<ReviewForm alertId="a1" explanationId="" requiresAcknowledgement divergenceSummary="Cambió la banda." />);
 
     choose(/Reportar fraude/i);
     fireEvent.click(screen.getByRole("checkbox"));
@@ -135,7 +136,7 @@ describe("formulario de revisión", () => {
   it("muestra el detalle de la API como información secundaria, no como el texto principal", async () => {
     reviewAlert.mockResolvedValue(conflict({ submittedStatus: "CONFIRMED_SAFE" }));
 
-    render(<ReviewForm alertId="a1" requiresAcknowledgement={false} divergenceSummary="" />);
+    render(<ReviewForm alertId="a1" explanationId="" requiresAcknowledgement={false} divergenceSummary="" />);
 
     choose(/Confirmar segura/i);
     submit();
@@ -146,7 +147,7 @@ describe("formulario de revisión", () => {
   });
 
   it("limita la nota a 2000 caracteres en el propio campo", () => {
-    render(<ReviewForm alertId="a1" requiresAcknowledgement={false} divergenceSummary="" />);
+    render(<ReviewForm alertId="a1" explanationId="" requiresAcknowledgement={false} divergenceSummary="" />);
 
     expect(screen.getByRole("textbox")).toHaveAttribute("maxlength", "2000");
   });
@@ -154,7 +155,7 @@ describe("formulario de revisión", () => {
   it("manda el id de la alerta en el formulario, no como prop de servidor", async () => {
     reviewAlert.mockResolvedValue(conflict());
 
-    render(<ReviewForm alertId="a1" requiresAcknowledgement={false} divergenceSummary="" />);
+    render(<ReviewForm alertId="a1" explanationId="" requiresAcknowledgement={false} divergenceSummary="" />);
 
     choose(/Confirmar segura/i);
     submit();
@@ -163,5 +164,61 @@ describe("formulario de revisión", () => {
 
     const [, formData] = reviewAlert.mock.calls[0] as [unknown, FormData];
     expect(formData.get("alertId")).toBe("a1");
+  });
+
+  /**
+   * D10: the review records which explanation was on screen, and nothing more than that.
+   *
+   * The id travels; the text does not. Seeding the note with the summary would put a provider's
+   * prose into the audit trail under a human signature, which is the one thing the design forbids by
+   * name — and the form could not do it even by accident, because it never receives the summary.
+   */
+  it("manda el id de la explicación que la analista tenía delante", async () => {
+    reviewAlert.mockResolvedValue(conflict());
+
+    render(
+      <ReviewForm
+        alertId="a1"
+        explanationId="6f6b7f3e-0000-4000-8000-000000000006"
+        requiresAcknowledgement={false}
+        divergenceSummary=""
+      />,
+    );
+
+    choose(/Confirmar segura/i);
+    submit();
+
+    await screen.findByRole("alert");
+
+    const [, formData] = reviewAlert.mock.calls[0] as [unknown, FormData];
+    expect(formData.get("explanationId")).toBe("6f6b7f3e-0000-4000-8000-000000000006");
+  });
+
+  it("sin explicación manda el campo vacío y la revisión sigue funcionando igual", async () => {
+    reviewAlert.mockResolvedValue(conflict());
+
+    render(<ReviewForm alertId="a1" explanationId="" requiresAcknowledgement={false} divergenceSummary="" />);
+
+    choose(/Confirmar segura/i);
+    submit();
+
+    await screen.findByRole("alert");
+
+    const [, formData] = reviewAlert.mock.calls[0] as [unknown, FormData];
+    expect(formData.get("explanationId")).toBe("");
+    expect(formData.get("newStatus")).toBe("CONFIRMED_SAFE");
+  });
+
+  it("nunca precarga la nota con el resumen de la explicación", () => {
+    render(
+      <ReviewForm
+        alertId="a1"
+        explanationId="6f6b7f3e-0000-4000-8000-000000000006"
+        requiresAcknowledgement={false}
+        divergenceSummary=""
+      />,
+    );
+
+    expect(screen.getByRole("textbox")).toHaveValue("");
   });
 });

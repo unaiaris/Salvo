@@ -41,6 +41,7 @@ export function ReviewPanel({ detail }: { readonly detail: AlertDetail }) {
       )}
       <ReviewForm
         alertId={detail.id}
+        explanationId={detail.explanation?.id ?? ""}
         requiresAcknowledgement={notice.kind === "blocking"}
         divergenceSummary={notice.kind === "blocking" ? notice.summary : ""}
       />

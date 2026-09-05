@@ -22,6 +22,7 @@ export async function reviewAlert(
   const newStatus = readField(formData, "newStatus");
   const note = readField(formData, "note");
   const acknowledged = formData.get("acknowledgedDivergence") !== null;
+  const explanationId = readField(formData, "explanationId");
 
   const echo = {
     submittedStatus: newStatus,
@@ -34,6 +35,7 @@ export async function reviewAlert(
     newStatus,
     note: note.length === 0 ? null : note,
     acknowledgedDivergence: acknowledged,
+    explanationId: explanationId.length === 0 ? null : explanationId,
   });
 
   if (!result.ok) {
