@@ -13,6 +13,7 @@ import {
   wireCapabilities,
   wireDashboard,
   wireEvaluationMetrics,
+  wireExplanation,
   wireExternalEvaluation,
 } from "./fixtures";
 import {
@@ -63,6 +64,16 @@ function contaminatedDetail(): Record<string, unknown> {
   // through. Denied against a flagged local evaluation, so the divergence notice renders too.
   detail.externalEvaluation = {
     ...wireExternalEvaluation({ status: "PENDING", settledAt: null, settledBy: null, score: null }),
+    ...INTRUDERS,
+  };
+
+  // The fourth object, and the newest. It is contaminated on both sides — the explanation of the
+  // snapshot and the one of the current evaluation — and the first is marked outdated so the notice
+  // renders as well: a sub-object that only ever appears on one path is a sub-object half of whose
+  // rendering nothing looks at.
+  detail.explanation = { ...wireExplanation({ isOutdated: true }), ...INTRUDERS };
+  detail.currentExplanation = {
+    ...wireExplanation({ id: "7f7b7f3e-0000-4000-8000-000000000007" }),
     ...INTRUDERS,
   };
 
@@ -154,6 +165,48 @@ describe("frontera servidor–cliente", () => {
         expect(serializedTree).not.toContain(intruder);
       }
     }
+  });
+
+  /**
+   * The refusal of `projectExplanation`, seen from the page rather than from the guard.
+   *
+   * A summary on a failed row is the one payload the database cannot produce, and it is exactly the
+   * text that failed verification — the text nothing is allowed to store. `guards.test.ts` asserts
+   * that the guard rejects it; this asserts what that rejection buys: the page renders the
+   * contract-mismatch notice and not a single word of the injected paragraph reaches the tree.
+   */
+  it("un resumen inyectado sobre una fila FAILED no llega al navegador", async () => {
+    const forbidden = "Un párrafo que la verificación del backend rechazó.";
+
+    fetchMock.mockImplementation((url: URL) =>
+      Promise.resolve(
+        jsonResponse(
+          url.pathname === "/api/system/capabilities"
+            ? wireCapabilities()
+            : wireAlertDetail({
+                explanation: wireExplanation({
+                  status: "FAILED",
+                  summary: forbidden,
+                  failureCode: "NOT_GROUNDED_NUMBER",
+                }),
+              }),
+        ),
+      ),
+    );
+
+    const tree = await AlertDetailPage({
+      params: Promise.resolve({ id: "2f2b7f3e-0000-4000-8000-000000000002" }),
+    });
+    const crossings = await crossingsOf(tree);
+    const serialized = JSON.stringify([crossings.map((crossing) => crossing.props), tree], (_key, value: unknown) =>
+      typeof value === "function" ? value.name : value,
+    );
+
+    expect(serialized).not.toContain(forbidden);
+
+    // And the page said so, rather than rendering an alert with a hole in it: the whole detail is a
+    // `malformed` failure, which is the honest answer to a response that contradicts itself.
+    expect(serialized).toContain('"kind":"malformed"');
   });
 
   it("tampoco los pasa desde el feed", async () => {
@@ -292,6 +345,8 @@ describe("módulos server-only", () => {
       "src/lib/api/server-client.ts",
       "src/lib/api/alerts.ts",
       "src/lib/api/console.ts",
+      "src/lib/api/external.ts",
+      "src/lib/api/explanations.ts",
     ]) {
       expect(readFileSync(path, "utf8"), path).toMatch(/^import "server-only";$/m);
     }
@@ -301,7 +356,9 @@ describe("módulos server-only", () => {
     for (const file of clientComponentFiles()) {
       const source = readFileSync(file, "utf8");
 
-      expect(source, file).not.toMatch(/from "@\/lib\/api\/(alerts|console|server-client)"/);
+      expect(source, file).not.toMatch(
+        /from "@\/lib\/api\/(alerts|console|server-client|external|explanations)"/,
+      );
     }
   });
 });
