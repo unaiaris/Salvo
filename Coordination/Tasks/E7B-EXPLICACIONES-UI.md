@@ -9,8 +9,9 @@
 - Coordinador: Unai Arismendes
 - Fecha: 2026-09-05
 - Rama/worktree: `claude/e7b-explicaciones-ui`
-- Commit base: `8951fa2` — el `HEAD` de `main` tras integrar `E7A-EXPLICACIONES` en el merge
-  `82f2487` y cerrar sus registros. Es la base real de `claude/e7b-explicaciones-ui`
+- Commit base: `af93f01`, tras rebasar la rama sobre el `main` que completó este brief. La base
+  original era `8951fa2`, el `HEAD` de `main` después del merge `82f2487` que integró
+  `E7A-EXPLICACIONES`
 - Modelo y esfuerzo acordados: **Opus 5 · `high`**. El coordinador había recomendado `Sonnet 4.5 ·
   high` apoyándose en un precedente inexistente —afirmó que `E6B-CALLBACK-UI` se había corrido con
   Sonnet, y su brief dice `Opus 5 · high`, igual que `E5C`—. La forma del trabajo sí es la de E6B:

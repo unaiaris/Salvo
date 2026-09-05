@@ -746,6 +746,7 @@ completo el MVP local.
 | 54 | Al input de un modelo no entra ningún texto que no escriba el motor | El criterio de «texto libre importado» es insuficiente: un identificador normalizado a mayúsculas admite una instrucción legible en su alfabeto, y la nota de revisión no viene de ningún archivo | 2026-09-05 |
 | 55 | La generación reserva antes de llamar, asienta aunque el cliente aborte, reintenta sobre la misma fila y retoma la pendiente vencida | Sin eso, una petición cancelada por el navegador deja una fila pendiente huérfana que bloquea la evaluación para siempre, porque la etapa no tiene reconciliación | 2026-09-05 |
 | 56 | El registro de revisión guarda qué explicación tenía delante la analista | Conservar la explicación desactualizada se justifica por el registro de lo que se pudo leer al decidir, y ese registro no existía | 2026-09-05 |
+| 57 | El catálogo de mensajes de la consola es exactamente lo que los endpoints emiten como problema; un código que es el valor de un campo dentro de un `200` se rotula aparte | Mezclarlos rompe la aserción de exactitud del catálogo, o la obliga a debilitarse, que es peor | 2026-09-05 |
 
 ## 14. Mapa de documentación
 

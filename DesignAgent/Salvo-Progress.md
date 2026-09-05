@@ -232,9 +232,12 @@ tercera. Etapa 5 permanece pendiente: requiere diseño, brief y autorización in
 - [x] Columnas y códigos que un proveedor real necesita, puestos desde el principio.
 - [x] Verificar que la app funcione sin API key y que un `AI_PROVIDER` desconocido falle al arrancar.
 
-- [ ] Bloque de explicación en el detalle, con el aviso de desactualizada y los botones (`E7B`).
-- [ ] `messages.ts`, `boundary.test.ts` con el sub-objeto contaminado y los textos de `smoke-ui.sh`.
-- [ ] Mover `EXPLANATION_READY` de `guards.ts` junto a los demás valores de cable.
+- [x] Bloque de explicación en el detalle, con el aviso de desactualizada y los botones.
+- [x] Rótulos de los códigos, `boundary.test.ts` con el sub-objeto contaminado y los textos de
+      `smoke-ui.sh`. Los cuatro códigos de conflicto fueron a `messages.ts` y los nueve de fallo a
+      `format.ts`: son valores de un campo dentro de un `200`, no rechazos de una petición.
+- [x] `EXPLANATION_READY` movido de `guards.ts` a `contract.ts` como `EXPLANATION_STATUS`.
+
 - [ ] Decidir aparte si se activa Anthropic.
 
 ### Etapa 8 — Calidad y portfolio
@@ -329,6 +332,9 @@ tercera. Etapa 5 permanece pendiente: requiere diseño, brief y autorización in
 | 2026-09-05 | 7 | Inicio de `E7A-EXPLICACIONES` | Brief y rama `claude/e7a-explicaciones` desde `5318518`; Opus 5 · `high` acordado | En curso |
 | 2026-09-05 | 7 | Entidad propia, hechos y tokenizador en Domain, grounding verificado sobre la salida, proveedor determinista y ciclo de vida sin trabas | Nueve commits; el interceptor de comandos, el diferencial ampliado, el diferencial de etiquetas sobre el texto y el proveedor espía, con falsación documentada en cada caso. El test dorado encontró que la plantilla escribía el año como `2.026` y que la validación lo aceptaba por la regla de ambigüedad de miles: un año es rótulo, no cantidad | Lista para integrar |
 | 2026-09-05 | 7 | Integración y verificación canónica de `E7A-EXPLICACIONES` | Merge `82f2487` + `check.sh` y `smoke-ui.sh` verdes sobre `main`; el contrato de alertas obligó a autorizar la proyección mínima en `guards.ts` y `fixtures.ts`, fuera de la reserva original del brief | Completada |
+| 2026-09-05 | 7 | Inicio de `E7B-EXPLICACIONES-UI` | Brief y rama `claude/e7b-explicaciones-ui` desde `af93f01`; Opus 5 · `high` acordado tras corregir el coordinador un precedente que había citado mal | En curso |
+| 2026-09-05 | 7 | Bloque de explicación en el detalle, aviso de desactualizada, `explanationId` en la revisión y códigos con rótulo | Seis commits; 239 tests .NET y 197 de frontend; smoke de 29 a 37 comprobaciones, con un escenario que pide la explicación por la API y lee la página. El smoke encontró que el rótulo del botón viajaba como prop y quedaba en el payload RSC de toda página, hubiera botón o no | Lista para integrar |
+| 2026-09-05 | 7 | Integración y cierre de la Etapa 7 | Merge `ac11015` + `check.sh` y `smoke-ui.sh` verdes sobre `main`: 37 comprobaciones, 0 fallas | Completada |
 
 ## Protocolo de actualización
 

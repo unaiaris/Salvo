@@ -1,6 +1,6 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: Etapa 7 en curso. `E7A` integrada y verificada sobre `main`; `E7B` pendiente
+> Estado: Etapa 7 completa. Siete etapas integradas y verificadas; Etapa 8 sin iniciar
 > Última actualización: 2026-09-05
 > Responsable: coordinador de la etapa
 
@@ -21,13 +21,19 @@ No hay tareas activas ni paths reservados.
 | Work ID | Estado | Modelo y esfuerzo | Depende de |
 | --- | --- | --- | --- |
 | `E7A-EXPLICACIONES` | `Verificada` (merge `82f2487`) | Opus 5 · `high` | — |
-| `E7B-EXPLICACIONES-UI` | `Asignada` | Opus 5 · `high` | `E7A`, ya integrada |
+| `E7B-EXPLICACIONES-UI` | `Verificada` (merge `ac11015`) | Opus 5 · `high` | `E7A` |
 
-`E7A` tuvo que salirse de su reserva de paths: el punto 8 del brief obliga a que `AlertDetail` gane
-el sub-objeto, y las guardas del frontend proyectan hacia el tipo generado, así que el contrato no
-compilaba sin la proyección mínima. `guards.ts` y `fixtures.ts` ya la traen; `E7B` los extiende.
+Dos lecciones de la Etapa 7 para los briefs que vengan:
 
-Notas para los briefs de la Etapa 7:
+- **Si una tarea de backend cambia el contrato, cambia también la guarda que lo consume.** `E7A`
+  tuvo que salirse de su reserva de paths porque su punto 8 obligaba a que `AlertDetail` ganara el
+  sub-objeto y las guardas proyectan hacia el tipo generado. Un contrato contra el que nadie puede
+  compilar no es un contrato entregado.
+- **No todo código de error va a `messages.ts`.** Ese catálogo es exactamente lo que los endpoints
+  emiten como problema, y su test lo afirma. Un código que es el valor de un campo dentro de un
+  `200` se rotula en `format.ts`, como `externalErrorLabel`.
+
+Notas para los briefs de la Etapa 8:
 
 - **Copia de `salvo.db` antes de migrar.** EF ejecuta `PRAGMA foreign_keys = 0` fuera de transacción.
 - Artefactos que la etapa obliga a tocar: `AlertSchemaTests` (se extiende),
