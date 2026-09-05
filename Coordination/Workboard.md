@@ -1,7 +1,7 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: Etapa 6 completa. Seis etapas integradas y verificadas; Etapa 7 sin iniciar
-> Última actualización: 2026-09-02
+> Estado: Etapa 6 completa. Etapa 7 diseñada, revisada y despachada; sin iniciar
+> Última actualización: 2026-09-05
 > Responsable: coordinador de la etapa
 
 ## Estados
@@ -18,22 +18,35 @@ No hay tareas activas ni paths reservados.
 
 ## Cola próxima
 
-Notas para los briefs de la Etapa 6:
+| Work ID | Estado | Modelo y esfuerzo | Depende de |
+| --- | --- | --- | --- |
+| `E7A-EXPLICACIONES` | `Asignada` | Opus 5 · `high` | — |
+| `E7B-EXPLICACIONES-UI` | `Propuesta` | Sonnet 4.5 · `high` | `E7A` integrada |
+
+Notas para los briefs de la Etapa 7:
 
 - **Copia de `salvo.db` antes de migrar.** EF ejecuta `PRAGMA foreign_keys = 0` fuera de transacción.
-- Artefactos que la etapa obliga a tocar: `RiskEvaluationIdentityTests` (dos aserciones se caen),
-  `ArchitectureSmokeTests`, `OpenApiDriftTests` con recaptura, `frontend/openapi/salvo-openapi.json`
-  y `schema.d.ts`, `messages.ts` y su test, las fixtures del frontend, `boundary.test.ts` y los
+- Artefactos que la etapa obliga a tocar: `AlertSchemaTests` (se extiende),
+  `ArchitectureSmokeTests` (suma `AlertExplanation`), `OpenApiDriftTests` con recaptura,
+  `frontend/openapi/salvo-openapi.json` y `schema.d.ts`, `fixtures.ts` con `explanation: null`
+  —sin eso todo el detalle cae en `malformed`—, `messages.ts` y su test, `boundary.test.ts` y los
   textos de `scripts/smoke-ui.sh`.
 - Verificar el estado canónico antes de declararlo pendiente.
-- Reservar `backend/tests/**` y, en `E6B`, `frontend/**` y `scripts/**`.
+- Reservar `backend/tests/**` en `E7A`, y `frontend/**` y `scripts/**` en `E7B`.
+- `E7A` reserva `salvo-openapi.json` y `schema.d.ts`: `E7B` no recaptura el contrato.
+
+Notas conservadas de la Etapa 6, por si vuelven a aplicar:
+
+- `RiskEvaluationIdentityTests` perdió dos aserciones al separarse la evaluación externa.
 
 Candidatas registradas para la Etapa 8, acordadas con el usuario:
 
 - **Señales estructuradas e internacionalización.** El motor emite campos tipados en vez de prosa
   (sube a `e3-v2` e invalida los fingerprints a propósito); la UI compone el texto y el portugués
   pasa a ser un diccionario más. Hoy los detalles de las señales están en inglés dentro del
-  fingerprint y traducir solo la cáscara sería cosmético.
+  fingerprint y traducir solo la cáscara sería cosmético. **La Etapa 7 deja la semilla**:
+  `SignalFacts` en Domain convierte cada `detail` en campos tipados; cuando el motor los emita,
+  el extractor se borra y la plantilla y los hechos de grounding quedan intactos.
 - **Enriquecer la fixture con casos duros.** El corpus demo tiene un solo arquetipo de fraude
   —monto atípico desde país extranjero—: las 18 alertas llevan `amount_anomaly` y `foreign_country`,
   y tres de las seis reglas nunca abren una alerta. Además `score ≥ 60 ⇔ isFraudLabel`, por lo que

@@ -45,7 +45,11 @@ Implementaciones previstas:
 - Anthropic: proveedor preferido cuando se apruebe la etapa.
 - Otro LLM: posible sin cambiar scoring, alertas o UI.
 
-La salida es estructurada, usa únicamente señales suministradas y no decide fraude o severidad.
+La salida es estructurada y no decide fraude o severidad. «Usa únicamente señales suministradas»
+no se confía al prompt: se **verifica sobre la salida**, comparando cada nombre de regla y cada
+cifra del texto contra un conjunto de hechos construido en el dominio a partir de la evaluación y
+del pedido. El texto que no lo cumple no se persiste. La verificación vive en el caso de uso, no
+en el adaptador, para que todo proveedor —el determinista incluido— la pase por construcción.
 
 ## Proveedor antifraude
 

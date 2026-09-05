@@ -81,7 +81,10 @@ cambia alcance o arquitectura, actualizar primero su bitácora y después los do
 ## Decisiones invariantes
 
 - El riesgo local lo calculan reglas deterministas, puras y auditables.
-- La IA nunca decide fraude, severidad ni bloqueo; solo puede redactar explicaciones.
+- La IA nunca decide fraude, severidad ni bloqueo; solo puede redactar explicaciones, y el texto
+  que redacta no puede escribir en ninguna superficie de decisión.
+- Que una explicación use solo las señales suministradas se verifica sobre la salida y se rechaza
+  el texto que no lo cumple; no se confía al prompt.
 - Anthropic es el proveedor de IA previsto, pero su integración se difiere hasta que el núcleo
   funcione sin IA.
 - El MVP usa `IAntifraudProvider` con implementación mock. Koin sandbox es post-MVP y requiere
@@ -145,6 +148,11 @@ cambia alcance o arquitectura, actualizar primero su bitácora y después los do
 - Sanitizar errores externos y evitar logs de request/response completos por defecto.
 - Persistir callbacks de forma segura antes de responder `2xx`; tolerar replays.
 - Toda red externa usa timeout explícito; retries solo donde sean semánticamente seguros.
+- Al input de un modelo de lenguaje no entra ningún texto que no escriba el motor: quedan fuera
+  los campos importados, los identificadores, las notas escritas por personas y las respuestas de
+  proveedores externos. Un identificador normalizado no es seguro por tener formato estricto.
+- Un texto rechazado por la validación de grounding no se persiste, no se registra y no llega al
+  diagnóstico: se registra el token ofensor, nunca la frase.
 - La caída de IA o proveedor externo no detiene el scoring local.
 
 ## Calidad

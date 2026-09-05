@@ -207,6 +207,9 @@ Diseño aprobado para E3:
   alerta revisada no se reabre.
 - La revisión actualiza la alerta y escribe su registro de auditoría en una única transacción de
   base de datos. El pedido no cambia: sus hechos son inmutables.
+- El registro de auditoría guarda **qué explicación tenía delante** la analista, o ninguna. Sin
+  ese dato, una revisión emitida con la explicación pendiente y otra emitida con la explicación
+  lista son indistinguibles para siempre. Revisar nunca exige que exista una explicación.
 - La transacción no basta por sí sola. `status` actúa como token de concurrencia para que dos
   revisiones simultáneas terminen en conflicto y no en sobrescritura silenciosa.
 - El score copiado a la alerta es un snapshot auditable de la evaluación que la originó y no se
@@ -268,6 +271,36 @@ Tabla de transiciones:
 - Barrido de umbral sobre scores ya calculados.
 - Las métricas se calculan sobre procesamiento temporal válido; nunca usando un baseline construido
   con el futuro.
+
+### 4.7 Explicabilidad
+
+- La explicación es una entidad propia cuya identidad es la **evaluación**, no la alerta. La alerta
+  es el contexto desde el que se pide.
+- Se muestra la explicación de la evaluación del snapshot, que es la premisa sobre la que se formó
+  el veredicto. Que esté **desactualizada** se calcula al leer y nunca se persiste, igual que la
+  divergencia de banda.
+- El grounding se **verifica sobre la salida**, no se confía al prompt. Tres capas:
+  - **reglas**: todo nombre de regla mencionado pertenece a las señales de la evaluación;
+  - **cifras**: todo número del texto está respaldado por un hecho del conjunto `ExplanationFacts`,
+    construido en el dominio a partir de la evaluación y del pedido. Ese conjunto incluye el score,
+    el umbral, el tope, el peso de cada señal y su suma, la cantidad de señales, todos los números
+    de cada `detail`, el monto en centavos **y** en unidades, y el instante del pedido en UTC **y**
+    en la zona horaria de negocio. Un token con `d` decimales está fundamentado si algún hecho `F`
+    cumple `N == F` o `round(F, d) == N`. Las cifras escritas en letras no se validan, y se declara
+    que no se validan;
+  - **forma**: tope de longitud y ausencia de marcado.
+- La validación vive en el **caso de uso**, entre el puerto y el almacén. En el adaptador, el
+  proveedor determinista la pasaría por cortesía y no por construcción.
+- Un texto rechazado no se persiste, no se registra y no llega al diagnóstico: para depurar alcanza
+  con el token ofensor, nunca la frase.
+- Al proveedor no entra **ningún texto que no escriba el motor**: quedan fuera la ciudad, los
+  identificadores de comprador, comercio, sesión y comercio emisor, la nota de revisión y el
+  veredicto externo. Las enumeraciones validadas sí entran.
+- Generar es idempotente y no puede quedar trabado: la fila se reserva y se persiste antes de
+  llamar, el asentamiento no depende de que el cliente siga esperando, `FAILED` se reintenta sobre
+  la misma fila, una solicitud pendiente vencida es retomable y hay tope de intentos.
+- Sin clave el sistema funciona con un proveedor determinista. Un `AI_PROVIDER` que nombre un
+  adaptador inexistente falla al arrancar.
 
 ## 5. Alineación con Koin
 
@@ -432,10 +465,30 @@ evaluaciones externas a lo largo del tiempo, pero solo una esperando respuesta.
 - `riskScoreSnapshot`
 - `signalsJsonSnapshot`
 - `status`: `OPEN | CONFIRMED_SAFE | REPORTED_FRAUD`
-- `explanation`
-- `recommendedAction`
-- `explanationStatus`: `NOT_REQUESTED | PENDING | READY | FAILED`
 - timestamps
+
+La explicación **no vive acá**. `Alert` guarda un snapshot congelado que nunca se reescribe y su
+`status` es token de concurrencia; un ciclo de vida reintentable —pendiente, listo, fallido,
+reintentado— es otra entidad. Y `recommendedAction` no existe: es una biyección de la severidad,
+y leída junto a la explicación se atribuye a la IA aunque la derive una tabla. Decisiones 51 y 53.
+
+### AlertExplanation
+
+- `id`
+- `riskEvaluationId`, `provider`, `templateVersion`, `alertPolicyVersion`: juntos, la identidad.
+  La alerta **no** forma parte de ella: todo lo que el proveedor recibe es función de la evaluación
+- `providerVersion` opcional: el modelo concreto. Nunca parte de la identidad
+- `requestedFromAlertId`: procedencia, no identidad
+- `status`: `PENDING | READY | FAILED`. `FAILED` no es terminal
+- `summary` y `referencedRules`, presentes **solo** con `READY`
+- `failureCode` y `failureDetail`, que nunca contienen el texto rechazado
+- `inputTokens`, `outputTokens`, `attemptCount`
+- timestamps de solicitud y de asentamiento
+- token de concurrencia
+
+Únicos: total sobre la identidad —los reintentos ocurren sobre la misma fila, así que no bloquea
+la regeneración— y parcial sobre `(riskEvaluationId, provider)` mientras esté `PENDING`.
+`READY ⇔ summary` es una restricción de la base, no una promesa del manejador.
 
 ### CallbackReceipt
 
@@ -503,7 +556,7 @@ BUSINESS_TIMEZONE="America/Montevideo"
 ```dotenv
 AI_PROVIDER="mock"
 ANTHROPIC_API_KEY=""
-ANTHROPIC_MODEL="claude-sonnet-5"
+ANTHROPIC_MODEL=""
 ```
 
 ### Koin posterior
@@ -601,10 +654,14 @@ Verificación: callbacks duplicados no repiten efectos y el estado pendiente pue
 
 ### Etapa 7 — Explicabilidad
 
-- Primero proveedor determinista.
-- Después, si se aprueba, adaptador Anthropic con salida estructurada, grounding y mocks de test.
+- Entidad propia con identidad por evaluación, ciclo de vida reintentable y grounding verificado
+  sobre la salida contra hechos construidos en el dominio.
+- Proveedor determinista, que pasa la misma validación que pasaría un modelo.
+- Después, si se aprueba, adaptador Anthropic con salida estructurada. Las columnas y los códigos
+  que ese adaptador necesita se ponen desde el principio, para no llegar con una migración.
 
-Verificación: el sistema funciona sin key; la suite nunca depende de red.
+Verificación: el sistema funciona sin key; la suite nunca depende de red; el texto generado no
+puede cambiar ninguna superficie de decisión, y hay cuatro tests que fallan si lo hiciera.
 
 ### Etapa 8 — Calidad y portfolio
 
@@ -683,6 +740,12 @@ completo el MVP local.
 | 48 | El recibo del callback y la transición se persisten en una única unidad de trabajo | Si el recibo sobrevive a una transición fallida, el reintento se ve como duplicado y la transición se pierde para siempre | 2026-09-04 |
 | 49 | El disparador de callback de la demo es un endpoint de la API bajo bandera; el cliente elige qué evaluación, nunca qué estado | Un botón que compone el payload deja cerrar cualquier evaluación pendiente en el estado elegido, y obligaría a sacar el secreto de la API | 2026-09-04 |
 | 50 | La evaluación externa no abre alertas y su score no se compara numéricamente con el local | El proveedor opina y el comercio decide; dos escalas de sistemas distintos no son comparables | 2026-09-04 |
+| 51 | La explicación es una entidad propia y su identidad es la evaluación, no la alerta | `Alert` guarda un snapshot congelado con `status` como token de concurrencia; y con clave por alerta, escalar duplica filas y paga dos veces la misma redacción | 2026-09-05 |
+| 52 | El grounding se verifica sobre la salida contra un conjunto de hechos construido en el dominio, con tokenizador declarado e igualdad por redondeo | Un prompt que pide no inventar cifras es una intención; y una validación literal contra «los datos suministrados» rechaza texto correcto por centavos, separadores, redondeo y zona horaria | 2026-09-05 |
+| 53 | La IA no recomienda acciones, y la acción recomendada se elimina del alcance | Con tres bandas es una biyección de la severidad, mete prosa traducible dentro de la API, y leída junto a la explicación se atribuye a la IA aunque la derive una tabla | 2026-09-05 |
+| 54 | Al input de un modelo no entra ningún texto que no escriba el motor | El criterio de «texto libre importado» es insuficiente: un identificador normalizado a mayúsculas admite una instrucción legible en su alfabeto, y la nota de revisión no viene de ningún archivo | 2026-09-05 |
+| 55 | La generación reserva antes de llamar, asienta aunque el cliente aborte, reintenta sobre la misma fila y retoma la pendiente vencida | Sin eso, una petición cancelada por el navegador deja una fila pendiente huérfana que bloquea la evaluación para siempre, porque la etapa no tiene reconciliación | 2026-09-05 |
+| 56 | El registro de revisión guarda qué explicación tenía delante la analista | Conservar la explicación desactualizada se justifica por el registro de lo que se pudo leer al decidir, y ese registro no existía | 2026-09-05 |
 
 ## 14. Mapa de documentación
 
