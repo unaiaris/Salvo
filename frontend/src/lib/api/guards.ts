@@ -1,8 +1,10 @@
+import { EXPLANATION_STATUS } from "./contract";
 import type {
   AlertDetail,
   Capabilities,
   AlertDivergence,
   AlertEvaluation,
+  AlertExplanation,
   AlertExternalEvaluation,
   AlertList,
   AlertListItem,
@@ -23,6 +25,7 @@ import type {
   DashboardSeverityCount,
   DashboardSignal,
   EvaluationMetrics,
+  ExplanationOutcome,
   ExternalEvaluationRequest,
   ImportRecordError,
   ImportResult,
@@ -361,17 +364,6 @@ export function projectReview(value: unknown): AlertReview | null {
 }
 
 /**
- * The wire value of a written explanation.
- *
- * Inlined here rather than added to the contract module because this stage is only allowed to make
- * the projection compile; the constant belongs beside the other wire values, and the stage that
- * renders the block moves it there.
- */
-const EXPLANATION_READY = "READY";
-
-type AlertExplanation = NonNullable<AlertDetail["explanation"]>;
-
-/**
  * The explanation, projected like everything else, with one extra refusal.
  *
  * **A summary is only ever read when the status says there is one.** The API will not send text on
@@ -420,7 +412,7 @@ export function projectExplanation(value: unknown): AlertExplanation | null {
   }
 
   // Text on anything but a ready explanation contradicts the contract it came from.
-  if (summary !== null && status !== EXPLANATION_READY) {
+  if (summary !== null && status !== EXPLANATION_STATUS.ready) {
     return null;
   }
 
@@ -439,6 +431,29 @@ export function projectExplanation(value: unknown): AlertExplanation | null {
     requestedAt,
     settledAt,
   };
+}
+
+/**
+ * The answer to a request for an explanation.
+ *
+ * The row travels through the very same guard as the sub-object of the alert detail, refusal
+ * included: an endpoint that answered with text on a failed row would be rejected here exactly as it
+ * is there. Two guards over one shape would have been two places for that rule to drift apart.
+ */
+export function projectExplanationOutcome(value: unknown): ExplanationOutcome | null {
+  const raw = asRecord(value);
+  if (raw === null) {
+    return null;
+  }
+
+  const applied = flag(raw.applied);
+  const explanation = projectExplanation(raw.explanation);
+
+  if (applied === null || explanation === null) {
+    return null;
+  }
+
+  return { applied, explanation };
 }
 
 export function projectAlertListItem(value: unknown): AlertListItem | null {

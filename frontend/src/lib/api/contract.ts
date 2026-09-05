@@ -27,6 +27,7 @@ export type AlertListItem = ApiView<Schemas["AlertListItem"]>;
 export type AlertList = ApiView<Schemas["ListAlertsResult"]>;
 export type AlertDetail = ApiView<Schemas["AlertDetail"]>;
 export type AlertExternalEvaluation = ApiView<Schemas["AlertExternalEvaluationView"]>;
+export type AlertExplanation = ApiView<Schemas["AlertExplanationView"]>;
 export type AlertReviewOutcome = ApiView<Schemas["AlertReviewResult"]>;
 export type OrderList = ApiView<Schemas["ListOrdersResult"]>;
 
@@ -86,6 +87,27 @@ export const EXTERNAL_SOURCE = {
   sync: "SYNC",
   callback: "CALLBACK",
   reconciliation: "RECONCILIATION",
+} as const;
+
+export type ExplanationOutcome = ApiView<Schemas["RequestExplanationResult"]>;
+
+/**
+ * Wire values of `ExplanationStatus`, mirrored from
+ * `Salvo.Domain.Explanations.ExplanationWireNames`.
+ *
+ * `PENDING` here is a fourth thing waiting, beside the three the external status already names: an
+ * explanation whose provider has been asked and has not answered. The console never renders any of
+ * them as "pendiente" on its own.
+ *
+ * `READY` in particular is load-bearing rather than decorative: it is the status that admits a
+ * `summary`, and `projectExplanation` refuses text that arrives with any other. It lives here, with
+ * the rest of the wire values, so that the guard and the block that renders the states read the same
+ * constant.
+ */
+export const EXPLANATION_STATUS = {
+  pending: "PENDING",
+  ready: "READY",
+  failed: "FAILED",
 } as const;
 
 export type DashboardScoringRun = ApiView<Schemas["DashboardScoringRunView"]>;

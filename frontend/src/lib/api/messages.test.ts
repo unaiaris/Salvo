@@ -76,7 +76,28 @@ const EXTERNAL_CODES = [
   "CALLBACK_TOO_LARGE",
 ] as const;
 
-const API_CODES = [...ALERT_CODES, ...CONSOLE_CODES, ...EXTERNAL_CODES] as const;
+/**
+ * What `POST /api/alerts/{id}/explanation` can be answered with: the three conflicts of
+ * `ExplanationEndpoints.ToCode`, plus the fallback that `ExplanationConflictReason.ConcurrentUpdate`
+ * reaches — the same shape `EXTERNAL_EVALUATION_CONFLICT` has, and reachable for the same reason.
+ *
+ * The nine `ExplanationFailureCode` values are deliberately absent. They arrive inside a `200` as
+ * `explanation.failureCode` and describe how a redaction ended, not how a request was refused; they
+ * are rendered by `explanationFailureLabel`, beside the other wire values the console names.
+ */
+const EXPLANATION_CODES = [
+  "EXPLANATION_PENDING",
+  "EXPLANATION_ALREADY_READY",
+  "EXPLANATION_ATTEMPTS_EXHAUSTED",
+  "EXPLANATION_CONFLICT",
+] as const;
+
+const API_CODES = [
+  ...ALERT_CODES,
+  ...CONSOLE_CODES,
+  ...EXTERNAL_CODES,
+  ...EXPLANATION_CODES,
+] as const;
 
 function problem(code: string, status = 409): ApiFailure {
   return { kind: "problem", status, code, detail: "detalle técnico de la API" };
@@ -173,7 +194,7 @@ describe("mensajes de error", () => {
   });
 
   it("traduce un código desconocido sin fingir que lo entiende", () => {
-    // Un código de una etapa futura: la 6 traerá los del proveedor externo.
+    // Un código que ninguna etapa emite: los del proveedor externo ya están en el catálogo.
     const message = describeFailure(problem("EXTERNAL_PROVIDER_TIMEOUT", 409));
 
     expect(message.title).toMatch(/rechazó la operación/i);

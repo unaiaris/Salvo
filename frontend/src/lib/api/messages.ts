@@ -255,6 +255,30 @@ const BY_CODE: Readonly<Record<string, FailureMessage>> = {
     recovery: "Revisá qué está enviando el proveedor. Si vuelve a pasar desde esta pantalla, reportalo con la hora exacta.",
     isFormError: false,
   },
+  EXPLANATION_PENDING: {
+    title: "La explicación se está redactando ahora mismo",
+    body: "Ya hay una petición en curso para esta evaluación y todavía no respondió. Pedir otra pagaría dos veces la misma redacción.",
+    recovery: "Esperá unos segundos y recargá la alerta: el texto aparece en el bloque de explicación.",
+    isFormError: false,
+  },
+  EXPLANATION_ALREADY_READY: {
+    title: "Esta evaluación ya tiene su explicación escrita",
+    body: "Una explicación escrita no se regenera. Es el registro de lo que se pudo leer al decidir, y reemplazarla borraría el texto que alguien pudo haber tenido delante.",
+    recovery: "El texto vigente se muestra en el bloque de explicación. Una evaluación distinta tiene su propia explicación.",
+    isFormError: false,
+  },
+  EXPLANATION_ATTEMPTS_EXHAUSTED: {
+    title: "Se agotaron los intentos de explicar esta evaluación",
+    body: "La redacción falló todas las veces que el presupuesto de intentos permite. El tope existe para que un proveedor que falla en cadena no se cobre indefinidamente.",
+    recovery: "Revisá el motivo del último intento en el bloque de explicación. El veredicto no necesita una explicación para emitirse.",
+    isFormError: false,
+  },
+  EXPLANATION_CONFLICT: {
+    title: "Otra escritura tocó la explicación al mismo tiempo",
+    body: "Alguien más movió esta explicación mientras se procesaba tu pedido, así que el tuyo no se aplicó.",
+    recovery: `${RELOAD} El estado que se muestra es el que quedó guardado.`,
+    isFormError: false,
+  },
   INVALID_PAGE_SIZE: {
     title: "La consola pidió un tamaño de página fuera de rango",
     body: "El feed pidió más alertas por página de las que la API entrega. Es un error interno: no debería ocurrir desde esta pantalla.",
