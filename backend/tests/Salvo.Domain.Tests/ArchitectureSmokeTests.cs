@@ -1,6 +1,7 @@
 using Salvo.Domain;
 using Salvo.Domain.Alerts;
 using Salvo.Domain.Evaluation;
+using Salvo.Domain.Explanations;
 using Salvo.Domain.External;
 using Salvo.Domain.Risk;
 
@@ -52,6 +53,10 @@ public sealed class ArchitectureSmokeTests
             typeof(RunEvaluation),
             typeof(ExternalEvaluation),
             typeof(CallbackReceipt),
+
+            // Mutable on purpose, like the external evaluation, so it stays out of the append-only
+            // check and inside this one: nothing that is persisted may carry ground truth.
+            typeof(AlertExplanation),
             typeof(Alert),
             typeof(AlertReview),
         })

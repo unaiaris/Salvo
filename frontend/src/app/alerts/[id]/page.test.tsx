@@ -124,6 +124,7 @@ describe("detalle de la alerta", () => {
         previousStatus: "OPEN",
         newStatus: "REPORTED_FRAUD",
         note: "Coincide con el patrón de la semana pasada.",
+        explanationId: null,
         reviewedAt: "2026-09-02T22:00:00+00:00",
       },
     });

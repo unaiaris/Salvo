@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Salvo.Api;
@@ -81,6 +82,18 @@ public sealed class SalvoApiFactory : WebApplicationFactory<Program>
     /// </summary>
     public string? CallbackSecret { get; set; } = "test-callback-secret";
 
+    /// <summary>
+    /// An interceptor to attach to every command this host issues. Set it before the first client
+    /// or service is resolved.
+    /// </summary>
+    /// <remarks>
+    /// Attached where the options are built rather than registered as a service, because that is
+    /// the only placement that is guaranteed to see every command regardless of how the context is
+    /// resolved. It is what lets a test assert which tables a request wrote to, which no test over
+    /// types can do: the seam worth watching is an EF store that has the whole context in hand.
+    /// </remarks>
+    public IInterceptor? DbInterceptor { get; set; }
+
     public async Task<HttpClient> CreateMigratedClientAsync()
     {
         var client = CreateClient();
@@ -109,14 +122,22 @@ public sealed class SalvoApiFactory : WebApplicationFactory<Program>
         {
             services.RemoveAll<DbContextOptions<SalvoDbContext>>();
             services.RemoveAll<SalvoDbContext>();
-            if (sharedConnection is not null)
+            services.AddDbContext<SalvoDbContext>(options =>
             {
-                services.AddDbContext<SalvoDbContext>(options => options.UseSqlite(sharedConnection));
-            }
-            else
-            {
-                services.AddDbContext<SalvoDbContext>(options => options.UseSqlite(connectionString));
-            }
+                if (sharedConnection is not null)
+                {
+                    options.UseSqlite(sharedConnection);
+                }
+                else
+                {
+                    options.UseSqlite(connectionString);
+                }
+
+                if (DbInterceptor is not null)
+                {
+                    options.AddInterceptors(DbInterceptor);
+                }
+            });
 
             ConfigureTestServices?.Invoke(services);
         });

@@ -53,6 +53,8 @@ public sealed class ReviewAlertHandler(
             return RepeatOf(context, command.NewStatus, note);
         }
 
+        EnsureExplanationBelongsToTheAlert(context, command.ExplanationId);
+
         var divergence = AlertProjection.ToDivergence(alert, context.CurrentEvaluation);
         if (divergence.HasBandDivergence && !command.AcknowledgedDivergence)
         {
@@ -68,10 +70,35 @@ public sealed class ReviewAlertHandler(
             idGenerator.Create(),
             command.NewStatus,
             note,
+            command.ExplanationId,
             timeProvider.GetUtcNow());
         await store.SaveReviewAsync(alert, review, cancellationToken);
 
         return new(true, AlertProjection.ToDetail(context with { Review = review }));
+    }
+
+    /// <summary>
+    /// Refuses a review that cites an explanation this alert does not show.
+    /// </summary>
+    /// <remarks>
+    /// The record exists to say what the reviewer had in front of them, so accepting an arbitrary
+    /// identifier would make it a record of nothing. The two explanations an alert can show are the
+    /// one of its snapshot and the one of the evaluation that is current; anything else means the
+    /// page the verdict was formed on is not the page this alert has now.
+    /// </remarks>
+    /// <exception cref="AlertReviewConflictException">The identifier is not one of the two.</exception>
+    private static void EnsureExplanationBelongsToTheAlert(AlertContext context, Guid? explanationId)
+    {
+        if (explanationId is not { } cited
+            || context.Explanation?.Id == cited
+            || context.CurrentExplanation?.Id == cited)
+        {
+            return;
+        }
+
+        throw new AlertReviewConflictException(
+            AlertReviewConflictReason.UnknownExplanation,
+            $"Alert {context.Alert.Id} does not show an explanation with identifier {cited}.");
     }
 
     /// <summary>

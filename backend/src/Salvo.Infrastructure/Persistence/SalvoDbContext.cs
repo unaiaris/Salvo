@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Salvo.Domain.Alerts;
 using Salvo.Domain.Evaluation;
+using Salvo.Domain.Explanations;
 using Salvo.Domain.External;
 using Salvo.Domain.Orders;
 using Salvo.Domain.Risk;
@@ -26,6 +27,8 @@ public sealed class SalvoDbContext(DbContextOptions<SalvoDbContext> options) : D
     public DbSet<Alert> Alerts => Set<Alert>();
 
     public DbSet<AlertReview> AlertReviews => Set<AlertReview>();
+
+    public DbSet<AlertExplanation> AlertExplanations => Set<AlertExplanation>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

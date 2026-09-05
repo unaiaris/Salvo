@@ -121,6 +121,11 @@ namespace Salvo.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("alert_id");
 
+                    b.Property<string>("ExplanationId")
+                        .HasMaxLength(36)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("explanation_id");
+
                     b.Property<string>("NewStatus")
                         .IsRequired()
                         .HasMaxLength(14)
@@ -149,6 +154,8 @@ namespace Salvo.Infrastructure.Persistence.Migrations
                     b.HasIndex("AlertId")
                         .IsUnique()
                         .HasDatabaseName("ux_alert_reviews_alert");
+
+                    b.HasIndex("ExplanationId");
 
                     b.ToTable("alert_reviews", null, t =>
                         {
@@ -186,6 +193,141 @@ namespace Salvo.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("ck_order_evaluation_labels_created_at_utc", "length(created_at_utc) = 24 AND substr(created_at_utc, 24, 1) = 'Z'");
 
                             t.HasCheckConstraint("ck_order_evaluation_labels_is_fraud_label", "is_fraud_label IN (0, 1)");
+                        });
+                });
+
+            modelBuilder.Entity("Salvo.Domain.Explanations.AlertExplanation", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(36)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AlertPolicyVersion")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("alert_policy_version");
+
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("attempt_count");
+
+                    b.Property<string>("FailureCode")
+                        .HasMaxLength(21)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("failure_code");
+
+                    b.Property<string>("FailureDetail")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("failure_detail");
+
+                    b.Property<int?>("InputTokens")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("input_tokens");
+
+                    b.Property<int?>("OutputTokens")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("output_tokens");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(9)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("provider");
+
+                    b.Property<string>("ProviderVersion")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("provider_version");
+
+                    b.Property<string>("ReferencedRulesJson")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("referenced_rules_json");
+
+                    b.Property<string>("RequestedAt")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("requested_at_utc");
+
+                    b.Property<string>("RequestedFromAlertId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("requested_from_alert_id");
+
+                    b.Property<string>("RiskEvaluationId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("risk_evaluation_id");
+
+                    b.Property<long>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("row_version");
+
+                    b.Property<string>("SettledAt")
+                        .HasMaxLength(24)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("settled_at_utc");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(1200)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("summary");
+
+                    b.Property<string>("TemplateVersion")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("template_version");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RequestedFromAlertId")
+                        .HasDatabaseName("ix_alert_explanations_requested_from_alert");
+
+                    b.HasIndex("RiskEvaluationId", "Provider")
+                        .IsUnique()
+                        .HasDatabaseName("ux_alert_explanations_pending_evaluation")
+                        .HasFilter("status = 'PENDING'");
+
+                    b.HasIndex("RiskEvaluationId", "Provider", "TemplateVersion", "AlertPolicyVersion")
+                        .IsUnique()
+                        .HasDatabaseName("ux_alert_explanations_identity");
+
+                    b.ToTable("alert_explanations", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_alert_explanations_attempts", "attempt_count BETWEEN 0 AND 3");
+
+                            t.HasCheckConstraint("ck_alert_explanations_failure", "failure_code IS NULL OR status = 'FAILED'");
+
+                            t.HasCheckConstraint("ck_alert_explanations_failure_code", "failure_code IS NULL OR failure_code IN ('PROVIDER_UNAVAILABLE', 'PROVIDER_TIMEOUT', 'PROVIDER_REFUSED', 'MALFORMED_OUTPUT', 'NOT_GROUNDED_NUMBER', 'NOT_GROUNDED_RULE', 'TOO_LONG', 'CANCELLED', 'ATTEMPT_LIMIT_REACHED')");
+
+                            t.HasCheckConstraint("ck_alert_explanations_provider", "provider IN ('MOCK', 'ANTHROPIC')");
+
+                            t.HasCheckConstraint("ck_alert_explanations_ready", "(status = 'READY' AND summary IS NOT NULL AND referenced_rules_json IS NOT NULL) OR (status <> 'READY' AND summary IS NULL AND referenced_rules_json IS NULL)");
+
+                            t.HasCheckConstraint("ck_alert_explanations_requested_at_utc", "length(requested_at_utc) = 24 AND substr(requested_at_utc, 24, 1) = 'Z'");
+
+                            t.HasCheckConstraint("ck_alert_explanations_settled", "(status = 'PENDING' AND settled_at_utc IS NULL) OR (status <> 'PENDING' AND settled_at_utc IS NOT NULL)");
+
+                            t.HasCheckConstraint("ck_alert_explanations_settled_at_utc", "settled_at_utc IS NULL OR (length(settled_at_utc) = 24 AND substr(settled_at_utc, 24, 1) = 'Z' AND settled_at_utc >= requested_at_utc)");
+
+                            t.HasCheckConstraint("ck_alert_explanations_status", "status IN ('PENDING', 'READY', 'FAILED')");
+
+                            t.HasCheckConstraint("ck_alert_explanations_summary_length", "summary IS NULL OR length(summary) <= 1200");
+
+                            t.HasCheckConstraint("ck_alert_explanations_tokens", "(input_tokens IS NULL OR input_tokens >= 0) AND (output_tokens IS NULL OR output_tokens >= 0)");
                         });
                 });
 
@@ -740,6 +882,11 @@ namespace Salvo.Infrastructure.Persistence.Migrations
                         .HasForeignKey("AlertId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("Salvo.Domain.Explanations.AlertExplanation", null)
+                        .WithMany()
+                        .HasForeignKey("ExplanationId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("Salvo.Domain.Evaluation.OrderEvaluationLabel", b =>
@@ -747,6 +894,21 @@ namespace Salvo.Infrastructure.Persistence.Migrations
                     b.HasOne("Salvo.Domain.Orders.Order", null)
                         .WithOne()
                         .HasForeignKey("Salvo.Domain.Evaluation.OrderEvaluationLabel", "OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Salvo.Domain.Explanations.AlertExplanation", b =>
+                {
+                    b.HasOne("Salvo.Domain.Alerts.Alert", null)
+                        .WithMany()
+                        .HasForeignKey("RequestedFromAlertId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Salvo.Domain.Risk.RiskEvaluation", null)
+                        .WithMany()
+                        .HasForeignKey("RiskEvaluationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

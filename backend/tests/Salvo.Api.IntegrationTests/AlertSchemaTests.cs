@@ -1,3 +1,5 @@
+using System.Data.Common;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Salvo.Application.Alerts;
@@ -47,10 +49,148 @@ public sealed class AlertSchemaTests
         Assert.Contains("risk_score_snapshot", columns);
         Assert.Contains("supersedes_alert_id", columns);
 
-        // Stage 7 owns explainability; its columns must not exist yet.
+        // Explainability lives in its own table. These columns staying absent is what stage 7
+        // decided rather than what it postponed: an explanation has a lifecycle that can fail and
+        // be retried, and this snapshot is frozen and its status is a concurrency token.
         Assert.DoesNotContain("explanation", columns);
         Assert.DoesNotContain("recommended_action", columns);
         Assert.DoesNotContain("explanation_status", columns);
+    }
+
+    /// <summary>
+    /// The explanation has a table of its own, keyed by the evaluation and not by the alert.
+    /// </summary>
+    /// <remarks>
+    /// Both indexes matter and they are not the same guarantee. The total one is the identity: one
+    /// answer per evaluation, provider, template and policy, which it can afford to be because a
+    /// retry happens on that same row. The partial one is the reservation: only one provider is
+    /// being asked at a time, which is what makes two concurrent requests cost one call.
+    /// </remarks>
+    [Fact]
+    public async Task TheExplanationHasItsOwnTableKeyedByTheEvaluation()
+    {
+        await using var factory = new SalvoApiFactory();
+        await factory.InitializeDatabaseAsync();
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SalvoDbContext>();
+
+        var columns = await ReadColumnNamesAsync(dbContext, "alert_explanations");
+        var identity = await ReadIndexAsync(dbContext, "ux_alert_explanations_identity");
+        var pending = await ReadIndexAsync(dbContext, "ux_alert_explanations_pending_evaluation");
+
+        Assert.Contains("risk_evaluation_id", columns);
+        Assert.Contains("requested_from_alert_id", columns);
+        Assert.Contains("attempt_count", columns);
+        Assert.Contains("row_version", columns);
+
+        // The columns a real provider needs, put here now so that adding one is a registration
+        // rather than a migration.
+        Assert.Contains("provider_version", columns);
+        Assert.Contains("input_tokens", columns);
+        Assert.Contains("output_tokens", columns);
+
+        Assert.Contains("CREATE UNIQUE INDEX", identity, StringComparison.Ordinal);
+        Assert.DoesNotContain("WHERE", identity, StringComparison.Ordinal);
+        Assert.Contains("risk_evaluation_id", identity, StringComparison.Ordinal);
+        Assert.Contains("template_version", identity, StringComparison.Ordinal);
+        Assert.Contains("alert_policy_version", identity, StringComparison.Ordinal);
+
+        Assert.Contains("CREATE UNIQUE INDEX", pending, StringComparison.Ordinal);
+        Assert.Matches(@"WHERE\s+""?status""?\s*=\s*'PENDING'", pending);
+
+        // The alert is where the request came from, never part of what identifies the answer.
+        Assert.DoesNotContain("requested_from_alert_id", identity, StringComparison.Ordinal);
+
+        // And the review records what the reviewer was reading.
+        Assert.Contains("explanation_id", await ReadColumnNamesAsync(dbContext, "alert_reviews"));
+    }
+
+    /// <summary>
+    /// «A rejected summary is never stored» is a property of the database, not a promise of the
+    /// handler.
+    /// </summary>
+    /// <remarks>
+    /// The test writes straight to SQLite, going around every line of application code, because
+    /// that is the only way to find out whether the guarantee survives a handler that has a bug in
+    /// it. The second insert is the control: the same row without the summary is accepted, so what
+    /// the first one proves is the constraint and not some unrelated invalidity.
+    /// </remarks>
+    [Fact]
+    public async Task TheDatabaseRefusesAFailedExplanationThatCarriesText()
+    {
+        await using var factory = new SalvoApiFactory();
+        using var client = await factory.CreateMigratedClientAsync();
+        await AlertTestCorpus.ImportAsync(client, AlertTestCorpus.DivergenceBase());
+        await AlertTestCorpus.RunScoringAsync(client);
+        var alert = Assert.Single((await AlertTestCorpus.ListAlertsAsync(client)).Items);
+        var detail = await AlertTestCorpus.GetAlertAsync(client, alert.Id);
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SalvoDbContext>();
+
+        var withText = await TryInsertExplanationAsync(
+            dbContext,
+            alert.Id,
+            detail.Snapshot.EvaluationId,
+            summary: "un resumen que la validación rechazó");
+        var withoutText = await TryInsertExplanationAsync(
+            dbContext,
+            alert.Id,
+            detail.Snapshot.EvaluationId,
+            summary: null);
+
+        Assert.NotNull(withText);
+        Assert.Contains("ck_alert_explanations_ready", withText, StringComparison.Ordinal);
+        Assert.Null(withoutText);
+    }
+
+    /// <summary>
+    /// Inserts a failed explanation directly. Returns the SQLite message, or <c>null</c> when the
+    /// row was accepted.
+    /// </summary>
+    private static async Task<string?> TryInsertExplanationAsync(
+        SalvoDbContext dbContext,
+        Guid alertId,
+        Guid evaluationId,
+        string? summary)
+    {
+        var connection = dbContext.Database.GetDbConnection();
+        await using var command = connection.CreateCommand();
+        command.CommandText =
+            """
+            INSERT INTO alert_explanations (
+                id, risk_evaluation_id, provider, template_version, alert_policy_version,
+                requested_from_alert_id, status, summary, referenced_rules_json, failure_code,
+                attempt_count, requested_at_utc, settled_at_utc, row_version)
+            VALUES (
+                $id, $evaluation, 'MOCK', 'e7-v1', 'e4-v1',
+                $alert, 'FAILED', $summary, NULL, 'NOT_GROUNDED_NUMBER',
+                1, '2026-09-05T00:00:00.000Z', '2026-09-05T00:00:01.000Z', 1);
+            """;
+        AddParameter(command, "$id", Guid.NewGuid().ToString());
+        AddParameter(command, "$evaluation", evaluationId.ToString());
+        AddParameter(command, "$alert", alertId.ToString());
+        AddParameter(command, "$summary", summary);
+
+        try
+        {
+            await command.ExecuteNonQueryAsync();
+
+            return null;
+        }
+        catch (SqliteException exception)
+        {
+            return exception.Message;
+        }
+    }
+
+    private static void AddParameter(DbCommand command, string name, object? value)
+    {
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = name;
+        parameter.Value = value ?? DBNull.Value;
+        command.Parameters.Add(parameter);
     }
 
     [Fact]
@@ -78,10 +218,10 @@ public sealed class AlertSchemaTests
         var winner = (await winnerStore.FindForReviewAsync(alertId, CancellationToken.None))!.Alert;
         var loser = (await loserStore.FindForReviewAsync(alertId, CancellationToken.None))!.Alert;
 
-        var winnerReview = winner.Review(Guid.NewGuid(), AlertStatus.ConfirmedSafe, "safe", DateTimeOffset.UtcNow);
+        var winnerReview = winner.Review(Guid.NewGuid(), AlertStatus.ConfirmedSafe, "safe", null, DateTimeOffset.UtcNow);
         await winnerStore.SaveReviewAsync(winner, winnerReview, CancellationToken.None);
 
-        var loserReview = loser.Review(Guid.NewGuid(), AlertStatus.ReportedFraud, "fraud", DateTimeOffset.UtcNow);
+        var loserReview = loser.Review(Guid.NewGuid(), AlertStatus.ReportedFraud, "fraud", null, DateTimeOffset.UtcNow);
         var exception = await Assert.ThrowsAsync<AlertReviewConflictException>(() =>
             loserStore.SaveReviewAsync(loser, loserReview, CancellationToken.None));
 
@@ -113,10 +253,10 @@ public sealed class AlertSchemaTests
 
         // Only the alert row is written here, so the unique index on the audit table cannot be what
         // refuses the second write: the concurrency token has to carry the case on its own.
-        winner.Review(Guid.NewGuid(), AlertStatus.ConfirmedSafe, null, DateTimeOffset.UtcNow);
+        winner.Review(Guid.NewGuid(), AlertStatus.ConfirmedSafe, null, null, DateTimeOffset.UtcNow);
         await winnerContext.SaveChangesAsync();
 
-        loser.Review(Guid.NewGuid(), AlertStatus.ReportedFraud, null, DateTimeOffset.UtcNow);
+        loser.Review(Guid.NewGuid(), AlertStatus.ReportedFraud, null, null, DateTimeOffset.UtcNow);
 
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => loserContext.SaveChangesAsync());
         Assert.Equal(AlertStatus.ConfirmedSafe, (await winnerContext.Alerts.AsNoTracking().SingleAsync()).Status);

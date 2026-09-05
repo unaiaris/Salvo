@@ -422,6 +422,74 @@
         }
       }
     },
+    "/api/alerts/{alertId}/explanation": {
+      "post": {
+        "tags": [
+          "Explanations"
+        ],
+        "description": "Explains, in words, the evaluation this alert was opened on. Idempotent: when an explanation already exists the existing one is returned with 'applied' false, so a repeated request neither asks a provider twice nor changes anything. 'regenerate' asks for another attempt, and is allowed only over an explanation that failed and still has attempts left. Every figure of the text is verified against the evaluation before it is stored, so a provider that invents one produces a failed explanation rather than a paragraph: that is a 200 with the row in FAILED, never a server error. There is no separate GET — the alert detail carries the explanation, and the absence of one is an ordinary state rather than a 404.",
+        "operationId": "RequestAlertExplanation",
+        "parameters": [
+          {
+            "name": "alertId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RequestExplanationRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestExplanationResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/orders/{orderId}/external-evaluations": {
       "post": {
         "tags": [
@@ -852,6 +920,8 @@
           "currentRun",
           "divergence",
           "externalEvaluation",
+          "explanation",
+          "currentExplanation",
           "review"
         ],
         "type": "object",
@@ -927,6 +997,26 @@
               },
               {
                 "$ref": "#/components/schemas/AlertExternalEvaluationView"
+              }
+            ]
+          },
+          "explanation": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AlertExplanationView"
+              }
+            ]
+          },
+          "currentExplanation": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AlertExplanationView"
               }
             ]
           },
@@ -1023,6 +1113,88 @@
           },
           "evaluatedAt": {
             "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AlertExplanationView": {
+        "required": [
+          "id",
+          "provider",
+          "templateVersion",
+          "providerVersion",
+          "status",
+          "summary",
+          "referencedRules",
+          "failureCode",
+          "attemptCount",
+          "attemptsExhausted",
+          "isOutdated",
+          "requestedAt",
+          "settledAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "templateVersion": {
+            "type": "string"
+          },
+          "providerVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "summary": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "referencedRules": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "failureCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "attemptCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "attemptsExhausted": {
+            "type": "boolean"
+          },
+          "isOutdated": {
+            "type": "boolean"
+          },
+          "requestedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "settledAt": {
+            "type": [
+              "null",
+              "string"
+            ],
             "format": "date-time"
           }
         }
@@ -1286,6 +1458,7 @@
           "previousStatus",
           "newStatus",
           "note",
+          "explanationId",
           "reviewedAt"
         ],
         "type": "object",
@@ -1305,6 +1478,13 @@
               "null",
               "string"
             ]
+          },
+          "explanationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           },
           "reviewedAt": {
             "type": "string",
@@ -2486,6 +2666,35 @@
           }
         }
       },
+      "RequestExplanationRequest": {
+        "required": [
+          "regenerate"
+        ],
+        "type": "object",
+        "properties": {
+          "regenerate": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        }
+      },
+      "RequestExplanationResult": {
+        "required": [
+          "applied",
+          "explanation"
+        ],
+        "type": "object",
+        "properties": {
+          "applied": {
+            "type": "boolean"
+          },
+          "explanation": {
+            "$ref": "#/components/schemas/AlertExplanationView"
+          }
+        }
+      },
       "RequestExternalEvaluationRequest": {
         "required": [
           "provider",
@@ -2526,7 +2735,8 @@
         "required": [
           "newStatus",
           "note",
-          "acknowledgedDivergence"
+          "acknowledgedDivergence",
+          "explanationId"
         ],
         "type": "object",
         "properties": {
@@ -2547,6 +2757,13 @@
               "null",
               "boolean"
             ]
+          },
+          "explanationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -2762,6 +2979,9 @@
     },
     {
       "name": "Alerts"
+    },
+    {
+      "name": "Explanations"
     },
     {
       "name": "External evaluations"

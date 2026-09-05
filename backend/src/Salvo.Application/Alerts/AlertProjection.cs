@@ -1,4 +1,6 @@
+using Salvo.Application.Explanations;
 using Salvo.Domain.Alerts;
+using Salvo.Domain.Explanations;
 using Salvo.Domain.External;
 using Salvo.Domain.Orders;
 using Salvo.Domain.Risk;
@@ -66,7 +68,32 @@ public static class AlertProjection
             context.CurrentRun,
             ToDivergence(alert, context.CurrentEvaluation),
             ToExternalView(context.ExternalEvaluation, context.HasContradictoryCallback),
+            ToExplanationView(context.Explanation, IsOutdated(context)),
+            ToExplanationView(context.CurrentExplanation, isOutdated: false),
             ToReviewView(context.Review));
+    }
+
+    /// <summary>
+    /// Whether the evaluation the snapshot froze is still the current one.
+    /// </summary>
+    /// <remarks>
+    /// Computed on every read and never stored, for the same reason the band divergence is: an
+    /// evaluation that becomes current again — a score that returns to an earlier value, which the
+    /// run bookkeeping makes possible — stops being outdated on its own, with nothing written and
+    /// nothing to migrate. When no run covers the order there is nothing contradicting the
+    /// snapshot, so the answer is no.
+    /// </remarks>
+    private static bool IsOutdated(AlertContext context)
+    {
+        return context.CurrentEvaluation is { } current
+            && current.Id != context.Alert.RiskEvaluationId;
+    }
+
+    private static AlertExplanationView? ToExplanationView(
+        AlertExplanation? explanation,
+        bool isOutdated)
+    {
+        return explanation is null ? null : ExplanationProjection.ToView(explanation, isOutdated);
     }
 
     /// <summary>
@@ -160,6 +187,7 @@ public static class AlertProjection
                 AlertWireNames.ToWire(review.PreviousStatus),
                 AlertWireNames.ToWire(review.NewStatus),
                 review.Note,
+                review.ExplanationId,
                 review.ReviewedAt);
     }
 

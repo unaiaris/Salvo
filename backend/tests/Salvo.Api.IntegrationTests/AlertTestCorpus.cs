@@ -188,16 +188,21 @@ internal static class AlertTestCorpus
         return Assert.IsType<AlertDetail>(await response.Content.ReadFromJsonAsync<AlertDetail>());
     }
 
+    /// <param name="explanationId">
+    /// Left empty by every existing caller on purpose: reviewing an alert nobody explained is the
+    /// ordinary case, and it has to keep behaving exactly as it did.
+    /// </param>
     public static Task<HttpResponseMessage> ReviewAsync(
         HttpClient client,
         Guid alertId,
         string newStatus,
         string? note = null,
-        bool acknowledgedDivergence = false)
+        bool acknowledgedDivergence = false,
+        Guid? explanationId = null)
     {
         return client.PostAsJsonAsync(
             $"/api/alerts/{alertId}/review",
-            new ReviewAlertRequest(newStatus, note, acknowledgedDivergence));
+            new ReviewAlertRequest(newStatus, note, acknowledgedDivergence, explanationId));
     }
 
     private static string ToJson(IReadOnlyList<TestOrder> orders)
