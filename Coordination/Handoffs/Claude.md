@@ -1668,3 +1668,185 @@ completos.)
   confirmar contra `salvo.db` que tras la migración siguen las 328 evaluaciones y las 21 alertas, que
   `callback_receipts` arranca vacía, y hacer el recorrido a mano: pedir la evaluación externa de una
   alerta, entregar su callback y ver el veredicto con su procedencia.
+
+## `E7A-EXPLICACIONES` — Explicaciones verificadas sobre la salida
+
+### Identificación
+
+- Estado de la rama: `Lista para integrar`
+- Etapa: 7
+- Rama/worktree: `claude/e7a-explicaciones`
+- Commit base: `5318518` (`docs: add Etapa 7 task briefs`, punta de `main`)
+- Commit final: `5565793`
+- Fecha: 2026-09-05
+
+### Resultado
+
+Una analista puede pedir la explicación de una alerta. El sistema la genera con un proveedor
+determinista, **verifica sobre el texto** que cada regla y cada cifra estén respaldadas por la
+evaluación, y solo entonces la guarda. Si el proveedor falla, tarda o el navegador aborta, la fila
+queda en un estado del que siempre se puede salir. El texto generado no puede cambiar ninguna
+superficie de decisión, y hay cuatro tests que fallan si lo hiciera. El motor, el fingerprint, las
+alertas, el dashboard y las métricas no cambian: los 328 fingerprints siguen byte a byte idénticos
+tras la migración.
+
+La explicación es una entidad propia, `alert_explanations`, y **su identidad es la evaluación**, no
+la alerta: `(risk_evaluation_id, provider, template_version, alert_policy_version)`. La alerta viaja
+como `requested_from_alert_id`, procedencia y no identidad, que es lo que hace que una escalada
+sobre una evaluación ya explicada encuentre el párrafo escrito en vez de pagarlo de nuevo.
+
+### Archivos modificados
+
+**Dominio, nuevo** (`backend/src/Salvo.Domain/Explanations/`): `AlertExplanation`,
+`ExplanationStatus`, `ExplanationProvider`, `ExplanationFailureCode`, `ExplanationWireNames`,
+`ExplanationInput`, `ExplanationFacts`, `ExplanationGrounding`, `NumberTokenizer`, `SignalFacts`,
+`SpanishNumberFormat`, `ReferencedRuleSerializer`, `ExplanationTransitionException`,
+`SignalDetailNotRecognizedException`.
+
+**Dominio, modificado**: `Alerts/Alert.cs` y `Alerts/AlertReview.cs` ganan `explanationId`.
+
+**Aplicación, nuevo**: `Explanations/` con `IExplanationProvider`, `IExplanationStore`,
+`IExplanationIdGenerator`, `ExplanationOptions`, `ExplanationExchange`, `ExplanationInputFactory`,
+`ExplanationViews`, `ExplanationConflictException`, `RequestExplanationHandler`; y
+`Providers/ProviderCall.cs`.
+
+**Aplicación, modificado**: `External/ExternalProviderExchange.cs` pasa a usar `ProviderCall`;
+`Alerts/` (`AlertContext`, `AlertProjection`, `AlertViews`, `ReviewAlertCommand`,
+`ReviewAlertHandler`, `AlertReviewConflictReason`).
+
+**Infraestructura**: `Explanations/DeterministicExplanationProvider.cs`,
+`Persistence/EfExplanationStore.cs`, `Persistence/Configurations/AlertExplanationConfiguration.cs`,
+los tres convertidores, `SystemExplanationIdGenerator`, la migración
+`20260905013514_Explanations` con su designer y el snapshot; `DependencyInjection`,
+`SalvoDbContext`, `EfAlertStore`, `AlertReviewConfiguration`.
+
+**API**: `ExplanationEndpoints.cs` nuevo; `Program.cs` y `AlertEndpoints.cs` modificados.
+
+**Tests**: `ExplanationFactsTests` (dominio); `ExplanationTestCorpus`, `ExplanationGroundingTests`,
+`ExplanationEndpointTests`, `ExplanationIsolationTests`, `ExplanationGoldenTests` (integración);
+`AlertSchemaTests`, `ArchitectureSmokeTests`, `SalvoApiFactory`, `AlertTestCorpus`, `AlertTests`
+modificados.
+
+**Frontend**, solo lo autorizado: `openapi/salvo-openapi.json` y `schema.d.ts` recapturados;
+`guards.ts`, `guards.test.ts`, `test/fixtures.ts` y una clave en
+`src/app/alerts/[id]/page.test.tsx`. Ningún componente ni ruta.
+
+**Raíz**: `.gitignore` ignora las copias de la base local.
+
+### Verificación
+
+| Comando | Resultado |
+| --- | --- |
+| `./scripts/check.sh` | **Verde**, salida 0 |
+| `npm run api:types:check` | Tipos al día con el documento recapturado |
+| `dotnet build` Release | 0 advertencias, 0 errores |
+| `dotnet ef migrations has-pending-model-changes` | Sin cambios |
+| `dotnet test` | 94 de dominio + 145 de integración, 0 fallas |
+| `npm run test` | 178 de frontend, 0 fallas |
+| `next build --webpack` | Las cuatro rutas de datos siguen dinámicas (`ƒ`) |
+| Migración sobre `salvo.db` | 328 fingerprints byte a byte idénticos (`cmp`), `integrity_check` ok, `foreign_key_check` sin filas, 21 alertas y 1 revisión intactas |
+| `git status --porcelain` | Limpio |
+
+**Falsaciones ejecutadas**, cada una revertida y con la suite verde después:
+
+| Mutación | Resultado |
+| --- | --- |
+| Quitar `ExplanationGrounding.Verify` **del manejador** | 2 rojos. No hay nada que quitarle al proveedor: no valida nada, y el rechazo igual ocurría |
+| Quitar el monto en unidades de `ExplanationFacts` | 1 rojo |
+| Quitar el instante en hora de negocio | 1 rojo |
+| Quitar redondeo y truncamiento | 3 rojos |
+| Asentar con el token del llamador en vez de `CancellationToken.None` | 1 rojo: la fila queda `PENDING` |
+| Que el almacén reescriba `alerts.signals_snapshot_json` | Interceptor rojo, y el diferencial rojo **solo en la línea 131**, que es el detalle de alerta. Dashboard, feed y métricas pasan con el snapshot reescrito: por eso el diferencial de tres superficies no habría visto nada |
+| **Guarda, paso 1**: proyectar `summary` sin mirar `status` | 2 rojos en `guards.test.ts` |
+| **Guarda, paso 2**: con esa mutación puesta | Los otros 176 tests de frontend siguen verdes, así que esos dos son lo único entre una respuesta que se contradice y un resumen renderizado |
+
+El test dorado encontró un defecto real antes de que se integrara: la plantilla escribía el año como
+`2.026`, porque el formateador agrupa miles y el año pasaba por él. El grounding lo aceptaba —`2.026`
+se lee como 2026 bajo la regla de ambigüedad—, así que nada más lo habría notado.
+
+### Decisiones y supuestos
+
+- **La identidad es la evaluación.** Todo lo que el proveedor recibe es función de la evaluación y
+  del pedido; lo único que aporta la alerta es la versión de política. Con clave por alerta, escalar
+  duplicaba filas y pagaba dos veces la misma redacción.
+- **La validación vive en el caso de uso**, entre el puerto y el almacén. La lógica es pura y está en
+  el dominio; la *llamada* está en el manejador, que es lo que hace que ningún proveedor pueda
+  saltarla. El test de mutación apunta ahí.
+- **El tokenizador lee un token en todas sus interpretaciones defendibles.** `56.0` es decimal
+  porque un grupo de miles tiene tres dígitos; `8.900,00` son ocho mil novecientos; `1.279` es
+  genuinamente ambiguo y da las dos lecturas. Ser generoso acá es seguro: una cifra inventada no se
+  vuelve real por tener dos grafías, y lo contrario rechaza un monto correcto.
+- **`FAILED` no es terminal** y el reintento ocurre sobre la misma fila, que es lo que permite que el
+  único total sobre la identidad no bloquee nada. Tope de 3 intentos; al agotarse, la fila queda con
+  `ATTEMPT_LIMIT_REACHED` y `failure_detail` conserva el código real, que si no se perdería.
+- **Una reserva anterior a `ahora − 2 × timeout` se retoma**, con o sin `regenerate`. Es lo que
+  reemplaza a una reconciliación en una etapa que no la tiene: sin eso, un proceso que muere deja una
+  fila que el único parcial defiende para siempre.
+- **`ProviderCall` se comparte** con `ExternalProviderExchange` en vez de copiarlo. Los dos mapean
+  distinto —un timeout antifraude deja la evaluación pendiente y una explicación que no llegó
+  simplemente no llegó—, pero no pueden discrepar sobre *qué es* un timeout. El comportamiento
+  externo quedó idéntico: la cancelación del llamador se vuelve a lanzar como antes.
+- **Un `detail` que el extractor no reconoce es un fallo declarado**, no un silencio: cierra la fila
+  con `PROVIDER_UNAVAILABLE` y el motivo. Es inalcanzable mientras el motor y sus fingerprints
+  dorados coincidan, y deja de serlo en silencio si dejan de coincidir.
+- **La plantilla no escribe el valor de la mediana**, porque el conjunto de hechos lleva el monto en
+  unidades pero no la mediana dividida por cien, y agregarla habría ensanchado el conjunto por una
+  razón estética. Dice el ámbito, el factor y sobre cuántos pedidos se calculó.
+- **`row_version` es `INTEGER`, no `BLOB`** como nombra la tabla del diseño. EF Core sobre SQLite no
+  tiene row version automática; el dominio lo incrementa en cada transición y la comprobación es la
+  misma. El estado solo no alcanzaba: retomar una reserva vencida es `PENDING → PENDING`.
+- **`ExplanationInput` vive en el dominio**, porque es el material del que se construyen los hechos y
+  tiene que ser puro e inspeccionable. El puerto, en aplicación, lo referencia.
+- **La proyección del frontend se autorizó a mitad de tarea.** El punto 8 del brief le da a E7A el
+  sub-objeto en `AlertDetail`, y eso vuelve requeridos tres miembros del contrato, con lo que
+  `guards.ts` deja de compilar. En la Etapa 6 no pasó porque `E6A` **no** agregó el sub-objeto al
+  detalle: `AlertDetail.externalEvaluation` y su guarda entraron juntos en `E6B` (`6fbdb66`). El
+  coordinador autorizó la proyección mínima; `page.test.tsx` y `guards.test.ts` se tocaron por
+  arrastre —una clave de fixture y los tests de la guarda nueva—, sin componentes, rutas ni
+  `messages.ts`.
+- El commit de checkpoint se reescribió para sacar una copia de `salvo.db` que había quedado
+  versionada; el `.gitignore` ahora cubre ese patrón.
+
+### Riesgos o pendientes
+
+- **`DesignAgent/Salvo-Portability.md:72` conserva `ANTHROPIC_MODEL="claude-sonnet-5"`.** El
+  Blueprint §9 y `.env.example` ya están vacíos, como pide D11; ese archivo se salteó. Está fuera de
+  los paths autorizados de esta tarea.
+- **`SignalFacts` es la semilla de `e3-v2` y su extractor está para morir.** Cuando el motor emita
+  campos tipados, se borra el extractor y la plantilla y los hechos quedan intactos. Está dicho en el
+  archivo.
+- **El conjunto de hechos es permisivo a propósito.** No es lo que hace fuerte a la comprobación: lo
+  que la hace fuerte es que una cifra *inventada* no está ahí ni se alcanza redondeando. Las cifras
+  escritas en letras no se validan, y se declara que no se validan.
+- **No hay reconciliación**; la regla de pendiente vencida la reemplaza dentro del alcance. La
+  ventana es `2 × timeout`, 30 segundos con la configuración por defecto.
+- **`E7B` tiene por delante**: el bloque en el detalle, el aviso de desactualizada, los botones,
+  `messages.ts` con los códigos nuevos, `boundary.test.ts` contaminando el sub-objeto —incluido un
+  `summary` inyectado sobre una fila `FAILED`— y los textos de `smoke-ui.sh`. La constante
+  `EXPLANATION_READY` quedó dentro de `guards.ts` y le corresponde moverla junto a los demás valores
+  de cable.
+- **`scripts/smoke-ui.sh` no se ejecutó**: no hay superficie de consola que recorrer todavía, y el
+  script está reservado para `E7B`.
+- Sin autenticación, el endpoint es alcanzable por el rewrite de Next. Con un proveedor de pago, la
+  idempotencia y el tope de intentos son el único freno; queda declarado como lo declara el Blueprint
+  para el resto de las rutas mutables.
+
+### Integración
+
+- Orden sugerido: rama única, sin dependencias. `E7B-EXPLICACIONES-UI` depende de esta integrada,
+  con el OpenAPI ya recapturado: **`E7B` no vuelve a capturar el contrato**.
+- Migraciones o pasos manuales: **sí**. `20260905013514_Explanations` crea `alert_explanations` y
+  agrega `alert_reviews.explanation_id` con su clave foránea. Lo segundo obliga a EF a **reconstruir
+  `alert_reviews`**, así que emite `PRAGMA foreign_keys = 0` fuera de transacción y lo advierte:
+  **copiar `backend/src/Salvo.Api/salvo.db` antes de `database update`**, sin borrar ni recrear la
+  base local. Ya está aplicada sobre la copia de trabajo de esta rama, con los 328 fingerprints
+  verificados idénticos.
+- Posibles conflictos: ninguno con otra tarea activa. Dentro de `main`, los archivos con más
+  probabilidad de conflicto si algo más los tocó son `frontend/openapi/salvo-openapi.json`,
+  `schema.d.ts`, `guards.ts`, `SalvoDbContextModelSnapshot.cs`, `EfAlertStore.cs` y
+  `ExternalProviderExchange.cs`.
+- Verificación posterior al merge: repetir `./scripts/check.sh` sobre `main`. Conviene además
+  confirmar contra `salvo.db` que tras la migración siguen las 328 evaluaciones, las 21 alertas y la
+  revisión, que `alert_explanations` arranca vacía, y pedir a mano la explicación de una alerta del
+  corpus para leer el párrafo. `./scripts/smoke-ui.sh` queda para el cierre de la etapa, cuando `E7B`
+  haya construido la superficie que recorrer.
