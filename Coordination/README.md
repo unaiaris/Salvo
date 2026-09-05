@@ -36,6 +36,31 @@ documentos. `AGENTS.md` y `CLAUDE.md` adaptan el comportamiento de cada herramie
 7. Tras la integración conjunta ejecuta la compuerta de etapa.
 8. Solo entonces actualiza Workboard, Progress y, si corresponde, Blueprint.
 
+## Reporte y verificación
+
+El coordinador tiene acceso de lectura al repositorio y a la base local. Eso define quién comprueba
+qué, y evita transcribir a mano lo que puede leerse en la fuente.
+
+**El coordinador verifica por su cuenta**, sin pedir que nadie copie una salida:
+
+- estado del árbol, ramas, commits y diferencias;
+- contenido de archivos, migraciones, índices y restricciones;
+- datos de la base local, para contrastar lo que un handoff afirma contra lo que realmente quedó
+  persistido.
+
+**El operador reporta solo lo que el coordinador no puede observar:**
+
+- si la compuerta y el smoke pasaron —basta con decirlo; la salida completa se pega únicamente
+  cuando algo falla, y solo la parte que falla—;
+- lo que se ve en pantalla;
+- decisiones que le corresponden: modelo y esfuerzo, alcance, aprobación de un diseño.
+
+**Un despacho se entrega como una sola secuencia de comandos**, no paso a paso. El operador la
+ejecuta entera y avisa al terminar; el coordinador comprueba el resultado leyendo el repositorio.
+
+La razón es doble: una transcripción puede venir truncada o desordenada, y cada ida y vuelta
+innecesaria consume contexto que se necesita para el trabajo real.
+
 ## Reglas de concurrencia
 
 - Nunca ejecutar dos agentes sobre el mismo worktree.

@@ -1,7 +1,7 @@
 # Salvo — Política de modelo y esfuerzo
 
 > Estado del documento: vigente
-> Última actualización: 2026-09-02
+> Última actualización: 2026-09-05
 > Aplicación: toda sesión de Claude Code o Claude.ai que trabaje sobre este repositorio
 
 Elegir modelo y esfuerzo es una decisión de coordinación, no una preferencia de la sesión. Este
@@ -23,11 +23,11 @@ El modelo se elige por **el tipo de trabajo, no por la sesión**. Una sesión ab
 informe a Markdown, que es trabajo mecánico. Nadie lo nota, porque el resultado es correcto; lo que
 se pierde es dinero y tiempo.
 
-Caso real, 2026-09-02: tras la revisión adversarial de la Etapa 4 con Fable · `xhigh` se pidió, en
-la misma sesión, guardar la salida como archivo. Copiar y pegar texto es `Haiku 4.5 · low` según la
-última fila de la matriz. El coordinador no lo advirtió y el usuario lo señaló.
+El caso típico: una sesión abierta para una revisión adversarial termina, en el mismo hilo,
+guardando la salida como archivo. Transcribir texto es la última fila de la matriz —`Haiku 4.5` ·
+`low`— y la sesión sigue en el modelo con el que se abrió.
 
-Reglas que salen de ahí:
+Reglas:
 
 1. **El cambio de tipo se detecta en el pedido, no al terminar.** Antes de despachar una petición
    dentro de una sesión ya abierta, comparar el tipo de trabajo con la fila de la matriz que aplica.
