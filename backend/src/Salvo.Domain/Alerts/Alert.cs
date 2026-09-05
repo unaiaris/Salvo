@@ -127,6 +127,11 @@ public sealed class Alert
     /// Records the verdict. The only mutation the type allows, and only from
     /// <see cref="AlertStatus.Open"/>.
     /// </summary>
+    /// <param name="explanationId">
+    /// The explanation the reviewer was looking at, or <see langword="null"/> when there was none.
+    /// A verdict never requires one: reviewing an alert that was never explained works exactly as
+    /// it always did.
+    /// </param>
     /// <exception cref="AlertTransitionException">
     /// The alert is already reviewed, or <paramref name="newStatus"/> is not a verdict.
     /// </exception>
@@ -134,6 +139,7 @@ public sealed class Alert
         Guid reviewId,
         AlertStatus newStatus,
         string? note,
+        Guid? explanationId,
         DateTimeOffset reviewedAt)
     {
         if (newStatus is not (AlertStatus.ConfirmedSafe or AlertStatus.ReportedFraud))
@@ -153,6 +159,13 @@ public sealed class Alert
         Status = newStatus;
         ReviewedAt = reviewedAtUtc;
 
-        return AlertReview.Record(reviewId, Id, previousStatus, newStatus, note, reviewedAtUtc);
+        return AlertReview.Record(
+            reviewId,
+            Id,
+            previousStatus,
+            newStatus,
+            note,
+            explanationId,
+            reviewedAtUtc);
     }
 }

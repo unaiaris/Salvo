@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Salvo.Domain.Alerts;
+using Salvo.Domain.Explanations;
 
 namespace Salvo.Infrastructure.Persistence.Configurations;
 
@@ -51,6 +52,13 @@ public sealed class AlertReviewConfiguration : IEntityTypeConfiguration<AlertRev
         builder.Property(review => review.Note)
             .HasColumnName("note")
             .HasMaxLength(2000);
+
+        // What the reviewer had in front of them. Nullable because a verdict never required an
+        // explanation and still does not; written in the same transaction as the verdict itself.
+        builder.Property(review => review.ExplanationId)
+            .HasColumnName("explanation_id")
+            .HasConversion<string>()
+            .HasMaxLength(36);
         builder.Property(review => review.ReviewedAt)
             .HasColumnName("reviewed_at_utc")
             .HasConversion<UtcDateTimeOffsetConverter>()
@@ -67,6 +75,10 @@ public sealed class AlertReviewConfiguration : IEntityTypeConfiguration<AlertRev
         builder.HasOne<Alert>()
             .WithMany()
             .HasForeignKey(review => review.AlertId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<AlertExplanation>()
+            .WithMany()
+            .HasForeignKey(review => review.ExplanationId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

@@ -20,6 +20,7 @@ public sealed class AlertReview
         AlertStatus previousStatus,
         AlertStatus newStatus,
         string? note,
+        Guid? explanationId,
         DateTimeOffset reviewedAt)
     {
         Id = id;
@@ -27,6 +28,7 @@ public sealed class AlertReview
         PreviousStatus = previousStatus;
         NewStatus = newStatus;
         Note = note;
+        ExplanationId = explanationId;
         ReviewedAt = reviewedAt;
     }
 
@@ -40,6 +42,19 @@ public sealed class AlertReview
 
     public string? Note { get; private set; }
 
+    /// <summary>
+    /// The explanation the reviewer had in front of them, when there was one.
+    /// </summary>
+    /// <remarks>
+    /// An explanation is kept after it goes out of date precisely because it is the record of what
+    /// could have been read when the verdict was formed — and without this column that record did
+    /// not exist: a review issued while the explanation was still pending and one issued with it
+    /// written were indistinguishable afterwards, for good. This is the review noting what it had
+    /// in front of it, not generated prose reaching a decision: nothing here is written by a
+    /// provider, and the identifier changes nothing about the verdict.
+    /// </remarks>
+    public Guid? ExplanationId { get; private set; }
+
     public DateTimeOffset ReviewedAt { get; private set; }
 
     internal static AlertReview Record(
@@ -48,6 +63,7 @@ public sealed class AlertReview
         AlertStatus previousStatus,
         AlertStatus newStatus,
         string? note,
+        Guid? explanationId,
         DateTimeOffset reviewedAt)
     {
         if (id == Guid.Empty)
@@ -55,6 +71,20 @@ public sealed class AlertReview
             throw new ArgumentException("id must be a non-empty GUID.", nameof(id));
         }
 
-        return new(id, alertId, previousStatus, newStatus, note, reviewedAt.ToUniversalTime());
+        if (explanationId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "explanationId must be null or a non-empty GUID.",
+                nameof(explanationId));
+        }
+
+        return new(
+            id,
+            alertId,
+            previousStatus,
+            newStatus,
+            note,
+            explanationId,
+            reviewedAt.ToUniversalTime());
     }
 }

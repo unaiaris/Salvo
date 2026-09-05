@@ -2,6 +2,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Salvo.Application.Alerts;
 using Salvo.Domain.Alerts;
+using Salvo.Domain.Explanations;
 using Salvo.Domain.External;
 using Salvo.Domain.Risk;
 
@@ -38,7 +39,7 @@ public sealed class EfAlertStore(SalvoDbContext dbContext) : IAlertStore
             .ToListAsync(cancellationToken);
 
         return new(
-            await ComposeAsync(alerts, lastRun, withExternal: false, cancellationToken),
+            await ComposeAsync(alerts, lastRun, withDetail: false, cancellationToken),
             totalCount,
             ToReference(lastRun));
     }
@@ -104,7 +105,7 @@ public sealed class EfAlertStore(SalvoDbContext dbContext) : IAlertStore
             : (await ComposeAsync(
                 [alert],
                 await GetLastRunAsync(cancellationToken),
-                withExternal: true,
+                withDetail: true,
                 cancellationToken))[0];
     }
 
@@ -118,7 +119,7 @@ public sealed class EfAlertStore(SalvoDbContext dbContext) : IAlertStore
             : (await ComposeAsync(
                 [alert],
                 await GetLastRunAsync(cancellationToken),
-                withExternal: true,
+                withDetail: true,
                 cancellationToken))[0];
     }
 
@@ -181,15 +182,15 @@ public sealed class EfAlertStore(SalvoDbContext dbContext) : IAlertStore
     /// <summary>
     /// Assembles the contexts a caller needs.
     /// </summary>
-    /// <param name="withExternal">
-    /// Whether to also read the external evaluation of each order. Off for the feed: the listing
-    /// does not show it, and paying two more queries per page for a column nobody renders would be a
-    /// cost the feed has no reason to carry.
+    /// <param name="withDetail">
+    /// Whether to also read the blocks only the detail page shows: the external evaluation and the
+    /// explanation. Off for the feed, which renders neither, and paying several more queries per
+    /// page for columns nobody displays would be a cost the feed has no reason to carry.
     /// </param>
     private async Task<AlertContext[]> ComposeAsync(
         List<Alert> alerts,
         ScoringRun? lastRun,
-        bool withExternal,
+        bool withDetail,
         CancellationToken cancellationToken)
     {
         if (alerts.Count == 0)
@@ -210,11 +211,14 @@ public sealed class EfAlertStore(SalvoDbContext dbContext) : IAlertStore
             .Where(review => alertIds.Contains(review.AlertId))
             .ToDictionaryAsync(review => review.AlertId, cancellationToken);
 
-        var external = withExternal
+        var external = withDetail
             ? await GetExternalEvaluationsAsync(orderIds, cancellationToken)
             : [];
-        var contradicted = withExternal
+        var contradicted = withDetail
             ? await GetContradictedAsync(external.Values, cancellationToken)
+            : [];
+        var explanations = withDetail
+            ? await GetExplanationsAsync(alerts, currentEvaluations, cancellationToken)
             : [];
 
         return alerts
@@ -225,8 +229,68 @@ public sealed class EfAlertStore(SalvoDbContext dbContext) : IAlertStore
                 reviews.GetValueOrDefault(alert.Id),
                 ToReference(lastRun),
                 external.GetValueOrDefault(alert.OrderId),
-                external.GetValueOrDefault(alert.OrderId) is { } one && contradicted.Contains(one.Id)))
+                external.GetValueOrDefault(alert.OrderId) is { } one && contradicted.Contains(one.Id),
+                explanations.GetValueOrDefault(alert.RiskEvaluationId),
+                CurrentExplanationOf(alert, currentEvaluations, explanations)))
             .ToArray();
+    }
+
+    /// <summary>
+    /// The explanation of the evaluation that is current, when that is a different evaluation from
+    /// the one the snapshot froze and somebody has explained it.
+    /// </summary>
+    /// <remarks>
+    /// Usually absent, and it exists for the case an escalation creates: the alert opened over the
+    /// current evaluation may already carry its explanation, and showing the reader that the corpus
+    /// moved <em>and</em> where it moved to is better than showing only that it moved.
+    /// </remarks>
+    private static AlertExplanation? CurrentExplanationOf(
+        Alert alert,
+        Dictionary<Guid, RiskEvaluation> currentEvaluations,
+        Dictionary<Guid, AlertExplanation> explanations)
+    {
+        return currentEvaluations.GetValueOrDefault(alert.OrderId) is { } current
+            && current.Id != alert.RiskEvaluationId
+            ? explanations.GetValueOrDefault(current.Id)
+            : null;
+    }
+
+    /// <summary>
+    /// The explanations of the evaluations these alerts point at, keyed by evaluation.
+    /// </summary>
+    /// <remarks>
+    /// Keyed by evaluation rather than by alert because that is the identity of an explanation: an
+    /// escalation over an evaluation somebody already explained finds the paragraph written, and
+    /// nobody pays for it twice. Narrowed to the policy version of the alert, since a summary names
+    /// a severity band and a different policy names it differently. The most recent request wins if
+    /// several templates have run.
+    /// </remarks>
+    private async Task<Dictionary<Guid, AlertExplanation>> GetExplanationsAsync(
+        List<Alert> alerts,
+        Dictionary<Guid, RiskEvaluation> currentEvaluations,
+        CancellationToken cancellationToken)
+    {
+        var policyVersions = alerts.Select(alert => alert.AlertPolicyVersion).Distinct().ToArray();
+        var evaluationIds = alerts
+            .Select(alert => alert.RiskEvaluationId)
+            .Concat(currentEvaluations.Values.Select(evaluation => evaluation.Id))
+            .Distinct()
+            .ToArray();
+
+        var candidates = await dbContext.AlertExplanations
+            .AsNoTracking()
+            .Where(explanation => evaluationIds.Contains(explanation.RiskEvaluationId)
+                && policyVersions.Contains(explanation.AlertPolicyVersion))
+            .ToListAsync(cancellationToken);
+
+        return candidates
+            .GroupBy(explanation => explanation.RiskEvaluationId)
+            .ToDictionary(
+                group => group.Key,
+                group => group
+                    .OrderByDescending(explanation => explanation.RequestedAt)
+                    .ThenByDescending(explanation => explanation.Id)
+                    .First());
     }
 
     /// <summary>

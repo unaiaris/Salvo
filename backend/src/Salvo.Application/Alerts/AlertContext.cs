@@ -1,4 +1,5 @@
 using Salvo.Domain.Alerts;
+using Salvo.Domain.Explanations;
 using Salvo.Domain.External;
 using Salvo.Domain.Orders;
 using Salvo.Domain.Risk;
@@ -27,6 +28,16 @@ namespace Salvo.Application.Alerts;
 /// visible rather than discarded, because a provider disagreeing with itself is a fact about the
 /// integration that an analyst reading a verdict has a right to know.
 /// </param>
+/// <param name="Explanation">
+/// The explanation of the evaluation the snapshot froze, or <see langword="null"/> when nobody has
+/// asked for one. It is the premise the verdict is being formed on, which is why it and not the
+/// current one is what the page leads with.
+/// </param>
+/// <param name="CurrentExplanation">
+/// The explanation of the evaluation that is current now, when the corpus has moved and somebody
+/// has explained where it moved to. Usually absent, and never a replacement for the other: the two
+/// describe different moments, exactly as the two evaluation blocks do.
+/// </param>
 public sealed record AlertContext(
     Alert Alert,
     Order Order,
@@ -34,4 +45,6 @@ public sealed record AlertContext(
     AlertReview? Review,
     ScoringRunReference? CurrentRun,
     ExternalEvaluation? ExternalEvaluation = null,
-    bool HasContradictoryCallback = false);
+    bool HasContradictoryCallback = false,
+    AlertExplanation? Explanation = null,
+    AlertExplanation? CurrentExplanation = null);

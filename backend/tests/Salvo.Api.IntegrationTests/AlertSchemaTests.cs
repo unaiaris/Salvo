@@ -78,10 +78,10 @@ public sealed class AlertSchemaTests
         var winner = (await winnerStore.FindForReviewAsync(alertId, CancellationToken.None))!.Alert;
         var loser = (await loserStore.FindForReviewAsync(alertId, CancellationToken.None))!.Alert;
 
-        var winnerReview = winner.Review(Guid.NewGuid(), AlertStatus.ConfirmedSafe, "safe", DateTimeOffset.UtcNow);
+        var winnerReview = winner.Review(Guid.NewGuid(), AlertStatus.ConfirmedSafe, "safe", null, DateTimeOffset.UtcNow);
         await winnerStore.SaveReviewAsync(winner, winnerReview, CancellationToken.None);
 
-        var loserReview = loser.Review(Guid.NewGuid(), AlertStatus.ReportedFraud, "fraud", DateTimeOffset.UtcNow);
+        var loserReview = loser.Review(Guid.NewGuid(), AlertStatus.ReportedFraud, "fraud", null, DateTimeOffset.UtcNow);
         var exception = await Assert.ThrowsAsync<AlertReviewConflictException>(() =>
             loserStore.SaveReviewAsync(loser, loserReview, CancellationToken.None));
 
@@ -113,10 +113,10 @@ public sealed class AlertSchemaTests
 
         // Only the alert row is written here, so the unique index on the audit table cannot be what
         // refuses the second write: the concurrency token has to carry the case on its own.
-        winner.Review(Guid.NewGuid(), AlertStatus.ConfirmedSafe, null, DateTimeOffset.UtcNow);
+        winner.Review(Guid.NewGuid(), AlertStatus.ConfirmedSafe, null, null, DateTimeOffset.UtcNow);
         await winnerContext.SaveChangesAsync();
 
-        loser.Review(Guid.NewGuid(), AlertStatus.ReportedFraud, null, DateTimeOffset.UtcNow);
+        loser.Review(Guid.NewGuid(), AlertStatus.ReportedFraud, null, null, DateTimeOffset.UtcNow);
 
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => loserContext.SaveChangesAsync());
         Assert.Equal(AlertStatus.ConfirmedSafe, (await winnerContext.Alerts.AsNoTracking().SingleAsync()).Status);

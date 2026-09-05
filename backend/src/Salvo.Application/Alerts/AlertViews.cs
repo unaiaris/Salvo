@@ -1,3 +1,5 @@
+using Salvo.Application.Explanations;
+
 namespace Salvo.Application.Alerts;
 
 public sealed record AlertSignalView(string Rule, int Weight, string Detail);
@@ -55,11 +57,17 @@ public sealed record AlertOrderView(
     string? City,
     string? DeviceSessionId);
 
+/// <param name="ExplanationId">
+/// The explanation the reviewer had in front of them, when there was one. It records what could
+/// have been read as the verdict was formed, which is the whole justification for keeping an
+/// explanation after it goes out of date.
+/// </param>
 public sealed record AlertReviewView(
     Guid Id,
     string PreviousStatus,
     string NewStatus,
     string? Note,
+    Guid? ExplanationId,
     DateTimeOffset ReviewedAt);
 
 /// <summary>
@@ -135,6 +143,14 @@ public sealed record AlertExternalEvaluationView(
     DateTimeOffset? SettledAt,
     bool HasContradictoryCallback);
 
+/// <param name="Explanation">
+/// The evaluation of the snapshot, put into words, or <see langword="null"/> when nobody asked.
+/// Absence is an ordinary state rather than an error.
+/// </param>
+/// <param name="CurrentExplanation">
+/// The same for the evaluation that is current now, on the rare occasion that one exists. Never
+/// shown instead of <paramref name="Explanation"/>: they describe different moments.
+/// </param>
 public sealed record AlertDetail(
     Guid Id,
     Guid OrderId,
@@ -150,6 +166,8 @@ public sealed record AlertDetail(
     ScoringRunReference? CurrentRun,
     AlertDivergenceView Divergence,
     AlertExternalEvaluationView? ExternalEvaluation,
+    AlertExplanationView? Explanation,
+    AlertExplanationView? CurrentExplanation,
     AlertReviewView? Review);
 
 /// <param name="Applied">

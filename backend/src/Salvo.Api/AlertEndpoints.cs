@@ -150,7 +150,11 @@ public static class AlertEndpoints
         {
             var result = await handler.HandleAsync(
                 id,
-                new(newStatus, request.Note, request.AcknowledgedDivergence ?? false),
+                new(
+                    newStatus,
+                    request.Note,
+                    request.AcknowledgedDivergence ?? false,
+                    request.ExplanationId),
                 cancellationToken);
 
             return result is null ? NotFound(id) : TypedResults.Ok(result);
@@ -178,6 +182,7 @@ public static class AlertEndpoints
             AlertReviewConflictReason.AlreadyReviewedWithDifferentStatus => "ALERT_ALREADY_REVIEWED",
             AlertReviewConflictReason.AlreadyReviewedWithDifferentNote => "ALERT_REVIEW_NOTE_CONFLICT",
             AlertReviewConflictReason.DivergenceNotAcknowledged => "ALERT_DIVERGENCE_NOT_ACKNOWLEDGED",
+            AlertReviewConflictReason.UnknownExplanation => "ALERT_REVIEW_EXPLANATION_UNKNOWN",
             _ => "ALERT_REVIEW_CONFLICT",
         };
     }
@@ -207,7 +212,13 @@ public static class AlertEndpoints
 /// Must be <see langword="true"/> to review an alert whose current evaluation sits in another
 /// severity band than the snapshot it was opened with.
 /// </param>
+/// <param name="ExplanationId">
+/// The explanation the reviewer was reading, when the alert showed one. Optional in every sense: a
+/// verdict has never required an explanation and still does not, and omitting it changes nothing
+/// about how the review is recorded beyond leaving this column empty.
+/// </param>
 public sealed record ReviewAlertRequest(
     string? NewStatus,
     string? Note,
-    bool? AcknowledgedDivergence);
+    bool? AcknowledgedDivergence,
+    Guid? ExplanationId);

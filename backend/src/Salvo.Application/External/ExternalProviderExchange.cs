@@ -1,3 +1,4 @@
+using Salvo.Application.Providers;
 using Salvo.Domain.External;
 
 namespace Salvo.Application.External;
@@ -25,27 +26,26 @@ internal static class ExternalProviderExchange
         TimeSpan timeout,
         CancellationToken cancellationToken)
     {
-        using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeoutSource.CancelAfter(timeout);
+        var outcome = await ProviderCall.InvokeAsync(call, timeout, cancellationToken);
 
-        try
+        switch (outcome.Status)
         {
-            return await call(timeoutSource.Token);
+            case ProviderCallStatus.Completed:
+                return outcome.Value!;
+
+            case ProviderCallStatus.TimedOut:
+                return new(ExternalProviderOutcome.Transient, ErrorCode: ExternalEvaluationErrorCode.Timeout);
+
+            case ProviderCallStatus.Faulted:
+                return new(ExternalProviderOutcome.Transient, ErrorCode: ExternalEvaluationErrorCode.ProviderError);
+
+            default:
+                // The caller went away. An evaluation is not settled by that, so the cancellation
+                // travels on exactly as it did before this classification was shared.
+                cancellationToken.ThrowIfCancellationRequested();
+
+                throw new OperationCanceledException(cancellationToken);
         }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return new(ExternalProviderOutcome.Transient, ErrorCode: ExternalEvaluationErrorCode.Timeout);
-        }
-        catch (TimeoutException)
-        {
-            return new(ExternalProviderOutcome.Transient, ErrorCode: ExternalEvaluationErrorCode.Timeout);
-        }
-#pragma warning disable CA1031 // A provider that fails in an unforeseen way must not take the request down with it.
-        catch (Exception) when (!cancellationToken.IsCancellationRequested)
-        {
-            return new(ExternalProviderOutcome.Transient, ErrorCode: ExternalEvaluationErrorCode.ProviderError);
-        }
-#pragma warning restore CA1031
     }
 
     /// <summary>

@@ -5,12 +5,14 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Salvo.Application.Alerts;
 using Salvo.Application.Dashboard;
+using Salvo.Application.Explanations;
 using Salvo.Application.External;
 using Salvo.Application.Metrics;
 using Salvo.Application.Orders;
 using Salvo.Application.Orders.Importing;
 using Salvo.Application.Orders.Seed;
 using Salvo.Application.Risk;
+using Salvo.Infrastructure.Explanations;
 using Salvo.Infrastructure.External;
 using Salvo.Infrastructure.Importing;
 using Salvo.Infrastructure.Persistence;
@@ -29,12 +31,14 @@ public static class DependencyInjection
 
         services.AddDbContext<SalvoDbContext>(options => options.UseSqlite(connectionString));
         AddExternalProvider(services, configuration);
+        AddExplanationProvider(services, configuration);
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<IOrderIdGenerator, SystemOrderIdGenerator>();
         services.AddSingleton<IRiskIdGenerator, SystemRiskIdGenerator>();
         services.AddSingleton<IAlertIdGenerator, SystemAlertIdGenerator>();
         services.AddSingleton<IExternalEvaluationIdGenerator, SystemExternalEvaluationIdGenerator>();
         services.AddSingleton<ICallbackReceiptIdGenerator, SystemCallbackReceiptIdGenerator>();
+        services.AddSingleton<IExplanationIdGenerator, SystemExplanationIdGenerator>();
         services.AddScoped<IOrderDataStore, EfOrderDataStore>();
         services.AddScoped<IOrderImportParser, OrderImportParser>();
         services.AddScoped<IDemoOrderSource, EmbeddedDemoOrderSource>();
@@ -65,8 +69,45 @@ public static class DependencyInjection
         services.AddScoped<LinkUnmatchedCallbacksHandler>();
         services.AddScoped<DeliverPendingCallbacksHandler>();
         services.AddScoped<RequestCorpusExternalEvaluationsHandler>();
+        services.AddScoped<IExplanationStore, EfExplanationStore>();
+        services.AddScoped<RequestExplanationHandler>();
 
         return services;
+    }
+
+    /// <summary>
+    /// Registers the writer of explanations this deployment has.
+    /// </summary>
+    /// <remarks>
+    /// <c>AI_PROVIDER</c> with any value other than <c>mock</c> fails at startup, and
+    /// <c>anthropic</c> is not an exception to that: there is no adapter for it in this build, with
+    /// or without a key. Falling back to the template in silence would let a deployment believe a
+    /// model wrote a paragraph that a template wrote, which is the one claim this project must
+    /// never make by accident. The same shape as <c>KOIN_MODE</c>, for the same reason.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    /// <c>AI_PROVIDER</c> names a provider this build cannot supply.
+    /// </exception>
+    private static void AddExplanationProvider(
+        IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var mode = configuration["AI_PROVIDER"];
+        if (!string.IsNullOrWhiteSpace(mode)
+            && !string.Equals(mode, "mock", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                string.Equals(mode, "anthropic", StringComparison.OrdinalIgnoreCase)
+                    ? "AI_PROVIDER=anthropic is not supported: this build has no Anthropic adapter, "
+                        + "and whether to add one is a decision taken after stage 7 is running. A "
+                        + "key changes nothing. Use AI_PROVIDER=mock, which registers the "
+                        + "deterministic template."
+                    : $"AI_PROVIDER='{mode}' is not a supported provider. Use AI_PROVIDER=mock.");
+        }
+
+        services.AddSingleton(new ExplanationOptions(
+            TimeSpan.FromSeconds(ReadSeconds(configuration, "Explanations:RequestTimeoutSeconds", 15))));
+        services.AddScoped<IExplanationProvider, DeterministicExplanationProvider>();
     }
 
     /// <summary>

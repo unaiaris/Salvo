@@ -43,7 +43,7 @@ public sealed class AlertTests
         var alert = CreateAlert(70, CreatedAt);
         var reviewId = Guid.NewGuid();
 
-        var review = alert.Review(reviewId, AlertStatus.ReportedFraud, "  chargeback confirmed  ", CreatedAt.AddHours(2));
+        var review = alert.Review(reviewId, AlertStatus.ReportedFraud, "  chargeback confirmed  ", null, CreatedAt.AddHours(2));
 
         Assert.Equal(AlertStatus.ReportedFraud, alert.Status);
         Assert.Equal(CreatedAt.AddHours(2), alert.ReviewedAt);
@@ -55,9 +55,9 @@ public sealed class AlertTests
 
         // A verdict is terminal by design: nothing reopens it, not even the same verdict again.
         Assert.Throws<AlertTransitionException>(() =>
-            alert.Review(Guid.NewGuid(), AlertStatus.ConfirmedSafe, null, CreatedAt.AddHours(3)));
+            alert.Review(Guid.NewGuid(), AlertStatus.ConfirmedSafe, null, null, CreatedAt.AddHours(3)));
         Assert.Throws<AlertTransitionException>(() =>
-            alert.Review(Guid.NewGuid(), AlertStatus.ReportedFraud, null, CreatedAt.AddHours(3)));
+            alert.Review(Guid.NewGuid(), AlertStatus.ReportedFraud, null, null, CreatedAt.AddHours(3)));
         Assert.Equal(AlertStatus.ReportedFraud, alert.Status);
     }
 
@@ -67,7 +67,7 @@ public sealed class AlertTests
         var alert = CreateAlert(60, CreatedAt);
 
         Assert.Throws<AlertTransitionException>(() =>
-            alert.Review(Guid.NewGuid(), AlertStatus.Open, null, CreatedAt));
+            alert.Review(Guid.NewGuid(), AlertStatus.Open, null, null, CreatedAt));
         Assert.Equal(AlertStatus.Open, alert.Status);
     }
 
