@@ -5,6 +5,7 @@ import { fetchAlert } from "@/lib/api/alerts";
 import { fetchCapabilities } from "@/lib/api/console";
 import { formatInstant, statusLabel } from "@/lib/format";
 import { CurrentEvaluationBlock, SnapshotBlock } from "./evaluation-blocks";
+import { ExplanationBlock } from "./explanation-block";
 import { ExternalEvaluationBlock } from "./external-block";
 import { OrderBlock } from "./order-block";
 import { ReviewPanel } from "./review-panel";
@@ -89,6 +90,8 @@ export default async function AlertDetailPage({
         detail={detail}
         triggerEnabled={capabilities.ok && capabilities.value.externalCallbackTriggerEnabled}
       />
+
+      <ExplanationBlock detail={detail} />
 
       <ReviewPanel detail={detail} />
     </div>
