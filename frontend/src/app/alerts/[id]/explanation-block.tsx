@@ -175,8 +175,6 @@ function Actions({
     <ExplanationActions
       alertId={alertId}
       regenerate={failedWithAttemptsLeft}
-      actionLabel={failedWithAttemptsLeft ? "Volver a intentar la explicación" : "Explicar esta evaluación"}
-      pendingLabel="Redactando…"
       canAsk={explanation === null || failedWithAttemptsLeft}
     />
   );

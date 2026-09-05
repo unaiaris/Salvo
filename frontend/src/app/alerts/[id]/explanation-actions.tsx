@@ -14,18 +14,19 @@ import { INITIAL_EXPLANATION_STATE, type ExplanationActionState } from "./explan
  *
  * `regenerate` is a flag rather than a verdict about what should happen. The API decides whether a
  * repeat is a retry, a no-op or a refusal; this only says which of the two questions is being asked.
+ *
+ * The two labels are written here rather than handed down as props, and the smoke is what settled
+ * it: a prop is serialised into the RSC payload whether or not anything renders it, so a page that
+ * had stopped offering the button still carried its words in the HTML. Wording that belongs to a
+ * control belongs in the control — the same place `ExternalActions` keeps its own.
  */
 export function ExplanationActions({
   alertId,
   regenerate,
-  actionLabel,
-  pendingLabel,
   canAsk,
 }: {
   readonly alertId: string;
   readonly regenerate: boolean;
-  readonly actionLabel: string;
-  readonly pendingLabel: string;
   readonly canAsk: boolean;
 }) {
   const [state, action, running] = useActionState(explainEvaluation, INITIAL_EXPLANATION_STATE);
@@ -41,7 +42,7 @@ export function ExplanationActions({
             disabled={running}
             className="inline-flex rounded-md border border-teal-700 px-4 py-2 text-sm font-semibold text-teal-900 disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400 hover:bg-teal-700 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-900"
           >
-            {running ? pendingLabel : actionLabel}
+            {running ? "Redactando…" : regenerate ? "Volver a intentar la explicación" : "Explicar esta evaluación"}
           </button>
         </form>
       )}
