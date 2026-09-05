@@ -32,6 +32,12 @@ obj/
 *.db-shm
 *.db-wal
 
+# Copies of a local database, which a migration is required to leave behind before it runs. The
+# pattern above does not cover them: a backup is named after the database rather than ending in
+# .db, and one of them reached a commit before this line existed.
+*.db.*
+salvo.db.*
+
 # Claude Code local overrides (keep .claude/commands/ and .claude/settings.json versioned)
 .claude/settings.local.json
 

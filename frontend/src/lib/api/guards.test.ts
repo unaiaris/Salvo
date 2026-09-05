@@ -7,6 +7,7 @@ import {
   wireCapabilities,
   wireDashboard,
   wireEvaluationMetrics,
+  wireExplanation,
   wireImportResult,
   wireOrder,
   wireScoringRunSummary,
@@ -281,5 +282,101 @@ describe("guardas del dashboard, las métricas y la importación", () => {
     expect(
       projectCapabilities(wireCapabilities({ externalCallbackTriggerEnabled: "true" })),
     ).toBeNull();
+  });
+});
+
+describe("la guarda de la explicación mira el estado antes que el texto", () => {
+  it("proyecta una explicación escrita y descarta lo que no declara el contrato", () => {
+    const projected = projectAlertDetail(
+      wireAlertDetail({
+        explanation: wireExplanation({ ordenDeLaCasa: "no debería cruzar" }),
+      }),
+    );
+
+    expect(projected?.explanation?.summary).toBe(
+      "El pedido obtuvo 100 puntos sobre un umbral de 60.",
+    );
+    expect(projected?.explanation?.referencedRules).toEqual(["amount_anomaly"]);
+    expect(Object.keys(projected?.explanation ?? {})).not.toContain("ordenDeLaCasa");
+  });
+
+  it("acepta una explicación fallida, que no trae texto", () => {
+    const projected = projectAlertDetail(
+      wireAlertDetail({
+        explanation: wireExplanation({
+          status: "FAILED",
+          summary: null,
+          referencedRules: [],
+          failureCode: "NOT_GROUNDED_NUMBER",
+        }),
+      }),
+    );
+
+    expect(projected?.explanation?.status).toBe("FAILED");
+    expect(projected?.explanation?.summary).toBeNull();
+  });
+
+  /**
+   * The refusal this guard exists for.
+   *
+   * The API cannot send this: a database constraint keeps text and a failed status apart. What the
+   * guard defends against is the day something else can — a different version of the API, a proxy,
+   * a hand-written response — because the text on a failed explanation is precisely the text that
+   * was never allowed to be stored. Dropping the field quietly would render the rest of a payload
+   * that contradicts itself; refusing it is the honest answer.
+   */
+  it("rechaza un texto que viene con un estado que no lo admite", () => {
+    const projected = projectAlertDetail(
+      wireAlertDetail({
+        explanation: wireExplanation({
+          status: "FAILED",
+          summary: "un resumen que la validación del backend rechazó",
+          failureCode: "NOT_GROUNDED_NUMBER",
+        }),
+      }),
+    );
+
+    expect(projected).toBeNull();
+  });
+
+  it("rechaza también un texto sobre una explicación que todavía nadie respondió", () => {
+    const projected = projectAlertDetail(
+      wireAlertDetail({
+        explanation: wireExplanation({
+          status: "PENDING",
+          summary: "texto que no puede existir todavía",
+          settledAt: null,
+        }),
+      }),
+    );
+
+    expect(projected).toBeNull();
+  });
+
+  it("distingue una explicación ausente de una ilegible", () => {
+    const absent = projectAlertDetail(wireAlertDetail({ explanation: null }));
+    const unreadable = projectAlertDetail(
+      wireAlertDetail({ explanation: wireExplanation({ status: 7 }) }),
+    );
+
+    expect(absent?.explanation).toBeNull();
+    expect(unreadable).toBeNull();
+  });
+
+  it("registra en la revisión qué explicación tenía delante", () => {
+    const projected = projectAlertDetail(
+      wireAlertDetail({
+        review: {
+          id: "7f7b7f3e-0000-4000-8000-000000000007",
+          previousStatus: "OPEN",
+          newStatus: "CONFIRMED_SAFE",
+          note: null,
+          explanationId: "6f6b7f3e-0000-4000-8000-000000000006",
+          reviewedAt: "2026-09-03T12:00:00+00:00",
+        },
+      }),
+    );
+
+    expect(projected?.review?.explanationId).toBe("6f6b7f3e-0000-4000-8000-000000000006");
   });
 });

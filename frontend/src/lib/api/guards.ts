@@ -343,6 +343,7 @@ export function projectReview(value: unknown): AlertReview | null {
   const previousStatus = text(raw.previousStatus);
   const newStatus = text(raw.newStatus);
   const note = nullableText(raw.note);
+  const explanationId = nullableText(raw.explanationId);
   const reviewedAt = instant(raw.reviewedAt);
 
   if (
@@ -350,12 +351,94 @@ export function projectReview(value: unknown): AlertReview | null {
     previousStatus === null ||
     newStatus === null ||
     note === undefined ||
+    explanationId === undefined ||
     reviewedAt === null
   ) {
     return null;
   }
 
-  return { id, previousStatus, newStatus, note, reviewedAt };
+  return { id, previousStatus, newStatus, note, explanationId, reviewedAt };
+}
+
+/**
+ * The wire value of a written explanation.
+ *
+ * Inlined here rather than added to the contract module because this stage is only allowed to make
+ * the projection compile; the constant belongs beside the other wire values, and the stage that
+ * renders the block moves it there.
+ */
+const EXPLANATION_READY = "READY";
+
+type AlertExplanation = NonNullable<AlertDetail["explanation"]>;
+
+/**
+ * The explanation, projected like everything else, with one extra refusal.
+ *
+ * **A summary is only ever read when the status says there is one.** The API will not send text on
+ * a failed explanation — a database constraint sees to that — but a guard that projected `summary`
+ * without looking at `status` would happily forward one if it ever arrived, and the text that
+ * reaches a page is exactly the text that was never allowed to be stored. Rejecting the payload as
+ * malformed is the right answer rather than dropping the field: a response that contradicts itself
+ * is not one this console should render half of.
+ */
+export function projectExplanation(value: unknown): AlertExplanation | null {
+  const raw = asRecord(value);
+  if (raw === null) {
+    return null;
+  }
+
+  const id = text(raw.id);
+  const provider = text(raw.provider);
+  const templateVersion = text(raw.templateVersion);
+  const providerVersion = nullableText(raw.providerVersion);
+  const status = text(raw.status);
+  const summary = nullableText(raw.summary);
+  const referencedRules = projectList(raw.referencedRules, text);
+  const failureCode = nullableText(raw.failureCode);
+  const attemptCount = integer(raw.attemptCount);
+  const attemptsExhausted = flag(raw.attemptsExhausted);
+  const isOutdated = flag(raw.isOutdated);
+  const requestedAt = instant(raw.requestedAt);
+  const settledAt = nullableInstant(raw.settledAt);
+
+  if (
+    id === null ||
+    provider === null ||
+    templateVersion === null ||
+    providerVersion === undefined ||
+    status === null ||
+    summary === undefined ||
+    referencedRules === null ||
+    failureCode === undefined ||
+    attemptCount === null ||
+    attemptsExhausted === null ||
+    isOutdated === null ||
+    requestedAt === null ||
+    settledAt === undefined
+  ) {
+    return null;
+  }
+
+  // Text on anything but a ready explanation contradicts the contract it came from.
+  if (summary !== null && status !== EXPLANATION_READY) {
+    return null;
+  }
+
+  return {
+    id,
+    provider,
+    templateVersion,
+    providerVersion,
+    status,
+    summary,
+    referencedRules,
+    failureCode,
+    attemptCount,
+    attemptsExhausted,
+    isOutdated,
+    requestedAt,
+    settledAt,
+  };
 }
 
 export function projectAlertListItem(value: unknown): AlertListItem | null {
@@ -528,6 +611,8 @@ export function projectAlertDetail(value: unknown): AlertDetail | null {
   const currentRun = projectNullable(raw.currentRun, projectScoringRun);
   const divergence = projectDivergence(raw.divergence);
   const externalEvaluation = projectNullable(raw.externalEvaluation, projectExternalEvaluation);
+  const explanation = projectNullable(raw.explanation, projectExplanation);
+  const currentExplanation = projectNullable(raw.currentExplanation, projectExplanation);
   const review = projectNullable(raw.review, projectReview);
 
   if (
@@ -545,6 +630,8 @@ export function projectAlertDetail(value: unknown): AlertDetail | null {
     currentRun === undefined ||
     divergence === null ||
     externalEvaluation === undefined ||
+    explanation === undefined ||
+    currentExplanation === undefined ||
     review === undefined
   ) {
     return null;
@@ -565,6 +652,8 @@ export function projectAlertDetail(value: unknown): AlertDetail | null {
     currentRun,
     divergence,
     externalEvaluation,
+    explanation,
+    currentExplanation,
     review,
   };
 }

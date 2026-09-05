@@ -70,7 +70,39 @@ export function wireAlertDetail(overrides: WirePayload = {}): WirePayload {
       currentSeverity: "CRITICAL",
     },
     externalEvaluation: wireExternalEvaluation(),
+
+    // Nobody has asked for one, which is the ordinary state. The keys still have to be here: the
+    // guard projects a nullable member by telling `null` from a key that is absent, and an absent
+    // one makes the whole detail malformed.
+    explanation: null,
+    currentExplanation: null,
     review: null,
+    ...overrides,
+  };
+}
+
+/**
+ * A written explanation of the evaluation the snapshot froze.
+ *
+ * `summary` is present only because `status` says it may be. A payload carrying text on anything
+ * but a ready explanation is one the guard refuses, and a test that wants to prove that builds it
+ * by overriding `status` here.
+ */
+export function wireExplanation(overrides: WirePayload = {}): WirePayload {
+  return {
+    id: "6f6b7f3e-0000-4000-8000-000000000006",
+    provider: "MOCK",
+    templateVersion: "e7-v1",
+    providerVersion: null,
+    status: "READY",
+    summary: "El pedido obtuvo 100 puntos sobre un umbral de 60.",
+    referencedRules: ["amount_anomaly"],
+    failureCode: null,
+    attemptCount: 1,
+    attemptsExhausted: false,
+    isOutdated: false,
+    requestedAt: "2026-09-03T11:00:00+00:00",
+    settledAt: "2026-09-03T11:00:01+00:00",
     ...overrides,
   };
 }
