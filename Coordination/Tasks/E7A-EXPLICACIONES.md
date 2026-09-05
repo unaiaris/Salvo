@@ -150,6 +150,13 @@ Descritos en «Criterios de aceptación». Cada uno tiene que poder fallar, y ha
 - `backend/tests/**`
 - `frontend/openapi/salvo-openapi.json` y `frontend/src/lib/api/schema.d.ts`, **solo** recaptura y
   regeneración
+- `frontend/src/lib/api/guards.ts`, `frontend/src/test/fixtures.ts` y los tests que esos dos
+  arrastran, **solo** para la proyección mínima de `explanation`, `currentExplanation` y
+  `explanationId`, con `projectExplanation` rechazando como `malformed` un `summary` no nulo cuando
+  el estado no es `READY`. Autorizado por el coordinador durante la ejecución: el punto 8 obliga a
+  que `AlertDetail` gane el sub-objeto, y las guardas proyectan hacia el tipo generado, así que sin
+  esto el contrato se entrega en un estado contra el que nadie puede compilar. Nada de componentes,
+  rutas ni `messages.ts`
 - `.env.example`, solo si hace falta alinear `ANTHROPIC_MODEL`
 
 ### Paths reservados por otros trabajos

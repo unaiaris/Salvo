@@ -1,6 +1,6 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: Etapa 6 completa. Etapa 7 diseñada, revisada y despachada; sin iniciar
+> Estado: Etapa 7 en curso. `E7A` integrada y verificada sobre `main`; `E7B` pendiente
 > Última actualización: 2026-09-05
 > Responsable: coordinador de la etapa
 
@@ -20,8 +20,12 @@ No hay tareas activas ni paths reservados.
 
 | Work ID | Estado | Modelo y esfuerzo | Depende de |
 | --- | --- | --- | --- |
-| `E7A-EXPLICACIONES` | `Asignada` | Opus 5 · `high` | — |
-| `E7B-EXPLICACIONES-UI` | `Propuesta` | Sonnet 4.5 · `high` | `E7A` integrada |
+| `E7A-EXPLICACIONES` | `Verificada` (merge `82f2487`) | Opus 5 · `high` | — |
+| `E7B-EXPLICACIONES-UI` | `Asignada` | Sonnet 4.5 · `high` | `E7A`, ya integrada |
+
+`E7A` tuvo que salirse de su reserva de paths: el punto 8 del brief obliga a que `AlertDetail` gane
+el sub-objeto, y las guardas del frontend proyectan hacia el tipo generado, así que el contrato no
+compilaba sin la proyección mínima. `guards.ts` y `fixtures.ts` ya la traen; `E7B` los extiende.
 
 Notas para los briefs de la Etapa 7:
 

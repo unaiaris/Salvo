@@ -69,7 +69,7 @@ Anthropic posterior:
 ```dotenv
 AI_PROVIDER="anthropic"
 ANTHROPIC_API_KEY=""
-ANTHROPIC_MODEL="claude-sonnet-5"
+ANTHROPIC_MODEL=""
 ```
 
 Koin posterior:

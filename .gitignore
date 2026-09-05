@@ -32,9 +32,9 @@ obj/
 *.db-shm
 *.db-wal
 
-# Copies of a local database, which a migration is required to leave behind before it runs. The
-# pattern above does not cover them: a backup is named after the database rather than ending in
-# .db, and one of them reached a commit before this line existed.
+# Copies of a local database, which a migration is required to leave behind before it runs. A
+# backup is named after the database it copies, so it does not end in .db and the pattern above
+# does not cover it.
 *.db.*
 salvo.db.*
 

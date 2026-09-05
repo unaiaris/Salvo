@@ -59,9 +59,11 @@ oculta. `isOutdated` llega calculado desde la API y no se recalcula en el client
 **4. `explanationId` en el formulario de revisión.** Se envía como primitiva oculta, igual que
 `alertId` (D10). Si no hay explicación, se envía vacío y la revisión funciona igual.
 
-**5. `fixtures.ts` gana `explanation: null`.** Sin esto, `projectNullable` devuelve `undefined`
-ante clave ausente y **todo el detalle cae en `malformed`**: se rompen todos los tests de
-`src/app/alerts/[id]`. Es el mismo tropiezo que E6.
+**5. La guarda y las fixtures ya existen: se extienden, no se crean.** `E7A` dejó
+`projectExplanation` en `guards.ts` con el rechazo de `summary` fuera de `READY`, y `fixtures.ts`
+con las claves nuevas, porque sin eso el contrato no compilaba. Esta tarea parte de ahí. Queda
+pendiente de `E7A`: mover la constante `EXPLANATION_READY` de `guards.ts` junto a los demás valores
+de cable.
 
 **6. `messages.ts` y su test** ganan los códigos nuevos: `NOT_GROUNDED_RULE`,
 `NOT_GROUNDED_NUMBER`, `TOO_LONG`, `MALFORMED_OUTPUT`, `PROVIDER_UNAVAILABLE`, `PROVIDER_TIMEOUT`,

@@ -220,17 +220,21 @@ tercera. Etapa 5 permanece pendiente: requiere diseño, brief y autorización in
 
 ### Etapa 7 — Explicabilidad
 
-- [ ] Entidad propia con identidad por evaluación y restricción `READY ⇔ summary`.
-- [ ] `SignalFacts` y `ExplanationFacts` en el dominio; tokenizador declarado.
-- [ ] Grounding verificado sobre la salida, en el caso de uso, con test de mutación.
-- [ ] Ciclo de vida que no puede quedar trabado: reserva, asentamiento incondicional, reintento
+- [x] Entidad propia con identidad por evaluación y restricción `READY ⇔ summary`.
+- [x] `SignalFacts` y `ExplanationFacts` en el dominio; tokenizador declarado.
+- [x] Grounding verificado sobre la salida, en el caso de uso, con test de mutación.
+- [x] Ciclo de vida que no puede quedar trabado: reserva, asentamiento incondicional, reintento
       sobre la misma fila, pendiente vencida retomable y tope de intentos.
-- [ ] Proveedor determinista por defecto, con salida estructurada.
-- [ ] Al input no entra ningún texto que no escriba el motor; proveedor espía que lo afirma.
-- [ ] Interceptor de comandos, diferencial ampliado y diferencial de etiquetas sobre el texto.
-- [ ] La revisión registra qué explicación tenía delante.
-- [ ] Columnas y códigos que un proveedor real necesita, puestos desde el principio.
-- [ ] Verificar que la app funcione sin API key y que un `AI_PROVIDER` desconocido falle al arrancar.
+- [x] Proveedor determinista por defecto, con salida estructurada.
+- [x] Al input no entra ningún texto que no escriba el motor; proveedor espía que lo afirma.
+- [x] Interceptor de comandos, diferencial ampliado y diferencial de etiquetas sobre el texto.
+- [x] La revisión registra qué explicación tenía delante.
+- [x] Columnas y códigos que un proveedor real necesita, puestos desde el principio.
+- [x] Verificar que la app funcione sin API key y que un `AI_PROVIDER` desconocido falle al arrancar.
+
+- [ ] Bloque de explicación en el detalle, con el aviso de desactualizada y los botones (`E7B`).
+- [ ] `messages.ts`, `boundary.test.ts` con el sub-objeto contaminado y los textos de `smoke-ui.sh`.
+- [ ] Mover `EXPLANATION_READY` de `guards.ts` junto a los demás valores de cable.
 - [ ] Decidir aparte si se activa Anthropic.
 
 ### Etapa 8 — Calidad y portfolio
@@ -322,6 +326,9 @@ tercera. Etapa 5 permanece pendiente: requiere diseño, brief y autorización in
 | 2026-09-05 | Preparación E7 | Diseño v1 de la Etapa 7 | Nueve decisiones y seis preguntas abiertas para la revisión | Superado por la v2 |
 | 2026-09-05 | Preparación E7 | Revisión adversarial del diseño con Fable 5.1 · `xhigh` | 12 hallazgos, 3 de severidad alta, verificados contra `salvo.db` y contra el código en `cc4e1c3`; la validación numérica de la v1 rechazaba el ejemplo del propio diseño | Completada |
 | 2026-09-05 | Preparación E7 | Diseño v2 con los doce hallazgos incorporados y partición en E7A/E7B | Aprobación del usuario + decisiones 51–56; §4.3, §4.7, §7, §9 y §11 del Blueprint, `Salvo-Portability.md`, `AGENTS.md` y `Workboard.md` corregidos | Aprobada |
+| 2026-09-05 | 7 | Inicio de `E7A-EXPLICACIONES` | Brief y rama `claude/e7a-explicaciones` desde `5318518`; Opus 5 · `high` acordado | En curso |
+| 2026-09-05 | 7 | Entidad propia, hechos y tokenizador en Domain, grounding verificado sobre la salida, proveedor determinista y ciclo de vida sin trabas | Nueve commits; el interceptor de comandos, el diferencial ampliado, el diferencial de etiquetas sobre el texto y el proveedor espía, con falsación documentada en cada caso. El test dorado encontró que la plantilla escribía el año como `2.026` y que la validación lo aceptaba por la regla de ambigüedad de miles: un año es rótulo, no cantidad | Lista para integrar |
+| 2026-09-05 | 7 | Integración y verificación canónica de `E7A-EXPLICACIONES` | Merge `82f2487` + `check.sh` y `smoke-ui.sh` verdes sobre `main`; el contrato de alertas obligó a autorizar la proyección mínima en `guards.ts` y `fixtures.ts`, fuera de la reserva original del brief | Completada |
 
 ## Protocolo de actualización
 
