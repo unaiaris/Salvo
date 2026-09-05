@@ -21,7 +21,7 @@ No hay tareas activas ni paths reservados.
 | Work ID | Estado | Modelo y esfuerzo | Depende de |
 | --- | --- | --- | --- |
 | `E7A-EXPLICACIONES` | `Verificada` (merge `82f2487`) | Opus 5 · `high` | — |
-| `E7B-EXPLICACIONES-UI` | `Asignada` | Sonnet 4.5 · `high` | `E7A`, ya integrada |
+| `E7B-EXPLICACIONES-UI` | `Asignada` | Opus 5 · `high` | `E7A`, ya integrada |
 
 `E7A` tuvo que salirse de su reserva de paths: el punto 8 del brief obliga a que `AlertDetail` gane
 el sub-objeto, y las guardas del frontend proyectan hacia el tipo generado, así que el contrato no

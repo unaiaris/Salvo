@@ -9,12 +9,17 @@
 - Coordinador: Unai Arismendes
 - Fecha: 2026-09-05
 - Rama/worktree: `claude/e7b-explicaciones-ui`
-- Commit base: el commit de `main` que integra `E7A-EXPLICACIONES`
-- Modelo y esfuerzo acordados: **Sonnet 4.5 · `high`**. Es el molde de `E6B-CALLBACK-UI`: un bloque
-  más en el detalle de alerta, una guarda de proyección, un aviso con una forma que ya existe,
-  fixtures y mensajes. El razonamiento difícil quedó en E7A. Si la guarda de proyección no puede
-  rechazar el caso que se le pide, o el smoke no puede verificar el bloque, detenerse y consultar
-  tras dos intentos.
+- Commit base: `8951fa2` — el `HEAD` de `main` tras integrar `E7A-EXPLICACIONES` en el merge
+  `82f2487` y cerrar sus registros. Es la base real de `claude/e7b-explicaciones-ui`
+- Modelo y esfuerzo acordados: **Opus 5 · `high`**. El coordinador había recomendado `Sonnet 4.5 ·
+  high` apoyándose en un precedente inexistente —afirmó que `E6B-CALLBACK-UI` se había corrido con
+  Sonnet, y su brief dice `Opus 5 · high`, igual que `E5C`—. La forma del trabajo sí es la de E6B:
+  un bloque más en el detalle, una guarda, un aviso que ya tiene molde, fixtures y mensajes, con el
+  razonamiento difícil resuelto en E7A. Lo que justifica Opus es la guarda que debe rechazar un
+  `summary` fuera de `READY` y la contaminación del sub-objeto en `boundary.test.ts`: construir un
+  test y demostrar que falla cuando debe es la pieza que en este proyecto viene pidiendo Opus. Si la
+  guarda no puede rechazar el caso que se le pide, o el smoke no puede verificar el bloque,
+  detenerse y consultar tras dos intentos.
 - Dependencias: **`E7A-EXPLICACIONES` integrada en `main`**, con el OpenAPI recapturado.
 
 ## Resultado esperado
@@ -31,13 +36,21 @@ de la API viene malformada.
 - `Coordination/Handoffs/Claude.md`, entrada de `E7A-EXPLICACIONES`: la forma exacta del
   sub-objeto `explanation` y de los códigos de error.
 - `DesignAgent/Salvo-Blueprint.md`: §4.3, §4.4 y §4.7.
+- `DesignAgent/Salvo-Progress.md`, checklist «Etapa 7 — Explicabilidad»: los primeros diez ítems los
+  cerró `E7A`; esta tarea cierra los tres siguientes —el bloque en el detalle con su aviso y sus
+  botones, `messages.ts` con `boundary.test.ts` y los textos de `smoke-ui.sh`, y mover
+  `EXPLANATION_READY` junto a los demás valores de cable—. El último, activar Anthropic, queda
+  fuera y se decide aparte.
 - Código existente a reutilizar:
   - `frontend/src/lib/api/guards.ts`: `projectExternalEvaluation` es el molde exacto;
-  - `frontend/src/lib/divergence.ts`: la forma del aviso que precede al contenido;
-  - `frontend/src/lib/format.ts` y `messages.ts`: rótulos y códigos;
+  - `frontend/src/app/alerts/[id]/divergence.ts`: la forma del aviso que precede al contenido;
+  - `frontend/src/lib/format.ts` y `frontend/src/lib/api/messages.ts`: rótulos y códigos;
   - el bloque de evaluación externa de E6B en el detalle de alerta, con su botón y su estado;
-  - `frontend/src/app/alerts/[id]/**`, `fixtures.ts`, `boundary.test.ts`;
+  - `frontend/src/app/alerts/[id]/**`;
+  - `frontend/src/test/fixtures.ts` y `frontend/src/test/boundary.test.ts`;
   - `scripts/smoke-ui.sh`.
+
+**Antes de declarar pendiente cualquier cosa del estado canónico, verificarla contra el archivo.**
 
 ## Alcance
 
