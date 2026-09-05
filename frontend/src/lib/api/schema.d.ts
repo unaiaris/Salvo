@@ -149,6 +149,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/alerts/{alertId}/explanation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Explains, in words, the evaluation this alert was opened on. Idempotent: when an explanation already exists the existing one is returned with 'applied' false, so a repeated request neither asks a provider twice nor changes anything. 'regenerate' asks for another attempt, and is allowed only over an explanation that failed and still has attempts left. Every figure of the text is verified against the evaluation before it is stored, so a provider that invents one produces a failed explanation rather than a paragraph: that is a 200 with the row in FAILED, never a server error. There is no separate GET — the alert detail carries the explanation, and the absence of one is an ordinary state rather than a 404. */
+        post: operations["RequestAlertExplanation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/orders/{orderId}/external-evaluations": {
         parameters: {
             query?: never;
@@ -309,6 +326,8 @@ export interface components {
             currentRun: null | components["schemas"]["ScoringRunReference"];
             divergence: components["schemas"]["AlertDivergenceView"];
             externalEvaluation: null | components["schemas"]["AlertExternalEvaluationView"];
+            explanation: null | components["schemas"]["AlertExplanationView"];
+            currentExplanation: null | components["schemas"]["AlertExplanationView"];
             review: null | components["schemas"]["AlertReviewView"];
         };
         AlertDivergenceView: {
@@ -330,6 +349,25 @@ export interface components {
             signals: components["schemas"]["AlertSignalView"][];
             /** Format: date-time */
             evaluatedAt: string;
+        };
+        AlertExplanationView: {
+            /** Format: uuid */
+            id: string;
+            provider: string;
+            templateVersion: string;
+            providerVersion: null | string;
+            status: string;
+            summary: null | string;
+            referencedRules: string[];
+            failureCode: null | string;
+            /** Format: int32 */
+            attemptCount: number | string;
+            attemptsExhausted: boolean;
+            isOutdated: boolean;
+            /** Format: date-time */
+            requestedAt: string;
+            /** Format: date-time */
+            settledAt: null | string;
         };
         AlertExternalEvaluationView: {
             /** Format: uuid */
@@ -401,6 +439,8 @@ export interface components {
             previousStatus: string;
             newStatus: string;
             note: null | string;
+            /** Format: uuid */
+            explanationId: null | string;
             /** Format: date-time */
             reviewedAt: string;
         };
@@ -677,6 +717,13 @@ export interface components {
             /** Format: date-time */
             reconciledAt: string;
         };
+        RequestExplanationRequest: {
+            regenerate: null | boolean;
+        };
+        RequestExplanationResult: {
+            applied: boolean;
+            explanation: components["schemas"]["AlertExplanationView"];
+        };
         RequestExternalEvaluationRequest: {
             provider: null | string;
             requestNew: null | boolean;
@@ -689,6 +736,8 @@ export interface components {
             newStatus: null | string;
             note: null | string;
             acknowledgedDivergence: null | boolean;
+            /** Format: uuid */
+            explanationId: null | string;
         };
         ScoringRunReference: {
             /** Format: int64 */
@@ -1026,6 +1075,50 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RequestAlertExplanation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alertId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["RequestExplanationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestExplanationResult"];
                 };
             };
             /** @description Not Found */
