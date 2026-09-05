@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Salvo.Application.Explanations;
 using Salvo.Domain.Explanations;
@@ -107,7 +108,7 @@ public sealed class DeterministicExplanationProvider : IExplanationProvider
             .Append(" de ")
             .Append(MonthNames[local.Month - 1])
             .Append(" de ")
-            .Append(Number(local.Year))
+            .Append(Year(local.Year))
             .Append(" a las ")
             .Append(Clock(local.Hour))
             .Append(':')
@@ -183,6 +184,13 @@ public sealed class DeterministicExplanationProvider : IExplanationProvider
 
     /// <summary>An hour as two digits, so a clock reads like a clock.</summary>
     private static string Clock(int hour) => hour < 10 ? $"0{hour}" : Number(hour);
+
+    /// <summary>
+    /// A year, ungrouped. It is a label rather than a quantity, and «2.026» is not how anybody
+    /// writes one — the grounding check accepts it, which is exactly why the golden text is what
+    /// catches it.
+    /// </summary>
+    private static string Year(int year) => year.ToString(CultureInfo.InvariantCulture);
 
     private static string ScopeWord(AmountMedianScope? scope)
     {
