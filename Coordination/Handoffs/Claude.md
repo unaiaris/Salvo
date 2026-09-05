@@ -1850,3 +1850,147 @@ se lee como 2026 bajo la regla de ambigüedad—, así que nada más lo habría 
   revisión, que `alert_explanations` arranca vacía, y pedir a mano la explicación de una alerta del
   corpus para leer el párrafo. `./scripts/smoke-ui.sh` queda para el cierre de la etapa, cuando `E7B`
   haya construido la superficie que recorrer.
+
+## `E7B-EXPLICACIONES-UI` — La explicación, en la consola
+
+### Identificación
+
+- Estado de la rama: `Lista para integrar`
+- Etapa: 7
+- Rama/worktree: `claude/e7b-explicaciones-ui`
+- Commit base: `af93f01` (`docs: complete the E7B brief with its base commit and Progress entry`),
+  que es la punta actual de `main`. El brief declara `8951fa2` porque se escribió antes de que el
+  coordinador integrara en `main` la corrección del propio brief; `af93f01` es su hijo directo y no
+  toca código.
+- Commit final: `1e8ddec`
+- Fecha: 2026-09-05
+
+### Resultado
+
+La analista ve la explicación de la evaluación que abrió la alerta, puede pedirla cuando no existe y
+volver a intentarla cuando falló con intentos disponibles, y lee un aviso —antes del texto, nunca en
+lugar del texto— cuando la explicación describe una evaluación que ya no es la vigente. El bloque
+dice quién la redactó: en esta instalación, una plantilla determinista y no un modelo.
+
+Ningún texto que la verificación del backend no haya aprobado llega al navegador. La guarda rechaza
+como `malformed` una respuesta con `summary` sobre un estado que no lo admite, y el detalle entero
+cae con ella: una respuesta que se contradice no se renderiza a medias.
+
+La revisión registra qué explicación había en pantalla. El id viaja como primitiva oculta junto al de
+la alerta; la nota nunca se precarga con el resumen, y el formulario no podría hacerlo aunque
+alguien se lo pidiera, porque recibe una cadena y no la explicación.
+
+### Archivos modificados
+
+**Bloque nuevo** (`frontend/src/app/alerts/[id]/`): `explanation-block.tsx`,
+`explanation-actions.tsx`, `explanation-action.ts`, `explanation-state.ts` y
+`explanation-block.test.tsx`.
+
+**Detalle de alerta, modificado**: `page.tsx` monta el bloque; `review-panel.tsx` lee el id de la
+explicación y se lo pasa al formulario; `review-form.tsx` lo lleva como campo oculto;
+`review-action.ts` lo envía. Tests: `page.test.tsx`, `review-form.test.tsx`, `review-action.test.ts`.
+
+**Cliente de la API** (`frontend/src/lib/api/`): `explanations.ts` nuevo; `contract.ts` gana los dos
+tipos y `EXPLANATION_STATUS`; `guards.ts` pierde la constante inlineada y gana
+`projectExplanationOutcome`; `alerts.ts` manda `explanationId`; `messages.ts` gana cuatro códigos.
+Tests: `messages.test.ts`, `server-client.test.ts`.
+
+**Rótulos**: `frontend/src/lib/format.ts` gana `explanationFailureLabel` y
+`explanationProviderLabel`.
+
+**Frontera**: `frontend/src/test/boundary.test.ts`.
+
+**Recorrido**: `scripts/smoke-ui.sh`.
+
+Nada fuera de `frontend/**` y `scripts/**`. El backend y el contrato OpenAPI no se tocaron: los
+gobierna `E7A`.
+
+### Verificación
+
+| Comando | Resultado |
+| --- | --- |
+| `./scripts/check.sh` | **Verde**, salida `0` |
+| `dotnet build` Release | 0 advertencias, 0 errores |
+| `dotnet ef migrations has-pending-model-changes` | Sin cambios |
+| `dotnet test` | 94 de dominio + 145 de integración, 0 fallas |
+| `npm run check` | Typecheck, ESLint y 197 tests de frontend, 0 fallas |
+| `next build --webpack` | Compilado con la API apagada; las cuatro rutas de datos siguen dinámicas (`ƒ`) |
+| `npm run api:types:check` | Al día, sin recapturar |
+| `./scripts/smoke-ui.sh` | **Verde**: 37 comprobaciones, 0 fallas, cinco escenarios |
+| `git status --porcelain` | Limpio |
+
+**Falsaciones ejecutadas**, cada una revertida y con la suite verde después:
+
+| Mutación | Resultado |
+| --- | --- |
+| **Guarda**: proyectar `summary` sin mirar `status` | 3 rojos: los dos de `guards.test.ts` que dejó `E7A` y el nuevo de `boundary.test.ts`. La guarda es lo único entre una respuesta que se contradice y un párrafo renderizado |
+| **Frontera, paso 1**: que el bloque le pase el objeto de la explicación a `ExplanationActions` | Rojo, nombrando la prop: «`ExplanationActions` recibe la prop no primitiva «explanation»» |
+| **Frontera, paso 2**: con esa mutación puesta, el resto de la suite | 187 verdes. Ese test es lo único que separa el objeto del navegador |
+
+El paso 1 falla por **forma** y no por contenido: la guarda ya había descartado las claves
+desconocidas, así que `isFraudLabel` no llega ni con la mutación. Son dos defensas distintas y el
+test las distingue, que es lo que se quería saber.
+
+**El smoke encontró un defecto real en su primera pasada.** El rótulo del botón viajaba como prop a
+un componente cliente, de modo que quedaba serializado en el payload RSC de todas las páginas,
+hubiera botón o no: una alerta ya explicada seguía llevando «Explicar esta evaluación» en el HTML y
+`expect_no_text` lo vio. Los dos rótulos pasaron a vivir dentro del control, que es donde
+`ExternalActions` guarda los suyos, y la comprobación quedó en el script.
+
+### Decisiones y supuestos
+
+- **Los nueve `ExplanationFailureCode` no van a `messages.ts`.** El brief los enumera ahí junto a los
+  conflictos, pero son valores de un campo dentro de un `200` y no rechazos de una petición:
+  `describeFailure` nunca los recibiría, y `messages.test.ts` afirma que el catálogo es exactamente
+  lo que los endpoints emiten como problema. Van a `format.ts` con `externalErrorLabel` como
+  precedente exacto —los códigos de error externos son el mismo caso y viven ahí desde E6—. El brief
+  delega «la redacción de los rótulos, coherente con `format.ts` y `messages.ts`», y esto es esa
+  elección.
+- **Un código de conflicto más de los tres que el brief lista.** `ExplanationConflictReason` tiene
+  cuatro miembros y `ConcurrentUpdate` cae en la rama por defecto de `ExplanationEndpoints.ToCode`,
+  que emite `EXPLANATION_CONFLICT`. Es alcanzable y tiene su texto, igual que
+  `EXTERNAL_EVALUATION_CONFLICT`, que existe por lo mismo.
+- **El botón sigue lo que la API acepta, no lo que la pantalla podría ofrecer.** Pedir cuando no hay
+  nada; reintentar solo sobre un fallo con intentos disponibles. Sobre una explicación escrita y
+  sobre un presupuesto agotado no hay botón, porque las dos peticiones terminan en `409`.
+- **El resumen no viaja por el estado de la acción.** Ya está en la parte del bloque que renderiza el
+  servidor; repetirlo en el payload sería una segunda copia que puede discrepar de la primera. El
+  componente cliente no recibe una palabra del texto.
+- **`isOutdated` llega calculado y no se recalcula.** El bloque lo lee del sub-objeto; la consola no
+  compara identificadores de evaluación por su cuenta.
+- **`currentExplanation` se usa en una sola frase**: el aviso de desactualizada dice si la evaluación
+  vigente ya tiene la suya. No se muestra en lugar de la del snapshot, que es la premisa del
+  veredicto.
+- **`external.ts` entró a la lista de módulos `server-only` de `boundary.test.ts`.** Declaraba
+  `import "server-only"` desde E6 y nada lo comprobaba; `explanations.ts` entró con él.
+- **La ventana de la llamada es de 20 s**, contra los 15 s de `ExplanationOptions.Default`: con los
+  5 s del cliente por defecto, la consola habría reportado un timeout que la API no tiene.
+
+### Riesgos o pendientes
+
+- **El estado `PENDING` no se refresca solo.** Con el proveedor determinista se asienta en la misma
+  petición, así que es casi inalcanzable en pantalla; con un proveedor real haría falta decidir si la
+  página se recarga sola o si la analista vuelve a entrar. La pantalla se lo dice explícitamente.
+- **La fuga de rótulos por props no tiene test unitario.** La detecta el smoke, que es donde el HTML
+  real existe; en Vitest no hay payload RSC que inspeccionar. Cualquier rótulo nuevo que se pase como
+  prop a un componente cliente vuelve a filtrarse sin que la compuerta lo note.
+- **`DesignAgent/Salvo-Portability.md:72` sigue con `ANTHROPIC_MODEL="claude-sonnet-5"`**, pendiente
+  heredado de `E7A` y fuera de los paths de esta tarea.
+- **Sin autenticación, el endpoint de explicación es alcanzable por el rewrite de Next.** Con un
+  proveedor de pago, la idempotencia y el tope de tres intentos son el único freno. Queda declarado
+  como lo declara el Blueprint para el resto de las rutas mutables.
+- **Los rótulos de los nueve códigos de fallo no tienen test propio de `format.ts`**; se verifican
+  desde el bloque, que afirma que ninguno se muestra crudo. Es una comprobación de comportamiento y
+  no de tabla, deliberadamente.
+
+### Integración
+
+- Orden sugerido: rama única, sin dependencias. `E7A` ya está integrada y esta tarea no recaptura el
+  contrato.
+- Migraciones o pasos manuales: **ninguno**. No hay cambios de esquema ni de backend.
+- Posibles conflictos: `guards.ts`, `contract.ts`, `messages.ts`, `format.ts`, `boundary.test.ts` y
+  `scripts/smoke-ui.sh` si algo más los tocó en `main` desde `af93f01`.
+- Verificación posterior al merge: `./scripts/check.sh` y `./scripts/smoke-ui.sh` sobre `main`. El
+  smoke es lo único que ejercita el bloque con datos reales, y con esta tarea son 37 comprobaciones.
+  Conviene además abrir a mano una alerta del corpus, pedirle la explicación y leer el párrafo antes
+  de cerrar la etapa.
