@@ -1994,3 +1994,113 @@ hubiera botón o no: una alerta ya explicada seguía llevando «Explicar esta ev
   smoke es lo único que ejercita el bloque con datos reales, y con esta tarea son 37 comprobaciones.
   Conviene además abrir a mano una alerta del corpus, pedirle la explicación y leer el párrafo antes
   de cerrar la etapa.
+
+---
+
+## `E7C-PULIDO-EXPLICACION` — Pulido del bloque de explicación
+
+### Identificación
+
+- Estado de la rama: `Lista para integrar`
+- Etapa: 7
+- Rama/worktree: `claude/e7c-pulido-explicacion`
+- Commit base: `0e3faf1`, el declarado en el brief. El padre real de mi único commit es `0d05d0d`:
+  entre uno y otro están `d0e1f78` y `0d05d0d`, los dos commits del brief que escribió el
+  coordinador y que también están en `main`. La diferencia es esa y solo esa.
+- Commit final: `9b5cb4e`
+- Fecha: 2026-09-06
+
+### Resultado
+
+El bloque de explicación se lee sin repeticiones y sin asperezas. El aviso posterior a generar dice
+qué quedó guardado en vez de repetir la leyenda que está dos líneas más arriba; la plantilla no
+escribe un decimal que vale cero; y las reglas se disparan en vez de coincidir. No cambió el motor,
+ni el conjunto de hechos, ni el tokenizador, ni la validación de grounding, ni el ciclo de vida, ni
+el contrato, ni el esquema.
+
+El texto del mismo pedido, antes y después:
+
+- `ORD_000011`, razón `23.2`: «… **Coincidieron** 3 reglas. El monto, 2.011,11 BRL, es **23,2** veces
+  la mediana del comercio …» → «… **Se dispararon** 3 reglas. El monto, 2.011,11 BRL, es **23,2**
+  veces la mediana del comercio …». El decimal se conserva, que es el punto.
+- `ORD_000171`, razón `15.0`: «… **Coincidieron** 2 reglas. El monto, 1.297,71 USD, es **15,0** veces
+  la mediana del comercio …» → «… **Se dispararon** 2 reglas. El monto, 1.297,71 USD, es **15** veces
+  la mediana del comercio …».
+- Aviso posterior a generar: «Cada cifra y cada regla del texto se verificaron contra la evaluación
+  antes de guardarlo.» → «El texto quedó guardado junto a la evaluación y ya se muestra arriba. Una
+  explicación escrita no se reescribe: si el pedido vuelve a evaluarse, la evaluación nueva lleva la
+  suya.»
+
+### Archivos modificados
+
+- `backend/src/Salvo.Infrastructure/Explanations/DeterministicExplanationProvider.cs`
+- `backend/tests/Salvo.Api.IntegrationTests/ExplanationGoldenTests.cs`
+- `frontend/src/app/alerts/[id]/explanation-action.ts`
+- `frontend/src/app/alerts/[id]/explanation-action.test.tsx` (nuevo)
+
+`scripts/smoke-ui.sh` estaba autorizado bajo condición y no hizo falta tocarlo: ninguna de sus
+comprobaciones fija una de las tres cadenas que cambiaron.
+
+### Verificación
+
+| Comando | Resultado |
+| --- | --- |
+| `dotnet test --filter ExplanationGoldenTests` | 2 correctas, 0 fallas |
+| Falsación 1: `Ratio` vuelve a formatear siempre con un decimal | Falla el caso `ORD_000171` («es 15,0 veces» contra «es 15 veces»); el de `ORD_000011` queda verde, que es lo que prueba que las dos ramas son independientes |
+| Falsación 2: vuelve «Coincidieron» | Fallan los dos casos dorados |
+| `npx vitest run explanation-action.test.tsx` | 4 correctas |
+| Falsación 3: se copia la oración de la leyenda al aviso | El test la rechaza y la nombra: «cada cifra y cada regla del texto se verificaron contra esta evaluación antes de guardarlo» |
+| `./scripts/check.sh` | Verde, salida `0`: restore bloqueado, build Release con 0 advertencias y 0 errores, modelo EF sin cambios, 94 tests de dominio + 146 de integración, typecheck, ESLint y 201 tests de frontend, build Next.js 16.3.3 |
+| `./scripts/smoke-ui.sh` | Verde: **37 comprobaciones, 0 fallas** |
+| Cifras en letras | Ninguna. Se buscaron palabras-número (`uno`…`mil`, `cien`, `media`) sobre las dos cadenas doradas: los dos aciertos son falsos positivos, «media» de «la severidad resultante es media» y «once» dentro de un comentario en inglés. Los literales de la plantilla no contienen ninguna. La rama singular escribe «Se disparó **1** regla», con dígito |
+| `git status --porcelain` | Solo los cuatro paths autorizados |
+
+### Decisiones y supuestos
+
+- **La condición sobre la parte fraccionaria vive en la plantilla, no en el formateador.**
+  `SpanishNumberFormat` sigue siendo el primitivo «formateá con N decimales», que es lo que la hace
+  determinista entre máquinas. `Minutes` ya resolvía a mano el mismo problema dentro del proveedor,
+  así que ahí es donde corresponde: los dos ahora comparten `Trimmed(value, decimals)`, que redondea
+  primero y decide después. Redondear primero importa: preguntarle a un valor sin redondear si tiene
+  parte fraccionaria haría que `22,98` se escribiera «23,0», el defecto que esta tarea corrige.
+- **El aviso sigue el molde de `review-action.ts`**: qué quedó guardado y qué se sigue de eso. Lo que
+  se sigue —una explicación escrita no se reescribe— es además lo que explica el botón que
+  desaparece, que hasta ahora la pantalla no decía en ninguna parte.
+- **El dorado fija dos textos completos, en dos tests hermanos** con un método común. Un solo test
+  con dos aserciones habría dado un único diagnóstico para dos afirmaciones distintas.
+- **El test de no repetición compara el aviso contra el bloque renderizado**, no contra una copia del
+  literal. Se parte en oraciones por `.` y `:`, se normaliza espacio y capitalización, y se exige
+  intersección vacía. Una copia del literal habría probado que dos constantes son distintas, que no
+  es lo que dice el criterio.
+- **`explanation-action.ts` no tenía tests** y ahora los tiene: los dos avisos de éxito, el
+  `applied=false` y la fila sin texto utilizable, además del de no repetición.
+
+### Riesgos o pendientes
+
+- **La versión de plantilla sigue en `e7-v1`, y eso deja atrás el texto ya escrito.** La versión es
+  parte de la identidad de cada fila —índice único sobre evaluación, proveedor, versión de plantilla
+  y versión de política— y `EfExplanationStore.FindAsync` reutiliza la fila que coincide. Una
+  evaluación ya explicada conserva entonces su párrafo viejo para siempre: la API se niega a
+  regenerar una explicación `READY`. En `backend/src/Salvo.Api/salvo.db` hay exactamente **una** fila
+  así, de la prueba manual de `E7B`. No la subí a `e7-v2` porque hacerlo obliga a agregar esa cadena
+  a `NumberTokenizer.VersionStrings`, y el brief pone al tokenizador tanto en «Fuera» como en
+  «Detenerse y consultar si». El camino de lectura ya soporta la convivencia de dos versiones —
+  `EfAlertStore.GetExplanationsAsync` se queda con la petición más reciente—, así que el cambio es
+  chico; es la decisión la que no me corresponde. **Queda para el coordinador.**
+- **`DesignAgent/Salvo-Portability.md:72` sigue con `ANTHROPIC_MODEL="claude-sonnet-5"`**, pendiente
+  heredado de `E7A` y `E7B` y fuera de los paths de esta tarea.
+- **Los nombres de país siguen siendo códigos** (`US`, `AR`, `BR`): declarado fuera de alcance y
+  registrado como candidata de internacionalización de la Etapa 8.
+- **El aviso no tiene comprobación en el smoke.** Solo se ve tras enviar el formulario, y el smoke
+  lee páginas, no envía acciones. Lo cubre el test de Vitest contra el bloque renderizado.
+
+### Integración
+
+- Orden sugerido: rama única, sin dependencias. Etapa 7 ya integrada; esto es pulido sobre ella.
+- Migraciones o pasos manuales: **ninguno**. No hay cambios de esquema. El modelo EF quedó sin
+  cambios pendientes según la compuerta.
+- Posibles conflictos: `DeterministicExplanationProvider.cs`, `ExplanationGoldenTests.cs` y
+  `explanation-action.ts` si algo más los tocó en `main` desde `0d05d0d`.
+- Verificación posterior al merge: `./scripts/check.sh` y `./scripts/smoke-ui.sh` sobre `main`, y
+  abrir a mano una alerta del corpus para leer el párrafo y el aviso. Conviene elegir `ORD_000171`,
+  que es el que ejercita la razón sin decimal.
