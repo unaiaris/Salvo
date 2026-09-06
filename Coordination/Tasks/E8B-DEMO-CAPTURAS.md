@@ -9,8 +9,9 @@
 - Coordinador: Unai Arismendes
 - Fecha: 2026-09-06
 - Rama/worktree: `claude/e8b-demo-capturas`
-- Commit base: pendiente. Es el `HEAD` de `main` que integre `E8A-README-DIAGRAMAS`, y el
-  coordinador escribe el SHA en este campo al despachar la tarea
+- Commit base: `24a9ea9`, el `HEAD` de `main` que cierra `E8A-README-DIAGRAMAS`. `E8A` se integró en
+  el merge `1243d54` y `24a9ea9` es el commit de registro que lo sigue; es el `merge-base` real de
+  `claude/e8b-demo-capturas`
 - Modelo y esfuerzo acordados: **Opus 5 · `high`**. Parece mecánica y no lo es: dos scripts que
   orquestan una base temporal migrada, dos procesos en puertos propios, estados preparados por API y
   un navegador, **sin poder borrar nada**. Es la misma clase de trabajo que `smoke-ui.sh`.
