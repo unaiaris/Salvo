@@ -250,13 +250,14 @@ tercera. (Sección histórica de la Etapa 4: las Etapas 5, 6 y 7 se completaron 
       dentro de la compuerta para que la deriva se detecte en vez de prometerse.
 - [x] Capturas del recorrido: seis, regenerables con `./scripts/capturas.sh` sobre una base nueva.
 - [x] Guion de demo de diez minutos, con `./scripts/demo.sh` para ensayar sin consumir la base.
-- [ ] **Instalación limpia — la corre el coordinador después de integrar `E8B`**, porque nadie puede
-      verificar un clon limpio de un estado que todavía no incluye su propio merge. El
-      procedimiento: clonar el repositorio en un directorio nuevo, instalar sin atajos
-      (`dotnet restore`, `npm ci --prefix frontend`), correr `./scripts/check.sh` y
-      `./scripts/smoke-ui.sh`, y después `./scripts/capturas.sh`, que es el que más puede fallar en
-      un clon porque descarga su propio navegador. Lo que este paso busca no es que los tests pasen
-      —ya pasan— sino que **no falte ningún archivo que solo existe en la máquina de origen**.
+- [x] **Instalación limpia, hecha después de integrar `E8B`**: un clon del repositorio en un
+      directorio nuevo, sin ninguna base de datos —`salvo.db` está ignorada—, levantó todo desde
+      cero con `dotnet restore`, `npm ci --prefix frontend`, `check.sh`, `smoke-ui.sh` y
+      `capturas.sh`, las cuatro verdes. **Con una salvedad declarada**: el navegador de Playwright
+      ya estaba en la caché de la máquina —Playwright la guarda fuera del proyecto—, así que la
+      descarga inicial de unos 150 MB es el único paso que este clon no ejercitó. Pasó no es lo
+      mismo que se probó.
+
 
 ### Etapa 9 — Corpus, idiomas y cierre
 
