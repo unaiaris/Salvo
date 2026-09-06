@@ -65,7 +65,7 @@ public static partial class NumberTokenizer
     /// 3 and a 1 to the fact set on the engine side, and would have to be explained away on the
     /// summary side.
     /// </summary>
-    private static readonly string[] VersionStrings = ["e3-v1", "e4-v1", "e7-v1"];
+    private static readonly string[] VersionStrings = ["e3-v1", "e4-v1", "e7-v1", "e7-v2"];
 
     /// <summary>
     /// A run of digits with interior separators. Colons are not separators, so <c>00:00-06:00</c>

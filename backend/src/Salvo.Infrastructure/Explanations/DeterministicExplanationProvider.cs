@@ -27,8 +27,18 @@ namespace Salvo.Infrastructure.Explanations;
 /// </remarks>
 public sealed class DeterministicExplanationProvider : IExplanationProvider
 {
-    /// <summary>The template version, which is part of the identity of every row it produces.</summary>
-    public const string Version = "e7-v1";
+    /// <summary>
+    /// The template version, which is part of the identity of every row it produces.
+    /// </summary>
+    /// <remarks>
+    /// It is bumped whenever the words change, and that is what makes a wording fix reach an
+    /// evaluation that was already explained: the store looks a row up by this version among
+    /// others, finds none, and writes a new one beside the old. Leaving it alone would keep the
+    /// previous paragraph on screen for ever, because a written explanation is never regenerated.
+    /// <c>e7-v2</c> is the polish of <c>E7C</c>: rules that fire rather than coincide, and a whole
+    /// ratio written without the zero it used to drag.
+    /// </remarks>
+    public const string Version = "e7-v2";
 
     private static readonly string[] MonthNames =
     [
