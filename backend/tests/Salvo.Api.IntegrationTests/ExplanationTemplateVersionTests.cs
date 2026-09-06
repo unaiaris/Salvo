@@ -1,6 +1,7 @@
 using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Salvo.Application.Explanations;
 using Salvo.Domain.Explanations;
 using Salvo.Infrastructure.Explanations;
 using Salvo.Infrastructure.Persistence;
@@ -65,6 +66,10 @@ public sealed class ExplanationTemplateVersionTests
         Assert.Equal(PreviousVersion, stale.Explanation.TemplateVersion);
         Assert.Equal(PreviousWording, stale.Explanation.Summary);
 
+        // What the console needs in order to offer anything at all. Without it the page reads a
+        // written explanation, offers nothing, and the corrected wording never arrives.
+        Assert.True(stale.Explanation.WrittenByAnotherTemplate);
+
         // Asking again is what a wording fix relies on, and it is accepted here even though the
         // evaluation already reads as explained: the row the current template would own does not
         // exist yet.
@@ -79,6 +84,8 @@ public sealed class ExplanationTemplateVersionTests
         Assert.NotNull(current.Explanation);
         Assert.Equal(DeterministicExplanationProvider.Version, current.Explanation.TemplateVersion);
         Assert.Equal(written.Explanation.Id, current.Explanation.Id);
+        Assert.False(current.Explanation.WrittenByAnotherTemplate);
+        Assert.False(written.Explanation.WrittenByAnotherTemplate);
         Assert.NotEqual(PreviousWording, current.Explanation.Summary);
         Assert.Contains("Se dispararon", current.Explanation.Summary!, StringComparison.Ordinal);
 
@@ -102,8 +109,55 @@ public sealed class ExplanationTemplateVersionTests
             Assert.Equal(
                 [PreviousVersion, DeterministicExplanationProvider.Version],
                 stored.Select(explanation => explanation.TemplateVersion));
+
+            // The old row, field by field rather than by its text alone: it is what the review
+            // record points at, so «not rewritten» has to mean the whole row and not just the
+            // paragraph.
             Assert.Equal(PreviousWording, stored[0].Summary);
+            Assert.Equal(ExplanationStatus.Ready, stored[0].Status);
+            Assert.Equal(1, stored[0].AttemptCount);
+            Assert.Equal(stale.Explanation.Id, stored[0].Id);
+            Assert.Equal(stale.Explanation.RequestedAt, stored[0].RequestedAt);
+            Assert.Equal(stale.Explanation.SettledAt, stored[0].SettledAt);
         }
+    }
+
+    /// <summary>
+    /// The comparison follows whichever provider is registered, rather than a copy of one version.
+    /// </summary>
+    /// <remarks>
+    /// This is the test a duplicated constant fails. The provider wired up here writes with
+    /// <c>e7-v1</c>, which is not what
+    /// <see cref="DeterministicExplanationProvider.Version"/> says; a projection that compared
+    /// against that constant would report the row it just wrote as written by another template, and
+    /// the console would offer to rewrite an explanation that is already the current one — for
+    /// ever, because every rewrite would produce the same row.
+    /// </remarks>
+    [Fact]
+    public async Task TheComparisonFollowsTheRegisteredProviderAndNotAConstant()
+    {
+        await using var factory = new SalvoApiFactory();
+        var provider = new ExplanationTestCorpus.SwitchableProvider();
+        factory.ConfigureTestServices = services =>
+            services.AddScoped<IExplanationProvider>(_ => provider);
+
+        using var client = await factory.CreateMigratedClientAsync();
+        (await client.PostAsync("/api/demo-data/seed", null)).EnsureSuccessStatusCode();
+        await AlertTestCorpus.RunScoringAsync(client);
+
+        var alerts = await AlertTestCorpus.ListAlertsAsync(client, "?pageSize=1");
+        var alert = Assert.Single(alerts.Items);
+
+        var written = await ExplanationTestCorpus.RequestOkAsync(client, alert.Id);
+        Assert.Equal(provider.TemplateVersion, written.Explanation.TemplateVersion);
+        Assert.NotEqual(DeterministicExplanationProvider.Version, provider.TemplateVersion);
+
+        // Written by the provider this deployment has, so there is nothing newer to offer.
+        Assert.False(written.Explanation.WrittenByAnotherTemplate);
+
+        var detail = await AlertTestCorpus.GetAlertAsync(client, alert.Id);
+        Assert.NotNull(detail.Explanation);
+        Assert.False(detail.Explanation.WrittenByAnotherTemplate);
     }
 
     private static async Task InsertReadyExplanationAsync(

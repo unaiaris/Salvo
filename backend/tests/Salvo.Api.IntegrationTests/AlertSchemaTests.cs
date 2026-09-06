@@ -107,6 +107,39 @@ public sealed class AlertSchemaTests
     }
 
     /// <summary>
+    /// Which template wrote the text is stored; whether that template is still the current one is
+    /// not.
+    /// </summary>
+    /// <remarks>
+    /// The same shape as the band divergence of an alert and as the outdated flag beside it: the
+    /// answer depends on something outside the row — here, which provider this deployment has
+    /// registered — so a stored copy would go stale the moment that changes, and it would go stale
+    /// silently, which is the failure mode this whole task exists to undo. Computing it on every
+    /// read costs a string comparison and can never disagree with the writer.
+    /// </remarks>
+    [Fact]
+    public async Task WhetherTheCurrentTemplateWroteTheTextIsComputedAndNeverStored()
+    {
+        await using var factory = new SalvoApiFactory();
+        await factory.InitializeDatabaseAsync();
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SalvoDbContext>();
+        var columns = await ReadColumnNamesAsync(dbContext, "alert_explanations");
+
+        // The fact, which identifies the row and is part of its unique index.
+        Assert.Contains("template_version", columns);
+
+        // The comparison, which is not a fact about the row at all.
+        Assert.DoesNotContain(
+            columns,
+            column => column.Contains("another_template", StringComparison.Ordinal)
+                || column.Contains("older_template", StringComparison.Ordinal)
+                || column.Contains("current_template", StringComparison.Ordinal)
+                || column.Contains("outdated", StringComparison.Ordinal));
+    }
+
+    /// <summary>
     /// «A rejected summary is never stored» is a property of the database, not a promise of the
     /// handler.
     /// </summary>

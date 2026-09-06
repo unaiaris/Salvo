@@ -1,3 +1,4 @@
+using Salvo.Application.Explanations;
 using Salvo.Domain.Alerts;
 
 namespace Salvo.Application.Alerts;
@@ -14,6 +15,7 @@ namespace Salvo.Application.Alerts;
 public sealed class ReviewAlertHandler(
     IAlertStore store,
     IAlertIdGenerator idGenerator,
+    IExplanationProvider explanationProvider,
     TimeProvider timeProvider)
 {
     /// <summary>
@@ -50,7 +52,7 @@ public sealed class ReviewAlertHandler(
 
         if (alert.Status != AlertStatus.Open)
         {
-            return RepeatOf(context, command.NewStatus, note);
+            return RepeatOf(context, command.NewStatus, note, explanationProvider.TemplateVersion);
         }
 
         EnsureExplanationBelongsToTheAlert(context, command.ExplanationId);
@@ -74,7 +76,11 @@ public sealed class ReviewAlertHandler(
             timeProvider.GetUtcNow());
         await store.SaveReviewAsync(alert, review, cancellationToken);
 
-        return new(true, AlertProjection.ToDetail(context with { Review = review }));
+        return new(
+            true,
+            AlertProjection.ToDetail(
+                context with { Review = review },
+                explanationProvider.TemplateVersion));
     }
 
     /// <summary>
@@ -106,7 +112,11 @@ public sealed class ReviewAlertHandler(
     /// is a no-op; anything else is a conflict, because without a reviewer identity a second,
     /// differing decision has nowhere to be recorded and must not be discarded in silence.
     /// </summary>
-    private static AlertReviewResult RepeatOf(AlertContext context, AlertStatus newStatus, string? note)
+    private static AlertReviewResult RepeatOf(
+        AlertContext context,
+        AlertStatus newStatus,
+        string? note,
+        string currentTemplateVersion)
     {
         var alert = context.Alert;
 
@@ -126,7 +136,7 @@ public sealed class ReviewAlertHandler(
                 + $"'{AlertWireNames.ToWire(alert.Status)}' with a different note.");
         }
 
-        return new(false, AlertProjection.ToDetail(context));
+        return new(false, AlertProjection.ToDetail(context, currentTemplateVersion));
     }
 
     private static string? Normalize(string? note)

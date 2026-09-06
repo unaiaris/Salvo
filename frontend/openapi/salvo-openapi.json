@@ -1130,6 +1130,7 @@
           "attemptCount",
           "attemptsExhausted",
           "isOutdated",
+          "writtenByAnotherTemplate",
           "requestedAt",
           "settledAt"
         ],
@@ -1184,6 +1185,9 @@
             "type": "boolean"
           },
           "isOutdated": {
+            "type": "boolean"
+          },
+          "writtenByAnotherTemplate": {
             "type": "boolean"
           },
           "requestedAt": {

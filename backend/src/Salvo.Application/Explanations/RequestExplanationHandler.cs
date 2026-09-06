@@ -66,12 +66,16 @@ public sealed class RequestExplanationHandler(
         {
             // The row already answers the question. Saying so is what makes repeating the request
             // free rather than merely harmless.
-            return new(false, ExplanationProjection.ToView(existing!, outdated));
+            return new(
+                false,
+                ExplanationProjection.ToView(existing!, outdated, provider.TemplateVersion));
         }
 
         await GenerateAsync(reserved, target, cancellationToken);
 
-        return new(true, ExplanationProjection.ToView(reserved, outdated));
+        return new(
+            true,
+            ExplanationProjection.ToView(reserved, outdated, provider.TemplateVersion));
     }
 
     /// <summary>
