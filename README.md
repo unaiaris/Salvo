@@ -205,22 +205,26 @@ stateDiagram-v2
     [*] --> Reservada: la fila se escribe antes de llamar
     Reservada --> PENDING: enviada al proveedor
 
-    PENDING --> PENDING: TIMEOUT, PROVIDER_ERROR o INVALID_RESPONSE — salió y no se sabe
-    PENDING --> ERROR: UNREACHABLE o PROVIDER_REJECTED — no salió, o rechazo definitivo
-
+    PENDING --> PENDING
     PENDING --> APPROVED: en el acto, por callback o por reconciliación
     PENDING --> DENIED: en el acto, por callback o por reconciliación
+    PENDING --> ERROR: no salió, o rechazo definitivo
 
     APPROVED --> [*]
     DENIED --> [*]
     ERROR --> [*]
+
+    note right of PENDING
+        Sigue pendiente con TIMEOUT, PROVIDER_ERROR
+        o INVALID_RESPONSE: la petición salió y no se
+        sabe. Se anota lastErrorCode y se vuelve a
+        preguntar. Solo UNREACHABLE y PROVIDER_REJECTED
+        la cierran en ERROR.
+    end note
 ```
 
-Las dos aristas de arriba son lo único que la tabla del §4.5 del Blueprint no dice, y son la
-decisión entera. Los tres códigos que devuelven la fila a `PENDING` describen una petición que **sí
-salió** y cuyo desenlace no se sabe: se anota `lastErrorCode`, la fila sigue viva y se vuelve a
-preguntar. Los dos que la cierran describen lo contrario —nunca salió, o el proveedor la rechazó de
-plano—, y ahí no hay nada que esperar.
+Ese reparto de los cinco códigos —cuáles dejan la fila viva y cuáles la cierran— es lo único que la
+tabla del §4.5 del Blueprint no da, y es la decisión entera.
 
 Un callback se correlaciona por el identificador del proveedor **o** por la referencia del pedido:
 la segunda ruta existe porque el recibo que más falta hace es justamente el de la evaluación cuyo

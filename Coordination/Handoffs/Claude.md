@@ -2479,7 +2479,7 @@ tabla no es la única defensa.
 | --- | --- |
 | El recorrido de un pedido | Renderiza. Rótulos de arista en la forma `-->|texto|` |
 | Las tres fuentes de verdad | Renderiza. Rótulos de relación y comentarios de atributo entrecomillados, **con acentos** |
-| La máquina de estados externa | Renderiza, y rehecho después de mirarlo. Ver abajo |
+| La máquina de estados externa | Renderiza sin superposiciones, en la versión que el coordinador verificó. Rehecho dos veces. Ver abajo |
 | Cómo se verifica una explicación | Renderiza. `flowchart LR` con dos subgrafos con título entrecomillado |
 
 Ninguno lleva cifras del corpus, como pide D2.
@@ -2591,12 +2591,21 @@ dicen qué se observó en una fecha, y corregirlas sería falsificar el registro
   por su cuenta contra el código, que es por lo que se notó.
 - **El renderizado de los cuatro diagramas está confirmado** con `mermaid-cli`, y mirarlos produjo
   las dos correcciones de arriba. Ya no es un pendiente de integración.
-- **Los diagramas rehechos no se volvieron a renderizar en esta máquina.** Los cambios son de
-  contenido y de forma de arista, no de construcción nueva: el `erDiagram` solo recuperó acentos
-  dentro de comillas que ya existían, y el `stateDiagram-v2` perdió dos aristas y una nota, sin
-  ganar ninguna sintaxis que no tuviera. Aun así conviene un segundo renderizado antes de integrar,
-  porque es barato y porque el argumento «no puede haber roto nada» es exactamente el que este
-  proyecto no acepta en ningún otro lado.
+- **El segundo renderizado se hizo, y encontró una superposición**: el rótulo del bucle
+  `PENDING --> PENDING` caía encima del de `PENDING --> APPROVED` y el texto quedaba ilegible.
+  `stateDiagram-v2` pone el rótulo de un bucle en la misma columna que el de la arista contigua, así
+  que el choque no depende del texto: el coordinador probó tres variantes —moverlo al final, que
+  choca con `ERROR`, y acortarlo a «sigue pendiente», que choca igual— y todas fallaron. El diagrama
+  quedó reemplazado por la versión que él verificó renderizada: el bucle sin rótulo, la nota de
+  vuelta —su línea de puntos ya no cruza nada, porque el dibujo tiene dos aristas menos que antes— y
+  los cinco códigos adentro. El párrafo siguiente se recortó a una línea para no repetir lo que la
+  nota ya dice.
+
+  Vale la pena registrar por qué hicieron falta dos vueltas. Haber sacado la nota del diagrama era
+  correcto como razonamiento y el renderizador lo derrotó igual, porque el problema no estaba en la
+  nota sino en el rótulo del bucle, que el argumento no tocaba. Es la tercera vez en esta entrega
+  que un diagrama sintácticamente válido resulta ilegible: **parsear y verse bien son dos
+  comprobaciones distintas**, y solo la primera la puede hacer un script.
 - **La Etapa 9 rompe tests, no solo textos.** Está en el inventario: los cuatro números del mock y
   los dos textos dorados son aserciones sobre este corpus.
 
@@ -2608,5 +2617,5 @@ dicen qué se observó en una fecha, y corregirlas sería falsificar el registro
 - Posibles conflictos: `scripts/check.sh` gana una línea al principio; cualquier otra tarea que lo
   toque va a conflictuar ahí. `Coordination/Handoffs/Claude.md` crece al final, como siempre.
 - Verificación posterior al merge: `./scripts/check.sh` —que ahora incluye `check-docs.sh`— y
-  `./scripts/smoke-ui.sh` sobre el estado integrado. Un segundo renderizado de los dos diagramas
-  rehechos, que es barato, es lo único de esta entrega que ningún script cubre.
+  `./scripts/smoke-ui.sh` sobre el estado integrado. Los cuatro diagramas ya están renderizados y
+  mirados; no queda nada de esta entrega sin verificar.
