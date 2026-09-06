@@ -1994,3 +1994,142 @@ hubiera botón o no: una alerta ya explicada seguía llevando «Explicar esta ev
   smoke es lo único que ejercita el bloque con datos reales, y con esta tarea son 37 comprobaciones.
   Conviene además abrir a mano una alerta del corpus, pedirle la explicación y leer el párrafo antes
   de cerrar la etapa.
+
+---
+
+## `E7C-PULIDO-EXPLICACION` — Pulido del bloque de explicación
+
+### Identificación
+
+- Estado de la rama: `Lista para integrar`
+- Etapa: 7
+- Rama/worktree: `claude/e7c-pulido-explicacion`
+- Commit base: `0e3faf1`, el declarado en el brief. El padre real de mi único commit es `0d05d0d`:
+  entre uno y otro están `d0e1f78` y `0d05d0d`, los dos commits del brief que escribió el
+  coordinador y que también están en `main`. La diferencia es esa y solo esa.
+- Commit final: `4403666`
+- Fecha: 2026-09-06
+
+### Resultado
+
+El bloque de explicación se lee sin repeticiones y sin asperezas. El aviso posterior a generar dice
+qué quedó guardado en vez de repetir la leyenda que está dos líneas más arriba; la plantilla no
+escribe un decimal que vale cero; y las reglas se disparan en vez de coincidir. No cambió el motor,
+ni el conjunto de hechos, ni la validación de grounding, ni el ciclo de vida, ni el contrato, ni el
+esquema.
+
+La versión de plantilla subió a `e7-v2`, que es lo que hace que el arreglo alcance a una evaluación
+ya explicada: la versión es parte de la identidad de la fila, así que la plantilla nueva escribe al
+lado de la vieja en vez de no escribir nada. La ampliación la autorizó el coordinador después de la
+primera entrega, junto con el único cambio que arrastra fuera del proveedor: `e7-v2` entró a
+`NumberTokenizer.VersionStrings`. Es precaución, no requisito —la versión no aparece en el resumen,
+el proveedor solo la guarda como columna—, y el test nuevo lo afirma en vez de dejarlo al comentario.
+
+El texto del mismo pedido, antes y después:
+
+- `ORD_000011`, razón `23.2`: «… **Coincidieron** 3 reglas. El monto, 2.011,11 BRL, es **23,2** veces
+  la mediana del comercio …» → «… **Se dispararon** 3 reglas. El monto, 2.011,11 BRL, es **23,2**
+  veces la mediana del comercio …». El decimal se conserva, que es el punto.
+- `ORD_000171`, razón `15.0`: «… **Coincidieron** 2 reglas. El monto, 1.297,71 USD, es **15,0** veces
+  la mediana del comercio …» → «… **Se dispararon** 2 reglas. El monto, 1.297,71 USD, es **15** veces
+  la mediana del comercio …».
+- Aviso posterior a generar: «Cada cifra y cada regla del texto se verificaron contra la evaluación
+  antes de guardarlo.» → «El texto quedó guardado junto a la evaluación y ya se muestra arriba. Una
+  explicación escrita no se reescribe: si el pedido vuelve a evaluarse, la evaluación nueva lleva la
+  suya.»
+
+### Archivos modificados
+
+- `backend/src/Salvo.Infrastructure/Explanations/DeterministicExplanationProvider.cs`
+- `backend/src/Salvo.Domain/Explanations/NumberTokenizer.cs`
+- `backend/tests/Salvo.Api.IntegrationTests/ExplanationGoldenTests.cs`
+- `backend/tests/Salvo.Api.IntegrationTests/ExplanationTemplateVersionTests.cs` (nuevo)
+- `frontend/src/app/alerts/[id]/explanation-action.ts`
+- `frontend/src/app/alerts/[id]/explanation-action.test.tsx` (nuevo)
+
+`scripts/smoke-ui.sh` estaba autorizado bajo condición y no hizo falta tocarlo: ninguna de sus
+comprobaciones fija una de las tres cadenas que cambiaron.
+
+### Verificación
+
+| Comando | Resultado |
+| --- | --- |
+| `dotnet test --filter ExplanationGoldenTests` | 2 correctas, 0 fallas |
+| Falsación 1: `Ratio` vuelve a formatear siempre con un decimal | Falla el caso `ORD_000171` («es 15,0 veces» contra «es 15 veces»); el de `ORD_000011` queda verde, que es lo que prueba que las dos ramas son independientes |
+| Falsación 2: vuelve «Coincidieron» | Fallan los dos casos dorados |
+| `dotnet test --filter ExplanationTemplateVersionTests` | 1 correcta |
+| Falsación 4: la versión se deja en `e7-v1` | Falla en `Assert.True(written.Applied)`: la petición se vuelve un no-op y el párrafo viejo sobrevive, que es el defecto dicho como falla |
+| La versión no llega al texto | `Assert.DoesNotContain("e7-v", summary)` sobre el resumen escrito por el proveedor, verde. Los dos textos dorados, que fijan el párrafo entero, tampoco la contienen |
+| `npx vitest run explanation-action.test.tsx` | 4 correctas |
+| Falsación 3: se copia la oración de la leyenda al aviso | El test la rechaza y la nombra: «cada cifra y cada regla del texto se verificaron contra esta evaluación antes de guardarlo» |
+| `./scripts/check.sh` | Verde, salida `0`: restore bloqueado, build Release con 0 advertencias y 0 errores, modelo EF sin cambios, 94 tests de dominio + 147 de integración, typecheck, ESLint y 201 tests de frontend, build Next.js 16.3.3. Ejecutada dos veces: antes y después de subir la versión |
+| `./scripts/smoke-ui.sh` | Verde las dos veces: **37 comprobaciones, 0 fallas** |
+| Cifras en letras | Ninguna. Se buscaron palabras-número (`uno`…`mil`, `cien`, `media`) sobre las dos cadenas doradas: los dos aciertos son falsos positivos, «media» de «la severidad resultante es media» y «once» dentro de un comentario en inglés. Los literales de la plantilla no contienen ninguna. La rama singular escribe «Se disparó **1** regla», con dígito |
+| `git status --porcelain` | Solo los cuatro paths autorizados |
+
+### Decisiones y supuestos
+
+- **La condición sobre la parte fraccionaria vive en la plantilla, no en el formateador.**
+  `SpanishNumberFormat` sigue siendo el primitivo «formateá con N decimales», que es lo que la hace
+  determinista entre máquinas. `Minutes` ya resolvía a mano el mismo problema dentro del proveedor,
+  así que ahí es donde corresponde: los dos ahora comparten `Trimmed(value, decimals)`, que redondea
+  primero y decide después. Redondear primero importa: preguntarle a un valor sin redondear si tiene
+  parte fraccionaria haría que `22,98` se escribiera «23,0», el defecto que esta tarea corrige.
+- **El aviso sigue el molde de `review-action.ts`**: qué quedó guardado y qué se sigue de eso. Lo que
+  se sigue —una explicación escrita no se reescribe— es además lo que explica el botón que
+  desaparece, que hasta ahora la pantalla no decía en ninguna parte.
+- **El dorado fija dos textos completos, en dos tests hermanos** con un método común. Un solo test
+  con dos aserciones habría dado un único diagnóstico para dos afirmaciones distintas.
+- **El test de no repetición compara el aviso contra el bloque renderizado**, no contra una copia del
+  literal. Se parte en oraciones por `.` y `:`, se normaliza espacio y capitalización, y se exige
+  intersección vacía. Una copia del literal habría probado que dos constantes son distintas, que no
+  es lo que dice el criterio.
+- **`explanation-action.ts` no tenía tests** y ahora los tiene: los dos avisos de éxito, el
+  `applied=false` y la fila sin texto utilizable, además del de no repetición.
+- **La versión de plantilla se sube en vez de reescribir la fila.** Escribir encima habría borrado
+  el párrafo que una analista pudo haber leído al formar su veredicto, que es exactamente lo que la
+  API se niega a hacer cuando rechaza regenerar una explicación `READY`. Subir la versión conserva
+  esa fila y agrega otra; `EfAlertStore.GetExplanationsAsync` se queda con la petición más reciente,
+  así que la consola lee la nueva sin que haya que tocar el camino de lectura.
+- **El test de convivencia inserta la fila vieja por SQL**, porque la plantilla que la escribió ya
+  no existe. Es el mismo recurso que usa `AlertSchemaTests` y la única forma de reproducir el estado
+  que este cambio arregla.
+
+### Riesgos o pendientes
+
+- **La API ya acepta el pedido, pero la consola no lo ofrece, y eso deja la única fila `e7-v1` de
+  `backend/src/Salvo.Api/salvo.db` con su párrafo viejo en pantalla.** El cambio de versión no
+  reescribe nada por su cuenta: hace que pedir la explicación otra vez sea aceptado, que antes no lo
+  era. Pero el botón aparece solo cuando no hay explicación o cuando la que hay falló con intentos
+  disponibles —`explanation-block.tsx:178`—, y sobre una `READY` no hay botón. Sobre esa base el
+  texto corregido se obtiene con un `POST` directo a `/api/alerts/{id}/explanation`, que es lo que
+  hace el smoke. En una base recién sembrada no hay nada que hacer.
+- **Ese desajuste contradice una regla que `E7B` dejó escrita**: «el botón sigue lo que la API
+  acepta, no lo que la pantalla podría ofrecer». Con `e7-v2` la API acepta un caso que la pantalla
+  no ofrece. Alinearlas es una decisión de producto —el botón pasaría a aparecer sobre una
+  explicación escrita cuya versión de plantilla ya no es la vigente— y está fuera del alcance de
+  este brief. **Queda para el coordinador.**
+- **Nada obliga a subir la versión cuando el texto cambia.** El test nuevo afirma que subirla
+  funciona, no que se haya subido: un cambio futuro de la plantilla que se olvide de la constante
+  vuelve a dejar atrás lo ya escrito, con la compuerta en verde. El comentario de la constante lo
+  dice; una comprobación automática exigiría fijar el texto contra la versión, y no la escribí.
+- **`DesignAgent/Salvo-Portability.md:72` sigue con `ANTHROPIC_MODEL="claude-sonnet-5"`**, pendiente
+  heredado de `E7A` y `E7B` y fuera de los paths de esta tarea.
+- **Los nombres de país siguen siendo códigos** (`US`, `AR`, `BR`): declarado fuera de alcance y
+  registrado como candidata de internacionalización de la Etapa 8.
+- **El aviso no tiene comprobación en el smoke.** Solo se ve tras enviar el formulario, y el smoke
+  lee páginas, no envía acciones. Lo cubre el test de Vitest contra el bloque renderizado.
+
+### Integración
+
+- Orden sugerido: rama única, sin dependencias. Etapa 7 ya integrada; esto es pulido sobre ella.
+- Migraciones o pasos manuales: **ninguno**. No hay cambios de esquema. El modelo EF quedó sin
+  cambios pendientes según la compuerta.
+- Posibles conflictos: `DeterministicExplanationProvider.cs`, `NumberTokenizer.cs`,
+  `ExplanationGoldenTests.cs` y `explanation-action.ts` si algo más los tocó en `main` desde
+  `0d05d0d`.
+- Verificación posterior al merge: `./scripts/check.sh` y `./scripts/smoke-ui.sh` sobre `main`, y
+  abrir a mano una alerta del corpus para leer el párrafo y el aviso. Conviene elegir `ORD_000171`,
+  que es el que ejercita la razón sin decimal. Sobre `salvo.db`, la alerta que ya tenía explicación
+  sigue mostrando el párrafo viejo y no ofrece botón; el texto corregido se trae con un `POST` a
+  `/api/alerts/{id}/explanation`.
