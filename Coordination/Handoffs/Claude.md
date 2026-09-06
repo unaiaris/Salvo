@@ -2275,9 +2275,10 @@ verificó después— con la API apuntando a la copia:
 - Estado de la rama: `Lista para integrar`
 - Etapa: 8
 - Rama/worktree: `claude/e8a-readme-diagramas`
-- Commit base: `95d5db3` (`docs: add the Etapa 8 task briefs`), el que declara el brief. El commit
-  `5ded6e1`, que corrigió el brief y terminó la sincronización canónica que el brief daba por hecha,
-  es del coordinador y ya estaba en la rama al empezar.
+- Commit base: `95d5db3` (`docs: add the Etapa 8 task briefs`), el que declara el brief. Dos commits
+  del coordinador quedan debajo del trabajo tras el rebase: `5ded6e1`, que corrigió el brief y
+  terminó la sincronización canónica que el brief daba por hecha, y `cb02dba`, que cerró tres de los
+  pendientes de esta entrega.
 - Commit final: el de esta entrada de handoff. El trabajo va en `c1c7c62`, `47df6d3` y el commit de
   los diagramas endurecidos.
 - Fecha: 2026-09-06
@@ -2308,7 +2309,7 @@ solo el texto de un comentario.
 | Comando | Resultado |
 | --- | --- |
 | `./scripts/check-docs.sh` | 54 comprobaciones, 0 fallas, en 0,49 s |
-| `./scripts/check.sh` | `EXIT=0` sobre el árbol final: `check-docs.sh` 54/0, compilación correcta con 0 advertencias, 94 + 149 tests .NET, 209 de frontend y build de producción |
+| `./scripts/check.sh` | `EXIT=0`, repetida tras el rebase y tras rehacer los dos diagramas: `check-docs.sh` 54/0, compilación correcta con 0 advertencias, 94 + 149 tests .NET, 209 de frontend y build de producción |
 | Falsación 1: ruta inexistente en el README | Falla, `exit 1`, nombrando la ruta y su línea |
 | Falsación 2: test inexistente en el README | Falla, `exit 1`, nombrando el identificador buscado |
 | Falsación 3: enlace Markdown roto | Falla, `exit 1`, nombrando el destino |
@@ -2476,12 +2477,40 @@ tabla no es la única defensa.
 
 | Diagrama | Estado |
 | --- | --- |
-| El recorrido de un pedido | Sintaxis endurecida: rótulos de arista en la forma `-->|texto|`. **Falta confirmar el renderizado en la vista previa de GitHub** |
-| Las tres fuentes de verdad | `erDiagram` con rótulos de relación entrecomillados y atributos en la forma `tipo nombre "comentario"`. **Falta confirmar el renderizado** |
-| La máquina de estados externa | Reescrito: los rótulos de transición iban entrecomillados y con `<br/>`, y las comillas se dibujan. Ahora son texto plano con una nota. **Falta confirmar el renderizado** |
-| Cómo se verifica una explicación | `flowchart LR` con dos subgrafos con título entrecomillado. **Falta confirmar el renderizado** |
+| El recorrido de un pedido | Renderiza. Rótulos de arista en la forma `-->|texto|` |
+| Las tres fuentes de verdad | Renderiza. Rótulos de relación y comentarios de atributo entrecomillados, **con acentos** |
+| La máquina de estados externa | Renderiza, y rehecho después de mirarlo. Ver abajo |
+| Cómo se verifica una explicación | Renderiza. `flowchart LR` con dos subgrafos con título entrecomillado |
 
 Ninguno lleva cifras del corpus, como pide D2.
+
+**El coordinador los renderizó con `mermaid-cli` y los cuatro salen sin error de sintaxis**, así que
+el criterio de renderizado está cumplido. Mirarlos, sin embargo, encontró dos cosas que la sintaxis
+correcta no impide, y las dos se corrigieron:
+
+- **Los comentarios de atributo del `erDiagram` habían perdido los acentos** —«catalogo cerrado»,
+  «lo unico que define vigente», «que explicacion tenia delante»— mientras que los rótulos de
+  relación del mismo diagrama sí los llevaban. Los había quitado por precaución al endurecer la
+  sintaxis, sin comprobar que hicieran falta; el coordinador verificó que Mermaid los admite ahí
+  renderizando un caso con «catálogo», «qué explicación tenía» y «lo único». Restaurados. La lección
+  es la que ya conoce este proyecto: degradar el texto «por si acaso» es una decisión, y una
+  decisión sin comprobar es lo mismo que una afirmación sin comprobar.
+- **La máquina de estados era el más difícil de leer de los cuatro.** Tenía `PENDING --> APPROVED` y
+  `PENDING --> DENIED` dos veces cada una —una por respuesta en el acto y otra por callback o
+  reconciliación—, y las cuatro aristas se cruzaban en el medio; la nota quedaba a la izquierda con
+  una línea de puntos que atravesaba el dibujo. Cada par se unificó en una sola transición con la
+  etiqueta combinada, «en el acto, por callback o por reconciliación», y las dos aristas que
+  importan absorbieron su porqué en el rótulo: `TIMEOUT, PROVIDER_ERROR o INVALID_RESPONSE — salió y
+  no se sabe` frente a `UNREACHABLE o PROVIDER_REJECTED — no salió, o rechazo definitivo`. El
+  diagrama pasó de nueve aristas a siete.
+
+  **La nota se reubicó fuera del diagrama**, al párrafo que ahora lo sigue, en vez de a otro lado
+  del dibujo. El motivo: lo que la nota explicaba —que los tres códigos describen una petición que
+  sí salió, que se anota `lastErrorCode` y que se vuelve a preguntar— es prosa, y la única razón por
+  la que estaba dentro del diagrama era la costumbre. Fuera no puede cruzar nada, y el diagrama
+  sigue diciendo lo único que la tabla del §4.5 no dice, que es qué códigos dejan la fila `PENDING`
+  y cuáles la cierran: eso está en los rótulos de las dos aristas, no en la nota. Si preferís la
+  nota dentro, vuelve en una línea.
 
 ### Inventario de cifras del corpus que viven fuera del README
 
@@ -2552,22 +2581,22 @@ dicen qué se observó en una fecha, y corregirlas sería falsificar el registro
 
 ### Riesgos o pendientes
 
-- **Los cuatro diagramas no se vieron renderizados.** Es el único criterio de aceptación que no pude
-  ejecutar: no hay Mermaid en la máquina, instalarlo sería una dependencia nueva que el brief
-  prohíbe, y la vista previa de GitHub necesita ojos. Un error de sintaxis se renderiza como bloque
-  de código sin aviso, así que **hay que mirarlos antes de integrar**. La mitigación es la de arriba:
-  solo se usaron construcciones conservadoras, y las dos que más riesgo tenían se reescribieron.
-- **El §9 del Blueprint sigue sin nombrar `SALVO_CALLBACK_SHARED_SECRET`** y sigue listando
-  `KOIN_CALLBACK_SHARED_SECRET`, que no lee nada. La revisión adversarial lo marcó como «falso por
-  omisión» y el Blueprint está fuera del alcance de esta tarea. `Salvo-Portability.md` ahora
-  distingue las dos en una tabla, así que la contradicción entre los dos documentos es visible;
-  resolverla es del coordinador.
-- **La cabecera de `scripts/smoke-ui.sh` dice «las cuatro rutas»** cuando pide cinco, y dice «los
-  tres escenarios» cuando corre seis. Es el mismo error que el README tenía y del que probablemente
-  lo copió. El archivo no está en los paths autorizados; queda anotado.
-- **`Coordination/Workboard.md` reserva para `E8A` una lista de paths más corta que la del brief**:
-  no menciona `scripts/check.sh` ni `Coordination/Handoffs/Claude.md`. No hubo conflicto con nadie
-  porque `E8B` no toca ninguno de los dos, pero conviene alinearlos antes de despachar `E8B`.
+- **Los tres pendientes que esta entrega dejó abiertos los cerró el coordinador** en `cb02dba`, que
+  entró por rebase: el §9 del Blueprint nombra `SALVO_CALLBACK_SHARED_SECRET` y explica que es la
+  variable que el endpoint lee de verdad; la cabecera de `scripts/smoke-ui.sh` dice cinco rutas y
+  seis escenarios, con la lista de rutas explícita; y la fila del Workboard lleva la reserva completa
+  de `E8A`. Comprobado que el README quedó coherente con la cabecera corregida: las dos dicen las
+  mismas cinco rutas —`/`, `/import`, `/alerts`, el detalle de una alerta y `/dashboard`— y los
+  mismos seis escenarios, en el mismo orden. El README no había copiado el error; lo había corregido
+  por su cuenta contra el código, que es por lo que se notó.
+- **El renderizado de los cuatro diagramas está confirmado** con `mermaid-cli`, y mirarlos produjo
+  las dos correcciones de arriba. Ya no es un pendiente de integración.
+- **Los diagramas rehechos no se volvieron a renderizar en esta máquina.** Los cambios son de
+  contenido y de forma de arista, no de construcción nueva: el `erDiagram` solo recuperó acentos
+  dentro de comillas que ya existían, y el `stateDiagram-v2` perdió dos aristas y una nota, sin
+  ganar ninguna sintaxis que no tuviera. Aun así conviene un segundo renderizado antes de integrar,
+  porque es barato y porque el argumento «no puede haber roto nada» es exactamente el que este
+  proyecto no acepta en ningún otro lado.
 - **La Etapa 9 rompe tests, no solo textos.** Está en el inventario: los cuatro números del mock y
   los dos textos dorados son aserciones sobre este corpus.
 
@@ -2579,5 +2608,5 @@ dicen qué se observó en una fecha, y corregirlas sería falsificar el registro
 - Posibles conflictos: `scripts/check.sh` gana una línea al principio; cualquier otra tarea que lo
   toque va a conflictuar ahí. `Coordination/Handoffs/Claude.md` crece al final, como siempre.
 - Verificación posterior al merge: `./scripts/check.sh` —que ahora incluye `check-docs.sh`— y
-  `./scripts/smoke-ui.sh` sobre el estado integrado. Y **mirar los cuatro diagramas en GitHub**,
-  que es lo único de esta entrega que ningún script cubre.
+  `./scripts/smoke-ui.sh` sobre el estado integrado. Un segundo renderizado de los dos diagramas
+  rehechos, que es barato, es lo único de esta entrega que ningún script cubre.
