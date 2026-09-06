@@ -286,8 +286,8 @@ exige que ni una palabra del texto cambie.
 
 ## Cómo se verifica
 
-Lo que distingue a este proyecto no es qué hace, sino cómo se sabe que lo hace. Dos compuertas y una
-regla.
+Lo que distingue a este proyecto no es qué hace, sino cómo se sabe que lo hace. Dos compuertas —una
+de ellas con un tercer script adentro— y una regla.
 
 ```bash
 npm ci --prefix frontend

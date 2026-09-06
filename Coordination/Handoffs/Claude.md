@@ -2308,7 +2308,7 @@ solo el texto de un comentario.
 | Comando | Resultado |
 | --- | --- |
 | `./scripts/check-docs.sh` | 54 comprobaciones, 0 fallas, en 0,49 s |
-| `./scripts/check.sh` | Verde, con `check-docs.sh` ya adentro como primer paso |
+| `./scripts/check.sh` | `EXIT=0` sobre el árbol final: `check-docs.sh` 54/0, compilación correcta con 0 advertencias, 94 + 149 tests .NET, 209 de frontend y build de producción |
 | Falsación 1: ruta inexistente en el README | Falla, `exit 1`, nombrando la ruta y su línea |
 | Falsación 2: test inexistente en el README | Falla, `exit 1`, nombrando el identificador buscado |
 | Falsación 3: enlace Markdown roto | Falla, `exit 1`, nombrando el destino |
