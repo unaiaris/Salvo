@@ -9,15 +9,19 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado del proyecto | Etapa 6 — Proveedor antifraude externo, completada y verificada |
-| Etapa completada | Etapa 6 — Proveedor antifraude externo |
-| Próxima etapa | Etapa 7 — Explicabilidad |
-| Estado de la próxima etapa | Pendiente de diseño y de aprobación explícita del usuario |
+| Estado del proyecto | Etapa 7 — Explicabilidad, integrada y verificada; `E7D-PLANTILLA-VIGENTE` en curso |
+| Etapa completada | Etapa 7 — Explicabilidad (`E7A`, `E7B` y `E7C` integradas) |
+| Próxima etapa | Etapa 8 — Calidad y portfolio |
+| Estado de la próxima etapa | Pendiente de acordar qué candidatas entran |
 | Bloqueo actual | Ninguno |
 | Dependencias externas | Ninguna para el núcleo local |
-| Anthropic | Previsto para después del núcleo |
+| Anthropic | Previsto para después del núcleo; decisión aparte, preparada por D11 |
 | Koin sandbox | Post-MVP; sujeto a onboarding y credenciales |
-| Coordinación Codex–Claude | Sin tareas activas ni paths reservados |
+| Coordinación Codex–Claude | `E7D-PLANTILLA-VIGENTE` asignada; reserva `frontend/**`, `backend/**` y `scripts/smoke-ui.sh` |
+
+**Este bloque se actualiza en cada cierre de etapa y en cada alta de tarea.** Quedó desfasado
+durante toda la Etapa 7 porque los cierres actualizaron el registro de actividad y los checklists
+pero no el tablero; un `brief-check` lo encontró.
 
 ## Leyenda
 

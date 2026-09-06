@@ -1,7 +1,7 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: Etapa 7 completa. Siete etapas integradas y verificadas; Etapa 8 sin iniciar
-> Última actualización: 2026-09-05
+> Estado: Etapa 7 integrada y verificada; `E7D-PLANTILLA-VIGENTE` en curso. Etapa 8 sin iniciar
+> Última actualización: 2026-09-06
 > Responsable: coordinador de la etapa
 
 ## Estados
@@ -14,7 +14,13 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 
 ## Trabajo activo
 
-No hay tareas activas ni paths reservados.
+| Work ID | Estado | Propietario | Modelo y esfuerzo | Paths reservados |
+| --- | --- | --- | --- | --- |
+| `E7D-PLANTILLA-VIGENTE` | `Asignada` | `Claude` | Opus 5 · `high` | `backend/**`, `frontend/**`, `scripts/smoke-ui.sh` |
+
+Corrige la costura que `E7C` dejó abierta: la lectura y la escritura no coinciden en cuál es la
+explicación vigente cuando la versión de plantilla cambió, así que la consola no puede pedir la de
+la plantilla actual y sigue mostrando el texto anterior.
 
 ## Cola próxima
 

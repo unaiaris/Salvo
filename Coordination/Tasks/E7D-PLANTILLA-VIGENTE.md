@@ -87,6 +87,11 @@ sin aviso ni insignia**. Un cambio de redacción no invalida el contenido, y un 
 - La letra chica que hoy dice quién redactó y cuándo nombra además la versión de plantilla.
 - Aparece un botón de volver a redactar con la plantilla vigente, con su propio rótulo — no el de
   «reintentar», que significa otra cosa.
+- **El botón manda `regenerate: false`.** No es para esquivar la rama de conflicto: es la lectura
+  honesta de lo que ocurre. Cruzando un cambio de versión no se reemplaza nada, se pide la
+  explicación de la plantilla vigente, que no existe. `regenerate: true` significa «reemplazá lo que
+  hay», y acá no hay nada que reemplazar. Si al implementarlo esto resulta falso —si con la versión
+  vigente sí existe una fila—, parar y consultar.
 - El aviso posterior dice qué pasó, con el criterio que `E7C` fijó: no repite ninguna oración de la
   leyenda del bloque.
 
