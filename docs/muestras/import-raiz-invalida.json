@@ -1,0 +1,29 @@
+{
+  "version": "1",
+  "orders": [
+    {
+      "merchantId": "MER_UY_PHARMA",
+      "merchantReferenceId": "ORD_950001",
+      "buyerReferenceId": "BUY_950010",
+      "occurredAt": "2026-08-01T12:00:00.000Z",
+      "amountCents": 12400,
+      "currencyCode": "UYU",
+      "countryCode": "UY",
+      "city": "Montevideo",
+      "channel": "WEB",
+      "deviceSessionId": "DEV_950001"
+    },
+    {
+      "merchantId": "MER_UY_PHARMA",
+      "merchantReferenceId": "ORD_950002",
+      "buyerReferenceId": "BUY_950011",
+      "occurredAt": "2026-08-02T12:07:00.000Z",
+      "amountCents": 15900,
+      "currencyCode": "UYU",
+      "countryCode": "UY",
+      "city": "Montevideo",
+      "channel": "WEB",
+      "deviceSessionId": "DEV_950002"
+    }
+  ]
+}
