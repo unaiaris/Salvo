@@ -557,7 +557,11 @@ ASPNETCORE_URLS="http://127.0.0.1:5100"
 ConnectionStrings__SalvoDb="Data Source=salvo.db"
 SALVO_API_BASE_URL="http://127.0.0.1:5100"
 BUSINESS_TIMEZONE="America/Montevideo"
+SALVO_CALLBACK_SHARED_SECRET=""
 ```
+
+`SALVO_CALLBACK_SHARED_SECRET` es la variable que el endpoint de callback lee de verdad. Sin ella
+configurada, ese endpoint responde `401` a toda petición: falla cerrado.
 
 ### IA posterior
 

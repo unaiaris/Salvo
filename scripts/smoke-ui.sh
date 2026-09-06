@@ -5,10 +5,11 @@
 # El Blueprint exige para la Etapa 5 «recorrido completo con datos, sin datos y con errores», y la
 # compuerta no puede verificarlo: `check.sh` corre Vitest en jsdom y un build, y ahí no se ejercitan
 # ni un componente de servidor asíncrono real, ni una acción de servidor, ni `revalidatePath`. Esto
-# levanta la API y `next start` de verdad y le pide las cuatro rutas a un servidor HTTP, buscando
-# textos fijos que distinguen un escenario del otro.
+# levanta la API y `next start` de verdad y le pide sus cinco rutas —`/`, `/import`, `/alerts`,
+# `/alerts/[id]` y `/dashboard`— a un servidor HTTP, buscando textos fijos que distinguen un
+# escenario del otro.
 #
-# Los tres escenarios del Blueprint, más el recorrido externo que agregó la Etapa 6:
+# Los tres escenarios del Blueprint, más los que agregaron las Etapas 6 y 7. Seis en total:
 #
 #   1.  Con datos             — corpus demo cargado y puntuado.
 #   1b. Evaluación externa    — el mismo corpus, con la opinión del proveedor pedida y entregada.

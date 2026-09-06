@@ -16,7 +16,7 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 
 | Work ID | Estado | Propietario | Modelo y esfuerzo | Paths reservados |
 | --- | --- | --- | --- | --- |
-| `E8A-README-DIAGRAMAS` | `Asignada` | `Claude` | Opus 5 · `high` | `README.md`, `scripts/check-docs.sh`, los cuatro documentos derivados de `DesignAgent/`, y tres comentarios de código |
+| `E8A-README-DIAGRAMAS` | `En curso` | `Claude` | Opus 5 · `high` | `README.md`; `scripts/check-docs.sh` y `scripts/check.sh` solo para invocarlo; `Salvo-Overview.md`, `Salvo-MOC.md`, `Salvo-Getting-Started.md` y `Salvo-Portability.md`; `Coordination/Handoffs/Claude.md`; y el texto de tres comentarios en `quality-section.tsx`, `console-header.tsx` y `SignalFacts.cs`. **La reserva completa vive en el brief; esta fila la resume.** |
 | `E8B-DEMO-CAPTURAS` | `En cola` | `Claude` | Opus 5 · `high` | `docs/**`, `tools/**`, `scripts/demo.sh`, `scripts/capturas.sh` |
 
 `E8B` depende de `E8A` integrada. Ninguna de las dos toca código de producción: solo el texto de
