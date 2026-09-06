@@ -75,7 +75,7 @@ ejecutar la corrida; el pedido queda así:
 | --- | --- | --- |
 | `amount_anomaly` | +40 | 39,6× la mediana del comercio sobre 20 pedidos previos |
 | `foreign_country` | +20 | AR contra el habitual UY, en 20 de 20 pedidos previos |
-| `unusual_hour` | +10 | Franja 00:00–06:00 en `America/Montevideo`, 0 de 20 previos |
+| `unusual_hour` | +10 | Franja 00:00–06:00, hora de Montevideo, 0 de 20 previos |
 
 Total **70**, que cae en la banda `ALTA` —60–69 media, 70–89 alta, 90–100 crítica—, la única que el
 corpus demo nunca produce. `new_buyer_high_value` **no** dispara, y eso es deliberado: `BUY_950001`

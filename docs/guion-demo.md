@@ -95,8 +95,8 @@ se rechazaría, porque cuarenta y ocho no es un hecho de esta evaluación. Y un 
 guarda, no se registra y no se muestra: del ofensor queda el token, nunca la frase.»
 
 **Lo que conviene tener preparado.** El nombre del test que lo prueba es
-`GroundedExplanationTests`, y la mutación que lo falsa está en el handoff de `E7A`. Y la otra mitad
-de la regla: al input de un modelo no entra ningún texto que no escriba el motor —ni campos
+`ExplanationGroundingTests.AnInventedFigureIsRefusedAndNoTextIsStored`, y la mutación que lo falsa
+está en el handoff de `E7A`. Y la otra mitad de la regla: al input de un modelo no entra ningún texto que no escriba el motor —ni campos
 importados, ni identificadores, ni notas escritas por personas—, y hay un proveedor espía en la
 suite que lo afirma.
 
