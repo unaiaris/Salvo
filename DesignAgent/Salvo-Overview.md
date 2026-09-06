@@ -7,9 +7,9 @@
 
 ## En una frase
 
-Salvo es una consola antifraude B2B para e-commerce que puntúa pedidos sintéticos mediante reglas
-deterministas, genera alertas explicables y demuestra un ciclo de integración externa con estados,
-callbacks e idempotencia.
+Salvo es la consola antifraude de un comercio electrónico —no un proveedor antifraude— que puntúa
+pedidos sintéticos mediante reglas deterministas, genera alertas cuya explicación se verifica antes
+de guardarse, y demuestra un ciclo de integración externa con estados, callbacks e idempotencia.
 
 ## Por qué existe
 
@@ -20,9 +20,13 @@ credenciales reales.
 ## Decisión central
 
 - El motor local de reglas calcula `localRiskScore`.
-- Una evaluación externa de Koin es otra fuente y conserva su propio estado/score.
-- La IA no decide fraude; Anthropic se prevé únicamente para redactar explicaciones después de que
-  el núcleo funcione sin IA.
+- La evaluación externa es otra fuente, con su propia tabla, su propio ciclo de vida y su propio
+  estado. Hoy la produce un mock determinista; un adaptador de Koin sería una sustitución, no un
+  cambio de modelo.
+- La IA no decide fraude, severidad ni bloqueo: solo puede redactar, y lo que redacta se verifica
+  sobre la salida contra los hechos de la evaluación antes de persistirse. El texto que no pasa esa
+  comprobación no se guarda, no se registra y no se muestra.
+- Qué está vigente lo define la corrida de scoring, nunca «la evaluación más reciente».
 
 ## Alcance del MVP
 
@@ -31,9 +35,12 @@ credenciales reales.
 - Reglas deterministas con configuración auditable.
 - Alertas idempotentes y revisión transaccional.
 - Feed, detalle y dashboard de riesgo.
-- Evaluación mediante precisión, recall, F1 y falsos positivos.
-- `IAntifraudProvider` con mock local: aprobado, denegado, pendiente a la espera de callback, y error.
-- Callback y reconciliación simulados, replay-safe.
+- Evaluación mediante precisión, recall, F1 y falsos positivos, en una superficie separada del
+  dashboard operativo.
+- `IAntifraudProvider` con mock local, con cuatro desenlaces: aprobado, denegado, pendiente a la
+  espera de callback, y error.
+- Callback autenticado y reconciliación explícita, replay-safe.
+- `IExplanationProvider` con plantilla determinista y verificación de grounding sobre la salida.
 - Tests sin red y README de portfolio.
 
 ## Fuera del MVP inicial
@@ -59,13 +66,13 @@ externas.
 | Blueprint e instrucciones Codex | Actualizados |
 | Kit Claude y coordinación paralela | Preparados |
 | Etapas 1 a 7 | Integradas y verificadas en `main` |
-| Etapa 8 — El argumento del proyecto | En diseño |
+| Etapa 8 — El argumento del proyecto | En ejecución: diseño v2 aprobado y tareas despachadas |
 | Etapa 9 — Corpus, idiomas y cierre | Pendiente |
 | Anthropic | Decisión aparte. Hoy `AI_PROVIDER=anthropic` se niega a arrancar |
 | Koin sandbox | Opcional, sujeto a onboarding |
 
 ## Próximo paso
 
-Aprobar el diseño v2 de la Etapa 8 y despachar sus dos tareas: README con diagramas, y capturas con
-guion de demo. No hay trabajo activo, y ninguna integración autoriza automáticamente la etapa
-siguiente.
+Ejecutar las dos tareas de la Etapa 8: `E8A-README-DIAGRAMAS`, que reescribe el README con sus
+diagramas y deja la verificación de documentación como script, y `E8B-DEMO-CAPTURAS`, que depende de
+la anterior integrada. Ninguna integración autoriza automáticamente la etapa siguiente.

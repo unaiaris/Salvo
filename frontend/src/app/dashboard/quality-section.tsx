@@ -23,7 +23,7 @@ import { formatCount, formatInstant, formatPercent } from "@/lib/format";
  * around it. Stated, it reads as what it is: proof that the evaluation pipeline is honest — temporal
  * split, holdout with no retuning, arithmetic that checks out — not proof that the rules would
  * generalise to a corpus they were not built alongside. Enriching the fixture with harder cases is
- * scheduled work for stage 8; until then the caveat is what carries the truth.
+ * scheduled work for stage 9; until then the caveat is what carries the truth.
  */
 export const FIXTURE_CAVEAT =
   "La fixture demo fue construida para que las reglas recuperen sus propias etiquetas. Estas "

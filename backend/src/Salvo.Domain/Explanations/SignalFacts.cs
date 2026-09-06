@@ -19,7 +19,7 @@ public enum AmountMedianScope
 /// <strong>This type is the seed of <c>e3-v2</c>, and the extractor below is the part that is meant
 /// to die.</strong> The engine currently states each signal as an English sentence and the
 /// fingerprint hashes that sentence, so the numbers a Spanish summary needs live inside prose. The
-/// Workboard already carries the stage 8 candidate where the engine emits these fields directly and
+/// Workboard already carries the stage 9 candidate where the engine emits these fields directly and
 /// the interface composes the text. When that happens, <see cref="Parse"/> is deleted and
 /// <see cref="SignalFacts"/> is built from what the engine hands over. Everything downstream — the
 /// template that writes the summary and <see cref="ExplanationFacts"/> that grounds it — keeps
