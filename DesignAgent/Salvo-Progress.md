@@ -237,6 +237,8 @@ tercera. Etapa 5 permanece pendiente: requiere diseño, brief y autorización in
       `smoke-ui.sh`. Los cuatro códigos de conflicto fueron a `messages.ts` y los nueve de fallo a
       `format.ts`: son valores de un campo dentro de un `200`, no rechazos de una petición.
 - [x] `EXPLANATION_READY` movido de `guards.ts` a `contract.ts` como `EXPLANATION_STATUS`.
+- [x] Pulido del texto y del aviso, con la plantilla en `e7-v2` para que el arreglo alcance a lo ya
+      escrito (decisión 58).
 
 - [ ] Decidir aparte si se activa Anthropic.
 
@@ -335,6 +337,9 @@ tercera. Etapa 5 permanece pendiente: requiere diseño, brief y autorización in
 | 2026-09-05 | 7 | Inicio de `E7B-EXPLICACIONES-UI` | Brief y rama `claude/e7b-explicaciones-ui` desde `af93f01`; Opus 5 · `high` acordado tras corregir el coordinador un precedente que había citado mal | En curso |
 | 2026-09-05 | 7 | Bloque de explicación en el detalle, aviso de desactualizada, `explanationId` en la revisión y códigos con rótulo | Seis commits; 239 tests .NET y 197 de frontend; smoke de 29 a 37 comprobaciones, con un escenario que pide la explicación por la API y lee la página. El smoke encontró que el rótulo del botón viajaba como prop y quedaba en el payload RSC de toda página, hubiera botón o no | Lista para integrar |
 | 2026-09-05 | 7 | Integración y cierre de la Etapa 7 | Merge `ac11015` + `check.sh` y `smoke-ui.sh` verdes sobre `main`: 37 comprobaciones, 0 fallas | Completada |
+| 2026-09-06 | 7 | Recorrido manual de la explicación en la consola | Cuatro observaciones: el aviso posterior a generar repetía la leyenda del bloque, la plantilla escribía «56,0 veces» y «Coincidieron», y la referencia compuesta quedó demostrada con dos pedidos `ORD_000011` de comercios distintos | Completada |
+| 2026-09-06 | 7 | `E7C-PULIDO-EXPLICACION` | Cuatro commits; el dorado partido en las dos ramas del cambio —`ORD_000011` con decimal, `ORD_000171` sin él—, `explanation-action.ts` con sus primeros cuatro tests, y la plantilla subida a `e7-v2` con un test de convivencia de versiones. `brief-check` había corregido antes un criterio de aceptación invertido | Lista para integrar |
+| 2026-09-06 | 7 | Integración de `E7C-PULIDO-EXPLICACION` | Merge `0d117dd` + `check.sh` y `smoke-ui.sh` verdes sobre `main` | Completada |
 
 ## Protocolo de actualización
 

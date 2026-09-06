@@ -747,6 +747,7 @@ completo el MVP local.
 | 55 | La generación reserva antes de llamar, asienta aunque el cliente aborte, reintenta sobre la misma fila y retoma la pendiente vencida | Sin eso, una petición cancelada por el navegador deja una fila pendiente huérfana que bloquea la evaluación para siempre, porque la etapa no tiene reconciliación | 2026-09-05 |
 | 56 | El registro de revisión guarda qué explicación tenía delante la analista | Conservar la explicación desactualizada se justifica por el registro de lo que se pudo leer al decidir, y ese registro no existía | 2026-09-05 |
 | 57 | El catálogo de mensajes de la consola es exactamente lo que los endpoints emiten como problema; un código que es el valor de un campo dentro de un `200` se rotula aparte | Mezclarlos rompe la aserción de exactitud del catálogo, o la obliga a debilitarse, que es peor | 2026-09-05 |
+| 58 | Cambiar el texto que produce la plantilla sube su versión | `templateVersion` está en la identidad de la fila justamente para identificar qué plantilla escribió el texto: sin subirla, dos filas rotuladas igual llevan textos distintos y el campo deja de significar algo. Y como la API no reescribe una explicación ya escrita, el arreglo no alcanzaría a nada de lo guardado | 2026-09-06 |
 
 ## 14. Mapa de documentación
 

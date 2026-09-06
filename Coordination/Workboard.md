@@ -22,6 +22,7 @@ No hay tareas activas ni paths reservados.
 | --- | --- | --- | --- |
 | `E7A-EXPLICACIONES` | `Verificada` (merge `82f2487`) | Opus 5 · `high` | — |
 | `E7B-EXPLICACIONES-UI` | `Verificada` (merge `ac11015`) | Opus 5 · `high` | `E7A` |
+| `E7C-PULIDO-EXPLICACION` | `Verificada` (merge `0d117dd`) | Opus 5 · `high` | `E7B` |
 
 Dos lecciones de la Etapa 7 para los briefs que vengan:
 
@@ -32,6 +33,14 @@ Dos lecciones de la Etapa 7 para los briefs que vengan:
 - **No todo código de error va a `messages.ts`.** Ese catálogo es exactamente lo que los endpoints
   emiten como problema, y su test lo afirma. Un código que es el valor de un campo dentro de un
   `200` se rotula en `format.ts`, como `externalErrorLabel`.
+- **Un ejemplo concreto en un brief se saca del archivo o de la base en ese momento**, nunca de una
+  captura ni de memoria. Dos `brief-check` seguidos encontraron lo mismo: rutas mal citadas en el de
+  `E7B`, y en el de `E7C` un pedido ilustrativo que el propio brief prohibía usar en el test, del
+  que salió además un criterio de aceptación al revés. El brief se leía coherente; le faltaba
+  anclaje.
+- **Un arreglo que no alcanza a lo ya guardado no está terminado.** Con identidad por contenido,
+  corregir al productor no corrige lo producido: hay que preguntarse siempre qué pasa con las filas
+  que ya existen (decisión 58).
 
 Notas para los briefs de la Etapa 8:
 
