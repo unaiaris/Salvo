@@ -17,7 +17,7 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 | Work ID | Estado | Propietario | Modelo y esfuerzo | Paths reservados |
 | --- | --- | --- | --- | --- |
 | `E8A-README-DIAGRAMAS` | `Verificada` (merge `1243d54`) | `Claude` | Opus 5 · `high` | `README.md`; `scripts/check-docs.sh` y `scripts/check.sh` solo para invocarlo; `Salvo-Overview.md`, `Salvo-MOC.md`, `Salvo-Getting-Started.md` y `Salvo-Portability.md`; `Coordination/Handoffs/Claude.md`; y el texto de tres comentarios en `quality-section.tsx`, `console-header.tsx` y `SignalFacts.cs`. **La reserva completa vive en el brief; esta fila la resume.** |
-| `E8B-DEMO-CAPTURAS` | `Asignada` | `Claude` | Opus 5 · `high` | `docs/**`, `tools/**`, `scripts/demo.sh`, `scripts/capturas.sh` |
+| `E8B-DEMO-CAPTURAS` | `Asignada` | `Claude` | Opus 5 · `high` | `docs/**`; `tools/capturas/**`; `scripts/demo.sh` y `scripts/capturas.sh`; `README.md` solo en las secciones de capturas, guion y comandos; `Coordination/Handoffs/Claude.md`. **La reserva completa vive en el brief; esta fila la resume.** |
 
 `E8B` depende de `E8A` integrada. Ninguna de las dos toca código de producción: solo el texto de
 tres comentarios, autorizado como corrección de arrastre en `E8A`.
@@ -71,6 +71,11 @@ Notas para los briefs de la Etapa 8:
 - En `stateDiagram-v2`, **un bucle sobre un estado no puede llevar rótulo** si ese estado tiene otras
   aristas salientes: el rótulo cae en la misma columna que la contigua y las dos cajas se pisan.
   Verificado en tres disposiciones.
+- **El commit que declara la base de una tarea va en la rama que describe, nunca en `main`.** Si va
+  en `main` y después se rebasa, ese mismo commit pasa a ser la base y el campo vuelve a ser falso.
+  Agregar commits a `main` no mueve el `merge-base`; rebasar sí. Le pasó a `E8B`.
+- **Una fila del tablero resume; el brief manda.** Cuando las dos declaraciones de paths no
+  coinciden, la corrección es alinear el resumen y decir cuál gobierna.
 
 La **Etapa 8** quedó acotada al argumento del proyecto: README, diagramas, capturas y guion de
 demo. Todo lo demás pasó a la **Etapa 9**, que además hace el repaso final de documentos con las

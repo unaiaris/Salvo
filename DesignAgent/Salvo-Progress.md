@@ -250,7 +250,13 @@ tercera. (Sección histórica de la Etapa 4: las Etapas 5, 6 y 7 se completaron 
       dentro de la compuerta para que la deriva se detecte en vez de prometerse.
 - [ ] Capturas del recorrido (`E8B`).
 - [ ] Guion de demo (`E8B`).
-- [ ] Instalación limpia y compuertas .NET/npm verdes.
+- [ ] **Instalación limpia — la corre el coordinador después de integrar `E8B`**, porque nadie puede
+      verificar un clon limpio de un estado que todavía no incluye su propio merge. El
+      procedimiento: clonar el repositorio en un directorio nuevo, instalar sin atajos
+      (`dotnet restore`, `npm ci --prefix frontend`), correr `./scripts/check.sh` y
+      `./scripts/smoke-ui.sh`, y después `./scripts/capturas.sh`, que es el que más puede fallar en
+      un clon porque descarga su propio navegador. Lo que este paso busca no es que los tests pasen
+      —ya pasan— sino que **no falte ningún archivo que solo existe en la máquina de origen**.
 
 ### Etapa 9 — Corpus, idiomas y cierre
 
