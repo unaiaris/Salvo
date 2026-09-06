@@ -17,7 +17,7 @@
 | Dependencias externas | Ninguna para el núcleo local |
 | Anthropic | Previsto para después del núcleo; decisión aparte, preparada por D11 |
 | Koin sandbox | Post-MVP; sujeto a onboarding y credenciales |
-| Coordinación Codex–Claude | Sin tareas activas ni paths reservados |
+| Coordinación Codex–Claude | `E8A-README-DIAGRAMAS` asignada; `E8B-DEMO-CAPTURAS` en cola |
 
 **Este bloque se actualiza en cada cierre de etapa y en cada alta de tarea.** Quedó desfasado
 durante toda la Etapa 7 porque los cierres actualizaron el registro de actividad y los checklists
@@ -47,7 +47,7 @@ Solo puede existir una etapa `En curso` a la vez.
 | 5 | UI y dashboard | Completada | Recorrido completo y estados vacíos/error | Merges `5f48db0`, `278e100` y `8198fd5`; 129 tests .NET y 153 de frontend; `check.sh` y `smoke-ui.sh` verdes sobre `main` (21 comprobaciones, 0 fallas) |
 | 6 | Proveedor antifraude mock | Completada | Callbacks duplicados sin efectos repetidos y pendientes que finalizan | Merges `bca2c46` y `a412693`; 196 tests .NET y 172 de frontend; compuerta y smoke verdes (29 comprobaciones) |
 | 7 | Explicabilidad | Completada | Funciona sin red; el texto verificado sobre la salida no cambia ninguna superficie de decisión | Merges `82f2487`, `ac11015`, `0d117dd` y `b4aac6b`; compuerta y smoke verdes sobre `main` |
-| 8 | El argumento del proyecto | En diseño | README, diagramas, capturas y guion de demo; cada afirmación contrastada contra el código | Diseño v1 revisado; v2 pendiente |
+| 8 | El argumento del proyecto | En ejecución | README, diagramas, capturas y guion de demo; cada afirmación contrastada contra el código | Diseño v2 aprobado (`a7e3b97`); briefs `E8A` y `E8B` despachados (`95d5db3`) |
 | 9 | Corpus, idiomas y cierre | Pendiente | Seis reglas y tres bandas alcanzables; F1 deja de valer 1,00 | Pendiente |
 | Post-MVP | Koin sandbox, auth, observabilidad, deploy | Pendiente | Aprobación independiente por capacidad | Pendiente |
 
@@ -354,6 +354,12 @@ tercera. (Sección histórica de la Etapa 4: las Etapas 5, 6 y 7 se completaron 
 | 2026-09-06 | 7 | El recorrido manual muestra que el bump de plantilla no alcanzó al texto guardado | Lectura y escritura no coincidían en cuál era la explicación vigente: `FindAsync` busca con `templateVersion` y `GetExplanationsAsync` no lo filtra, así que la consola escondía el botón sobre una fila de la versión anterior | Completada |
 | 2026-09-06 | 7 | `E7D-PLANTILLA-VIGENTE` | Cuatro commits; `WrittenByAnotherTemplate` calculado contra el proveedor registrado y no contra una constante, el botón convertido en un tipo de tres pedidos —`first`, `currentTemplate`, `retry`— para que solo el reintento mande `regenerate: true`, y el test de extremo a extremo que faltaba. Sin migración ni columna nueva | Lista para integrar |
 | 2026-09-06 | 7 | Integración y cierre definitivo de la Etapa 7 | Merge `b4aac6b`; verificado a mano sobre `ORD_900004`: la fila `e7-v1` queda intacta con sus instantes originales y la `e7-v2` se escribe al lado con el texto corregido | Completada |
+| 2026-09-06 | Preparación E8 | Alcance acordado con el usuario y creación de la Etapa 9 | La Etapa 8 queda en README, diagramas, capturas y guion; fixture enriquecida, señales estructuradas, portugués y accesibilidad pasan a la 9, con la decisión de incluir falsos negativos y positivos ya tomada | Aprobada |
+| 2026-09-06 | Preparación E8 | Diseño v1 de la Etapa 8 | Nueve decisiones y seis preguntas abiertas | Superado por la v2 |
+| 2026-09-06 | Preparación E8 | Revisión adversarial con Fable 5.1 · `xhigh` | 12 hallazgos, 5 altos, más un inventario de lo falso en once documentos. Encontró que no hay Chrome en la máquina, que el id de una alerta es un GUID y que `salvo.db` no es el corpus demo | Completada |
+| 2026-09-06 | Preparación E8 | Sincronización canónica de once documentos | La cabecera del Blueprint declaraba «Etapa 4 en ejecución»; el §3 decía que importar procesa; `AGENTS.md` decía dos veces «No iniciar la Etapa 7» | Completada |
+| 2026-09-06 | Preparación E8 | Diseño v2 (`a7e3b97`) y briefs `E8A` y `E8B` (`95d5db3`) | Playwright aprobado por nombre y motivo en `tools/capturas/`; muestras a versionar en `docs/muestras/`; Opus 5 · `high` acordado para las dos tareas | Aprobada |
+| 2026-09-06 | 8 | Inicio de `E8A-README-DIAGRAMAS` | Rama `claude/e8a-readme-diagramas` desde `95d5db3`. El `brief-check` encontró tres faltas del coordinador, incluida una sincronización canónica declarada y hecha a medias | En curso |
 
 ## Protocolo de actualización
 

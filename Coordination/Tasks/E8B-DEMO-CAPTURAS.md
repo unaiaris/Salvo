@@ -9,7 +9,8 @@
 - Coordinador: Unai Arismendes
 - Fecha: 2026-09-06
 - Rama/worktree: `claude/e8b-demo-capturas`
-- Commit base: el `HEAD` de `main` que integra `E8A-README-DIAGRAMAS`
+- Commit base: pendiente. Es el `HEAD` de `main` que integre `E8A-README-DIAGRAMAS`, y el
+  coordinador escribe el SHA en este campo al despachar la tarea
 - Modelo y esfuerzo acordados: **Opus 5 · `high`**. Parece mecánica y no lo es: dos scripts que
   orquestan una base temporal migrada, dos procesos en puertos propios, estados preparados por API y
   un navegador, **sin poder borrar nada**. Es la misma clase de trabajo que `smoke-ui.sh`.
@@ -28,6 +29,8 @@ minutos y sirve tanto para grabar como para hablar en una entrevista.
   parte, «Playwright, o cómo sacar las capturas sin mentir». Son el origen de casi todo lo que este
   brief exige.
 - `Coordination/Handoffs/Claude.md`, entrada de `E8A`.
+- `DesignAgent/Salvo-Progress.md`, checklist «Etapa 8 — El argumento del proyecto»: los ítems de
+  capturas y guion de demo, que son los que esta tarea cierra.
 - `scripts/smoke-ui.sh`, que es el molde: base temporal con `ConnectionStrings__SalvoDb`, migración
   con `dotnet ef database update --connection`, dos procesos en puertos propios, y limpieza.
 - `_local/muestras/`, sus cuatro archivos y su README, que documenta los códigos esperados de cada

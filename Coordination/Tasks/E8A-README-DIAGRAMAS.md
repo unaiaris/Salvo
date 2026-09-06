@@ -9,7 +9,7 @@
 - Coordinador: Unai Arismendes
 - Fecha: 2026-09-06
 - Rama/worktree: `claude/e8a-readme-diagramas`
-- Commit base: el `HEAD` de `main` que incorpora el diseño v2 y este brief
+- Commit base: `95d5db3`, el `HEAD` de `main` que incorpora los dos briefs de la Etapa 8
 - Modelo y esfuerzo acordados: **Opus 5 · `high`**. Es escritura de argumento, que es donde el
   modelo pesa más, y además lleva cuatro diagramas que tienen que ser correctos contra el código y
   un script que comprueba lo que el documento afirma. Es la tarea de la etapa donde un error se
@@ -31,6 +31,8 @@ cambia.
   los documentos derivados. El coordinador ya corrigió Blueprint, Progress, Workboard, `AGENTS.md` y
   las cabeceras de los derivados; lo que queda de esa lista es contenido.
 - `DesignAgent/Salvo-Blueprint.md`: §1, §2, §3 —ya corregido—, §4, §6, §7, §11 y la bitácora.
+- `DesignAgent/Salvo-Progress.md`, checklist «Etapa 8 — El argumento del proyecto»: los seis ítems
+  que esta tarea cierra, salvo capturas y guion, que son de `E8B`.
 - `README.md` actual, para saber qué se reemplaza.
 
 **Antes de escribir cualquier afirmación, abrir el archivo que la sostiene.** No es una frase de
@@ -58,8 +60,8 @@ cuatro veces.
 verificación de una explicación reemplaza al ciclo de vida, que cabe en una oración. Ningún diagrama
 lleva cifras del corpus.
 
-**5. `scripts/check-docs.sh`**, en bash y Node sin dependencias, con el molde de `smoke-ui.sh` y de
-`check-openapi-types.mjs`: extrae del README cada ruta entre acentos graves y afirma que existe, y
+**5. `scripts/check-docs.sh`**, en bash y Node sin dependencias, con el molde de `scripts/smoke-ui.sh`
+y de `frontend/scripts/check-openapi-types.mjs`: extrae del README cada ruta entre acentos graves y afirma que existe, y
 para cada nombre de test citado hace `grep` en `backend/tests` y `frontend/src`. Falla nombrando lo
 que no encontró. Se integra en `check.sh` si no encarece la compuerta de forma apreciable.
 

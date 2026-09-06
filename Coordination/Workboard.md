@@ -1,6 +1,6 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: Etapa 7 completa. Siete etapas integradas y verificadas; Etapa 8 sin iniciar
+> Estado: Etapa 8 en ejecución. `E8A-README-DIAGRAMAS` asignada; `E8B-DEMO-CAPTURAS` en cola
 > Última actualización: 2026-09-06
 > Responsable: coordinador de la etapa
 
@@ -14,7 +14,13 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 
 ## Trabajo activo
 
-No hay tareas activas ni paths reservados.
+| Work ID | Estado | Propietario | Modelo y esfuerzo | Paths reservados |
+| --- | --- | --- | --- | --- |
+| `E8A-README-DIAGRAMAS` | `Asignada` | `Claude` | Opus 5 · `high` | `README.md`, `scripts/check-docs.sh`, los cuatro documentos derivados de `DesignAgent/`, y tres comentarios de código |
+| `E8B-DEMO-CAPTURAS` | `En cola` | `Claude` | Opus 5 · `high` | `docs/**`, `tools/**`, `scripts/demo.sh`, `scripts/capturas.sh` |
+
+`E8B` depende de `E8A` integrada. Ninguna de las dos toca código de producción: solo el texto de
+tres comentarios, autorizado como corrección de arrastre en `E8A`.
 
 ## Cola próxima
 
