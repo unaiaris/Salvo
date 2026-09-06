@@ -10,10 +10,12 @@
 - Fecha: 2026-09-06
 - Rama/worktree: `claude/e7c-pulido-explicacion`
 - Commit base: `0e3faf1`, el `HEAD` de `main` que cierra la Etapa 7
-- Modelo y esfuerzo acordados: **Sonnet 4.5 · `high`**. Son tres cadenas y el test dorado que las
-  fija. No hay invariantes nuevas, ni migración, ni contrato, ni frontera que mover. Sería el primer
-  trabajo del proyecto corrido con Sonnet: hasta acá todos fueron `Opus 5 · high`, y se deja anotado
-  para que el precedente quede escrito y no se cite de memoria.
+- Modelo y esfuerzo acordados: **Opus 5 · `high`**. El coordinador recomendó `Sonnet 5 · high`
+  —tres cadenas y un test dorado que ya existe, sin invariantes nuevas, sin migración, sin
+  contrato— y el usuario optó por Opus, como en `E5C` y `E7B`. Sigue sin haber en el proyecto
+  ningún trabajo corrido con Sonnet, y así queda escrito para que el precedente no se cite de
+  memoria. (La recomendación decía «Sonnet 4.5», modelo que no existe en
+  `ClaudeAgent/Claude-Model-Policy.md`; la fila real es `Sonnet 5`.)
 - Dependencias: ninguna. Etapa 7 ya integrada y verificada.
 
 ## Resultado esperado
@@ -25,6 +27,9 @@ ciclo de vida ni del contrato cambia.
 
 ## Contexto obligatorio
 
+- `DesignAgent/Salvo-Blueprint.md`, **§4.7 Explicabilidad**: es la sección canónica que sostiene la
+  restricción de este brief —«las cifras escritas en letras no se validan, y se declara que no se
+  validan»— y la que define las tres capas de grounding que acá no se tocan.
 - `Coordination/Tasks/E7-DISENO.md` (v2), **D4** y **D5**: por qué el texto se verifica sobre la
   salida y qué se puede escribir en él.
 - `Coordination/Handoffs/Claude.md`, entradas de `E7A` y `E7B`.
@@ -49,12 +54,18 @@ que `explanation-block.tsx` ya muestra bajo el resumen. Reescribirlo con el mold
 `review-action.ts:74-75`: qué quedó guardado y qué implica. La leyenda del bloque **no** se toca:
 ahí la frase es correcta y es donde corresponde que viva.
 
-**2. La plantilla no escribe decimales que valen cero.** «56,0 veces» pasa a «56 veces»; «23,2
-veces» queda como está. Es una condición sobre la parte fraccionaria, no un redondeo: una razón de
-23,2 no puede convertirse en 23.
+**2. La plantilla no escribe decimales que valen cero.** Una razón de `15.0` se escribe «15 veces»;
+una de `23.2` sigue siendo «23,2 veces». Es una condición sobre la parte fraccionaria, no un
+redondeo: 23,2 no puede convertirse en 23.
 
-**3. Las reglas se disparan.** «Coincidieron 4 reglas» pasa a «Se dispararon 4 reglas», o a la forma
-equivalente que suene mejor en el conjunto de la frase.
+Los ejemplos de este brief se tomaron de `ORD_900004`, que es una importación manual de la base
+local y **no** sirve para el test dorado. En la fixture, la razón con parte fraccionaria cero la
+tiene **`ORD_000171`** (`15.0`); el dorado actual usa `ORD_000011` (`23.2`, tres reglas), que cubre
+el otro caso.
+
+**3. Las reglas se disparan.** «Coincidieron N reglas» pasa a «Se dispararon N reglas», o a la forma
+equivalente que suene mejor en el conjunto de la frase. En el dorado actual la frase es
+«Coincidieron 3 reglas».
 
 **El número sigue en dígitos, siempre.** Escribir «cuatro» se lee mejor y saca esa cifra de la
 verificación en silencio, porque las cifras en letras no se validan y así está declarado. Ninguno de
@@ -93,8 +104,9 @@ los tres retoques puede convertir un dígito en palabra.
 - [ ] `/brief-check Coordination/Tasks/E7C-PULIDO-EXPLICACION.md` sin faltantes antes de empezar.
 - [ ] El aviso posterior a generar no comparte ninguna oración con la leyenda del bloque.
 - [ ] El test dorado se actualiza y sigue fijando el texto **exacto**, no una parte.
-- [ ] Un caso con parte fraccionaria distinta de cero conserva su decimal. Si el corpus no tiene uno
-      en el pedido del test dorado, agregar un caso que lo cubra.
+- [ ] **El test dorado fija dos textos exactos**, uno por cada rama del cambio: `ORD_000011`, cuya
+      razón `23.2` conserva el decimal, y `ORD_000171`, cuya razón `15.0` pasa a escribirse sin él.
+      El segundo es el que la modificación afecta y hoy no está cubierto.
 - [ ] Ninguna cifra del texto quedó escrita en letras. Documentar cómo se comprobó.
 - [ ] El resumen sigue pasando la validación de grounding en todas las alertas del corpus demo: el
       test que ya lo afirma sigue verde sin tocarlo.
@@ -106,8 +118,8 @@ los tres retoques puede convertir un dígito en palabra.
 | Comando/comprobación | Resultado esperado |
 | --- | --- |
 | `/brief-check Coordination/Tasks/E7C-PULIDO-EXPLICACION.md` | Brief válido |
-| Test dorado actualizado | Texto exacto, con «56 veces» y «se dispararon» |
-| Caso con decimal distinto de cero | Conserva su decimal |
+| Test dorado, `ORD_000171` | Texto exacto; «15 veces» sin decimal, y «se dispararon» |
+| Test dorado, `ORD_000011` | Texto exacto; «23,2 veces» conserva el decimal |
 | Test de grounding sobre todo el corpus | Verde sin modificarlo |
 | `/gate` | Compuerta full-stack verde |
 | `./scripts/smoke-ui.sh` | Verde |
@@ -120,13 +132,16 @@ los tres retoques puede convertir un dígito en palabra.
 - El verbo definitivo para las reglas, y si conviene retocar «el score se limita a 100» por una
   forma más natural en la misma oración.
 - Dónde vive la condición sobre la parte fraccionaria: el formateador o la plantilla.
+- Si los dos textos dorados van en el mismo test con dos casos o en dos tests hermanos, siempre que
+  los dos fijen el texto completo y no un fragmento.
 
 ## Detenerse y consultar si
 
 - un retoque obliga a tocar el conjunto de hechos, el tokenizador o la validación;
 - quitar el decimal hace que alguna cifra deje de estar fundamentada;
 - hace falta salir de los paths autorizados;
-- el test dorado no puede seguir fijando el texto exacto.
+- el test dorado no puede seguir fijando el texto exacto;
+- `ORD_000171` no resulta ser el caso de parte fraccionaria cero que este brief afirma que es.
 
 ## Entrega requerida
 
