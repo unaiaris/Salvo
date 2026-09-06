@@ -64,7 +64,13 @@ Notas conservadas de la Etapa 6, por si vuelven a aplicar:
 
 - `RiskEvaluationIdentityTests` perdió dos aserciones al separarse la evaluación externa.
 
-Candidatas registradas para la Etapa 8, acordadas con el usuario:
+La **Etapa 8** quedó acotada al argumento del proyecto: README, diagramas, capturas y guion de
+demo. Todo lo demás pasó a la **Etapa 9**, que además hace el repaso final de documentos con las
+cifras del corpus nuevo. La partición es deliberada: la fixture enriquecida invalida las cifras de
+todo lo que se escriba antes, así que el README concentra los números volátiles en un bloque
+marcado y la Etapa 9 los actualiza de una sola pasada.
+
+Candidatas registradas para la Etapa 9, acordadas con el usuario:
 
 - **Señales estructuradas e internacionalización.** El motor emite campos tipados en vez de prosa
   (sube a `e3-v2` e invalida los fingerprints a propósito); la UI compone el texto y el portugués

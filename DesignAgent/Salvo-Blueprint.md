@@ -663,11 +663,28 @@ Verificación: callbacks duplicados no repiten efectos y el estado pendiente pue
 Verificación: el sistema funciona sin key; la suite nunca depende de red; el texto generado no
 puede cambiar ninguna superficie de decisión, y hay cuatro tests que fallan si lo hiciera.
 
-### Etapa 8 — Calidad y portfolio
+### Etapa 8 — El argumento del proyecto
 
-- Métricas finales, README, diagramas, capturas y guion de demo.
+- README de portfolio, diagramas, capturas y guion de demo.
+- Toda cifra del corpus concentrada en un bloque marcado, para que la Etapa 9 la actualice de una
+  sola pasada.
 
-Verificación: instalación desde cero, compuertas .NET y npm verdes y demo reproducible.
+Verificación: instalación desde cero, compuertas .NET y npm verdes, demo reproducible, y **cada
+afirmación de hecho del README contrastada contra el código**.
+
+### Etapa 9 — Corpus, idiomas y cierre
+
+- Fixture enriquecida: comercios en mercados plausibles, varios arquetipos de fraude que cubran las
+  seis reglas y las tres bandas, y **falsos negativos y falsos positivos deliberados**, para que las
+  métricas midan el criterio y no el pipeline. Decidido con el usuario el 2026-09-06.
+- Señales estructuradas: el motor emite campos tipados en vez de prosa, sube a `e3-v2` e invalida
+  los fingerprints a propósito; la UI compone el texto y el portugués pasa a ser un diccionario más.
+- Pasada de accesibilidad con lector de pantalla real, y traducción de los códigos de error de fila
+  que hoy caen al inglés.
+- Repaso final y actualización de todos los documentos con las cifras del corpus nuevo.
+
+Verificación: las seis reglas y las tres bandas alcanzables desde la fixture; F1 deja de valer 1,00;
+compuertas verdes y documentos coherentes con los datos.
 
 ### Post-MVP — Koin sandbox, auth, observabilidad y deploy
 

@@ -11,8 +11,8 @@
 | --- | --- |
 | Estado del proyecto | Etapa 7 — Explicabilidad, completada y verificada |
 | Etapa completada | Etapa 7 — Explicabilidad (`E7A`, `E7B`, `E7C` y `E7D` integradas) |
-| Próxima etapa | Etapa 8 — Calidad y portfolio |
-| Estado de la próxima etapa | Pendiente de acordar qué candidatas entran |
+| Próxima etapa | Etapa 8 — El argumento del proyecto |
+| Estado de la próxima etapa | Alcance acordado: README, diagramas, capturas y guion de demo |
 | Bloqueo actual | Ninguno |
 | Dependencias externas | Ninguna para el núcleo local |
 | Anthropic | Previsto para después del núcleo; decisión aparte, preparada por D11 |
@@ -248,14 +248,25 @@ tercera. Etapa 5 permanece pendiente: requiere diseño, brief y autorización in
 
 - [ ] Decidir aparte si se activa Anthropic.
 
-### Etapa 8 — Calidad y portfolio
+### Etapa 8 — El argumento del proyecto
 
-- [ ] Métricas finales y umbral documentado.
-- [ ] README de portfolio completo.
-- [ ] Diagramas y capturas.
+- [ ] README de portfolio completo, con las cifras del corpus en un bloque marcado.
+- [ ] Diagramas de arquitectura y de flujo.
+- [ ] Capturas del recorrido.
 - [ ] Guion de demo.
-- [ ] Revisión de seguridad y accesibilidad.
+- [ ] Cada afirmación de hecho del README contrastada contra el código.
 - [ ] Instalación limpia y compuertas .NET/npm verdes.
+
+### Etapa 9 — Corpus, idiomas y cierre
+
+- [ ] Fixture enriquecida, con falsos negativos y positivos deliberados.
+- [ ] Las seis reglas y las tres bandas alcanzables desde el corpus.
+- [ ] Comercios en mercados plausibles.
+- [ ] Señales estructuradas (`e3-v2`) y portugués.
+- [ ] Pasada de accesibilidad con lector de pantalla real.
+- [ ] Códigos de error de fila traducidos (`describeRecordError`).
+- [ ] Ruta `/orders` y un modo del proveedor simulado que se porte mal.
+- [ ] Repaso final: todos los documentos y el artículo para revisores, con las cifras nuevas.
 
 ## Decisiones y dependencias abiertas
 
