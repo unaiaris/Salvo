@@ -2,7 +2,24 @@
 
 import { useActionState } from "react";
 import { explainEvaluation } from "./explanation-action";
-import { INITIAL_EXPLANATION_STATE, type ExplanationActionState } from "./explanation-state";
+import {
+  INITIAL_EXPLANATION_STATE,
+  type ExplanationActionState,
+  type ExplanationAsk,
+} from "./explanation-state";
+
+/**
+ * What the button says, per question.
+ *
+ * "Volver a intentar" is not offered for a template that changed: nothing failed, and a reader who
+ * is told to retry looks for the error that is not there. Writing the paragraph again with the
+ * current template is a different act and says so.
+ */
+const LABELS: Readonly<Record<Exclude<ExplanationAsk, "none">, string>> = {
+  first: "Explicar esta evaluación",
+  retry: "Volver a intentar la explicación",
+  currentTemplate: "Redactar con la plantilla vigente",
+};
 
 /**
  * The one button of the explanation block.
@@ -12,37 +29,36 @@ import { INITIAL_EXPLANATION_STATE, type ExplanationActionState } from "./explan
  * server-rendered part of the block, and this component could not put a word of it on screen even if
  * somebody asked it to.
  *
- * `regenerate` is a flag rather than a verdict about what should happen. The API decides whether a
- * repeat is a retry, a no-op or a refusal; this only says which of the two questions is being asked.
+ * `ask` names the situation rather than the request. The API decides whether a repeat is a retry, a
+ * no-op or a refusal; the action is what turns one of these three into the regeneration flag, and
+ * only `retry` becomes one.
  *
- * The two labels are written here rather than handed down as props, and the smoke is what settled
- * it: a prop is serialised into the RSC payload whether or not anything renders it, so a page that
- * had stopped offering the button still carried its words in the HTML. Wording that belongs to a
+ * The labels are written here rather than handed down as props, and the smoke is what settled it: a
+ * prop is serialised into the RSC payload whether or not anything renders it, so a page that had
+ * stopped offering the button still carried its words in the HTML. Wording that belongs to a
  * control belongs in the control — the same place `ExternalActions` keeps its own.
  */
 export function ExplanationActions({
   alertId,
-  regenerate,
-  canAsk,
+  ask,
 }: {
   readonly alertId: string;
-  readonly regenerate: boolean;
-  readonly canAsk: boolean;
+  readonly ask: ExplanationAsk;
 }) {
   const [state, action, running] = useActionState(explainEvaluation, INITIAL_EXPLANATION_STATE);
 
   return (
     <div className="flex flex-col gap-3">
-      {canAsk && (
+      {ask !== "none" && (
         <form action={action}>
           <input type="hidden" name="alertId" value={alertId} />
-          {regenerate && <input type="hidden" name="regenerate" value="true" />}
+          <input type="hidden" name="ask" value={ask} />
           <button
             type="submit"
             disabled={running}
             className="inline-flex rounded-md border border-teal-700 px-4 py-2 text-sm font-semibold text-teal-900 disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400 hover:bg-teal-700 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-900"
           >
-            {running ? "Redactando…" : regenerate ? "Volver a intentar la explicación" : "Explicar esta evaluación"}
+            {running ? "Redactando…" : LABELS[ask]}
           </button>
         </form>
       )}

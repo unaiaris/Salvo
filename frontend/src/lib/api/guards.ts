@@ -390,6 +390,7 @@ export function projectExplanation(value: unknown): AlertExplanation | null {
   const attemptCount = integer(raw.attemptCount);
   const attemptsExhausted = flag(raw.attemptsExhausted);
   const isOutdated = flag(raw.isOutdated);
+  const writtenByAnotherTemplate = flag(raw.writtenByAnotherTemplate);
   const requestedAt = instant(raw.requestedAt);
   const settledAt = nullableInstant(raw.settledAt);
 
@@ -405,6 +406,7 @@ export function projectExplanation(value: unknown): AlertExplanation | null {
     attemptCount === null ||
     attemptsExhausted === null ||
     isOutdated === null ||
+    writtenByAnotherTemplate === null ||
     requestedAt === null ||
     settledAt === undefined
   ) {
@@ -428,6 +430,7 @@ export function projectExplanation(value: unknown): AlertExplanation | null {
     attemptCount,
     attemptsExhausted,
     isOutdated,
+    writtenByAnotherTemplate,
     requestedAt,
     settledAt,
   };

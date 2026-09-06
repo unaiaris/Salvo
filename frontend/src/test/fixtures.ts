@@ -101,6 +101,7 @@ export function wireExplanation(overrides: WirePayload = {}): WirePayload {
     attemptCount: 1,
     attemptsExhausted: false,
     isOutdated: false,
+    writtenByAnotherTemplate: false,
     requestedAt: "2026-09-03T11:00:00+00:00",
     settledAt: "2026-09-03T11:00:01+00:00",
     ...overrides,
