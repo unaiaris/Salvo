@@ -777,6 +777,9 @@ completo el MVP local.
 | 56 | El registro de revisión guarda qué explicación tenía delante la analista | Conservar la explicación desactualizada se justifica por el registro de lo que se pudo leer al decidir, y ese registro no existía | 2026-09-05 |
 | 57 | El catálogo de mensajes de la consola es exactamente lo que los endpoints emiten como problema; un código que es el valor de un campo dentro de un `200` se rotula aparte | Mezclarlos rompe la aserción de exactitud del catálogo, o la obliga a debilitarse, que es peor | 2026-09-05 |
 | 58 | Cambiar el texto que produce la plantilla sube su versión | `templateVersion` está en la identidad de la fila justamente para identificar qué plantilla escribió el texto: sin subirla, dos filas rotuladas igual llevan textos distintos y el campo deja de significar algo. Y como la API no reescribe una explicación ya escrita, el arreglo no alcanzaría a nada de lo guardado | 2026-09-06 |
+| 59 | Un documento que cita datos del corpus los concentra en un bloque marcado, y no escribe cantidades de tests | La Etapa 9 invalida toda cifra del corpus de una sola pasada; y una cantidad de tests es cierta el día que se escribe y falsa la semana siguiente | 2026-09-06 |
+| 60 | Las afirmaciones de un documento público se comprueban por script, no por revisión | `scripts/check-docs.sh` verifica que cada ruta citada exista y que cada test nombrado exista. La deriva se detecta, no se promete: es el patrón de `OpenApiDriftTests` aplicado a la prosa | 2026-09-06 |
+| 61 | Una dependencia nueva se aprueba por nombre y motivo en el diseño de su etapa | El precedente es `openapi-typescript` en la Etapa 5; Playwright se aprobó así en la 8, en un paquete propio y fuera de la compuerta | 2026-09-06 |
 
 ## 14. Mapa de documentación
 

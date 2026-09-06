@@ -244,11 +244,12 @@ tercera. (Sección histórica de la Etapa 4: las Etapas 5, 6 y 7 se completaron 
 
 ### Etapa 8 — El argumento del proyecto
 
-- [ ] README de portfolio completo, con las cifras del corpus en un bloque marcado.
-- [ ] Diagramas de arquitectura y de flujo.
-- [ ] Capturas del recorrido.
-- [ ] Guion de demo.
-- [ ] Cada afirmación de hecho del README contrastada contra el código.
+- [x] README de portfolio completo, con las cifras del corpus en un bloque marcado.
+- [x] Diagramas de arquitectura y de flujo: cuatro, en Mermaid versionado, vistos renderizados.
+- [x] Cada afirmación de hecho del README contrastada contra el código, y `scripts/check-docs.sh`
+      dentro de la compuerta para que la deriva se detecte en vez de prometerse.
+- [ ] Capturas del recorrido (`E8B`).
+- [ ] Guion de demo (`E8B`).
 - [ ] Instalación limpia y compuertas .NET/npm verdes.
 
 ### Etapa 9 — Corpus, idiomas y cierre
@@ -360,6 +361,8 @@ tercera. (Sección histórica de la Etapa 4: las Etapas 5, 6 y 7 se completaron 
 | 2026-09-06 | Preparación E8 | Sincronización canónica de once documentos | La cabecera del Blueprint declaraba «Etapa 4 en ejecución»; el §3 decía que importar procesa; `AGENTS.md` decía dos veces «No iniciar la Etapa 7» | Completada |
 | 2026-09-06 | Preparación E8 | Diseño v2 (`a7e3b97`) y briefs `E8A` y `E8B` (`95d5db3`) | Playwright aprobado por nombre y motivo en `tools/capturas/`; muestras a versionar en `docs/muestras/`; Opus 5 · `high` acordado para las dos tareas | Aprobada |
 | 2026-09-06 | 8 | Inicio de `E8A-README-DIAGRAMAS` | Rama `claude/e8a-readme-diagramas` desde `95d5db3`. El `brief-check` encontró tres faltas del coordinador, incluida una sincronización canónica declarada y hecha a medias | En curso |
+| 2026-09-06 | 8 | README reescrito como argumento, cuatro diagramas y `scripts/check-docs.sh` | Ocho commits. El verificador de documentos entró en la compuerta y se falsó en dos direcciones. Los cuatro diagramas necesitaron **tres renderizados**: el primero pasó la sintaxis y encontró acentos faltantes y un dibujo ilegible; el segundo encontró una superposición que la corrección misma había introducido; el tercero confirmó | Lista para integrar |
+| 2026-09-06 | 8 | Integración de `E8A-README-DIAGRAMAS` | Merge `1243d54` + `check.sh` —que ahora incluye `check-docs.sh`— y `smoke-ui.sh` verdes sobre `main` | Completada |
 
 ## Protocolo de actualización
 
