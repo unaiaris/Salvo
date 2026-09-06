@@ -7,9 +7,10 @@ const LINKS = [
 ] as const;
 
 /**
- * The console frame. `/import` and `/dashboard` are linked before they exist: they are the two other
- * screens of stage 5, and leaving them out of the navigation would hide from the analyst that
- * importing and scoring are part of this tool rather than something someone does for her.
+ * The console frame. `/import` and `/dashboard` sit in the navigation next to the queue because
+ * importing and scoring are part of this tool rather than something someone does for the analyst.
+ * They were linked here before either screen existed, for that reason; both have existed since
+ * stage 5.
  */
 export function ConsoleHeader() {
   return (

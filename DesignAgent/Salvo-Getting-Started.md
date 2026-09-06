@@ -11,7 +11,8 @@
 - Etapa 1 integrada mediante PR #1, cerrada mediante PR #2 y verificada sobre `main` en `66f0949`.
 - Etapas 2 a 7 integradas y verificadas con la compuerta full-stack y, desde la Etapa 5, con
   `scripts/smoke-ui.sh` sobre el estado integrado.
-- No hay tareas activas; ninguna etapa comienza sin autorización explícita.
+- Etapa 8 en ejecución. El estado vigente y los propietarios están en `../Coordination/Workboard.md`;
+  ninguna etapa comienza sin autorización explícita.
 
 ## Herramientas
 
@@ -31,8 +32,10 @@
 
 El núcleo local no necesita cuentas externas.
 
-- Anthropic: se configurará más adelante si se aprueba la explicación real.
-- Koin: el sandbox requiere onboarding, private key y `org_id`; no bloquea el MVP.
+- Anthropic: decisión aparte, todavía no tomada. La Etapa 7 cerró con una plantilla determinista, y
+  hoy `AI_PROVIDER=anthropic` hace fallar el arranque con o sin clave.
+- Koin: el sandbox requiere onboarding, private key y `org_id`; no bloquea el MVP. `KOIN_MODE=sandbox`
+  también hace fallar el arranque, a propósito.
 - Ninguna clave se copia en chats, documentación, fixtures o Git.
 
 ## Flujo por etapa
@@ -56,8 +59,9 @@ El núcleo local no necesita cuentas externas.
 4. Alertas y revisión.
 5. UI y dashboard.
 6. Proveedor antifraude mock y callback.
-7. Explicabilidad; Anthropic solo tras aprobación.
-8. Métricas finales y README.
+7. Explicabilidad determinista; Anthropic solo tras aprobación, que no se pidió.
+8. El argumento del proyecto: README, diagramas, capturas y guion de demo.
+9. Corpus, idiomas y cierre: fixture enriquecida, señales estructuradas, portugués y accesibilidad.
 
 ## Trabajo con Codex y Claude
 
@@ -67,9 +71,11 @@ El núcleo local no necesita cuentas externas.
   `../Coordination/Task-Brief-Template.md`.
 - Cada agente trabaja en su propia rama/worktree y escribe su handoff separado.
 - El coordinador actualiza el estado canónico después del merge y la verificación conjunta.
-- E2 debe comenzar de forma secuencial porque concentra migración inicial, paquetes, locks, schema
-  EF Core y contratos públicos.
+- Serializar lockfiles, migraciones y configuración central salvo que exista una partición segura.
 - Consultar `../Coordination/README.md` antes de abrir trabajo paralelo.
+
+El protocolo paralelo existe y todavía no se usó: Codex construyó las Etapas 0 a 3 y Claude las 4 en
+adelante, siempre en secuencia.
 
 ## Preparación local
 
@@ -91,9 +97,18 @@ El comando `dotnet` debe estar disponible en `PATH`; `global.json` rechazará un
 | `dotnet ef database update --project backend/src/Salvo.Infrastructure --startup-project backend/src/Salvo.Api` | Aplicar migraciones a la DB local configurada |
 | `dotnet run --project backend/src/Salvo.Api` | API local en el perfil de desarrollo |
 | `npm run dev --prefix frontend` | Frontend local |
-| `npm run check --prefix frontend` | Typecheck, ESLint y tests UI |
+| `npm run api:capture --prefix frontend` | Recapturar el documento OpenAPI desde la API |
+| `npm run api:types --prefix frontend` | Regenerar los tipos TypeScript desde el documento capturado |
+| `npm run api:types:check --prefix frontend` | Comprobar que los tipos generados no derivaron |
+| `npm run check --prefix frontend` | Los tipos generados, typecheck, ESLint y tests UI, en ese orden |
 | `npm run build --prefix frontend` | Build de producción con Webpack |
+| `./scripts/check-docs.sh` | Comprobar que cada ruta, enlace y test que cita el README existe |
 | `./scripts/check.sh` | Compuerta completa backend + frontend |
+| `./scripts/smoke-ui.sh` | Recorrido de la consola en seis escenarios, con procesos reales |
+
+`npm run check` empieza por `api:types:check`, no por el typecheck: un contrato que derivó invalida
+todo lo que viene después. `./scripts/smoke-ui.sh` no forma parte de la compuerta —cuesta compilar
+las dos toolchains y arrancar dos procesos— y se ejecuta tras integrar cada etapa.
 
 Para probar el proxy local, arrancar la API en `http://127.0.0.1:5100` y después el frontend. La
 ruta `/api/health` del frontend se reescribe al endpoint `/health` de la API mediante

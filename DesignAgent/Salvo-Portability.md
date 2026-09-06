@@ -9,13 +9,15 @@ atados a una herramienta de construcción, un LLM o un proveedor antifraude.
 
 ## Tres capas independientes
 
-| Capa | Elección inicial | Alternativas |
+| Capa | Hoy | Alternativas |
 | --- | --- | --- |
-| Agente que construye | Codex | Claude Code, Cursor u otro |
-| Explicación en runtime | Determinista/mock; Anthropic después | OpenAI u otro LLM |
-| Evaluación antifraude externa | Mock local | Koin sandbox u otro proveedor |
+| Agente que construye | Codex construyó las Etapas 0 a 3; Claude Code, de la 4 en adelante | Cursor u otro |
+| Explicación en runtime | Plantilla determinista en proceso, sin red | Anthropic u otro LLM, si se aprueba |
+| Evaluación antifraude externa | Mock determinista en proceso, sin red | Koin sandbox u otro proveedor |
 
-Cambiar una capa no debe obligar a reescribir las demás.
+Cambiar una capa no debe obligar a reescribir las demás. Que la primera fila haya cambiado de agente
+a mitad del proyecto sin tocar una línea de dominio es la evidencia más directa de que la separación
+es real.
 
 ## Agente de construcción
 
@@ -28,21 +30,36 @@ Cambiar una capa no debe obligar a reescribir las demás.
 
 ## Proveedor de explicaciones
 
-Contrato conceptual:
+El puerto real vive en `backend/src/Salvo.Application/Explanations/IExplanationProvider.cs`:
 
 ```csharp
 public interface IExplanationProvider
 {
-    Task<ExplanationResult> ExplainAsync(
+    ExplanationProvider Provider { get; }
+
+    string TemplateVersion { get; }
+
+    Task<ExplanationDraft> ExplainAsync(
         ExplanationInput input,
         CancellationToken cancellationToken);
 }
 ```
 
+Las dos propiedades no son decoración. `Provider` y `TemplateVersion` forman parte de la identidad
+de la fila que se persiste: la misma evaluación redactada por una plantilla posterior es una
+explicación distinta, no la misma reescrita. Por eso cambiar el texto que produce una plantilla
+obliga a subir su versión (decisión 58).
+
+`ExplanationDraft` devuelve el resumen —que puede ser nulo, porque un modelo puede legítimamente
+declinar, y eso es un fallo con código y no una excepción—, las reglas citadas, y opcionalmente el
+modelo concreto y el consumo de tokens. Que la salida sea estructurada en el puerto y no en el
+adaptador es deliberado: a un modelo se le pedirá exactamente esa forma como esquema JSON, y la
+plantilla determinista la completa igual.
+
 Implementaciones previstas:
 
-- Determinista/mock: siempre disponible, sin red.
-- Anthropic: proveedor preferido cuando se apruebe la etapa.
+- Determinista: la que existe, siempre disponible y sin red.
+- Anthropic: decisión aparte, todavía no tomada. Hoy no hay adaptador.
 - Otro LLM: posible sin cambiar scoring, alertas o UI.
 
 La salida es estructurada y no decide fraude o severidad. «Usa únicamente señales suministradas»
@@ -64,7 +81,16 @@ Los datos específicos del proveedor permanecen en infraestructura. El dominio c
 
 ## Variables por proveedor
 
-Anthropic posterior:
+Los nombres y los valores seguros están en `.env.example`. Ninguna de estas variables es necesaria
+para el modo local, y ninguna usa prefijo `NEXT_PUBLIC_`.
+
+**Estos dos valores hoy hacen fallar el arranque, a propósito.** No están «pendientes de
+configurar»: `backend/src/Salvo.Infrastructure/DependencyInjection.cs` los rechaza al componer,
+porque esta build no tiene adaptador para ninguno de los dos y degradar en silencio a mock sería
+exactamente la mentira que este documento existe para impedir. Un valor desconocido en cualquiera de
+las dos variables también falla.
+
+Anthropic, si se aprueba:
 
 ```dotenv
 AI_PROVIDER="anthropic"
@@ -72,7 +98,7 @@ ANTHROPIC_API_KEY=""
 ANTHROPIC_MODEL=""
 ```
 
-Koin posterior:
+Koin, si se aprueba:
 
 ```dotenv
 KOIN_MODE="sandbox"
@@ -81,9 +107,21 @@ KOIN_PRIVATE_KEY=""
 KOIN_ORG_ID=""
 KOIN_STORE_CODE=""
 KOIN_CALLBACK_URL=""
+KOIN_CALLBACK_SHARED_SECRET=
 ```
 
-Ninguna de estas variables es necesaria para el modo local mock.
+### El secreto del callback
+
+Conviene no confundir dos variables que se parecen:
+
+| Variable | Quién la lee | Para qué |
+| --- | --- | --- |
+| `SALVO_CALLBACK_SHARED_SECRET` | `backend/src/Salvo.Api/ExternalCallbackEndpoints.cs`, hoy | El secreto que un proveedor presenta en la cabecera `X-Salvo-Callback-Secret`. Vacío significa cerrado: todo callback se rechaza con `401` |
+| `KOIN_CALLBACK_SHARED_SECRET` | Nada, todavía | Reservada para el día que exista un adaptador de Koin |
+
+El secreto compartido **no** es el mecanismo que usaría una integración real, que verificaría una
+firma sobre el cuerpo; el §5.3 del Blueprint lo pide como requisito antes de activar sandbox. Lo que
+está modelado es dónde se resuelve el problema. Es backend puro: el proceso de Next nunca lo lee.
 
 ## Qué no cambia al sustituir proveedores
 
