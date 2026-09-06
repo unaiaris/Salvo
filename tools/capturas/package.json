@@ -1,0 +1,14 @@
+{
+  "name": "salvo-capturas",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Playwright aislado para regenerar las capturas del README. Fuera de frontend/ a propósito: la compuerta y su lockfile quedan intactos.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "engines": {
+    "node": "24.20.0"
+  },
+  "dependencies": {
+    "playwright": "1.63.0"
+  }
+}

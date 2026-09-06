@@ -85,6 +85,21 @@ Ocho pasos, y el segundo es el que más gente da por sentado: **importar no punt
 pedidos y evaluarlos son dos acciones separadas, porque una importación que dispara una corrida no
 deja elegir cuándo se mueve la línea de base de todo el corpus.
 
+## El recorrido, en seis capturas
+
+Se regeneran con `./scripts/capturas.sh`, sobre una base nueva y sin tocar la de nadie. Qué cambia
+entre una regeneración y otra, y el texto alternativo de cada una, están en
+[la nota que las acompaña](docs/capturas/README.md).
+
+| | |
+| --- | --- |
+| ![Cola de alertas de Salvo con dieciocho alertas abiertas, ordenadas por score, mostrando pedido, severidad, score del snapshot, score vigente, monto y fecha](docs/capturas/01-cola.png) | ![Detalle de la alerta del pedido ORD_000011, con sus tres señales de riesgo, la opinión del proveedor externo, la explicación redactada y el formulario para emitir el veredicto](docs/capturas/02-detalle.png) |
+| **La cola.** Alertas abiertas, de mayor a menor score vigente. La severidad con la que se abrió cada alerta y la que dice el corpus ahora van en columnas separadas: son dos momentos distintos. | **El detalle.** El pedido, el snapshot congelado, la evaluación vigente, la opinión del proveedor, la explicación y el veredicto. Todo lo que hace falta para decidir, en una pantalla. |
+| ![Bloque de explicación de una alerta: un párrafo que describe la evaluación con sus cifras, y debajo la nota de que lo redactó una plantilla determinista y no un modelo, verificado contra la evaluación antes de guardarse](docs/capturas/03-explicacion.png) | ![Bloque de evaluación externa mostrando que los dos criterios no coinciden: el motor local marcó el pedido por encima del umbral y el proveedor externo lo aprobó, con la aclaración de que no se combinan en un veredicto único](docs/capturas/06-divergencia.png) |
+| **La explicación.** Cada cifra y cada regla del párrafo se verificaron contra la evaluación antes de guardarlo. El pie dice quién lo escribió y con qué versión de plantilla. | **La divergencia de criterio.** El motor local marcó el pedido; el proveedor lo aprobó. No se combinan en un veredicto único y no se comparan sus scores: son escalas de sistemas distintos. |
+| ![Pantalla de importación tras enviar un archivo con errores: un pedido importado, cinco registros rechazados listados uno por uno con su línea, su campo y el motivo del rechazo](docs/capturas/05-import.png) | ![Dashboard de Salvo con dieciocho alertas abiertas, monto en riesgo separado por moneda, gráfico semanal de pedidos y denegados, y la sección de calidad del criterio con la advertencia de que las métricas prueban el pipeline y no la detección](docs/capturas/04-dashboard.png) |
+| **La importación.** Estricta por registro y atómica por archivo: las filas válidas entran todas juntas y las rechazadas se listan una por una, con su línea y su motivo. | **El dashboard.** Monto en riesgo por moneda, sin sumarlas jamás entre sí, y el gráfico semanal dibujado en SVG por el servidor. Abajo, la calidad del criterio con su advertencia. |
+
 ## Las tres fuentes de verdad que nunca se mezclan
 
 El score local, la opinión del proveedor externo y el veredicto del analista son tres cosas
@@ -459,6 +474,34 @@ mil con detalle— y no se escribe ninguno de ellos.
 
 Las variables de entorno están en `.env.example`, con sus valores seguros y sin un solo secreto.
 Ninguna clave usa prefijo `NEXT_PUBLIC_`, y el proceso de Next nunca lee el secreto del callback.
+
+Para probar la importación sin inventarse un archivo, hay cuatro muestras sintéticas en
+[`docs/muestras/`](docs/muestras/README.md): la válida, la que trae un error de cada tipo, la de
+formato JSON con el caso de hora inusual, y la que rechaza el documento entero.
+
+### Ensayar la demo
+
+```bash
+./scripts/demo.sh
+```
+
+Levanta la API y la consola sobre una **base nueva con la fecha en el nombre**, con el corpus
+cargado y la corrida ya ejecutada, y se queda en pie hasta el Ctrl-C. Existe porque el recorrido de
+[`docs/guion-demo.md`](docs/guion-demo.md) es destructivo por diseño —el veredicto es terminal, una
+explicación escrita no se regenera y el seed es idempotente—, así que cada ensayo consume el estado
+del anterior. **No borra nada**: la base del ensayo anterior queda donde estaba.
+
+### Regenerar las capturas
+
+```bash
+./scripts/capturas.sh
+```
+
+Usa una base temporal propia, prepara por API el estado de cada toma y fotografía con Playwright,
+que vive en `tools/capturas/` con su propio lockfile: `frontend/package-lock.json`, `npm ci` y la
+compuerta no cambian. **La primera vez descarga el Chromium que fija esa versión**, del orden de
+240 MB entre el navegador y su shell headless, una sola vez por máquina y como paso explícito del
+script. Sobrescribe las seis capturas y no borra ninguna.
 
 ## Arquitectura
 

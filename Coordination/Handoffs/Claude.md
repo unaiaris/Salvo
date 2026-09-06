@@ -2619,3 +2619,110 @@ dicen qué se observó en una fecha, y corregirlas sería falsificar el registro
 - Verificación posterior al merge: `./scripts/check.sh` —que ahora incluye `check-docs.sh`— y
   `./scripts/smoke-ui.sh` sobre el estado integrado. Los cuatro diagramas ya están renderizados y
   mirados; no queda nada de esta entrega sin verificar.
+
+## `E8B-DEMO-CAPTURAS` — Capturas, guion de demo y las dos formas de reproducirlos
+
+### Identificación
+
+- Estado de la rama: `Lista para integrar`
+- Etapa: 8
+- Rama/worktree: `claude/e8b-demo-capturas`
+- Commit base: `d0d8c03`, el `merge-base` real con `main`
+- Commit final: `bf70c08`
+- Fecha: 2026-09-06
+
+### Resultado
+
+Cualquiera que clone el repositorio puede **regenerar las seis capturas con un comando** y **ensayar
+la demo tantas veces como quiera** sobre una base nueva, sin tocar la suya. El guion de diez minutos
+existe, con la frase, el clic y una línea «si falla» por bloque, y el README enlaza las dos cosas.
+
+Las cuatro muestras de importación, que vivían en `_local/` y por lo tanto no existían para nadie
+más, quedaron versionadas con los códigos de error que devuelve la API de verdad.
+
+### Archivos modificados
+
+- `docs/muestras/`: los cuatro archivos, copiados sin modificar desde `_local/muestras/`, y un
+  README propio.
+- `docs/capturas/`: las seis PNG y la nota de regenerables con el texto alternativo de cada una.
+- `docs/guion-demo.md`: el guion de diez minutos, en siete bloques.
+- `scripts/demo.sh`: levanta la demo sobre una base nueva con fecha.
+- `scripts/capturas.sh`: regenera las capturas sobre una base temporal.
+- `tools/capturas/`: `package.json`, `package-lock.json` y `capturar.mjs`.
+- `README.md`: la sección de capturas y los dos comandos nuevos en «Cómo correrlo».
+
+`frontend/package.json` y `frontend/package-lock.json` **no cambian**, y
+`git diff` sobre `frontend/` entre la base y el final está vacío. `scripts/smoke-ui.sh` está byte a
+byte igual al merge-base.
+
+### Verificación
+
+| Comando | Resultado |
+| --- | --- |
+| `./scripts/check.sh` | **Verde**. `check-docs.sh` 68/0; build Release 0 advertencias y 0 errores; 94 tests de dominio y 149 de integración; `npm run check` con 209 tests de frontend; build de producción de Next.js |
+| `./scripts/smoke-ui.sh` | **Verde**: 43 comprobaciones, 0 fallas |
+| `./scripts/demo.sh` | Base nueva arriba, corpus de 300 pedidos y corrida con 18 alertas; API y consola sirviendo `200` |
+| `shasum -a 256` de `salvo.db`, antes y después | **Idéntico**: `92f4f3fb…8a5ff`, 1437696 bytes, mtime `2026-09-06T14:46:58` sin cambiar |
+| `./scripts/capturas.sh` ×2 seguidas | Las dos verdes, seis PNG cada vez. `git status` muestra seis `M` y ningún `D`: sobrescribe, no borra |
+| `git diff --stat base..HEAD -- frontend/` | Sin salida |
+| `git status --porcelain` | Limpio; todos los cambios en paths autorizados |
+| Inspección visual de las seis capturas | Hecha, una por una. Las seis se leen y muestran lo que prometen |
+
+Falsaciones, porque el valor de una comprobación es que pueda fallar:
+
+- **La aserción previa a cada disparo falla de verdad.** La primera corrida de `capturas.sh` se
+  detuvo en la toma 5 con «la página no muestra REFERENCE_CONFLICT» y **no escribió el PNG**. El
+  equivocado era yo: la consola muestra la traducción del código, nunca el identificador. La
+  aserción pasó a ser «La referencia ya existe con otros datos», que es texto que la pantalla sí
+  escribe.
+- **La resolución por pedido se niega a adivinar.** Exige que `ORD_000011` identifique exactamente
+  una alerta abierta; con dos comercios usando esa numeración se detendría en vez de elegir una.
+- **`check-docs.sh` sobre `docs/guion-demo.md` encontró un nombre de test inventado.** El guion
+  decía `GroundedExplanationTests`; la clase es `ExplanationGroundingTests`. Un guion que te pide
+  decir un nombre de test en una entrevista tiene que nombrar uno que exista.
+
+### Decisiones y supuestos
+
+- **Playwright, en `tools/capturas/`, versión exacta `1.63.0`.** El brief pedía verificar si el
+  paquete descarga navegadores al instalarse. **No lo hace**: ni `playwright` ni `playwright-core`
+  declaran script de instalación en esa versión (`hasInstallScript: false` en el lockfile), así que
+  `npm ci` no baja nada y `playwright install chromium` es un paso propio del script. La descarga
+  es de unos 240 MB entre el navegador y su shell headless, una vez por máquina, y el README lo dice
+  junto al comando.
+- **La base de `demo.sh` vive junto a `salvo.db`**, con la fecha y la hora en el nombre, para que se
+  vean todas juntas y se note cuántos ensayos hubo. `*.db` está en `.gitignore`.
+- **Las capturas se sacaron con todo el estado puesto.** La toma 2 muestra los cuatro bloques del
+  detalle porque «el detalle» de esta consola son los cuatro, y las tomas 3 y 6 son capturas de
+  elemento sobre esa misma página.
+- **La toma 6 usa `ORD_000011`**, el mismo pedido de las tomas 2 y 3: su referencia cae en la banda
+  11 del proveedor simulado, que aprueba por debajo de 75 y responde de forma síncrona, mientras el
+  motor local lo denegó con 90. La divergencia de criterio es determinista y no necesita callback.
+- **Las capturas versionadas son las que revisé a ojo.** La tercera corrida —la que cierra el
+  criterio de las dos seguidas— produjo un juego equivalente que restauré con `git restore`, para
+  que en el repositorio queden exactamente las imágenes que miré.
+
+### Riesgos o pendientes
+
+- **Dos observaciones de producto, fuera de alcance y sin tocar.** La pantalla de importación dice
+  «Se importaron 1 pedidos», sin concordancia de número; y el mensaje que acompaña a cada registro
+  rechazado llega en inglés desde la API, que ya es un ítem registrado para la Etapa 9. Las dos se
+  ven en `docs/capturas/05-import.png`.
+- **El mapa de documentación del README no menciona el guion.** El brief acota el README a las
+  secciones de capturas, guion y comandos, así que no lo toqué. Es una fila para el coordinador.
+- **Quedan dos bases de ensayo** de las pruebas de `demo.sh`, en `backend/src/Salvo.Api/`. Están
+  ignoradas y no se borran desde acá: `rm` está denegado y es regla del proyecto.
+- **El smoke informa 43 comprobaciones y el brief esperaba 37.** No las cambió esta tarea: el
+  archivo está intacto respecto del merge-base y el número ya era 43 en `main` desde `E7D`.
+- **Las capturas envejecen con la interfaz.** Nada las verifica automáticamente; la nota que las
+  acompaña dice cuándo conviene regenerarlas.
+
+### Integración
+
+- Orden sugerido: esta rama sola. Cierra la Etapa 8 junto con `E8A`, ya integrada.
+- Migraciones o pasos manuales: ninguno. No hay migración, ni cambio de contrato, ni de esquema, ni
+  de interfaz. Ninguna línea de código de producción cambia.
+- Posibles conflictos: `README.md` gana una sección y una subsección; `Coordination/Handoffs/Claude.md`
+  crece al final. `main` está dos commits adelante de esta rama, los dos de coordinación, y no tocan
+  ninguno de estos paths.
+- Verificación posterior al merge: `./scripts/check.sh` y `./scripts/smoke-ui.sh` sobre el estado
+  integrado. `./scripts/capturas.sh` no hace falta repetirlo: las imágenes ya están versionadas.
