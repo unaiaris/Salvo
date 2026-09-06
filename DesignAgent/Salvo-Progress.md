@@ -248,8 +248,8 @@ tercera. (Sección histórica de la Etapa 4: las Etapas 5, 6 y 7 se completaron 
 - [x] Diagramas de arquitectura y de flujo: cuatro, en Mermaid versionado, vistos renderizados.
 - [x] Cada afirmación de hecho del README contrastada contra el código, y `scripts/check-docs.sh`
       dentro de la compuerta para que la deriva se detecte en vez de prometerse.
-- [ ] Capturas del recorrido (`E8B`).
-- [ ] Guion de demo (`E8B`).
+- [x] Capturas del recorrido: seis, regenerables con `./scripts/capturas.sh` sobre una base nueva.
+- [x] Guion de demo de diez minutos, con `./scripts/demo.sh` para ensayar sin consumir la base.
 - [ ] **Instalación limpia — la corre el coordinador después de integrar `E8B`**, porque nadie puede
       verificar un clon limpio de un estado que todavía no incluye su propio merge. El
       procedimiento: clonar el repositorio en un directorio nuevo, instalar sin atajos
@@ -369,6 +369,8 @@ tercera. (Sección histórica de la Etapa 4: las Etapas 5, 6 y 7 se completaron 
 | 2026-09-06 | 8 | Inicio de `E8A-README-DIAGRAMAS` | Rama `claude/e8a-readme-diagramas` desde `95d5db3`. El `brief-check` encontró tres faltas del coordinador, incluida una sincronización canónica declarada y hecha a medias | En curso |
 | 2026-09-06 | 8 | README reescrito como argumento, cuatro diagramas y `scripts/check-docs.sh` | Ocho commits. El verificador de documentos entró en la compuerta y se falsó en dos direcciones. Los cuatro diagramas necesitaron **tres renderizados**: el primero pasó la sintaxis y encontró acentos faltantes y un dibujo ilegible; el segundo encontró una superposición que la corrección misma había introducido; el tercero confirmó | Lista para integrar |
 | 2026-09-06 | 8 | Integración de `E8A-README-DIAGRAMAS` | Merge `1243d54` + `check.sh` —que ahora incluye `check-docs.sh`— y `smoke-ui.sh` verdes sobre `main` | Completada |
+| 2026-09-06 | 8 | `E8B-DEMO-CAPTURAS` | Seis commits. Playwright en `tools/capturas/` con lockfile propio: `frontend/package-lock.json` intacto. La aserción previa a cada disparo detuvo la primera corrida en la toma 5 —la pantalla traduce el código de error y no lo muestra— y `check-docs.sh` cazó un nombre de test inventado en el guion | Lista para integrar |
+| 2026-09-06 | 8 | Integración de `E8B-DEMO-CAPTURAS` | Merge `6ae7750` + compuerta y smoke verdes. Las seis capturas revisadas una por una por el coordinador: salen de una base nueva —18 alertas, sin banda `ALTA`— y la de importación de un envío real del formulario | Completada |
 
 ## Protocolo de actualización
 

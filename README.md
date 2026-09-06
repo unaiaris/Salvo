@@ -542,6 +542,9 @@ exige.
 | [Diseños y revisiones](Coordination/Tasks/) | El diseño de cada etapa, su revisión adversarial y el brief de cada tarea |
 | [Handoffs](Coordination/Handoffs/) | La entrega de cada tarea, con sus comandos y **la tabla de falsación de cada test** |
 | [Plantilla de tarea](Coordination/Task-Brief-Template.md) | Resultado, alcance, permisos y verificación de una tarea |
+| [Guion de demo](docs/guion-demo.md) | Diez minutos con lo que hay que decir, el clic que hay que dar y qué hacer si algo falla |
+| [Nota de las capturas](docs/capturas/README.md) | Cómo se regeneran y qué cambia entre una regeneración y otra |
+| [Muestras de importación](docs/muestras/README.md) | Cuatro archivos sintéticos: el válido, el rechazado, el de hora inusual y el de raíz inválida |
 
 Si hay que leer solo dos cosas: la **bitácora del Blueprint**, que es cada decisión con su porqué en
 una línea, y los **handoffs**, donde cada test que se escribió viene con la falsación que demuestra

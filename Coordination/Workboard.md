@@ -17,7 +17,7 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 | Work ID | Estado | Propietario | Modelo y esfuerzo | Paths reservados |
 | --- | --- | --- | --- | --- |
 | `E8A-README-DIAGRAMAS` | `Verificada` (merge `1243d54`) | `Claude` | Opus 5 · `high` | `README.md`; `scripts/check-docs.sh` y `scripts/check.sh` solo para invocarlo; `Salvo-Overview.md`, `Salvo-MOC.md`, `Salvo-Getting-Started.md` y `Salvo-Portability.md`; `Coordination/Handoffs/Claude.md`; y el texto de tres comentarios en `quality-section.tsx`, `console-header.tsx` y `SignalFacts.cs`. **La reserva completa vive en el brief; esta fila la resume.** |
-| `E8B-DEMO-CAPTURAS` | `Asignada` | `Claude` | Opus 5 · `high` | `docs/**`; `tools/capturas/**`; `scripts/demo.sh` y `scripts/capturas.sh`; `README.md` solo en las secciones de capturas, guion y comandos; `Coordination/Handoffs/Claude.md`. **La reserva completa vive en el brief; esta fila la resume.** |
+| `E8B-DEMO-CAPTURAS` | `Verificada` (merge `6ae7750`) | `Claude` | Opus 5 · `high` | `docs/**`; `tools/capturas/**`; `scripts/demo.sh` y `scripts/capturas.sh`; `README.md` solo en las secciones de capturas, guion y comandos; `Coordination/Handoffs/Claude.md`. **La reserva completa vive en el brief; esta fila la resume.** |
 
 `E8B` depende de `E8A` integrada. Ninguna de las dos toca código de producción: solo el texto de
 tres comentarios, autorizado como corrección de arrastre en `E8A`.
