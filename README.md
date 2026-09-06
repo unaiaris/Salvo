@@ -75,8 +75,8 @@ flowchart TD
     E["Evaluación local append-only<br/>identidad = fingerprint del contenido"] --> F
     F["La corrida referencia una evaluación por pedido<br/>eso, y solo eso, define qué está vigente"] --> G
     G{"¿score mayor o igual a 60?"}
-    G -- "no" --> H["Sin alerta"]
-    G -- "sí" --> I["Alerta con snapshot del score y las señales<br/>como máximo una abierta por pedido"]
+    G -->|no| H["Sin alerta"]
+    G -->|sí| I["Alerta con snapshot del score y las señales<br/>como máximo una abierta por pedido"]
     I --> J["Opcional: segunda opinión del proveedor externo<br/>y explicación verificada de la evaluación"]
     J --> K["Veredicto terminal del analista<br/>en una transacción, con su auditoría"]
 ```
@@ -202,23 +202,30 @@ decida por su cuenta si un fallo es final.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Reservada: "fila escrita antes de llamar"
-    Reservada --> PENDING: "enviada"
+    [*] --> Reservada: la fila se escribe antes de llamar
+    Reservada --> PENDING: enviada al proveedor
 
-    PENDING --> APPROVED: "respuesta en el acto"
-    PENDING --> DENIED: "respuesta en el acto"
+    PENDING --> APPROVED: respuesta en el acto
+    PENDING --> DENIED: respuesta en el acto
 
-    PENDING --> PENDING: "TIMEOUT · PROVIDER_ERROR · INVALID_RESPONSE<br/>se envió y no se sabe: queda pendiente con lastErrorCode"
-    PENDING --> ERROR: "UNREACHABLE · PROVIDER_REJECTED<br/>nunca se envió, o fue rechazada de plano"
+    PENDING --> PENDING: TIMEOUT, PROVIDER_ERROR o INVALID_RESPONSE
+    PENDING --> ERROR: UNREACHABLE o PROVIDER_REJECTED
 
-    PENDING --> APPROVED: "callback del proveedor"
-    PENDING --> DENIED: "callback del proveedor"
-    PENDING --> APPROVED: "reconciliación explícita"
-    PENDING --> DENIED: "reconciliación explícita"
+    PENDING --> APPROVED: callback, o reconciliación explícita
+    PENDING --> DENIED: callback, o reconciliación explícita
 
     APPROVED --> [*]
     DENIED --> [*]
     ERROR --> [*]
+
+    note right of PENDING
+        Los tres códigos que dejan la fila pendiente
+        describen una petición que sí salió y cuyo
+        desenlace no se sabe. Se anota lastErrorCode
+        y se vuelve a preguntar.
+        Los dos que la cierran describen lo contrario:
+        nunca salió, o el proveedor la rechazó de plano.
+    end note
 ```
 
 Un callback se correlaciona por el identificador del proveedor **o** por la referencia del pedido:
@@ -251,8 +258,8 @@ flowchart LR
         V2 --> V3["3 · cifras<br/>tokenizador declarado, igualdad por redondeo"]
     end
 
-    V3 -- "pasa" --> OK["Se persiste con estado READY"]
-    V3 -- "no pasa" --> NO["No se persiste, no se registra, no se muestra<br/>queda el código de fallo y el token ofensor, nunca la frase"]
+    V3 -->|pasa| OK["Se persiste con estado READY"]
+    V3 -->|no pasa| NO["No se persiste, no se registra, no se muestra<br/>queda el código de fallo y el token ofensor, nunca la frase"]
 ```
 
 Tres cosas que este dibujo dice y conviene leer despacio:

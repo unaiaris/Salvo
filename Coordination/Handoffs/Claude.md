@@ -2267,3 +2267,313 @@ verificó después— con la API apuntando a la copia:
   abrir en la consola la alerta de `salvo.db` que ya tiene explicación: debe mostrar el párrafo
   viejo con «(e7-v1)» en la letra chica y ofrecer el botón. Pulsarlo deja dos filas y el texto con
   «Se dispararon».
+
+## `E8A-README-DIAGRAMAS` — El README como argumento, y su verificación ejecutable
+
+### Identificación
+
+- Estado de la rama: `Lista para integrar`
+- Etapa: 8
+- Rama/worktree: `claude/e8a-readme-diagramas`
+- Commit base: `95d5db3` (`docs: add the Etapa 8 task briefs`), el que declara el brief. El commit
+  `5ded6e1`, que corrigió el brief y terminó la sincronización canónica que el brief daba por hecha,
+  es del coordinador y ya estaba en la rama al empezar.
+- Commit final: el de esta entrada de handoff. El trabajo va en `c1c7c62`, `47df6d3` y el commit de
+  los diagramas endurecidos.
+- Fecha: 2026-09-06
+
+### Resultado
+
+El README dejó de ser falso y pasó a ser el argumento del proyecto: nueve secciones, cuatro
+diagramas Mermaid, cinco decisiones citadas por su número, y cada afirmación de hecho escrita con el
+archivo que la sostiene abierto. `scripts/check-docs.sh` hace exigible la mitad mecánica de eso y
+entró en la compuerta. Los cuatro documentos derivados dejaron de contradecir al código, y tres
+comentarios que nombraban a la «Etapa 8» para lo que hoy es la 9 quedaron corregidos.
+
+Ninguna línea de código de producción cambió: los tres archivos de código que se tocaron cambiaron
+solo el texto de un comentario.
+
+### Archivos modificados
+
+- `README.md` — reescrito completo.
+- `scripts/check-docs.sh` — nuevo.
+- `scripts/check.sh` — una invocación, en primer lugar.
+- `DesignAgent/Salvo-Overview.md`, `Salvo-MOC.md`, `Salvo-Getting-Started.md`, `Salvo-Portability.md`.
+- `frontend/src/app/dashboard/quality-section.tsx`, `frontend/src/components/console-header.tsx`,
+  `backend/src/Salvo.Domain/Explanations/SignalFacts.cs` — solo texto de comentarios.
+- `Coordination/Handoffs/Claude.md` — esta entrada.
+
+### Verificación
+
+| Comando | Resultado |
+| --- | --- |
+| `./scripts/check-docs.sh` | 54 comprobaciones, 0 fallas, en 0,49 s |
+| `./scripts/check.sh` | Verde, con `check-docs.sh` ya adentro como primer paso |
+| Falsación 1: ruta inexistente en el README | Falla, `exit 1`, nombrando la ruta y su línea |
+| Falsación 2: test inexistente en el README | Falla, `exit 1`, nombrando el identificador buscado |
+| Falsación 3: enlace Markdown roto | Falla, `exit 1`, nombrando el destino |
+| Cifras del corpus regeneradas sobre base nueva | Migración, seed, corrida, evaluación externa y callbacks sobre una base temporal; `salvo.db` intacta |
+| `grep` de cifras fuera del bloque marcado | Ninguna dependiente del corpus fuera de `corpus:inicio`/`corpus:fin` |
+| `git status --porcelain` | Limpio; solo los paths autorizados en el diff contra la base |
+
+### Las tres falsaciones de `check-docs.sh`
+
+Un script de verificación que nunca se vio fallar no verifica nada. Las tres se hicieron sobre el
+README real y se revirtieron después.
+
+**1 — Ruta inexistente.** Se agregó ``La regla vive en `backend/src/Salvo.Domain/Risk/VelocityRule.cs`.``
+
+```
+  FALLA  ruta     backend/src/Salvo.Domain/Risk/VelocityRule.cs
+         README.md:495 — no existe en el árbol de trabajo.
+
+54 comprobaciones, 1 fallas.
+```
+
+**2 — Test inexistente.** Se agregó ``Lo afirma `TemporalRiskEngineTests.TheBaselineNeverLooksForward`.``,
+que es un nombre plausible en una clase que sí existe. El script busca el método, no la clase, que es
+justamente la deriva que hay que cazar:
+
+```
+  FALLA  test     TemporalRiskEngineTests.TheBaselineNeverLooksForward
+         README.md:495 — «TheBaselineNeverLooksForward» no aparece en backend/tests ni en frontend/src.
+
+54 comprobaciones, 1 fallas.
+```
+
+**3 — Enlace roto.** Se agregó `Ver el [guion de demo](DesignAgent/Salvo-Demo-Script.md).`, que es
+exactamente el enlace que `E8B` va a querer poner:
+
+```
+  FALLA  enlace   DesignAgent/Salvo-Demo-Script.md
+         README.md:495 — el destino del enlace no existe.
+
+54 comprobaciones, 1 fallas.
+```
+
+Las tres devolvieron `1`. Con el README restaurado, 54 comprobaciones y 0 fallas.
+
+### Tabla de verificación del README
+
+Cada afirmación de hecho del README, con el archivo que la sostiene, el comando que la produce o el
+test que la afirma. Las que no tenían fuente no entraron. Las rutas y los nombres de test de esta
+tabla los vuelve a comprobar `scripts/check-docs.sh` en cada corrida de la compuerta, así que la
+tabla no es la única defensa.
+
+#### Qué es y qué no
+
+| Afirmación | Fuente |
+| --- | --- |
+| Seis reglas, con esos nombres | `backend/src/Salvo.Domain/Risk/RiskRuleNames.cs:5-10` |
+| Pesos 40, 40, 30, 30, 20 y 10 | `RuleConfig.cs:16,23,20,34,39,29` |
+| Ventanas: 90 días monto, 10 min velocity, 2 h cross-border, 30 días y franja de 6 h en `unusual_hour`, 90 días país | `RuleConfig.cs:12,18,22,25-28,36` |
+| Tope 100 y umbral 60 | `RuleConfig.cs:8-9` |
+| Bandas 60–69, 70–89, 90–100 | `AlertPolicy.cs:35-38` |
+| La severidad no se persiste; se persiste la versión de la política | `AlertPolicy.cs:9-13`; la tabla `alerts` tiene `alert_policy_version` y no tiene columna de severidad |
+| La IA no escribe en ninguna superficie de decisión | `ExplanationIsolationTests.ExplainingEveryAlertChangesNoDecisionSurface` |
+| `isFraudLabel` solo mide, en superficie aparte tras `DemoData:Enabled` | `SystemEndpoints.cs:19-23`; `DashboardEndpointTests.TheDashboardIsIndependentOfGroundTruth` |
+
+#### Simulación, sandbox y producción
+
+| Afirmación | Fuente |
+| --- | --- |
+| Ocho requisitos antes de un sandbox, con esa lista | Blueprint §5.3, ocho viñetas |
+| `KOIN_MODE=sandbox` y `AI_PROVIDER=anthropic` hacen fallar el arranque | `DependencyInjection.cs:95-106` y `:128-138` |
+| Un valor desconocido en cualquiera de las dos también falla | mismas líneas: la rama `else` del mensaje |
+| Cabecera `X-Salvo-Callback-Secret` | `ExternalCallbackEndpoints.cs:12` |
+| Sin secreto configurado, `401` a todo | `ExternalCallbackEndpoints.cs:31-37`; `ExternalCallbackEndpointTests.WithNoSecretConfiguredEveryCallbackIsRefused` |
+| No es el mecanismo de una integración real | `ExternalCallbackEndpoints.cs:38-43`, que lo dice en su propio comentario |
+
+#### El recorrido de un pedido
+
+| Afirmación | Fuente |
+| --- | --- |
+| Importar no procesa; la corrida es una acción explícita | `frontend/src/app/import/page.tsx:45-48`; Blueprint §3 pasos 1 y 2; decisión 39 |
+| Validación estricta por registro, escritura atómica por archivo | `ImportOrdersHandler.cs`; `import/page.tsx:78-80` |
+| Baseline solo con historia estrictamente anterior | `TemporalRiskEngineTests.AddingFutureOrdersCannotChangeEarlierAssessments` |
+| Como máximo una alerta abierta por pedido | índice único parcial `ux_alerts_open_order` sobre `order_id WHERE status = 'OPEN'` |
+| El veredicto es terminal y su auditoría va en la misma transacción | `AlertReviewTests.TwoConcurrentReviewsLeaveOneVerdictAndExactlyOneAudit`; `CHECK ck_alerts_review_consistency` |
+
+#### Las tres fuentes de verdad
+
+| Afirmación | Fuente |
+| --- | --- |
+| `risk_evaluations` restringida a `source = 'LOCAL'` por `CHECK` | `RiskEvaluationConfiguration.cs:19-20` |
+| Su estado solo puede ser `APPROVED` o `DENIED` | `RiskEvaluationConfiguration.cs:22-23` |
+| Lo vigente lo define `run_evaluations` de la corrida, no la fila más reciente | `ScoringRunPersistenceTests.AScoreThatReturnsToAnEarlierValueKeepsTheCurrentEvaluationCorrect` |
+| `alert_reviews.explanation_id` es una clave foránea real | `FK_alert_reviews_alert_explanations_explanation_id` en el esquema |
+| Las diez tablas del diagrama, con esos nombres y esas columnas | `ToTable(...)` en `Salvo.Infrastructure/Persistence/Configurations/`; esquema leído con `sqlite3 .schema` sobre la base regenerada |
+| `external_evaluations.error_code` es catálogo cerrado y nunca el mensaje del proveedor | `ExternalEvaluationErrorCode.cs:1-12` |
+
+#### Las cinco decisiones
+
+| Afirmación | Fuente |
+| --- | --- |
+| Decisiones 29 y 31, con ese contenido | bitácora del Blueprint, líneas 746 y 748 |
+| Decisión 33 | línea 750 |
+| Decisiones 37 y 38 | líneas 754 y 755 |
+| Decisiones 45 y 47 | líneas 762 y 764 |
+| Decisiones 52 y 54 | líneas 769 y 771 |
+| El rebote 0 → 40 → 0 está escrito como test | `ScoringRunPersistenceTests.AScoreThatReturnsToAnEarlierValueKeepsTheCurrentEvaluationCorrect` |
+| Reusar en vez de duplicar cuando el corpus no cambió | `ScoringRunPersistenceTests.RepeatedRunOverTheSameCorpusAppendsNothingAndReferencesTheSameEvaluations` |
+| La identidad es el contenido, no la fila | `RiskEvaluationIdentityTests.FingerprintIdentifiesContentAndNotTheRow` |
+| La alerta conserva su snapshot y expone la divergencia | `AlertCreationTests.AnOpenAlertKeepsItsSnapshotAndExposesTheDivergenceAfterABackfill` |
+| Una escalada abre una alerta nueva enlazada | `AlertCreationTests.AnEscalationAfterABackfillOpensANewAlertLinkedToTheReviewedOne` |
+| El dashboard no cambia al invertir las etiquetas | `DashboardEndpointTests.TheDashboardIsIndependentOfGroundTruth` |
+| Reserva antes de llamar, una sola evaluación bajo concurrencia | `ExternalEvaluationConcurrencyTests.TwoConcurrentRequestsCallTheProviderOnceAndLeaveOneEvaluation` |
+| `TIMEOUT`, `PROVIDER_ERROR` e `INVALID_RESPONSE` dejan `PENDING`; `UNREACHABLE` y `PROVIDER_REJECTED` cierran | `ExternalEvaluationErrorCode.cs:7-12`; `ExternalProviderExchange.cs`, ramas `Apply` |
+| Un timeout lo resuelve la reconciliación en una sola fila | `ExternalEvaluationReconciliationTests.ATimeoutIsResolvedByReconciliationIntoASingleRow` |
+| Dos rutas de correlación de un callback | `IAntifraudProvider.GetStatusAsync` toma el lookup entero, no el identificador; `ExternalCallbackRaceTests.ACallbackThatArrivesBeforeTheIdentifierIsWrittenDownStillSettlesTheEvaluation` |
+| Un duplicado es la ausencia de una segunda fila | `ExternalCallbackEndpointTests.DeliveringTheSameCallbackTwiceIsARecordedReplay` |
+| Tres capas de grounding, en ese orden, y la forma primero | `ExplanationGrounding.cs:61-69` y el comentario de `:72-76` |
+| Tope de 1200 caracteres, igual al de la base | `ExplanationGrounding.cs:36-40` |
+| La verificación vive en el caso de uso, entre puerto y almacenamiento | `RequestExplanationHandler.cs:207-224`; el comentario `:16-17` describe el test de mutación |
+| El texto rechazado no se persiste; queda el código y el token, nunca la frase | `RequestExplanationHandler.cs:207-224`; `GroundingVerdict` en `ExplanationGrounding.cs:6-11` |
+| Un tokenizador único que corre sobre los dos lados | `NumberTokenizer.cs:24-33` |
+| Al modelo no entra texto que no escriba el motor | `ExplanationIsolationTests.NoTextTheEngineDidNotWriteReachesTheProvider` |
+| Invertir las etiquetas no cambia una palabra del texto | `ExplanationIsolationTests.InvertingEveryLabelChangesNoSummary` |
+| Una cifra inventada se rechaza y no queda nada escrito | `ExplanationGroundingTests.AnInventedFigureIsRefusedAndNoTextIsStored` |
+
+#### Cómo se verifica
+
+| Afirmación | Fuente |
+| --- | --- |
+| El orden exacto de los pasos de la compuerta | `scripts/check.sh`, tal como quedó en esta tarea |
+| El smoke cubre cinco rutas | `scripts/smoke-ui.sh`: `/`, `/import`, `/alerts`, `/alerts/${alert_id}` y `/dashboard` |
+| En seis escenarios | `smoke-ui.sh:279, 327, 376, 409, 466, 479` |
+| Puertos propios, bases temporales, no borra nada | `smoke-ui.sh:44-57, 74-86` |
+| Los tests no hacen red | `AGENTS.md`, regla de calidad; los dos proveedores son mock en proceso |
+| Ningún componente cliente recibe objetos de la API | `frontend/src/test/boundary.test.ts` |
+| El contrato capturado no derivó | `OpenApiDriftTests` |
+| El seed es idempotente y sin datos personales | `DemoSeedTests.SeedIsFullyIdempotentAndContainsOnlySyntheticPseudonymousData` |
+
+#### Límites declarados
+
+| Afirmación | Fuente |
+| --- | --- |
+| La advertencia de la fixture está escrita en la consola | `frontend/src/app/dashboard/quality-section.tsx:26-34`, constante `FIXTURE_CAVEAT` |
+| Solo tres de las seis reglas disparan sobre el corpus | corrida regenerada: `foreign_country` 34, `amount_anomaly` 18, `new_buyer_high_value` 5; las otras tres, cero |
+| `unusual_hour` exige una franja de 6 h con no más del 10 % en 30 días | `RuleConfig.cs:26-29` |
+| La banda 70–89 no aparece | corrida regenerada: `bySeverity` da `HIGH: 0` |
+| Los detalles de las señales están en inglés y el fingerprint los hashea | `RiskSignalSerializerTests.cs:68-71`; `SignalFacts.cs:18-27` |
+| `SignalFacts` ya convierte esos detalles en campos tipados | `backend/src/Salvo.Domain/Explanations/SignalFacts.cs` |
+| Sin autenticación, la aplicación es local | `AGENTS.md`, decisiones invariantes |
+
+#### Cómo correrlo
+
+| Afirmación | Fuente |
+| --- | --- |
+| .NET 10.0.400 | `global.json` |
+| Node 24.20.0 y npm 11.19.0 | `.nvmrc` y `frontend/package.json:6-9` |
+| `DemoData:Enabled` enciende el botón demo, los dos del proveedor y la calidad del criterio | `SystemEndpoints.cs:19-23`; `import/page.tsx:70` y `:113` |
+| 5 MiB por archivo | `OrderEndpoints.cs:10` |
+| 10.000 registros y hasta 1.000 errores con detalle | `ImportOrdersHandler.cs:13-14` |
+| Ninguna clave con prefijo `NEXT_PUBLIC_`; Next nunca lee el secreto | `.env.example`; `ExternalCallbackEndpoints.cs:15-17` |
+| Las rutas de datos son dinámicas y el build pasa con la API apagada | `force-dynamic` en las cuatro rutas de datos; el build de la compuerta corre sin API |
+| El dominio no referencia framework | `ArchitectureSmokeTests.DomainAssemblyCanBeLoadedWithoutFrameworkDependencies` |
+
+#### Los cuatro diagramas
+
+| Diagrama | Estado |
+| --- | --- |
+| El recorrido de un pedido | Sintaxis endurecida: rótulos de arista en la forma `-->|texto|`. **Falta confirmar el renderizado en la vista previa de GitHub** |
+| Las tres fuentes de verdad | `erDiagram` con rótulos de relación entrecomillados y atributos en la forma `tipo nombre "comentario"`. **Falta confirmar el renderizado** |
+| La máquina de estados externa | Reescrito: los rótulos de transición iban entrecomillados y con `<br/>`, y las comillas se dibujan. Ahora son texto plano con una nota. **Falta confirmar el renderizado** |
+| Cómo se verifica una explicación | `flowchart LR` con dos subgrafos con título entrecomillado. **Falta confirmar el renderizado** |
+
+Ninguno lleva cifras del corpus, como pide D2.
+
+### Inventario de cifras del corpus que viven fuera del README
+
+La regla del bloque marcado es ciega fuera del README. Esta es la lista con la que la Etapa 9
+empieza, para que no empiece con un `grep`. Está verificada archivo por archivo hoy, no copiada del
+borrador del hallazgo 7 de la revisión adversarial: **tres de sus referencias estaban corridas** y
+una de sus entradas resultó ser dos cosas distintas.
+
+| Dónde | Qué dice | Qué pasa en la Etapa 9 |
+| --- | --- | --- |
+| `frontend/src/app/import/page.tsx:66` | «Trescientos pedidos sintéticos con sus etiquetas de fraude» | Texto de pantalla: cambia con el corpus, y sale en la captura de `/import` de `E8B` |
+| `backend/src/Salvo.Infrastructure/External/MockAntifraudProvider.cs:21-23` | Sobre `demo-orders.v1.json`, las bandas producen 225 aprobadas, 45 denegadas, 21 pendientes y 9 en error | Comentario que declara el reparto sobre este corpus; las bandas en sí, 75/90/97, no dependen del corpus |
+| `backend/tests/Salvo.Api.IntegrationTests/ExternalEvaluationIsolationTests.cs:167-171` | Fija esos cuatro números como aserción | **Rompe** con un corpus nuevo. Es el primer test que va a fallar en la Etapa 9 |
+| `backend/tests/Salvo.Api.IntegrationTests/ExplanationGoldenTests.cs:30-58` | Los dos textos dorados: `ORD_000011` con score 90, 2.011,11 BRL y 23,2 veces la mediana; `ORD_000171` con score 60 y ratio 15,0 | **Rompen** si esos dos pedidos cambian. Son las dos ramas del formato decimal, así que hay que reelegir dos pedidos con la misma propiedad |
+| `backend/tests/Salvo.Domain.Tests/ExplanationFactsTests.cs:18-24` | Las tres señales de `ORD_000011`, score 90, en orden canónico | Datos de corpus embebidos en un test de dominio. Nota: el `56.0` de `:44` **no** es corpus, es un caso del tokenizador |
+| `frontend/src/app/dashboard/page.test.tsx:65, 186, 195, 213, 280` | «300 pedidos en la corrida» y variantes | Los montos por moneda de `:98` son inventados para el test; el que sí es del corpus es su suma |
+| `frontend/src/app/dashboard/page.test.tsx:98-101` y `scripts/smoke-ui.sh:318` | `3.942.246`, la suma de las tres monedas, que no puede aparecer en pantalla | **Es del corpus.** La corrida regenerada da 1.898.778 + 1.279.386 + 764.082 = 3.942.246 exacto, lo que además confirma las cifras del bloque marcado |
+| `DesignAgent/Salvo-Blueprint.md:129-130` | 300 pedidos, ventana de 120 días, 18 fraudes y 282 legítimos | Del coordinador |
+| `DesignAgent/Salvo-Blueprint.md:736`, decisión 19 | «fixture fija de 300 pedidos y 300 etiquetas» | Del coordinador. Una decisión de la bitácora no se reescribe: se agrega otra |
+| `Coordination/Workboard.md:82-90` | 18 alertas con `amount_anomaly` y `foreign_country`; la franja más rara en 13,8 % | Del coordinador. Es la nota que justifica la Etapa 9 |
+| `Coordination/Workboard.md:110` y `DesignAgent/Salvo-Progress.md:46, 146, 318` | 18 alertas, 13 `MEDIUM`, 5 `CRITICAL`, 300 evaluaciones | Del coordinador. Son evidencias fechadas de una etapa cerrada: describen lo que se verificó ese día y probablemente deban quedarse como están |
+
+Dos cosas que este inventario deja claras y que conviene decidir antes de empezar la Etapa 9. La
+primera es que **el corpus nuevo rompe tests, no solo textos**: los cuatro números del mock y los dos
+textos dorados son aserciones, y hay que decidir si el corpus se diseña para conservarlos o si se
+reescriben. La segunda es que **las evidencias históricas del Progress no son cifras a actualizar**:
+dicen qué se observó en una fecha, y corregirlas sería falsificar el registro.
+
+### Decisiones y supuestos
+
+- **El bloque marcado va dentro de «Límites declarados».** Es donde el lector ya está leyendo qué
+  tan lejos llegan estas cifras, y deja el resto del documento libre de números volátiles. Las
+  estructurales —seis reglas, sus pesos, umbral 60, tres bandas, 5 MiB, 10.000 registros— se quedan
+  en el cuerpo, como pide D2.
+- **Las cifras se regeneraron, no se copiaron.** Ninguna salió del Progress ni de `salvo.db`, que
+  tiene 328 pedidos y siete corridas. Se migró una base nueva en un directorio temporal, se cargó el
+  corpus, se corrió el scoring, se pidió la evaluación externa del corpus entero y se entregaron sus
+  callbacks, y se leyeron `/api/dashboard` y `/api/evaluation-metrics`. `salvo.db` no se tocó.
+- **`check-docs.sh` comprueba tres clases de token, no dos.** El brief pide rutas y nombres de test;
+  agregué los destinos de los enlaces Markdown relativos porque el mapa de documentación es
+  exactamente la parte de un README que se pudre sin que nadie la lea, y porque la tercera falsación
+  muestra que atrapa el enlace que `E8B` va a querer poner antes de tiempo.
+- **Una ruta es un token entre acentos graves con al menos una barra**, que no empiece con `/` —eso
+  es una ruta HTTP o de la consola—, que no sea una URL, que no lleve `=` y que no tenga espacios.
+  Con ese criterio `POST /api/demo-data/seed`, `/dashboard`, `http://localhost:3000/import` y
+  `Data Source=salvo.db` quedan fuera solos. El único falso positivo previsible sería un
+  identificador con barra que no es ruta, como un huso horario: el README no escribe ninguno, y si
+  alguno hiciera falta, va sin acentos graves.
+- **De `Clase.Metodo` se busca el método, no la clase.** Una clase que sigue existiendo con el
+  método renombrado es justamente la deriva que hay que cazar, y buscar la clase la dejaría pasar.
+- **`check-docs.sh` entró en `check.sh`, y primero.** No necesita dependencias instaladas ni ningún
+  proceso escuchando, y tarda 0,49 s. Para llegar ahí hubo que excluir `bin/` y `obj/` de la
+  búsqueda: con los artefactos de compilación adentro, veinte `grep` recursivos tardaban más de un
+  minuto, que es lo que separa un paso de compuerta de un paso que nadie quiere correr.
+- **El README no cita cantidades de tests.** La compuerta de esta entrega dio 94 + 149 tests .NET y
+  209 de frontend; ninguno de esos números está en el README, a propósito.
+- **El pitch dice «no es un proveedor», no «no es un motor».** Salvo sí tiene motor de reglas; lo que
+  no tiene es la posición de un proveedor. La v1 del diseño decía lo contrario y contradecía el §1
+  del Blueprint.
+- **Los diagramas se endurecieron antes de darlos por buenos.** Dos construcciones se cambiaron por
+  formas más conservadoras: los rótulos de arista entrecomillados pasaron a `-->|texto|`, y el
+  diagrama de estados tenía rótulos entrecomillados y con `<br/>`, que en `stateDiagram-v2` se
+  dibujan literalmente. No es lo mismo que verlos renderizados, y está en los pendientes.
+
+### Riesgos o pendientes
+
+- **Los cuatro diagramas no se vieron renderizados.** Es el único criterio de aceptación que no pude
+  ejecutar: no hay Mermaid en la máquina, instalarlo sería una dependencia nueva que el brief
+  prohíbe, y la vista previa de GitHub necesita ojos. Un error de sintaxis se renderiza como bloque
+  de código sin aviso, así que **hay que mirarlos antes de integrar**. La mitigación es la de arriba:
+  solo se usaron construcciones conservadoras, y las dos que más riesgo tenían se reescribieron.
+- **El §9 del Blueprint sigue sin nombrar `SALVO_CALLBACK_SHARED_SECRET`** y sigue listando
+  `KOIN_CALLBACK_SHARED_SECRET`, que no lee nada. La revisión adversarial lo marcó como «falso por
+  omisión» y el Blueprint está fuera del alcance de esta tarea. `Salvo-Portability.md` ahora
+  distingue las dos en una tabla, así que la contradicción entre los dos documentos es visible;
+  resolverla es del coordinador.
+- **La cabecera de `scripts/smoke-ui.sh` dice «las cuatro rutas»** cuando pide cinco, y dice «los
+  tres escenarios» cuando corre seis. Es el mismo error que el README tenía y del que probablemente
+  lo copió. El archivo no está en los paths autorizados; queda anotado.
+- **`Coordination/Workboard.md` reserva para `E8A` una lista de paths más corta que la del brief**:
+  no menciona `scripts/check.sh` ni `Coordination/Handoffs/Claude.md`. No hubo conflicto con nadie
+  porque `E8B` no toca ninguno de los dos, pero conviene alinearlos antes de despachar `E8B`.
+- **La Etapa 9 rompe tests, no solo textos.** Está en el inventario: los cuatro números del mock y
+  los dos textos dorados son aserciones sobre este corpus.
+
+### Integración
+
+- Orden sugerido: esta rama sola. No depende de nada y `E8B` depende de ella integrada.
+- Migraciones o pasos manuales: ninguno. No hay migración, ni cambio de contrato, ni recaptura de
+  OpenAPI, ni dependencia nueva.
+- Posibles conflictos: `scripts/check.sh` gana una línea al principio; cualquier otra tarea que lo
+  toque va a conflictuar ahí. `Coordination/Handoffs/Claude.md` crece al final, como siempre.
+- Verificación posterior al merge: `./scripts/check.sh` —que ahora incluye `check-docs.sh`— y
+  `./scripts/smoke-ui.sh` sobre el estado integrado. Y **mirar los cuatro diagramas en GitHub**,
+  que es lo único de esta entrega que ningún script cubre.
