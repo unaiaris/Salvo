@@ -363,6 +363,25 @@ describe("la guarda de la explicación mira el estado antes que el texto", () =>
     expect(unreadable).toBeNull();
   });
 
+  /**
+   * The flag the console decides with. A payload without it is a payload from an API that predates
+   * the field, and reading a missing boolean as `false` would say «the current template wrote this»
+   * about a row nobody compared — the exact claim that left a corrected wording unreachable.
+   */
+  it("proyecta si otra plantilla escribió el texto, y rechaza el payload que no lo dice", () => {
+    const projected = projectAlertDetail(
+      wireAlertDetail({
+        explanation: wireExplanation({ writtenByAnotherTemplate: true }),
+      }),
+    );
+
+    expect(projected?.explanation?.writtenByAnotherTemplate).toBe(true);
+
+    const withoutTheFlag: Record<string, unknown> = { ...wireExplanation() };
+    delete withoutTheFlag.writtenByAnotherTemplate;
+    expect(projectAlertDetail(wireAlertDetail({ explanation: withoutTheFlag }))).toBeNull();
+  });
+
   it("registra en la revisión qué explicación tenía delante", () => {
     const projected = projectAlertDetail(
       wireAlertDetail({

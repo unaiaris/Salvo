@@ -26,6 +26,18 @@ namespace Salvo.Application.Explanations;
 /// stored, exactly like the band divergence of an alert: an evaluation that becomes current again
 /// stops being outdated on its own, with nothing written.
 /// </param>
+/// <param name="WrittenByAnotherTemplate">
+/// Whether the template that wrote this text is the one this deployment writes with today.
+/// Computed on every read against the registered provider, and never stored, for the same reason
+/// <paramref name="IsOutdated"/> is not: the answer changes when the provider changes, and a stored
+/// copy would be a second opinion able to disagree with the one the console is about to act on.
+/// <para>
+/// It is inequality and not an ordering. Versions are opaque strings, so nothing here can tell a
+/// later template from an earlier one, and after a rollback the stored row is the newer of the two.
+/// The offer the console makes is the same either way — write this evaluation with the template
+/// that is current — which is what the field is read for.
+/// </para>
+/// </param>
 public sealed record AlertExplanationView(
     Guid Id,
     string Provider,
@@ -38,6 +50,7 @@ public sealed record AlertExplanationView(
     int AttemptCount,
     bool AttemptsExhausted,
     bool IsOutdated,
+    bool WrittenByAnotherTemplate,
     DateTimeOffset RequestedAt,
     DateTimeOffset? SettledAt);
 
@@ -49,7 +62,15 @@ public sealed record RequestExplanationResult(bool Applied, AlertExplanationView
 
 public static class ExplanationProjection
 {
-    public static AlertExplanationView ToView(AlertExplanation explanation, bool isOutdated)
+    /// <param name="currentTemplateVersion">
+    /// What the registered provider writes with today, handed in rather than read from a constant:
+    /// a copy of the version would keep answering for a provider that is no longer the one wired
+    /// up, and the whole point of the field is to follow whoever is.
+    /// </param>
+    public static AlertExplanationView ToView(
+        AlertExplanation explanation,
+        bool isOutdated,
+        string currentTemplateVersion)
     {
         ArgumentNullException.ThrowIfNull(explanation);
 
@@ -65,6 +86,7 @@ public static class ExplanationProjection
             explanation.AttemptCount,
             explanation.AttemptsExhausted,
             isOutdated,
+            !string.Equals(explanation.TemplateVersion, currentTemplateVersion, StringComparison.Ordinal),
             explanation.RequestedAt,
             explanation.SettledAt);
     }

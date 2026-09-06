@@ -1,4 +1,15 @@
 /**
+ * Which question the button asks, or that there is none to ask.
+ *
+ * A string rather than a pair of flags, because the three questions are not combinations of one
+ * another: `first` has no row at all, `retry` reuses the row that failed, and `currentTemplate`
+ * writes beside a row a previous template wrote. Only `retry` is a regeneration — the API is asked
+ * to replace something — and the action is what turns this into that flag, so no caller can send a
+ * regeneration by describing the situation wrongly.
+ */
+export type ExplanationAsk = "none" | "first" | "retry" | "currentTemplate";
+
+/**
  * The result of asking for an explanation, flattened to primitives.
  *
  * `useActionState` hands this to a client component, so every field is serialised into the RSC

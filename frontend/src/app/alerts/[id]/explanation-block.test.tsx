@@ -83,12 +83,14 @@ describe("bloque de explicación", () => {
     ).toBeInTheDocument();
   });
 
-  it("muestra el resumen escrito y declara que lo compone una plantilla, no un modelo", async () => {
+  it("muestra el resumen escrito y declara qué plantilla lo compuso, no un modelo", async () => {
     await renderDetail({ explanation: wireExplanation() });
 
     const written = block();
     expect(written).toHaveTextContent("El pedido obtuvo 100 puntos sobre un umbral de 60.");
-    expect(written).toHaveTextContent(/Redactada por una plantilla determinista, no por un modelo/i);
+    expect(written).toHaveTextContent(
+      /Redactada por una plantilla determinista \(e7-v1\), no por un modelo/i,
+    );
     expect(written).toHaveTextContent(/Reglas citadas: Monto atípico/);
   });
 
@@ -96,6 +98,70 @@ describe("bloque de explicación", () => {
     await renderDetail({ explanation: wireExplanation() });
 
     expect(within(block()).queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  /**
+   * The case E7C left open: the template that wrote the paragraph is no longer the one this
+   * deployment writes with, so the row the current template would own does not exist and asking for
+   * it replaces nothing. Without the offer, a wording fix never reaches an evaluation somebody
+   * already explained — the API is never asked, because nothing on the page can ask it.
+   */
+  it("ofrece redactar con la plantilla vigente cuando otra plantilla escribió el texto", async () => {
+    await renderDetail({
+      explanation: wireExplanation({ templateVersion: "e7-v1", writtenByAnotherTemplate: true }),
+    });
+
+    const older = block();
+    expect(
+      within(older).getByRole("button", { name: /Redactar con la plantilla vigente/i }),
+    ).toBeInTheDocument();
+
+    // The offer, and nothing else: a change of wording does not invalidate what the paragraph says,
+    // and a badge or a notice would read as an alarm over a cosmetic fix.
+    expect(within(older).queryByRole("note")).not.toBeInTheDocument();
+    expect(older.textContent).not.toMatch(/desactualizad/i);
+
+    // The paragraph stays on screen, and the small print says which template wrote it.
+    expect(older).toHaveTextContent("El pedido obtuvo 100 puntos sobre un umbral de 60.");
+    expect(older).toHaveTextContent(/plantilla determinista \(e7-v1\)/i);
+
+    // Not a retry: nothing failed, and telling a reader to try again sends them looking for an
+    // error that is not there.
+    expect(
+      within(older).queryByRole("button", { name: /Volver a intentar/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  /**
+   * The other half of the same claim. Over a row the current template wrote there is nothing to
+   * offer, and the API would refuse anyway.
+   */
+  it("no ofrece nada sobre una explicación escrita por la plantilla vigente", async () => {
+    await renderDetail({
+      explanation: wireExplanation({ writtenByAnotherTemplate: false }),
+    });
+
+    expect(within(block()).queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  /**
+   * A failed row from a previous template is offered the current template rather than a retry: the
+   * request will not touch that row at all, so its spent or unspent attempts describe something
+   * else.
+   */
+  it("sobre un fallo de otra plantilla ofrece la vigente, no un reintento", async () => {
+    await renderDetail({
+      explanation: failedExplanation({
+        attemptsExhausted: true,
+        failureCode: "ATTEMPT_LIMIT_REACHED",
+        attemptCount: 3,
+        writtenByAnotherTemplate: true,
+      }),
+    });
+
+    expect(
+      within(block()).getByRole("button", { name: /Redactar con la plantilla vigente/i }),
+    ).toBeInTheDocument();
   });
 
   /**

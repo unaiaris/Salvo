@@ -13,11 +13,13 @@
 #   1.  Con datos             — corpus demo cargado y puntuado.
 #   1b. Evaluación externa    — el mismo corpus, con la opinión del proveedor pedida y entregada.
 #   1c. Con explicación       — el mismo corpus, con la evaluación del snapshot puesta en palabras.
+#   1d. Plantilla anterior    — una explicación que escribió una plantilla que ya no es la vigente.
 #   2.  Base vacía            — la misma API contra una base migrada y sin un solo pedido.
 #   3.  API apagada           — el proceso de la API muerto, la consola en pie.
 #
 # El 1b y el 1c van después del 1 y no antes: el bloque externo y el de explicación tienen dos
 # estados en pantalla cada uno —sin pedir y respondido— y comprobar el segundo destruye el primero.
+# El 1d va sobre una alerta distinta por la misma razón: el 1c dejó la suya escrita con la vigente.
 #
 # Reglas que este script se impone:
 #
@@ -391,6 +393,73 @@ expect_text "/alerts/${alert_id}" "Reglas citadas"
 expect_no_text "/alerts/${alert_id}" "Explicar esta evaluación"
 # D10: el formulario de revisión lleva el id de la explicación que está en pantalla.
 expect_text "/alerts/${alert_id}" "value=\"${explanation_id}\""
+
+# ------------------------------------------------------- 1d. explicación de otra plantilla
+#
+# Lo que la Etapa 7 dejó abierto y `E7D` cierra. Subir la versión de la plantilla es lo único que
+# hace que un arreglo de redacción alcance a una evaluación ya explicada —la API no reescribe un
+# texto escrito—, pero eso solo sirve si la consola ofrece pedirlo. Antes de `E7D` no lo ofrecía: la
+# lectura devolvía la fila vieja, el bloque la veía escrita, y no había botón que pudiera pedir nada.
+#
+# Va sobre una alerta distinta de la del 1c, que ya tiene su explicación de la plantilla vigente. La
+# fila se inserta en la base porque la plantilla anterior ya no existe: ningún proveedor de esta
+# instalación puede volver a escribir `e7-v1`. Se escribe con `node:sqlite`, que viene con el Node
+# que este repositorio fija, y sobre la base temporal del escenario — nunca sobre `salvo.db`.
+
+scenario "explicación de otra plantilla"
+
+older_alert_id="$(
+  curl -sS --max-time 30 "${api_base}/api/alerts?status=OPEN&pageSize=2" \
+    | node -e 'let raw="";process.stdin.on("data",c=>raw+=c).on("end",()=>{const second=JSON.parse(raw).items[1];process.stdout.write(second ? second.id : "");})'
+)"
+[[ -n "$older_alert_id" ]] || fail "hace falta una segunda alerta abierta para el escenario de plantilla anterior."
+echo "Segunda alerta: ${older_alert_id}"
+
+older_wording="El pedido obtuvo 100 puntos sobre un umbral de 60. Coincidieron 4 reglas."
+
+curl -sS --max-time 30 "${api_base}/api/alerts/${older_alert_id}" \
+  | SMOKE_DB="$db_with_data" SMOKE_ALERT="$older_alert_id" SMOKE_WORDING="$older_wording" node -e '
+      let raw = "";
+      process.stdin.on("data", (chunk) => (raw += chunk)).on("end", () => {
+        const detail = JSON.parse(raw);
+        const { DatabaseSync } = require("node:sqlite");
+        const db = new DatabaseSync(process.env.SMOKE_DB);
+        // Cada valor va ligado: en SQLite las comillas dobles son un identificador, no un texto.
+        db.prepare(`
+          INSERT INTO alert_explanations (
+            id, risk_evaluation_id, provider, template_version, alert_policy_version,
+            requested_from_alert_id, status, summary, referenced_rules_json, attempt_count,
+            requested_at_utc, settled_at_utc, row_version)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, 1)
+        `).run(
+          crypto.randomUUID(),
+          detail.snapshot.evaluationId,
+          "MOCK",
+          "e7-v1",
+          detail.alertPolicyVersion,
+          process.env.SMOKE_ALERT,
+          "READY",
+          process.env.SMOKE_WORDING,
+          JSON.stringify(detail.snapshot.signals.map((signal) => signal.rule)),
+          "2026-09-05T00:00:00.000Z",
+          "2026-09-05T00:00:01.000Z",
+        );
+        db.close();
+      });
+    ' || fail "no se pudo escribir la explicación de la plantilla anterior."
+
+# El texto viejo sigue en pantalla: es el registro de lo que se pudo leer al decidir.
+expect_text "/alerts/${older_alert_id}" "Coincidieron 4 reglas"
+# Y la letra chica dice con qué plantilla se escribió, que es lo que vuelve legible la oferta.
+expect_text "/alerts/${older_alert_id}" "plantilla determinista (e7-v1)"
+# La oferta: redactar con la vigente, que escribe al lado y no reemplaza nada.
+expect_text "/alerts/${older_alert_id}" "Redactar con la plantilla vigente"
+# Sin alarma. Un cambio de redacción no invalida lo que el párrafo dice del pedido.
+expect_no_text "/alerts/${older_alert_id}" "desactualizada"
+# Y sin confundirlo con un fallo: no hay nada que reintentar.
+expect_no_text "/alerts/${older_alert_id}" "Volver a intentar la explicación"
+# La alerta del 1c, escrita por la plantilla vigente, no ofrece nada.
+expect_no_text "/alerts/${alert_id}" "Redactar con la plantilla vigente"
 
 # ---------------------------------------------------------------------------- 2. base vacía
 

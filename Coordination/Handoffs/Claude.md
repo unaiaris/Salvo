@@ -2133,3 +2133,137 @@ comprobaciones fija una de las tres cadenas que cambiaron.
   que es el que ejercita la razón sin decimal. Sobre `salvo.db`, la alerta que ya tenía explicación
   sigue mostrando el párrafo viejo y no ofrece botón; el texto corregido se trae con un `POST` a
   `/api/alerts/{id}/explanation`.
+
+## `E7D-PLANTILLA-VIGENTE` — La consola puede pedir la plantilla vigente
+
+### Identificación
+
+- Estado de la rama: `Lista para integrar`
+- Etapa: 7
+- Rama/worktree: `claude/e7d-plantilla-vigente`
+- Commit base: `2a7cff3` (`docs: register E7D on the board and refresh the master status`), que es el
+  `HEAD` de `main`. El brief declara `459be2c`; los dos commits intermedios son del coordinador —el
+  brief y el alta en el tablero— y no tocan código, así que la base de código es la misma.
+- Commit final: `bbba7bf`
+- Fecha: 2026-09-06
+
+### Resultado
+
+Cuando la explicación que la consola muestra la escribió una plantilla anterior a la vigente, la
+analista ve un botón discreto —«Redactar con la plantilla vigente»— y el texto nuevo se escribe al
+lado del anterior. La fila vieja no se toca. El aviso posterior dice qué pasó; no hay insignia ni
+cartel de «desactualizada» en ninguna parte.
+
+La costura que se corrige: `EfExplanationStore.FindAsync` busca por la identidad completa,
+`templateVersion` incluida, mientras que `EfAlertStore.GetExplanationsAsync` agrupa por evaluación
+sin mirar la versión. Con la plantilla en `e7-v2` la escritura no encontraba fila y la lectura
+devolvía la de `e7-v1`; el bloque veía una explicación escrita, no ofrecía nada, y el arreglo de
+redacción de `E7C` no llegaba a ninguna evaluación ya explicada. La última línea del handoff de
+`E7C` describe exactamente ese estado.
+
+`AlertExplanationView` gana `writtenByAnotherTemplate`, calculado al leer contra la versión que el
+proveedor registrado declara y guardado en ninguna parte: la forma de `isOutdated` y de la
+divergencia de banda.
+
+### Archivos modificados
+
+- `backend/src/Salvo.Application/Explanations/ExplanationViews.cs`
+- `backend/src/Salvo.Application/Explanations/RequestExplanationHandler.cs`
+- `backend/src/Salvo.Application/Alerts/AlertProjection.cs`
+- `backend/src/Salvo.Application/Alerts/GetAlertHandler.cs`
+- `backend/src/Salvo.Application/Alerts/ReviewAlertHandler.cs`
+- `backend/tests/Salvo.Api.IntegrationTests/AlertSchemaTests.cs`
+- `backend/tests/Salvo.Api.IntegrationTests/ExplanationTemplateVersionTests.cs`
+- `frontend/openapi/salvo-openapi.json` y `frontend/src/lib/api/schema.d.ts` (recapturados)
+- `frontend/src/lib/api/guards.ts` y `guards.test.ts`
+- `frontend/src/test/fixtures.ts`
+- `frontend/src/app/alerts/[id]/explanation-block.tsx` y `explanation-block.test.tsx`
+- `frontend/src/app/alerts/[id]/explanation-actions.tsx`
+- `frontend/src/app/alerts/[id]/explanation-action.ts` y `explanation-action.test.tsx`
+- `frontend/src/app/alerts/[id]/explanation-state.ts`
+- `scripts/smoke-ui.sh`
+
+Sin migraciones: no hay columna nueva. `salvo.db` no se tocó.
+
+### Verificación
+
+| Comando | Resultado |
+| --- | --- |
+| `./scripts/check.sh` | Verde. 94 tests de dominio + 149 de integración, 209 de frontend, ESLint sin advertencias, build Release y build Next.js |
+| `./scripts/smoke-ui.sh` | Verde: 43 comprobaciones, 0 fallas (eran 37) |
+| `dotnet ef migrations has-pending-model-changes` | «No changes have been made to the model since the last migration» |
+| `npm run api:types:check --prefix frontend` | Al día tras recapturar el contrato |
+| `git status --porcelain` | Limpio; todo lo tocado está en los paths autorizados |
+
+Falsaciones, cada una sobre el test que debía atraparla:
+
+| Mutación | Test que cae |
+| --- | --- |
+| La proyección compara contra `"e7-v2"` copiado en vez del parámetro | `TheComparisonFollowsTheRegisteredProviderAndNotAConstant` |
+| `GetExplanationsAsync` ordena ascendente y se queda con la fila vieja | `ANewTemplateVersionWritesBesideTheOldRowAndTheConsoleReadsTheNewOne` |
+| Se agrega `template_version` a los nombres que el test de esquema prohíbe | `WhetherTheCurrentTemplateWroteTheTextIsComputedAndNeverStored` |
+| `askOf` deja de mirar la versión | Los dos tests nuevos del bloque |
+| `askOf` invierte la condición | Cuatro tests más del bloque: el botón aparece sobre la plantilla vigente |
+| La pregunta de la plantilla vigente viaja como `regenerate: true` | «solo el reintento viaja como regeneración» |
+| El aviso posterior usa una oración de la leyenda | «no repite ninguna oración de la leyenda del bloque: currentTemplate» |
+
+El smoke se falsó solo: la primera corrida del escenario nuevo falló en «plantilla determinista
+(e7-v1)» sobre una página cuyo DOM decía lo correcto. Expresiones JSX adyacentes son nodos de texto
+separados en el HTML del servidor, y el smoke lee ese HTML, no un DOM. La letra chica pasó a ser una
+sola interpolación.
+
+### Evidencia sobre la base
+
+Sobre una **copia** de `backend/src/Salvo.Api/salvo.db` —la base del usuario quedó intacta y se
+verificó después— con la API apuntando a la copia:
+
+| Momento | Filas de `alert_explanations` |
+| --- | --- |
+| Antes | `35167dc3` · `e7-v1` · `READY` · 1 intento · `2026-09-06T15:26:57.592Z` · «Coincidieron 4 reglas» |
+| Lectura antes | `templateVersion: e7-v1`, `writtenByAnotherTemplate: true` |
+| `POST` con `regenerate: false` | `applied: true`, fila `41509015` · `e7-v2` · `READY`, `writtenByAnotherTemplate: false` |
+| `POST` con `regenerate: true` sobre la vigente | `409`, la negativa de siempre |
+| Después | Las dos filas. La vieja idéntica: mismo `id`, `status`, `attempt_count`, `row_version` 2 e instantes; su texto sigue diciendo «Coincidieron». La nueva dice «Se dispararon» |
+
+### Decisiones y supuestos
+
+- **El campo se llama `writtenByAnotherTemplate`, no `writtenByAnOlderTemplate`.** Es una
+  desigualdad, no un orden: las versiones son cadenas opacas y tras un rollback la fila guardada es
+  la más nueva de las dos. La oferta de la consola es la misma en ambos casos.
+- **La versión vigente entra por el puerto `IExplanationProvider`.** `GetAlertHandler` y
+  `ReviewAlertHandler` lo reciben por esa única cadena. Application ya conocía el puerto, así que no
+  hizo falta una abstracción nueva y la comparación sigue al proveedor registrado por construcción.
+- **El botón manda `regenerate: false`,** como pide el brief, y la traducción vive en la acción de
+  servidor: el formulario manda un `ask` que nombra la situación, no la petición. Un `ask` que la
+  acción no conoce se lee como la pregunta más inocente, nunca como la que reemplaza un párrafo.
+- **La tabla de estado × `regenerate` no cambió de sentido.** Cruzando un cambio de versión no hay
+  fila que reemplazar, así que el `POST` cae en la rama de «no existe» y reserva una nueva; ninguna
+  de sus filas describe ese caso mal.
+- **El smoke escribe la fila anterior con `node:sqlite`**, que viene con el Node que el repositorio
+  fija, en vez de depender del binario `sqlite3`. Va sobre la base temporal del escenario y sobre
+  una segunda alerta, para no destruir el estado que verifica el escenario `1c`.
+- Un fallo de otra plantilla recibe la oferta de la vigente y no un reintento, incluso con los
+  intentos agotados: el pedido no toca esa fila, así que su presupuesto describe otra cosa.
+
+### Riesgos o pendientes
+
+- Nadie regenera en masa al subir la versión, por diseño: cada explicación vieja se corrige cuando
+  alguien la mira. En `salvo.db` hay **una sola** fila `e7-v1`; el texto corregido se trae abriendo
+  esa alerta y pulsando el botón.
+- La consola no nombra la versión vigente, solo la que escribió el texto. El rótulo del botón dice
+  lo demás. Si alguna vez hace falta contrastar las dos, el contrato tendría que exponerla.
+- La pantalla no distingue un `PENDING` de otra plantilla: ofrece la vigente igual, lo que es
+  correcto pero convive con la leyenda «Redactando la explicación…». No se puede producir con esta
+  instalación y no se cubrió con un test.
+
+### Integración
+
+- Orden sugerido: rama única, sin dependencias. Etapa 7 ya integrada; esto cierra su costura.
+- Migraciones o pasos manuales: **ninguno**. El contrato ya viene recapturado; `E7D` reservó
+  `salvo-openapi.json` y `schema.d.ts`.
+- Posibles conflictos: `explanation-block.tsx`, `explanation-actions.tsx`, `explanation-action.ts`,
+  `guards.ts` y `scripts/smoke-ui.sh` si algo más los tocó en `main` desde `2a7cff3`.
+- Verificación posterior al merge: `./scripts/check.sh` y `./scripts/smoke-ui.sh` sobre `main`, y
+  abrir en la consola la alerta de `salvo.db` que ya tiene explicación: debe mostrar el párrafo
+  viejo con «(e7-v1)» en la letra chica y ofrecer el botón. Pulsarlo deja dos filas y el texto con
+  «Se dispararon».

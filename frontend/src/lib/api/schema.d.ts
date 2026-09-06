@@ -364,6 +364,7 @@ export interface components {
             attemptCount: number | string;
             attemptsExhausted: boolean;
             isOutdated: boolean;
+            writtenByAnotherTemplate: boolean;
             /** Format: date-time */
             requestedAt: string;
             /** Format: date-time */

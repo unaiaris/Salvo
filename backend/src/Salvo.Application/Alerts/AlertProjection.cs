@@ -43,7 +43,12 @@ public static class AlertProjection
             alert.ReviewedAt);
     }
 
-    public static AlertDetail ToDetail(AlertContext context)
+    /// <param name="currentTemplateVersion">
+    /// The template the registered explanation provider writes with today, so that a text written
+    /// by a different one is read as such. It reaches the projection from the handler because
+    /// Application knows the port and not the adapter behind it.
+    /// </param>
+    public static AlertDetail ToDetail(AlertContext context, string currentTemplateVersion)
     {
         ArgumentNullException.ThrowIfNull(context);
 
@@ -68,8 +73,8 @@ public static class AlertProjection
             context.CurrentRun,
             ToDivergence(alert, context.CurrentEvaluation),
             ToExternalView(context.ExternalEvaluation, context.HasContradictoryCallback),
-            ToExplanationView(context.Explanation, IsOutdated(context)),
-            ToExplanationView(context.CurrentExplanation, isOutdated: false),
+            ToExplanationView(context.Explanation, IsOutdated(context), currentTemplateVersion),
+            ToExplanationView(context.CurrentExplanation, false, currentTemplateVersion),
             ToReviewView(context.Review));
     }
 
@@ -91,9 +96,12 @@ public static class AlertProjection
 
     private static AlertExplanationView? ToExplanationView(
         AlertExplanation? explanation,
-        bool isOutdated)
+        bool isOutdated,
+        string currentTemplateVersion)
     {
-        return explanation is null ? null : ExplanationProjection.ToView(explanation, isOutdated);
+        return explanation is null
+            ? null
+            : ExplanationProjection.ToView(explanation, isOutdated, currentTemplateVersion);
     }
 
     /// <summary>

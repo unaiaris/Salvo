@@ -6,6 +6,7 @@ import {
   ruleLabel,
 } from "@/lib/format";
 import { ExplanationActions } from "./explanation-actions";
+import type { ExplanationAsk } from "./explanation-state";
 
 /**
  * The evaluation of the snapshot, put into words.
@@ -113,12 +114,18 @@ function ReadySummary({ explanation }: { readonly explanation: AlertExplanation 
       </p>
       <p className="text-xs leading-5 text-slate-600">
         {/*
-          Who wrote it, said plainly. In this build it is a template with no network and no model,
-          and an analyst reading a paragraph about her order is entitled to know that before she
-          decides how much weight to give it.
+          Who wrote it and with which template, said plainly. In this build it is a template with no
+          network and no model, and an analyst reading a paragraph about her order is entitled to
+          know that before she decides how much weight to give it. The version belongs in the same
+          sentence rather than in a badge: it explains the button below, and on its own it would be
+          an alarm about a change of wording.
+
+          One expression rather than three, because adjacent expressions are separate text nodes in
+          the server-rendered HTML and the smoke reads that HTML, not the text content of a DOM.
         */}
-        Redactada por una {explanationProviderLabel(explanation.provider)}, no por un modelo
-        {explanation.settledAt === null ? "" : `, el ${formatInstant(explanation.settledAt)}`}.
+        {`Redactada por una ${explanationProviderLabel(explanation.provider)} (${explanation.templateVersion}), no por un modelo${
+          explanation.settledAt === null ? "" : `, el ${formatInstant(explanation.settledAt)}`
+        }.`}{" "}
         Cada cifra y cada regla del texto se verificaron contra esta evaluación antes de guardarlo:
         un texto que no pasa esa comprobación no se guarda ni se muestra.
       </p>
@@ -153,11 +160,17 @@ function Failure({ explanation }: { readonly explanation: AlertExplanation }) {
 }
 
 /**
- * Which of the two questions the button asks, or none at all.
+ * Which of the three questions the button asks, or none at all.
  *
- * Asking again is only ever offered over a failure with attempts left, because that is the only case
- * the API accepts: over a written explanation it refuses — replacing a paragraph somebody may have
- * formed a verdict on is not regenerating it — and over a spent budget it refuses too.
+ * Over an explanation written by the template this deployment writes with, there is nothing to ask:
+ * the API refuses to replace a paragraph somebody may have formed a verdict on, and it refuses a
+ * spent budget too. The two cases that remain are a row that failed with attempts left, and a row a
+ * previous template wrote — which is not a replacement at all. The row the current template would
+ * own does not exist, so asking creates it beside the old one, and the old one stays exactly as it
+ * was.
+ *
+ * The order of the checks is the point. A row from another template is offered the current template
+ * whatever its status, because its status describes a row the request will not touch.
  */
 function Actions({
   explanation,
@@ -166,16 +179,19 @@ function Actions({
   readonly explanation: AlertExplanation | null;
   readonly alertId: string;
 }) {
-  const failedWithAttemptsLeft =
-    explanation !== null &&
-    explanation.status === EXPLANATION_STATUS.failed &&
-    !explanation.attemptsExhausted;
+  return <ExplanationActions alertId={alertId} ask={askOf(explanation)} />;
+}
 
-  return (
-    <ExplanationActions
-      alertId={alertId}
-      regenerate={failedWithAttemptsLeft}
-      canAsk={explanation === null || failedWithAttemptsLeft}
-    />
-  );
+function askOf(explanation: AlertExplanation | null): ExplanationAsk {
+  if (explanation === null) {
+    return "first";
+  }
+
+  if (explanation.writtenByAnotherTemplate) {
+    return "currentTemplate";
+  }
+
+  return explanation.status === EXPLANATION_STATUS.failed && !explanation.attemptsExhausted
+    ? "retry"
+    : "none";
 }
