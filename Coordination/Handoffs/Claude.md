@@ -2007,7 +2007,7 @@ hubiera botón o no: una alerta ya explicada seguía llevando «Explicar esta ev
 - Commit base: `0e3faf1`, el declarado en el brief. El padre real de mi único commit es `0d05d0d`:
   entre uno y otro están `d0e1f78` y `0d05d0d`, los dos commits del brief que escribió el
   coordinador y que también están en `main`. La diferencia es esa y solo esa.
-- Commit final: `9b5cb4e`
+- Commit final: `4403666`
 - Fecha: 2026-09-06
 
 ### Resultado
@@ -2015,8 +2015,15 @@ hubiera botón o no: una alerta ya explicada seguía llevando «Explicar esta ev
 El bloque de explicación se lee sin repeticiones y sin asperezas. El aviso posterior a generar dice
 qué quedó guardado en vez de repetir la leyenda que está dos líneas más arriba; la plantilla no
 escribe un decimal que vale cero; y las reglas se disparan en vez de coincidir. No cambió el motor,
-ni el conjunto de hechos, ni el tokenizador, ni la validación de grounding, ni el ciclo de vida, ni
-el contrato, ni el esquema.
+ni el conjunto de hechos, ni la validación de grounding, ni el ciclo de vida, ni el contrato, ni el
+esquema.
+
+La versión de plantilla subió a `e7-v2`, que es lo que hace que el arreglo alcance a una evaluación
+ya explicada: la versión es parte de la identidad de la fila, así que la plantilla nueva escribe al
+lado de la vieja en vez de no escribir nada. La ampliación la autorizó el coordinador después de la
+primera entrega, junto con el único cambio que arrastra fuera del proveedor: `e7-v2` entró a
+`NumberTokenizer.VersionStrings`. Es precaución, no requisito —la versión no aparece en el resumen,
+el proveedor solo la guarda como columna—, y el test nuevo lo afirma en vez de dejarlo al comentario.
 
 El texto del mismo pedido, antes y después:
 
@@ -2034,7 +2041,9 @@ El texto del mismo pedido, antes y después:
 ### Archivos modificados
 
 - `backend/src/Salvo.Infrastructure/Explanations/DeterministicExplanationProvider.cs`
+- `backend/src/Salvo.Domain/Explanations/NumberTokenizer.cs`
 - `backend/tests/Salvo.Api.IntegrationTests/ExplanationGoldenTests.cs`
+- `backend/tests/Salvo.Api.IntegrationTests/ExplanationTemplateVersionTests.cs` (nuevo)
 - `frontend/src/app/alerts/[id]/explanation-action.ts`
 - `frontend/src/app/alerts/[id]/explanation-action.test.tsx` (nuevo)
 
@@ -2048,10 +2057,13 @@ comprobaciones fija una de las tres cadenas que cambiaron.
 | `dotnet test --filter ExplanationGoldenTests` | 2 correctas, 0 fallas |
 | Falsación 1: `Ratio` vuelve a formatear siempre con un decimal | Falla el caso `ORD_000171` («es 15,0 veces» contra «es 15 veces»); el de `ORD_000011` queda verde, que es lo que prueba que las dos ramas son independientes |
 | Falsación 2: vuelve «Coincidieron» | Fallan los dos casos dorados |
+| `dotnet test --filter ExplanationTemplateVersionTests` | 1 correcta |
+| Falsación 4: la versión se deja en `e7-v1` | Falla en `Assert.True(written.Applied)`: la petición se vuelve un no-op y el párrafo viejo sobrevive, que es el defecto dicho como falla |
+| La versión no llega al texto | `Assert.DoesNotContain("e7-v", summary)` sobre el resumen escrito por el proveedor, verde. Los dos textos dorados, que fijan el párrafo entero, tampoco la contienen |
 | `npx vitest run explanation-action.test.tsx` | 4 correctas |
 | Falsación 3: se copia la oración de la leyenda al aviso | El test la rechaza y la nombra: «cada cifra y cada regla del texto se verificaron contra esta evaluación antes de guardarlo» |
-| `./scripts/check.sh` | Verde, salida `0`: restore bloqueado, build Release con 0 advertencias y 0 errores, modelo EF sin cambios, 94 tests de dominio + 146 de integración, typecheck, ESLint y 201 tests de frontend, build Next.js 16.3.3 |
-| `./scripts/smoke-ui.sh` | Verde: **37 comprobaciones, 0 fallas** |
+| `./scripts/check.sh` | Verde, salida `0`: restore bloqueado, build Release con 0 advertencias y 0 errores, modelo EF sin cambios, 94 tests de dominio + 147 de integración, typecheck, ESLint y 201 tests de frontend, build Next.js 16.3.3. Ejecutada dos veces: antes y después de subir la versión |
+| `./scripts/smoke-ui.sh` | Verde las dos veces: **37 comprobaciones, 0 fallas** |
 | Cifras en letras | Ninguna. Se buscaron palabras-número (`uno`…`mil`, `cien`, `media`) sobre las dos cadenas doradas: los dos aciertos son falsos positivos, «media» de «la severidad resultante es media» y «once» dentro de un comentario en inglés. Los literales de la plantilla no contienen ninguna. La rama singular escribe «Se disparó **1** regla», con dígito |
 | `git status --porcelain` | Solo los cuatro paths autorizados |
 
@@ -2074,19 +2086,33 @@ comprobaciones fija una de las tres cadenas que cambiaron.
   es lo que dice el criterio.
 - **`explanation-action.ts` no tenía tests** y ahora los tiene: los dos avisos de éxito, el
   `applied=false` y la fila sin texto utilizable, además del de no repetición.
+- **La versión de plantilla se sube en vez de reescribir la fila.** Escribir encima habría borrado
+  el párrafo que una analista pudo haber leído al formar su veredicto, que es exactamente lo que la
+  API se niega a hacer cuando rechaza regenerar una explicación `READY`. Subir la versión conserva
+  esa fila y agrega otra; `EfAlertStore.GetExplanationsAsync` se queda con la petición más reciente,
+  así que la consola lee la nueva sin que haya que tocar el camino de lectura.
+- **El test de convivencia inserta la fila vieja por SQL**, porque la plantilla que la escribió ya
+  no existe. Es el mismo recurso que usa `AlertSchemaTests` y la única forma de reproducir el estado
+  que este cambio arregla.
 
 ### Riesgos o pendientes
 
-- **La versión de plantilla sigue en `e7-v1`, y eso deja atrás el texto ya escrito.** La versión es
-  parte de la identidad de cada fila —índice único sobre evaluación, proveedor, versión de plantilla
-  y versión de política— y `EfExplanationStore.FindAsync` reutiliza la fila que coincide. Una
-  evaluación ya explicada conserva entonces su párrafo viejo para siempre: la API se niega a
-  regenerar una explicación `READY`. En `backend/src/Salvo.Api/salvo.db` hay exactamente **una** fila
-  así, de la prueba manual de `E7B`. No la subí a `e7-v2` porque hacerlo obliga a agregar esa cadena
-  a `NumberTokenizer.VersionStrings`, y el brief pone al tokenizador tanto en «Fuera» como en
-  «Detenerse y consultar si». El camino de lectura ya soporta la convivencia de dos versiones —
-  `EfAlertStore.GetExplanationsAsync` se queda con la petición más reciente—, así que el cambio es
-  chico; es la decisión la que no me corresponde. **Queda para el coordinador.**
+- **La API ya acepta el pedido, pero la consola no lo ofrece, y eso deja la única fila `e7-v1` de
+  `backend/src/Salvo.Api/salvo.db` con su párrafo viejo en pantalla.** El cambio de versión no
+  reescribe nada por su cuenta: hace que pedir la explicación otra vez sea aceptado, que antes no lo
+  era. Pero el botón aparece solo cuando no hay explicación o cuando la que hay falló con intentos
+  disponibles —`explanation-block.tsx:178`—, y sobre una `READY` no hay botón. Sobre esa base el
+  texto corregido se obtiene con un `POST` directo a `/api/alerts/{id}/explanation`, que es lo que
+  hace el smoke. En una base recién sembrada no hay nada que hacer.
+- **Ese desajuste contradice una regla que `E7B` dejó escrita**: «el botón sigue lo que la API
+  acepta, no lo que la pantalla podría ofrecer». Con `e7-v2` la API acepta un caso que la pantalla
+  no ofrece. Alinearlas es una decisión de producto —el botón pasaría a aparecer sobre una
+  explicación escrita cuya versión de plantilla ya no es la vigente— y está fuera del alcance de
+  este brief. **Queda para el coordinador.**
+- **Nada obliga a subir la versión cuando el texto cambia.** El test nuevo afirma que subirla
+  funciona, no que se haya subido: un cambio futuro de la plantilla que se olvide de la constante
+  vuelve a dejar atrás lo ya escrito, con la compuerta en verde. El comentario de la constante lo
+  dice; una comprobación automática exigiría fijar el texto contra la versión, y no la escribí.
 - **`DesignAgent/Salvo-Portability.md:72` sigue con `ANTHROPIC_MODEL="claude-sonnet-5"`**, pendiente
   heredado de `E7A` y `E7B` y fuera de los paths de esta tarea.
 - **Los nombres de país siguen siendo códigos** (`US`, `AR`, `BR`): declarado fuera de alcance y
@@ -2099,8 +2125,11 @@ comprobaciones fija una de las tres cadenas que cambiaron.
 - Orden sugerido: rama única, sin dependencias. Etapa 7 ya integrada; esto es pulido sobre ella.
 - Migraciones o pasos manuales: **ninguno**. No hay cambios de esquema. El modelo EF quedó sin
   cambios pendientes según la compuerta.
-- Posibles conflictos: `DeterministicExplanationProvider.cs`, `ExplanationGoldenTests.cs` y
-  `explanation-action.ts` si algo más los tocó en `main` desde `0d05d0d`.
+- Posibles conflictos: `DeterministicExplanationProvider.cs`, `NumberTokenizer.cs`,
+  `ExplanationGoldenTests.cs` y `explanation-action.ts` si algo más los tocó en `main` desde
+  `0d05d0d`.
 - Verificación posterior al merge: `./scripts/check.sh` y `./scripts/smoke-ui.sh` sobre `main`, y
   abrir a mano una alerta del corpus para leer el párrafo y el aviso. Conviene elegir `ORD_000171`,
-  que es el que ejercita la razón sin decimal.
+  que es el que ejercita la razón sin decimal. Sobre `salvo.db`, la alerta que ya tenía explicación
+  sigue mostrando el párrafo viejo y no ofrece botón; el texto corregido se trae con un `POST` a
+  `/api/alerts/{id}/explanation`.
