@@ -1,7 +1,7 @@
 # Salvo — Resumen ejecutivo
 
 > Estado del documento: vigente
-> Última actualización: 2026-08-31
+> Última actualización: 2026-09-06
 > Fuente de verdad: [[Salvo-Blueprint]]
 > Seguimiento: [[Salvo-Progress]] · Navegación: [[Salvo-MOC]]
 
@@ -32,7 +32,7 @@ credenciales reales.
 - Alertas idempotentes y revisión transaccional.
 - Feed, detalle y dashboard de riesgo.
 - Evaluación mediante precisión, recall, F1 y falsos positivos.
-- `IAntifraudProvider` con mock local para `approved`, `denied` y `received`.
+- `IAntifraudProvider` con mock local: aprobado, denegado, pendiente a la espera de callback, y error.
 - Callback y reconciliación simulados, replay-safe.
 - Tests sin red y README de portfolio.
 
@@ -58,12 +58,14 @@ externas.
 | Diseño B2B y alcance | Aprobado |
 | Blueprint e instrucciones Codex | Actualizados |
 | Kit Claude y coordinación paralela | Preparados |
-| Etapa 1 | Integrada y verificada en `main` |
-| Etapa 2 | Integrada en `main` mediante `4b7bf54` y verificada |
-| Anthropic | Previsto para una etapa posterior |
+| Etapas 1 a 7 | Integradas y verificadas en `main` |
+| Etapa 8 — El argumento del proyecto | En diseño |
+| Etapa 9 — Corpus, idiomas y cierre | Pendiente |
+| Anthropic | Decisión aparte. Hoy `AI_PROVIDER=anthropic` se niega a arrancar |
 | Koin sandbox | Opcional, sujeto a onboarding |
 
 ## Próximo paso
 
-Definir y aprobar el brief detallado de Etapa 3 antes de iniciar baseline, reglas o scoring. No hay
-trabajo activo y la integración de E2 no autoriza automáticamente la siguiente etapa.
+Aprobar el diseño v2 de la Etapa 8 y despachar sus dos tareas: README con diagramas, y capturas con
+guion de demo. No hay trabajo activo, y ninguna integración autoriza automáticamente la etapa
+siguiente.

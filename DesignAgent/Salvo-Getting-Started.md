@@ -1,7 +1,7 @@
 # Salvo — Guía de arranque
 
 > Estado del documento: vigente
-> Última actualización: 2026-08-31
+> Última actualización: 2026-09-06
 > Fuente de verdad: [[Salvo-Blueprint]]
 > Seguimiento: [[Salvo-Progress]] · Navegación: [[Salvo-MOC]]
 
@@ -9,8 +9,9 @@
 
 - Etapa 0 documental completada.
 - Etapa 1 integrada mediante PR #1, cerrada mediante PR #2 y verificada sobre `main` en `66f0949`.
-- Etapa 2 está integrada en `main` mediante `4b7bf54` y verificada con la compuerta full-stack.
-- No hay tareas activas; Etapa 3 no comienza sin autorización explícita.
+- Etapas 2 a 7 integradas y verificadas con la compuerta full-stack y, desde la Etapa 5, con
+  `scripts/smoke-ui.sh` sobre el estado integrado.
+- No hay tareas activas; ninguna etapa comienza sin autorización explícita.
 
 ## Herramientas
 

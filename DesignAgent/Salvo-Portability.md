@@ -1,7 +1,7 @@
 # Salvo — Portabilidad de agentes y proveedores
 
 > Estado del documento: vigente
-> Última actualización: 2026-08-31
+> Última actualización: 2026-09-06
 > Fuente de verdad: [[Salvo-Blueprint]]
 
 Este documento describe únicamente los puntos de sustitución. La arquitectura y el dominio no están

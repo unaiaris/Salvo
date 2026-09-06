@@ -1,7 +1,7 @@
 # Salvo — Política de modelo y esfuerzo
 
 > Estado del documento: vigente
-> Última actualización: 2026-09-05
+> Última actualización: 2026-09-06
 > Aplicación: toda sesión de Claude Code o Claude.ai que trabaje sobre este repositorio
 
 Elegir modelo y esfuerzo es una decisión de coordinación, no una preferencia de la sesión. Este

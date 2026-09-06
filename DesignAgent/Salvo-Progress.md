@@ -1,7 +1,7 @@
 # Salvo — Seguimiento de implementación
 
 > Estado del documento: activo
-> Última actualización: 2026-09-02
+> Última actualización: 2026-09-06
 > Fuente de alcance: [[Salvo-Blueprint]]
 > Regla: actualizar este archivo al comenzar y cerrar cada etapa
 
@@ -44,10 +44,11 @@ Solo puede existir una etapa `En curso` a la vez.
 | 2 | Contrato y datos sintéticos | Completada | Seed idempotente + parser validado | Merge `4b7bf54` + 24 tests .NET + compuerta verde en `main` |
 | 3 | Motor determinista | Completada | Tests por regla + métricas sin fuga | Merge `809ff75` + 42 tests .NET + compuerta verde en `main` |
 | 4 | Alertas y casos de uso | Completada | Idempotencia + consistencia transaccional | Merges `1d9ee83` y `c35878b`; 109 tests .NET; compuerta verde en `main`; corpus demo con 18 alertas (13 `MEDIUM`, 5 `CRITICAL`) verificado contra la base |
-| 5 | UI y dashboard | Completada | Recorrido completo y estados vacíos/error | Merges `5f48db0`, `278e100` y el de `E5C`; 129 tests .NET y 153 de frontend; `check.sh` y `smoke-ui.sh` verdes sobre `main` (21 comprobaciones, 0 fallas) |
+| 5 | UI y dashboard | Completada | Recorrido completo y estados vacíos/error | Merges `5f48db0`, `278e100` y `8198fd5`; 129 tests .NET y 153 de frontend; `check.sh` y `smoke-ui.sh` verdes sobre `main` (21 comprobaciones, 0 fallas) |
 | 6 | Proveedor antifraude mock | Completada | Callbacks duplicados sin efectos repetidos y pendientes que finalizan | Merges `bca2c46` y `a412693`; 196 tests .NET y 172 de frontend; compuerta y smoke verdes (29 comprobaciones) |
-| 7 | Explicabilidad | Pendiente | Funciona sin red; Anthropic opcional | Pendiente |
-| 8 | Calidad y portfolio | Pendiente | Instalación limpia + demo reproducible | Pendiente |
+| 7 | Explicabilidad | Completada | Funciona sin red; el texto verificado sobre la salida no cambia ninguna superficie de decisión | Merges `82f2487`, `ac11015`, `0d117dd` y `b4aac6b`; compuerta y smoke verdes sobre `main` |
+| 8 | El argumento del proyecto | En diseño | README, diagramas, capturas y guion de demo; cada afirmación contrastada contra el código | Diseño v1 revisado; v2 pendiente |
+| 9 | Corpus, idiomas y cierre | Pendiente | Seis reglas y tres bandas alcanzables; F1 deja de valer 1,00 | Pendiente |
 | Post-MVP | Koin sandbox, auth, observabilidad, deploy | Pendiente | Aprobación independiente por capacidad | Pendiente |
 
 ## Etapa 1 — Resultado verificado
@@ -143,7 +144,7 @@ La lista exacta se confirmará al iniciar la etapa. Como mínimo:
 La Etapa 4 quedó integrada y verificada sobre `main` en dos ítems, `E4A-PERSISTENCIA` y
 `E4B-ALERTAS`. La verificación se hizo además contra la base real: tres corridas de scoring sobre el
 corpus demo, la segunda y la tercera reusando las 300 evaluaciones, y 18 alertas abiertas por la
-tercera. Etapa 5 permanece pendiente: requiere diseño, brief y autorización independientes.
+tercera. (Sección histórica de la Etapa 4: las Etapas 5, 6 y 7 se completaron después.)
 
 ## Checklists por etapa
 
@@ -215,13 +216,6 @@ tercera. Etapa 5 permanece pendiente: requiere diseño, brief y autorización in
 - [x] Vinculación tardía de recibos sin correlación.
 - [x] Superficie en la consola con la divergencia expuesta.
 
-- [ ] Implementar `IAntifraudProvider`.
-- [ ] Escenarios `approved`, `denied` y `received`.
-- [ ] Correlación por referencias.
-- [ ] Callback simulado replay-safe.
-- [ ] Reconciliación de pendientes.
-- [ ] Errores y timeouts simulados.
-
 ### Etapa 7 — Explicabilidad
 
 - [x] Entidad propia con identidad por evaluación y restricción `READY ⇔ summary`.
@@ -275,11 +269,11 @@ tercera. Etapa 5 permanece pendiente: requiere diseño, brief y autorización in
 | SDK .NET y versiones exactas de dependencias | Resuelta | Etapa 1 | .NET 10.0.400 y dependencias directas fijadas; locks verificados |
 | Schema y contratos E2 | Resuelta | Preparación de Etapa 2 | Decisiones 15–20 del Blueprint + brief `E2-CONTRACT-DATA` |
 | Baseline, reglas y calibración E3 | Resuelta | Preparación de Etapa 3 | Decisiones 21–27 del Blueprint + brief `E3-MOTOR-DETERMINISTA` |
-| Anthropic real | Diferida | Etapa 7 | Proveedor preferido; el núcleo no depende de él |
+| Anthropic real | Diferida | Decisión aparte | La Etapa 7 cerró con proveedor determinista. Hoy `AI_PROVIDER=anthropic` se niega a arrancar, con o sin clave |
 | Acceso Koin sandbox | Diferida | Post-MVP | Requiere onboarding, private key y `org_id` |
 | Auth/multi-tenant | Diferida | Post-MVP | Necesaria antes de publicación mutable |
 | Deploy/Postgres | Diferida | Post-MVP | No condiciona la demo local |
-| Primer trabajo paralelo Codex–Claude | Diferida | Después del scaffold | Requiere paths no solapados y task briefs |
+| Primer trabajo paralelo Codex–Claude | Cerrada sin ocurrir | — | Codex construyó las Etapas 0 a 3 y Claude las 4 a 7, siempre en secuencia. El protocolo paralelo existe y no se usó |
 
 ## Registro de actividad
 

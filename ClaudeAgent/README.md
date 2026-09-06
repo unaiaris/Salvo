@@ -1,7 +1,7 @@
 # Salvo — Kit de trabajo para Claude
 
-> Estado: activo; Claude Code 2.1.257 instalado y verificado en este entorno
-> Última actualización: 2026-09-01
+> Estado: activo; Claude Code instalado y verificado en este entorno
+> Última actualización: 2026-09-06
 > Entrada automática: `../CLAUDE.md`
 
 ## Propósito
@@ -48,7 +48,8 @@ con Codex.
 
 ### Entorno verificado
 
-Claude Code 2.1.257 está instalado en este entorno. El 2026-09-01 se ejecutó `/memory` y confirmó
+Claude Code está instalado en este entorno; su versión no se fija acá porque se autoactualiza y
+un documento que la escriba queda falso solo. El 2026-09-01 se ejecutó `/memory` y confirmó
 que `CLAUDE.md` y sus cinco imports (`AGENTS.md`, `DesignAgent/Salvo-Overview.md`,
 `DesignAgent/Salvo-Progress.md`, `Coordination/Workboard.md`, `ClaudeAgent/Claude-Workflow.md`)
 cargan correctamente, cerrando el riesgo abierto en el handoff `E0-DOC-04`.

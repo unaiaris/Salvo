@@ -40,12 +40,24 @@ cambia alcance o arquitectura, actualizar primero su bitácora y después los do
   `boundary.test.ts` exige que su lista de cruces servidor–cliente sea vacía.
 - Etapa 6 completada. Se ejecutó en dos ítems: `E6A-PROVEEDOR` (`bca2c46`) y `E6B-CALLBACK-UI`
   (`a412693`), ambos verificados con la compuerta y el smoke.
+- Etapa 7 completada. Se ejecutó en cuatro ítems: `E7A-EXPLICACIONES` (`82f2487`),
+  `E7B-EXPLICACIONES-UI` (`ac11015`), `E7C-PULIDO-EXPLICACION` (`0d117dd`) y
+  `E7D-PLANTILLA-VIGENTE` (`b4aac6b`), todos verificados con la compuerta y el smoke.
+- La explicación de una alerta es una entidad propia cuya identidad es la evaluación, y cada cifra y
+  cada regla de su texto se verifican contra la evaluación **antes** de guardarlo: un texto que no
+  pasa esa comprobación no se persiste, no se registra y no se muestra.
+- Al input de un modelo no entra ningún texto que no escriba el motor. La verificación vive en el
+  caso de uso, entre el puerto y el almacenamiento, nunca en el adaptador.
+- Cambiar el texto que produce una plantilla sube su versión, porque la versión forma parte de la
+  identidad de la fila.
+- La Etapa 8 es «El argumento del proyecto»: README, diagramas, capturas y guion de demo. La Etapa 9
+  es «Corpus, idiomas y cierre».
 - El recibo de un callback y la transición que provoca se persisten en una única unidad de trabajo.
   Un duplicado es la ausencia de una segunda fila, detectada por violación de unicidad.
 - El endpoint de callback falla cerrado: sin secreto configurado, `401` a toda petición.
 - El disparador de callback de la demo no acepta un estado del cliente. Elige qué evaluación, nunca
   qué resultado.
-- No iniciar la Etapa 7 sin petición o aprobación explícita del usuario.
+- No iniciar una etapa nueva sin petición o aprobación explícita del usuario.
 - `risk_evaluations` está restringida a `source = 'LOCAL'` y `status IN ('APPROVED','DENIED')` a
   nivel de base. Cualquier estado externo va en `external_evaluations`.
 - La taxonomía de fallo del proveedor vive en un solo lugar, `ExternalProviderExchange`: ningún
@@ -53,7 +65,7 @@ cambia alcance o arquitectura, actualizar primero su bitácora y después los do
 - Las decisiones de diseño de la Etapa 6 son las entradas 44 a 50 de la bitácora del Blueprint. El
   diseño v2 y su revisión adversarial viven en `Coordination/Tasks/E6-DISENO.md` y
   `Coordination/Tasks/E6-revision-adversarial.md`.
-- No iniciar la Etapa 7 sin petición o aprobación explícita del usuario.
+- No iniciar una etapa nueva sin petición o aprobación explícita del usuario.
 - Ningún componente cliente recibe objetos de la API: solo primitivas. Las guardas de
   `frontend/src/lib/api/guards.ts` proyectan, nunca comprueban sobre el mismo objeto.
 - Las rutas de datos declaran `dynamic = 'force-dynamic'`. El build debe pasar con la API apagada.

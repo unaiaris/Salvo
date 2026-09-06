@@ -1,8 +1,8 @@
 # Salvo — Blueprint del MVP
 
 > Estado del documento: vigente
-> Estado del proyecto: Etapa 3 integrada y verificada; Etapa 4 diseñada y aprobada, en ejecución
-> Última actualización: 2026-09-02
+> Estado del proyecto: Etapas 1 a 7 integradas y verificadas; Etapa 8 diseñada, en revisión
+> Última actualización: 2026-09-06
 > Seguimiento operativo: [[Salvo-Progress]]
 
 Fuente de verdad del producto, alcance y arquitectura. Salvo es una consola antifraude B2B para un
@@ -70,10 +70,13 @@ scores ni se presenta uno como si fuera el otro.
 - Feed, detalle y dashboard antifraude.
 - Matriz de confusión, precisión, recall, F1, tasa de falsos positivos y barrido de umbral.
 - Interfaz `IAntifraudProvider` con implementación `mock` local.
-- Escenarios externos simulados: `approved`, `denied` y `received`.
+- Escenarios externos simulados: aprobado, denegado, pendiente a la espera de callback, y error.
+  Los estados persistidos son `PENDING`, `APPROVED`, `DENIED` y `ERROR`.
 - Persistencia de correlación y callback simulado idempotente.
 - Tests unitarios y de integración sin red.
-- README de portfolio con decisiones, métricas, arquitectura y guion de demo.
+- README de portfolio con decisiones, arquitectura y guion de demo. Las métricas entran como límite
+  declarado y con su advertencia, no como argumento de calidad: la fixture recupera sus propias
+  etiquetas hasta que la Etapa 9 la enriquezca.
 
 ### Diferido hasta después del núcleo
 
@@ -104,15 +107,20 @@ Analista de riesgo u operaciones de un comercio electrónico ficticio.
 
 ### Flujo
 
-1. El analista carga el dataset demo o importa pedidos.
-2. Salvo procesa los pedidos en orden temporal.
-3. Para cada pedido calcula el baseline usando únicamente historia anterior.
-4. Las reglas generan señales y `localRiskScore`.
-5. Los pedidos que superan el umbral producen una alerta una sola vez.
-6. El analista inspecciona señales y contexto.
-7. El analista confirma que el pedido es legítimo o reporta fraude.
-8. El dashboard y las métricas se actualizan.
-9. Opcionalmente se ejecuta el proveedor externo mock para demostrar estados y callbacks.
+1. El analista carga el dataset demo o importa pedidos. **Importar no procesa** (decisión 39).
+2. El analista ejecuta la corrida de scoring, que es una acción explícita desde `/import`.
+3. Para cada pedido se calcula el baseline usando únicamente historia estrictamente anterior.
+4. Las reglas generan señales y `localRiskScore`; la evaluación es append-only y su identidad es su
+   contenido, y la corrida vigente define cuál es la evaluación vigente de cada pedido.
+5. Los pedidos que superan el umbral abren una alerta; como máximo una `OPEN` por pedido, y una
+   escalada de banda abre otra enlazada a la anterior.
+6. Opcionalmente se pide la explicación de la alerta, que se verifica sobre la salida antes de
+   guardarse.
+7. Opcionalmente se pide la opinión del proveedor externo, que puede responder en el acto o por
+   callback, y que se reconcilia de forma explícita.
+8. El analista inspecciona señales y contexto, y confirma que el pedido es legítimo o reporta
+   fraude. El veredicto es terminal y su auditoría registra qué explicación tenía delante.
+9. El dashboard y las métricas se actualizan, sin leer nunca la etiqueta de fraude.
 
 ## 4. Requisitos funcionales
 

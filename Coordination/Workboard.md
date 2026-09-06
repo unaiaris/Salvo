@@ -50,19 +50,14 @@ Dos lecciones de la Etapa 7 para los briefs que vengan:
 
 Notas para los briefs de la Etapa 8:
 
-- **Copia de `salvo.db` antes de migrar.** EF ejecuta `PRAGMA foreign_keys = 0` fuera de transacción.
-- Artefactos que la etapa obliga a tocar: `AlertSchemaTests` (se extiende),
-  `ArchitectureSmokeTests` (suma `AlertExplanation`), `OpenApiDriftTests` con recaptura,
-  `frontend/openapi/salvo-openapi.json` y `schema.d.ts`, `fixtures.ts` con `explanation: null`
-  —sin eso todo el detalle cae en `malformed`—, `messages.ts` y su test, `boundary.test.ts` y los
-  textos de `scripts/smoke-ui.sh`.
-- Verificar el estado canónico antes de declararlo pendiente.
-- Reservar `backend/tests/**` en `E7A`, y `frontend/**` y `scripts/**` en `E7B`.
-- `E7A` reserva `salvo-openapi.json` y `schema.d.ts`: `E7B` no recaptura el contrato.
-
-Notas conservadas de la Etapa 6, por si vuelven a aplicar:
-
-- `RiskEvaluationIdentityTests` perdió dos aserciones al separarse la evaluación externa.
+- **Ninguna tarea de esta etapa toca código de producción.** No hay migración, ni contrato, ni
+  recaptura de OpenAPI. Si algo parece necesitarlo, es hallazgo y no tarea.
+- Las capturas y el guion salen de una **base nueva**, no de `salvo.db`: esa base tiene 328 pedidos,
+  siete corridas y una banda `ALTA` que solo existe por importaciones manuales.
+- Ningún pie de captura ni paso del guion cita una alerta por su URL ni por su posición en la cola:
+  el id es un GUID y el desempate del orden también. Se nombran pedidos.
+- Verificar el estado canónico antes de declararlo pendiente, y **abrir cada archivo antes de
+  afirmar algo sobre él**.
 
 La **Etapa 8** quedó acotada al argumento del proyecto: README, diagramas, capturas y guion de
 demo. Todo lo demás pasó a la **Etapa 9**, que además hace el repaso final de documentos con las

@@ -1,7 +1,7 @@
 # Salvo — Mapa de contenido
 
 > Estado del documento: vigente
-> Última actualización: 2026-08-31
+> Última actualización: 2026-09-06
 > Fuente de verdad: [[Salvo-Blueprint]]
 
 Índice principal de la documentación de diseño y ejecución.
