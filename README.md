@@ -351,8 +351,9 @@ de cualquiera de los dos no detiene el scoring local.
 Un proyecto que dice lo que le falta se lee mejor que uno que finge estar terminado.
 
 **Las métricas prueban el pipeline, no el criterio.** La fixture demo fue construida para que las
-reglas recuperen sus propias etiquetas, así que F1 vale 1,00 y eso no significa lo que parece. La
-advertencia está escrita en la propia consola, en
+reglas recuperen sus propias etiquetas, así que la puntuación es perfecta y eso no significa lo que
+parece —el valor exacto está en el bloque de más abajo—. La advertencia está escrita en la propia
+consola, en
 `frontend/src/app/dashboard/quality-section.tsx`: lo que estas métricas prueban es que la evaluación
 es honesta —división temporal, holdout sin retuning, aritmética que cierra—, no que las reglas
 generalizarían a un corpus con el que no fueron construidas.
@@ -373,7 +374,7 @@ directamente, el extractor se borra.
 Tampoco hay observabilidad, ni Postgres, ni consulta en lenguaje natural: están fuera del MVP.
 
 La Etapa 9 enriquece la fixture con casos duros —falsos negativos y falsos positivos deliberados—
-para que las seis reglas y las tres bandas sean alcanzables y F1 deje de valer 1,00.
+para que las seis reglas y las tres bandas sean alcanzables y las métricas dejen de ser perfectas.
 
 <!-- corpus:inicio -->
 

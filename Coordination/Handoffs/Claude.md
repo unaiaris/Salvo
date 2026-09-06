@@ -2313,7 +2313,7 @@ solo el texto de un comentario.
 | Falsación 2: test inexistente en el README | Falla, `exit 1`, nombrando el identificador buscado |
 | Falsación 3: enlace Markdown roto | Falla, `exit 1`, nombrando el destino |
 | Cifras del corpus regeneradas sobre base nueva | Migración, seed, corrida, evaluación externa y callbacks sobre una base temporal; `salvo.db` intacta |
-| `grep` de cifras fuera del bloque marcado | Ninguna dependiente del corpus fuera de `corpus:inicio`/`corpus:fin` |
+| `grep` de cifras fuera del bloque marcado | Ninguna dependiente del corpus. La comprobación encontró una: `F1 = 1,00` estaba en «Límites declarados», fuera del bloque. Corregida |
 | `git status --porcelain` | Limpio; solo los paths autorizados en el diff contra la base |
 
 ### Las tres falsaciones de `check-docs.sh`
@@ -2512,6 +2512,10 @@ dicen qué se observó en una fecha, y corregirlas sería falsificar el registro
 
 ### Decisiones y supuestos
 
+- **El `grep` de cierre encontró una cifra fuera del bloque, y valió la pena hacerlo.** «F1 vale
+  1,00» estaba en el cuerpo de «Límites declarados» y es exactamente lo que la Etapa 9 va a
+  invalidar: su propia línea dice que F1 deja de valer 1,00. El cuerpo ahora dice «la puntuación es
+  perfecta» y remite al bloque, donde está el valor.
 - **El bloque marcado va dentro de «Límites declarados».** Es donde el lector ya está leyendo qué
   tan lejos llegan estas cifras, y deja el resto del documento libre de números volátiles. Las
   estructurales —seis reglas, sus pesos, umbral 60, tres bandas, 5 MiB, 10.000 registros— se quedan
