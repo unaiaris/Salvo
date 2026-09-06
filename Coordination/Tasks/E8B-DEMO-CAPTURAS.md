@@ -9,9 +9,11 @@
 - Coordinador: Unai Arismendes
 - Fecha: 2026-09-06
 - Rama/worktree: `claude/e8b-demo-capturas`
-- Commit base: `24a9ea9`, el `HEAD` de `main` que cierra `E8A-README-DIAGRAMAS`. `E8A` se integró en
-  el merge `1243d54` y `24a9ea9` es el commit de registro que lo sigue; es el `merge-base` real de
-  `claude/e8b-demo-capturas`
+- Commit base: `d0d8c03`, el `merge-base` real de `claude/e8b-demo-capturas` con `main`. La cadena,
+  porque importa para leer el historial: `E8A` se integró en el merge `1243d54`; `24a9ea9` cerró sus
+  registros; `d0d8c03` es el commit que escribió este mismo campo, y al hacerlo pasó a ser la base.
+  **La corrección va en la rama y no en `main`**: si se commitea en `main` y se rebasa, el commit de
+  la corrección vuelve a mover la base y el campo nunca queda cierto
 - Modelo y esfuerzo acordados: **Opus 5 · `high`**. Parece mecánica y no lo es: dos scripts que
   orquestan una base temporal migrada, dos procesos en puertos propios, estados preparados por API y
   un navegador, **sin poder borrar nada**. Es la misma clase de trabajo que `smoke-ui.sh`.
