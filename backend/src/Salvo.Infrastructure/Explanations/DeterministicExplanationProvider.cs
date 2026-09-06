@@ -80,8 +80,8 @@ public sealed class DeterministicExplanationProvider : IExplanationProvider
             .Append('.');
 
         builder.Append(signals.Count == 1
-            ? " Coincidió 1 regla."
-            : $" Coincidieron {Number(signals.Count)} reglas.");
+            ? " Se disparó 1 regla."
+            : $" Se dispararon {Number(signals.Count)} reglas.");
 
         var total = signals.Sum(signal => signal.Weight);
         if (total > config.ScoreCap)
@@ -121,7 +121,7 @@ public sealed class DeterministicExplanationProvider : IExplanationProvider
         return signal.Rule switch
         {
             RiskRuleNames.AmountAnomaly =>
-                $"El monto, {Money(input)} {input.CurrencyCode}, es {Number(signal.Ratio ?? 0m, 1)} "
+                $"El monto, {Money(input)} {input.CurrencyCode}, es {Ratio(signal.Ratio ?? 0m)} "
                 + $"veces la mediana {ScopeWord(signal.Scope)}, calculada sobre "
                 + $"{Number(signal.HistoryCount ?? 0)} pedidos previos de los últimos "
                 + $"{Number(signal.WindowDays ?? 0)} días.",
@@ -144,7 +144,7 @@ public sealed class DeterministicExplanationProvider : IExplanationProvider
 
             RiskRuleNames.NewBuyerHighValue =>
                 "El comprador no tenía pedidos previos con este comercio, y el monto es "
-                + $"{Number(signal.Ratio ?? 0m, 1)} veces la mediana del comercio sobre "
+                + $"{Ratio(signal.Ratio ?? 0m)} veces la mediana del comercio sobre "
                 + $"{Number(signal.HistoryCount ?? 0)} pedidos previos.",
 
             RiskRuleNames.ForeignCountry =>
@@ -170,9 +170,27 @@ public sealed class DeterministicExplanationProvider : IExplanationProvider
     /// Minutes, without decimals when there are none to write. The engine states them with up to
     /// two, and carrying a trailing zero into prose reads like precision nobody measured.
     /// </summary>
-    private static string Minutes(decimal value)
+    private static string Minutes(decimal value) => Trimmed(value, 2);
+
+    /// <summary>
+    /// How many times the median an amount is, with one decimal and only when it says something.
+    /// «15,0 veces» claims a measurement to the tenth that the ratio does not have; «23,2 veces» is
+    /// a different number and keeps its decimal. The token stays grounded either way: a fact of
+    /// <c>15.0</c> rounded to zero decimals is the <c>15</c> the sentence writes.
+    /// </summary>
+    private static string Ratio(decimal value) => Trimmed(value, 1);
+
+    /// <summary>
+    /// A number with at most <paramref name="decimals"/> decimals, and with none at all when every
+    /// one of them would be a zero.
+    /// </summary>
+    private static string Trimmed(decimal value, int decimals)
     {
-        return SpanishNumberFormat.Format(value, value == Math.Truncate(value) ? 0 : 2);
+        var rounded = Math.Round(value, decimals, MidpointRounding.AwayFromZero);
+
+        return SpanishNumberFormat.Format(
+            rounded,
+            rounded == Math.Truncate(rounded) ? 0 : decimals);
     }
 
     private static string Number(int value) => SpanishNumberFormat.Format(value, 0);

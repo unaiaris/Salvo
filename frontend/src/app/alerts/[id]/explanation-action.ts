@@ -48,7 +48,9 @@ export async function explainEvaluation(
     return {
       outcome: "done",
       title: regenerate ? "Explicación redactada en el nuevo intento" : "Explicación redactada",
-      body: "Cada cifra y cada regla del texto se verificaron contra la evaluación antes de guardarlo.",
+      body:
+        "El texto quedó guardado junto a la evaluación y ya se muestra arriba. Una explicación " +
+        "escrita no se reescribe: si el pedido vuelve a evaluarse, la evaluación nueva lleva la suya.",
       recovery: "",
       technicalDetail: "",
       submissionId,
