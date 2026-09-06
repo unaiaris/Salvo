@@ -9,15 +9,15 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado del proyecto | Etapa 7 — Explicabilidad, integrada y verificada; `E7D-PLANTILLA-VIGENTE` en curso |
-| Etapa completada | Etapa 7 — Explicabilidad (`E7A`, `E7B` y `E7C` integradas) |
+| Estado del proyecto | Etapa 7 — Explicabilidad, completada y verificada |
+| Etapa completada | Etapa 7 — Explicabilidad (`E7A`, `E7B`, `E7C` y `E7D` integradas) |
 | Próxima etapa | Etapa 8 — Calidad y portfolio |
 | Estado de la próxima etapa | Pendiente de acordar qué candidatas entran |
 | Bloqueo actual | Ninguno |
 | Dependencias externas | Ninguna para el núcleo local |
 | Anthropic | Previsto para después del núcleo; decisión aparte, preparada por D11 |
 | Koin sandbox | Post-MVP; sujeto a onboarding y credenciales |
-| Coordinación Codex–Claude | `E7D-PLANTILLA-VIGENTE` asignada; reserva `frontend/**`, `backend/**` y `scripts/smoke-ui.sh` |
+| Coordinación Codex–Claude | Sin tareas activas ni paths reservados |
 
 **Este bloque se actualiza en cada cierre de etapa y en cada alta de tarea.** Quedó desfasado
 durante toda la Etapa 7 porque los cierres actualizaron el registro de actividad y los checklists
@@ -243,6 +243,8 @@ tercera. Etapa 5 permanece pendiente: requiere diseño, brief y autorización in
 - [x] `EXPLANATION_READY` movido de `guards.ts` a `contract.ts` como `EXPLANATION_STATUS`.
 - [x] Pulido del texto y del aviso, con la plantilla en `e7-v2` para que el arreglo alcance a lo ya
       escrito (decisión 58).
+- [x] La consola ofrece redactar con la plantilla vigente cuando el texto lo escribió una anterior,
+      sin alarma y conservando la fila previa.
 
 - [ ] Decidir aparte si se activa Anthropic.
 
@@ -344,6 +346,9 @@ tercera. Etapa 5 permanece pendiente: requiere diseño, brief y autorización in
 | 2026-09-06 | 7 | Recorrido manual de la explicación en la consola | Cuatro observaciones: el aviso posterior a generar repetía la leyenda del bloque, la plantilla escribía «56,0 veces» y «Coincidieron», y la referencia compuesta quedó demostrada con dos pedidos `ORD_000011` de comercios distintos | Completada |
 | 2026-09-06 | 7 | `E7C-PULIDO-EXPLICACION` | Cuatro commits; el dorado partido en las dos ramas del cambio —`ORD_000011` con decimal, `ORD_000171` sin él—, `explanation-action.ts` con sus primeros cuatro tests, y la plantilla subida a `e7-v2` con un test de convivencia de versiones. `brief-check` había corregido antes un criterio de aceptación invertido | Lista para integrar |
 | 2026-09-06 | 7 | Integración de `E7C-PULIDO-EXPLICACION` | Merge `0d117dd` + `check.sh` y `smoke-ui.sh` verdes sobre `main` | Completada |
+| 2026-09-06 | 7 | El recorrido manual muestra que el bump de plantilla no alcanzó al texto guardado | Lectura y escritura no coincidían en cuál era la explicación vigente: `FindAsync` busca con `templateVersion` y `GetExplanationsAsync` no lo filtra, así que la consola escondía el botón sobre una fila de la versión anterior | Completada |
+| 2026-09-06 | 7 | `E7D-PLANTILLA-VIGENTE` | Cuatro commits; `WrittenByAnotherTemplate` calculado contra el proveedor registrado y no contra una constante, el botón convertido en un tipo de tres pedidos —`first`, `currentTemplate`, `retry`— para que solo el reintento mande `regenerate: true`, y el test de extremo a extremo que faltaba. Sin migración ni columna nueva | Lista para integrar |
+| 2026-09-06 | 7 | Integración y cierre definitivo de la Etapa 7 | Merge `b4aac6b`; verificado a mano sobre `ORD_900004`: la fila `e7-v1` queda intacta con sus instantes originales y la `e7-v2` se escribe al lado con el texto corregido | Completada |
 
 ## Protocolo de actualización
 

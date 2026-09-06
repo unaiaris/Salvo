@@ -1,6 +1,6 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: Etapa 7 integrada y verificada; `E7D-PLANTILLA-VIGENTE` en curso. Etapa 8 sin iniciar
+> Estado: Etapa 7 completa. Siete etapas integradas y verificadas; Etapa 8 sin iniciar
 > Última actualización: 2026-09-06
 > Responsable: coordinador de la etapa
 
@@ -14,13 +14,7 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 
 ## Trabajo activo
 
-| Work ID | Estado | Propietario | Modelo y esfuerzo | Paths reservados |
-| --- | --- | --- | --- | --- |
-| `E7D-PLANTILLA-VIGENTE` | `Asignada` | `Claude` | Opus 5 · `high` | `backend/**`, `frontend/**`, `scripts/smoke-ui.sh` |
-
-Corrige la costura que `E7C` dejó abierta: la lectura y la escritura no coinciden en cuál es la
-explicación vigente cuando la versión de plantilla cambió, así que la consola no puede pedir la de
-la plantilla actual y sigue mostrando el texto anterior.
+No hay tareas activas ni paths reservados.
 
 ## Cola próxima
 
@@ -29,6 +23,7 @@ la plantilla actual y sigue mostrando el texto anterior.
 | `E7A-EXPLICACIONES` | `Verificada` (merge `82f2487`) | Opus 5 · `high` | — |
 | `E7B-EXPLICACIONES-UI` | `Verificada` (merge `ac11015`) | Opus 5 · `high` | `E7A` |
 | `E7C-PULIDO-EXPLICACION` | `Verificada` (merge `0d117dd`) | Opus 5 · `high` | `E7B` |
+| `E7D-PLANTILLA-VIGENTE` | `Verificada` (merge `b4aac6b`) | Opus 5 · `high` | `E7C` |
 
 Dos lecciones de la Etapa 7 para los briefs que vengan:
 
@@ -46,7 +41,12 @@ Dos lecciones de la Etapa 7 para los briefs que vengan:
   anclaje.
 - **Un arreglo que no alcanza a lo ya guardado no está terminado.** Con identidad por contenido,
   corregir al productor no corrige lo producido: hay que preguntarse siempre qué pasa con las filas
-  que ya existen (decisión 58).
+  que ya existen (decisión 58). Y no alcanza con que el camino de escritura lo permita: `E7D` hizo
+  falta porque la lectura y la escritura no coincidían en cuál era la fila vigente, así que la
+  consola nunca ofrecía pedirla.
+- **El tablero de estado se lee antes de tocarlo.** El bloque «Estado general» del Progress quedó
+  desfasado durante toda la Etapa 7 porque los cierres actualizaron el registro de actividad y los
+  checklists pero no el tablero.
 
 Notas para los briefs de la Etapa 8:
 

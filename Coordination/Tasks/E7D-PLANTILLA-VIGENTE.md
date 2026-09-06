@@ -9,7 +9,9 @@
 - Coordinador: Unai Arismendes
 - Fecha: 2026-09-06
 - Rama/worktree: `claude/e7d-plantilla-vigente`
-- Commit base: `459be2c`, el `HEAD` de `main` que cierra `E7C-PULIDO-EXPLICACION`
+- Commit base: `2a7cff3`, el `HEAD` de `main` al crear la rama. El brief se escribió sobre
+  `459be2c` —el cierre de `E7C-PULIDO-EXPLICACION`— y entre medio entraron dos commits de
+  documentación del coordinador, este brief y su alta en el tablero, que no tocan código
 - Modelo y esfuerzo acordados: **Opus 5 · `high`**. El trabajo es chico, pero lo que se corrige es
   una costura entre dos caminos que hoy se contradicen sobre cuál es «la» explicación, y el arreglo
   tiene que dejarlos de acuerdo sin romper la razón por la que la API se niega a reescribir un texto
