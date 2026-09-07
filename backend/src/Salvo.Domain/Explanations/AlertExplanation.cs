@@ -45,6 +45,7 @@ public sealed class AlertExplanation
         ExplanationProvider provider,
         string templateVersion,
         string alertPolicyVersion,
+        ExplanationLanguage language,
         Guid requestedFromAlertId,
         DateTimeOffset requestedAt)
     {
@@ -53,6 +54,7 @@ public sealed class AlertExplanation
         Provider = provider;
         TemplateVersion = templateVersion;
         AlertPolicyVersion = alertPolicyVersion;
+        Language = language;
         RequestedFromAlertId = requestedFromAlertId;
         Status = ExplanationStatus.Pending;
         AttemptCount = 1;
@@ -76,6 +78,19 @@ public sealed class AlertExplanation
     /// thing here the alert contributes.
     /// </summary>
     public string AlertPolicyVersion { get; private set; }
+
+    /// <summary>
+    /// The language the text is written in. Part of the identity.
+    /// </summary>
+    /// <remarks>
+    /// A deployment that changes language has to find that this evaluation has no text yet in the
+    /// language it now writes. With the language outside the identity it finds the row of the
+    /// other language, takes it for the answer and never writes this one — the defect of
+    /// <c>E7D</c> with a different column in the same place. It is not a template version: the
+    /// same template writes both, and calling them <c>e7-v2</c> and <c>e7-v3</c> would turn
+    /// «write this with the current template» into a button that offers to change language.
+    /// </remarks>
+    public ExplanationLanguage Language { get; private set; }
 
     /// <summary>
     /// The concrete model, when there is one. Never part of the identity: the same prompt answered
@@ -156,6 +171,7 @@ public sealed class AlertExplanation
         ExplanationProvider provider,
         string templateVersion,
         string alertPolicyVersion,
+        ExplanationLanguage language,
         Guid requestedFromAlertId,
         DateTimeOffset requestedAt)
     {
@@ -182,8 +198,10 @@ public sealed class AlertExplanation
         }
 
         // Throws on a member without a wire name, so an enumeration that grew cannot reach the
-        // database.
+        // database. The language is checked the same way and for the same reason: it is in the
+        // unique index, so a member nobody gave a name to would collide with every other one.
         _ = ExplanationWireNames.ToWire(provider);
+        _ = ExplanationWireNames.ToWire(language);
 
         return new(
             id,
@@ -191,6 +209,7 @@ public sealed class AlertExplanation
             provider,
             templateVersion,
             alertPolicyVersion,
+            language,
             requestedFromAlertId,
             requestedAt.ToUniversalTime());
     }

@@ -1,6 +1,7 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Salvo.Application.Alerts;
+using Salvo.Application.Explanations;
 using Salvo.Domain.Alerts;
 using Salvo.Domain.Explanations;
 using Salvo.Domain.External;
@@ -8,7 +9,13 @@ using Salvo.Domain.Risk;
 
 namespace Salvo.Infrastructure.Persistence;
 
-public sealed class EfAlertStore(SalvoDbContext dbContext) : IAlertStore
+/// <remarks>
+/// The deployment language is a dependency of this store rather than an argument of its methods
+/// because it decides <em>which row</em> answers the question, and selecting rows is what a store
+/// does. The template version, in contrast, travels as an argument of the projection, because it
+/// only decides how the row that was already chosen is described.
+/// </remarks>
+public sealed class EfAlertStore(SalvoDbContext dbContext, DeploymentLanguage language) : IAlertStore
 {
     private const int ConstraintUnique = 2067;
     private const int ConstraintPrimaryKey = 1555;
@@ -264,6 +271,14 @@ public sealed class EfAlertStore(SalvoDbContext dbContext) : IAlertStore
     /// nobody pays for it twice. Narrowed to the policy version of the alert, since a summary names
     /// a severity band and a different policy names it differently. The most recent request wins if
     /// several templates have run.
+    /// <para>
+    /// <strong>And narrowed to the language of the deployment</strong>, which is the half of the
+    /// change that is easy to forget because everything else still passes without it. The write
+    /// path would create the Portuguese row correctly and this read would keep handing back the
+    /// Spanish one, so the console would show a paragraph nobody can read next to a block that
+    /// offers nothing: the right row exists and nobody sees it. It is the defect of <c>E7D</c>
+    /// again, on the reading side, and the falsification of this line is recorded in the handoff.
+    /// </para>
     /// </remarks>
     private async Task<Dictionary<Guid, AlertExplanation>> GetExplanationsAsync(
         List<Alert> alerts,
@@ -277,10 +292,12 @@ public sealed class EfAlertStore(SalvoDbContext dbContext) : IAlertStore
             .Distinct()
             .ToArray();
 
+        var deploymentLanguage = language.Value;
         var candidates = await dbContext.AlertExplanations
             .AsNoTracking()
             .Where(explanation => evaluationIds.Contains(explanation.RiskEvaluationId)
-                && policyVersions.Contains(explanation.AlertPolicyVersion))
+                && policyVersions.Contains(explanation.AlertPolicyVersion)
+                && explanation.Language == deploymentLanguage)
             .ToListAsync(cancellationToken);
 
         return candidates

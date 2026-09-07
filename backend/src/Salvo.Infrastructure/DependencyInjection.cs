@@ -12,6 +12,7 @@ using Salvo.Application.Orders;
 using Salvo.Application.Orders.Importing;
 using Salvo.Application.Orders.Seed;
 using Salvo.Application.Risk;
+using Salvo.Domain.Explanations;
 using Salvo.Infrastructure.Explanations;
 using Salvo.Infrastructure.External;
 using Salvo.Infrastructure.Importing;
@@ -30,6 +31,7 @@ public static class DependencyInjection
             ?? "Data Source=salvo.db";
 
         services.AddDbContext<SalvoDbContext>(options => options.UseSqlite(connectionString));
+        AddLanguage(services, configuration);
         AddExternalProvider(services, configuration);
         AddExplanationProvider(services, configuration);
         services.TryAddSingleton(TimeProvider.System);
@@ -73,6 +75,48 @@ public static class DependencyInjection
         services.AddScoped<RequestExplanationHandler>();
 
         return services;
+    }
+
+    /// <summary>
+    /// Registers the language this deployment writes and renders in.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The same shape as <c>AI_PROVIDER</c> and <c>KOIN_MODE</c>, for the same reason: an unknown
+    /// value stops the process instead of quietly becoming the default. A deployment that meant to
+    /// run in Portuguese and typed the code wrongly would otherwise serve a Spanish console and a
+    /// Spanish paragraph and report nothing at all — and it would then write rows stamped <c>es</c>
+    /// that the Portuguese deployment can never reuse.
+    /// </para>
+    /// <para>
+    /// One reader, here. The console does not read this variable: it asks
+    /// <c>GET /api/system/capabilities</c>, which publishes what this parsed. Two independent
+    /// readers of one variable is a console in one language around a paragraph in the other.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    /// <c>SALVO_LANGUAGE</c> names a language this build cannot write.
+    /// </exception>
+    private static void AddLanguage(IServiceCollection services, IConfiguration configuration)
+    {
+        var configured = configuration["SALVO_LANGUAGE"];
+        if (string.IsNullOrWhiteSpace(configured))
+        {
+            services.AddSingleton(DeploymentLanguage.Spanish);
+
+            return;
+        }
+
+        if (!ExplanationWireNames.TryParseLanguage(configured, out var language))
+        {
+            throw new InvalidOperationException(
+                $"SALVO_LANGUAGE='{configured}' is not a language this build can write. Use one of: "
+                + $"{string.Join(", ", ExplanationWireNames.KnownLanguages)}. Leaving it unset is "
+                + $"the same as {ExplanationWireNames.Spanish}, which is the default and the "
+                + "language of the demonstration.");
+        }
+
+        services.AddSingleton(new DeploymentLanguage(language));
     }
 
     /// <summary>

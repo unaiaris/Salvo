@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Salvo.Application.Alerts;
+using Salvo.Application.Explanations;
 using Salvo.Domain.Alerts;
 using Salvo.Infrastructure.Persistence;
 
@@ -112,7 +113,9 @@ public sealed class AlertReviewTests
         await using var factory = SalvoApiFactory.WithFileDatabase();
         factory.ConfigureTestServices = services => services.AddScoped<IAlertStore>(provider =>
             new GatedAlertStore(
-                new EfAlertStore(provider.GetRequiredService<SalvoDbContext>()),
+                new EfAlertStore(
+                    provider.GetRequiredService<SalvoDbContext>(),
+                    provider.GetRequiredService<DeploymentLanguage>()),
                 gate));
         using var client = await factory.CreateMigratedClientAsync();
         var alertId = await OpenOneAlertAsync(client);

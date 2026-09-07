@@ -30,6 +30,7 @@ public sealed class RequestExplanationHandler(
     IExplanationProvider provider,
     IExplanationIdGenerator idGenerator,
     ExplanationOptions options,
+    DeploymentLanguage language,
     TimeProvider timeProvider)
 {
     /// <summary>
@@ -59,6 +60,7 @@ public sealed class RequestExplanationHandler(
             provider.Provider,
             provider.TemplateVersion,
             target.AlertPolicyVersion,
+            language.Value,
             cancellationToken);
 
         var reserved = await ReserveAsync(target, existing, regenerate, cancellationToken);
@@ -100,6 +102,7 @@ public sealed class RequestExplanationHandler(
                 provider.Provider,
                 provider.TemplateVersion,
                 target.AlertPolicyVersion,
+                language.Value,
                 target.AlertId,
                 now);
 
@@ -176,7 +179,7 @@ public sealed class RequestExplanationHandler(
         // stay invisible until the day they are not: a paragraph that is correct about the wrong
         // evaluation.
         var config = RuleConfig.ForVersion(target.RuleConfigVersion);
-        var input = ExplanationInputFactory.For(target);
+        var input = ExplanationInputFactory.For(target, language.Value);
 
         ExplanationFacts facts;
         try
@@ -190,13 +193,13 @@ public sealed class RequestExplanationHandler(
             // attempt is closed rather than left reserved. The row itself is intact and the console
             // still shows it exactly as it was written; only the grounding facts cannot be built.
             //
-            // The code is a compromise and worth naming as one. `PROVIDER_UNAVAILABLE` is the
-            // closest of the nine that exist and it is not the truth — no provider was called. The
-            // honest code would be a tenth value, and the failure codes are enumerated in a database
-            // check constraint, so adding one means a migration. `E9B` forbids migrations and says
-            // to stop and ask when one is needed, so this stays as it is and the coordinator
-            // decides. It is unreachable on a freshly seeded database, which has no `e3-v1` row.
-            await SettleAsync(explanation, ExplanationFailureCode.ProviderUnavailable, exception.Message);
+            // The code says that, and it is the tenth of the enumeration. `E9B` had to settle for
+            // `PROVIDER_UNAVAILABLE` — the nearest of the nine that existed — because a tenth value
+            // means touching the check constraint that lists them, and that stage forbade
+            // migrations. This one has one, so the compromise ends here: «the provider failed before
+            // answering» was false about an attempt in which no provider was ever called, and it
+            // sent whoever read it to debug a provider that had done nothing.
+            await SettleAsync(explanation, ExplanationFailureCode.LegacySignalFormat, exception.Message);
 
             return;
         }

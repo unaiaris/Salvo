@@ -1,3 +1,6 @@
+using Microsoft.Extensions.DependencyInjection;
+using Salvo.Application.Explanations;
+
 namespace Salvo.Api;
 
 public static class SystemEndpoints
@@ -18,9 +21,16 @@ public static class SystemEndpoints
 
         var demoDataEnabled = configuration.GetValue<bool>("DemoData:Enabled");
 
+        // Resolved rather than re-read from configuration: composition already parsed
+        // SALVO_LANGUAGE and refused to start on a value this build cannot write, so what is
+        // published here is the same value the explanations are stamped with. A second parse would
+        // be a second chance to disagree.
+        var language = endpoints.ServiceProvider.GetRequiredService<DeploymentLanguage>().Wire;
+
         endpoints.MapGet(
                 "/api/system/capabilities",
-                () => TypedResults.Ok(new CapabilitiesResponse(demoDataEnabled, demoDataEnabled)))
+                () => TypedResults.Ok(
+                    new CapabilitiesResponse(demoDataEnabled, demoDataEnabled, language)))
             .WithName("GetCapabilities")
             .WithTags("System")
             .Produces<CapabilitiesResponse>(StatusCodes.Status200OK);
@@ -38,4 +48,22 @@ public static class SystemEndpoints
 /// still asked separately: the console needs to know whether it can offer that button, and that is
 /// not the same question as whether a demo corpus can be seeded.
 /// </param>
-public sealed record CapabilitiesResponse(bool DemoDataEnabled, bool ExternalCallbackTriggerEnabled);
+/// <param name="Language">
+/// The language this deployment writes explanations in and the console composes itself in,
+/// <c>es</c> or <c>pt</c>.
+/// <para>
+/// It is published here rather than read from the environment by the console because there must be
+/// exactly one reader of <c>SALVO_LANGUAGE</c>. Two independent readers of one variable is a
+/// deployment where a misconfigured console renders Portuguese around a Spanish paragraph and
+/// nothing anywhere reports a problem. Taking it from this response makes that disagreement
+/// impossible to represent.
+/// </para>
+/// <para>
+/// Not negotiated per request. <c>Accept-Language</c> would put the identity of a stored
+/// explanation at the mercy of whoever asked first.
+/// </para>
+/// </param>
+public sealed record CapabilitiesResponse(
+    bool DemoDataEnabled,
+    bool ExternalCallbackTriggerEnabled,
+    string Language);

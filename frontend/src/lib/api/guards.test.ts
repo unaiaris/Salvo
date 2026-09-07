@@ -344,11 +344,28 @@ describe("guardas del dashboard, las métricas y la importación", () => {
       projectCapabilities(
         wireCapabilities({ demoDataEnabled: false, externalCallbackTriggerEnabled: false }),
       ),
-    ).toEqual({ demoDataEnabled: false, externalCallbackTriggerEnabled: false });
+    ).toEqual({ demoDataEnabled: false, externalCallbackTriggerEnabled: false, language: "es" });
     expect(projectCapabilities(wireCapabilities({ demoDataEnabled: "true" }))).toBeNull();
     expect(
       projectCapabilities(wireCapabilities({ externalCallbackTriggerEnabled: "true" })),
     ).toBeNull();
+  });
+
+  /**
+   * The language is projected, and it is also checked against the catalogue the console has
+   * dictionaries for. Both halves matter: a missing field is a contract the console cannot read,
+   * and a language it has no words for is worse than an error, because rendering Spanish around it
+   * would look like it worked.
+   */
+  it("proyecta el idioma y rechaza el que no puede componer", () => {
+    expect(projectCapabilities(wireCapabilities({ language: "pt" }))?.language).toBe("pt");
+
+    for (const language of [undefined, null, "", "de", "es-UY", "ES", 1]) {
+      expect(
+        projectCapabilities(wireCapabilities({ language })),
+        `idioma ${String(language)}`,
+      ).toBeNull();
+    }
   });
 });
 

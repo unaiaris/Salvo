@@ -46,11 +46,17 @@ public interface IExplanationStore
     /// asked for one. Absence is an ordinary state and never an error: storing a row to mean «not
     /// requested» would be a row per evaluation for a question nobody asked.
     /// </summary>
+    /// <param name="language">
+    /// The language of the deployment, and the fifth column of the identity. It is what makes a
+    /// deployment that changed language find that this evaluation has no text yet in the language
+    /// it now writes, rather than find the other one and take it for the answer.
+    /// </param>
     Task<AlertExplanation?> FindAsync(
         Guid riskEvaluationId,
         ExplanationProvider provider,
         string templateVersion,
         string alertPolicyVersion,
+        ExplanationLanguage language,
         CancellationToken cancellationToken);
 
     /// <summary>

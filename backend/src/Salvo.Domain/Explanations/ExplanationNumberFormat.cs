@@ -4,16 +4,27 @@ using System.Text;
 namespace Salvo.Domain.Explanations;
 
 /// <summary>
-/// Renders a number the way the console writes one: thousands with a point, decimals with a comma.
+/// Renders a number the way an explanation writes one: thousands with a point, decimals with a
+/// comma.
 /// </summary>
 /// <remarks>
+/// <para>
 /// Written by hand rather than taken from a culture on purpose. Everything the domain produces has
 /// to be byte-identical on every machine, and culture data is neither frozen nor identical across
 /// runtimes; the golden test of the summary would then be a test of the host's ICU version. The
-/// grouping rules of <c>es-UY</c> are simple enough that stating them is cheaper than depending on
-/// them.
+/// grouping rules are simple enough that stating them is cheaper than depending on them.
+/// </para>
+/// <para>
+/// <strong>Both languages share it, and that is a fact about the two languages rather than a
+/// shortcut.</strong> Uruguayan Spanish and Brazilian Portuguese group thousands with a point and
+/// separate decimals with a comma, so «1.234,50» is what a reader of either expects. It was called
+/// <c>ExplanationNumberFormat</c> until <c>E9C1</c>, and not one line of it changed when Portuguese
+/// arrived — only the name, which had become a claim the type no longer supported. A third
+/// language whose numbers read differently would need its own, and this one would then have to say
+/// which languages it speaks for.
+/// </para>
 /// </remarks>
-public static class SpanishNumberFormat
+public static class ExplanationNumberFormat
 {
     private const int ThousandsGroupLength = 3;
 

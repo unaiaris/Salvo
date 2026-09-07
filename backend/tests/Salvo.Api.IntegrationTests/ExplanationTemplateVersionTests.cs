@@ -174,12 +174,12 @@ public sealed class ExplanationTemplateVersionTests
             """
             INSERT INTO alert_explanations (
                 id, risk_evaluation_id, provider, template_version, alert_policy_version,
-                requested_from_alert_id, status, summary, referenced_rules_json, failure_code,
-                attempt_count, requested_at_utc, settled_at_utc, row_version)
+                language, requested_from_alert_id, status, summary, referenced_rules_json,
+                failure_code, attempt_count, requested_at_utc, settled_at_utc, row_version)
             VALUES (
                 $id, $evaluation, 'MOCK', $template, $policy,
-                $alert, 'READY', $summary, '["amount_anomaly"]', NULL,
-                1, '2026-09-05T00:00:00.000Z', '2026-09-05T00:00:01.000Z', 1);
+                'es', $alert, 'READY', $summary, '["amount_anomaly"]',
+                NULL, 1, '2026-09-05T00:00:00.000Z', '2026-09-05T00:00:01.000Z', 1);
             """;
         AddParameter(command, "$id", Guid.NewGuid().ToString());
         AddParameter(command, "$evaluation", evaluationId.ToString());

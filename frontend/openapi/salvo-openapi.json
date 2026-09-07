@@ -1821,7 +1821,8 @@
       "CapabilitiesResponse": {
         "required": [
           "demoDataEnabled",
-          "externalCallbackTriggerEnabled"
+          "externalCallbackTriggerEnabled",
+          "language"
         ],
         "type": "object",
         "properties": {
@@ -1830,6 +1831,9 @@
           },
           "externalCallbackTriggerEnabled": {
             "type": "boolean"
+          },
+          "language": {
+            "type": "string"
           }
         }
       },

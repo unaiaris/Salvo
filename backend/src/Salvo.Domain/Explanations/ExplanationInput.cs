@@ -45,12 +45,19 @@ namespace Salvo.Domain.Explanations;
 /// The antifraud port is deliberately less strict — <c>ExternalEvaluationInput</c> does send the
 /// buyer reference — because its consumer scores a transaction rather than reading instructions.
 /// </para>
+/// <para>
+/// <c>Language</c> is here and not a property of the provider so that writing stays a function of
+/// its input: the same input produces the same paragraph on any deployment, which is what makes a
+/// golden text worth pinning. It is a validated enumeration of two members, so it carries no text
+/// a provider could read as anything but a choice between two vocabularies.
+/// </para>
 /// </remarks>
 public sealed record ExplanationInput(
     int Score,
     string Severity,
     string RuleConfigVersion,
     string AlertPolicyVersion,
+    ExplanationLanguage Language,
     IReadOnlyList<RiskSignal> Signals,
     long AmountCents,
     string CurrencyCode,

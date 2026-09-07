@@ -215,7 +215,12 @@ export function problemResponse(status: number, code: string, detail: string): R
 }
 
 export function wireCapabilities(overrides: WirePayload = {}): WirePayload {
-  return { demoDataEnabled: true, externalCallbackTriggerEnabled: true, ...overrides };
+  return {
+    demoDataEnabled: true,
+    externalCallbackTriggerEnabled: true,
+    language: "es",
+    ...overrides,
+  };
 }
 
 /**

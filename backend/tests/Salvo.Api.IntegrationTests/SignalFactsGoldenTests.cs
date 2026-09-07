@@ -138,6 +138,7 @@ public sealed class SignalFactsGoldenTests : IClassFixture<SalvoApiFactory>
                 "MEDIUM",
                 evaluation.ConfigVersion,
                 "e4-v1",
+                ExplanationLanguage.Spanish,
                 assessment.Signals,
                 order.AmountCents,
                 order.CurrencyCode,
