@@ -3910,3 +3910,446 @@ archivo.
   emitir un veredicto sobre una alerta y comprobar que el bloque verde recibe el foco.
 
 Estado: **Lista para integrar**.
+
+## `E9D-CIERRE` — El repaso final, y las cifras que salen de una corrida
+
+### Identificación
+
+- Estado de la rama: `Lista para integrar`
+- Etapa: 9, la última del MVP
+- Rama/worktree: `claude/e9d-cierre`
+- Commit base: `ad70c58`
+- Commit final: `<FINAL>`
+- Fecha: 2026-09-07
+
+### Resultado
+
+El repositorio dejó de mentir en cifras. El bloque marcado del README describía el corpus v1
+entero, el guion repetía lo mismo, y cuatro párrafos de prosa describían un proyecto que ya no
+existe. Todo eso salió de una corrida real y fechada, o se reescribió contra el árbol.
+
+Las nueve deudas que la etapa decidió no pagar están escritas con su motivo, y con ellas el límite
+más incómodo que este README puede declarar: **ninguna de sus cifras está verificada por script**, y
+se comprobó cambiando una por otra falsa.
+
+### La corrida de la que salen las cifras
+
+**2026-09-07**, sobre una base recién migrada en un directorio temporal. Nunca sobre `salvo.db`.
+
+```bash
+dotnet build Salvo.slnx --configuration Release
+dotnet ef database update \
+  --project backend/src/Salvo.Infrastructure/Salvo.Infrastructure.csproj \
+  --startup-project backend/src/Salvo.Api/Salvo.Api.csproj \
+  --configuration Release --no-build --connection "Data Source=${base}"
+ASPNETCORE_URLS=http://127.0.0.1:5399 \
+ConnectionStrings__SalvoDb="Data Source=${base}" DemoData__Enabled=true \
+  dotnet backend/src/Salvo.Api/bin/Release/net10.0/Salvo.Api.dll
+
+curl -X POST .../api/demo-data/seed
+curl -X POST .../api/risk-evaluations:run
+curl      .../api/dashboard          .../api/evaluation-metrics      .../api/alerts
+curl -X POST .../api/demo-data/external-evaluations:request
+curl -X POST .../api/demo-data/external-callbacks:deliver
+```
+
+Cada cifra publicada se leyó de esas respuestas y se contrastó además contra la base con SQL. **Nada
+se transcribió de un handoff.** Lo que los handoffs sirvieron fue para contrastar, y ahí apareció lo
+que sigue.
+
+| Magnitud | Corrida | Handoff que la produjo | ¿Coincide? |
+| --- | --- | --- | --- |
+| Fraudes | 28 de 300 | `E9A`: 28 | sí |
+| Alertas | 23: 11 media, 6 alta, 6 crítica | `E9A`: 11/6/6 | sí |
+| Matriz de holdout | 6 / 3 / 4 / 87, F1 0,632 | `E9A`: 6/3/4/87, F1 0,632 | sí |
+| Matriz de calibración | 11 / 3 / 7 / 179, F1 0,688 | `E9A`: 11/3/7/179 | sí |
+| Reglas que disparan | 50 / 19 / 10 / 4 / 2 / 2 | `E9A`: idénticas | sí |
+| Umbral del barrido | 60 | `E9A`: 60 | sí |
+| Denegados sin alerta local | **43** tras pedir las externas; **51** tras entregar los callbacks | `E9A` y el test fijan 43 | sí, **en su momento** |
+
+**La única diferencia aparente no lo es, y conviene dejarla escrita.** El panel de denegados vale 43
+inmediatamente después de `external-evaluations:request`, que es donde
+`DashboardEndpointTests.TheExternalDenialsPanelShowsTheFraudTheRulesNeverFlagged` mide, y 51 después
+de entregar los veintiún callbacks pendientes, porque ocho de ellos vuelven denegados. Son dos
+instantes distintos del mismo flujo, no dos mediciones en desacuerdo. El README publica las dos con
+su momento en vez de elegir una.
+
+### Tres cifras del brief que el árbol desmiente
+
+Las tres son menores y las tres se escribieron como manda el árbol, no como decía el brief.
+
+1. **«Cada falso negativo mueve el recall doce puntos».** El holdout tiene **diez** pedidos
+   fraudulentos —seis verdaderos positivos y cuatro falsos negativos—, así que uno más mueve el
+   recall exactamente **diez** puntos. El README dice diez.
+2. **«Los dos códigos de error de fila que no tienen rótulo».** Es **uno**: `UNKNOWN_FIELD`, y solo
+   lo emite el parser de JSON. Los códigos por registro son seis en total —`REQUIRED`,
+   `INVALID_FORMAT`, `OUT_OF_RANGE`, `UNSUPPORTED_VALUE` y `REFERENCE_CONFLICT` del dominio y del
+   handler, más `UNKNOWN_FIELD`— y el diccionario traduce los cinco primeros.
+3. **«El `16,7 %` de `unusual_hour` recalculado».** Recalculado sobre el v2 da **0 %**, y con eso la
+   conclusión que ese número sostenía se invierte: la regla **sí** dispara, dos veces, en
+   `ORD_000160` y `ORD_000244`. La franja más rara que **no** llega a disparar da 12 %. La
+   verificación se hizo replicando la aritmética del motor en Python sobre la fixture y comprobando
+   que da exactamente las dos señales que el motor escribió, con sus mismos `totalCount` de 25 y 26.
+
+### La prosa invalidada, que ningún `grep` de cifras encuentra
+
+Las cuatro entradas que el brief listaba, más tres que no listaba y aparecieron leyendo enteras las
+secciones de límites:
+
+| Dónde | Qué decía | Por qué era falso |
+| --- | --- | --- |
+| README, «Límites declarados» | «El corpus alcanza tres de las seis reglas», «un solo arquetipo», «la banda alta tampoco aparece» | Las seis disparan, hay siete arquetipos y la banda alta tiene seis alertas |
+| README, «Límites declarados» | «Los detalles de las señales están en inglés… cuando el motor los emita, el extractor se borra» | El motor ya los emite y el extractor se borró en `E9B` |
+| README, «Cinco decisiones» | «El tokenizador corre sobre los dos lados: sobre el `detail` en inglés… para construir los hechos» | **No listada en el brief.** Los hechos se construyen en el dominio desde campos tipados; el tokenizador corre sobre un solo lado |
+| README, diagrama del recorrido | «Seis reglas puras emiten señales con su detalle» | **No listada.** Emiten campos medidos |
+| README, «Cómo se verifica» | «en seis escenarios» | **No listada.** El smoke corre ocho desde `E9C1` |
+| Guion, minuto 9–10 | «Las métricas dan perfectas» y «tres de las seis reglas nunca abren una alerta» | Lo contrario de lo que la etapa consiguió |
+| Guion, minuto 2–5 | «monto atípico —veintitrés veces la mediana del comercio—» | En el v2 son 3,4 veces, que es lo que dice el texto dorado |
+| `docs/muestras/`, dos secciones | «`unusual_hour` no puede dispararse» y «la banda `ALTA`, la única que el corpus nunca produce» | Las dos se invirtieron |
+| `docs/capturas/` | «18 alertas abiertas» y «con scores de solo 60 y 90» | 23 alertas y cuatro scores distintos |
+
+### La falsación exigida
+
+Cambié `| Alertas abiertas | 23: 11 media, 6 alta y 6 crítica |` por `| Alertas abiertas | 902: 400
+media, 250 alta y 252 crítica |` y corrí la comprobación:
+
+```
+$ ./scripts/check-docs.sh
+72 comprobaciones, 0 fallas.
+```
+
+**Nada la detectó, y no podía detectarla.** `check-docs.sh` extrae de un documento exactamente tres
+clases de token —rutas entre acentos graves, destinos de enlace relativo y nombres de test— y no
+mira ninguna otra cosa. Ningún otro paso de la compuerta lee el README: el único que lo abre es ese
+script, invocado desde `check.sh`. Una cifra de nueve veces la real pasa en verde.
+
+De ahí salen dos cosas que quedaron escritas. La primera, en «Límites declarados» del README: el
+documento dice qué parte de sí mismo está verificada mecánicamente y qué parte depende de que
+alguien la regenere. La segunda, la **decisión 69** de la bitácora: un bloque de cifras declara de
+qué corrida salió y de qué fecha, porque lo que no se puede detectar se fecha.
+
+Después restauré el archivo y volví a correr el script, que dio verde con la cifra verdadera.
+
+### Las seis capturas, y el panel que salía vacío
+
+Las seis se regeneraron sobre una base nueva y **las aserciones previas a cada disparo pasaron sin
+cambios**: la consola cambió de texto —la frase de cada señal se compone desde campos y muestra la
+mediana— pero no de forma, así que ninguna ancla se rompió. Eso no era lo esperado y conviene
+decirlo, porque el brief anticipaba lo contrario.
+
+**El hallazgo salió de mirar los PNG, no de que el script pasara.** En la primera tanda, el panel
+«Denegados por el proveedor sin alerta local» aparecía vacío en la toma del dashboard, con su texto
+de estado diciendo que nadie había pedido todavía la evaluación externa. Era cierto: `capturas.sh`
+solo pedía la evaluación externa de `ORD_000011`, que es la que la toma 6 necesita. El resultado era
+que la captura que el README publica mostraba en blanco justamente el panel que `E9A` construyó para
+que «hay fraude que un proveedor ve y el motor local no» dejara de ser prosa.
+
+Dos cambios, los dos dentro de la reserva:
+
+- `scripts/capturas.sh` pide ahora la evaluación externa del **corpus entero**, después del pedido
+  individual. El endpoint solo pregunta por los pedidos que nunca se le consultaron a ese proveedor,
+  así que `ORD_000011` conserva su `APPROVED` y la toma 6 sigue teniendo su divergencia. **No** se
+  entregan los callbacks: con las síncronas el panel ya muestra 43 pedidos, y dejar veintiuno
+  pendientes es el estado más honesto para fotografiar.
+- `tools/capturas/capturar.mjs` exige antes de disparar la toma 4 que en pantalla estén la columna
+  «Score local» —que solo existe cuando el panel tiene filas; vacío, el panel es un párrafo— y
+  `ORD_000275`, uno de los tres arquetipos de fraude que las reglas no pueden ver. Sin esa aserción
+  el panel podía volver a vaciarse en silencio.
+
+La tabla del panel tiene scroll propio, así que las 43 filas no estiran la captura.
+
+Las seis se miraron una por una. Dos observaciones más:
+
+- La toma 5 deja ver **dos de las deudas declaradas**, y se dejaron a la vista a propósito: el aviso
+  dice «Se importaron 1 pedidos» y el mensaje técnico de cada registro rechazado sigue en inglés.
+  Una captura que las escondiera sería una captura peor.
+- La toma 3 reproduce exactamente el texto que `ExplanationGoldenTests` fija, con sus 3,4 veces la
+  mediana y el pie con la versión de plantilla y el idioma.
+
+### Las siete bases `.db`, con su fecha y su contenido
+
+**Ninguna se borró.** `rm` está denegado en este repositorio y es regla del usuario; esta lista
+existe para que decida él. Se consultaron sobre **copias** en un directorio temporal, porque cinco
+de las siete se niegan a abrirse en solo lectura y no valía la pena arriesgar una escritura.
+
+El repositorio tiene **siete** migraciones. La columna dice cuántas aplicó cada base.
+
+| Archivo | Modificada | Tamaño | Migr. | Qué contiene |
+| --- | --- | --- | --- | --- |
+| `salvo-demo-20260906-194054.db` | 2026-09-06 19:41 | 644 KiB | 6 de 7 | Ensayo de `demo.sh` con el **corpus v1**: 300 pedidos, 18 fraudes, una corrida `e3-v1`, 18 alertas (13 media, 5 crítica, ninguna alta). Sin externas ni explicaciones |
+| `salvo-demo-20260906-194152.db` | 2026-09-06 19:42 | 640 KiB | 6 de 7 | El mismo ensayo repetido un minuto después. Contenido idéntico al anterior |
+| `salvo-demo-20260907-125920.db` | 2026-09-07 12:59 | 648 KiB | 7 de 7 | Primer ensayo con el **corpus v2**: 300 pedidos, 28 fraudes, una corrida `e3-v2`, 23 alertas (11/6/6), una explicación. Sin externas |
+| `salvo-demo-20260907-155213.db` | 2026-09-07 16:04 | 904 KiB | 7 de 7 | Corpus v2 más tres pedidos importados a mano (303), dos corridas, 23 alertas, 303 evaluaciones externas, una explicación |
+| `salvo-demo-20260907-160731.db` | 2026-09-07 16:14 | 912 KiB | 7 de 7 | El ensayo siguiente, mismo contenido. **Dejó sueltos sus dos sidecars**, `.db-shm` y `.db-wal`, en el mismo directorio |
+| `salvo.db` | 2026-09-06 14:46 | 1,4 MiB | 6 de 7 | La base de desarrollo. **No es el corpus demo**: 328 pedidos del v1 más importaciones manuales, con un cuarto comercio `MER_UY_PHARMA`; 18 fraudes, siete corridas `e3-v1`, 21 alertas (13/1/7), una revisada, dos explicaciones, 328 externas y 21 recibos |
+| `salvo.design.db` | 2026-09-02 17:15 | 96 KiB | 2 de 7 | **Vacía**: cero pedidos, cero evaluaciones. Su esquema tiene cinco tablas y ni siquiera existe `alerts`. Quedó de la preparación de la Etapa 4 |
+
+Lo que yo haría, y es solo una recomendación:
+
+- **Las cinco `salvo-demo-*` son desechables.** Son ensayos de `demo.sh` y ninguna guarda nada que
+  no se regenere en un minuto. Las dos del 6 de septiembre son además del corpus anterior.
+- **`salvo.design.db` no sirve para nada**: está vacía y su esquema está cinco migraciones atrás.
+- **`salvo.db` es la decisión que hay que pensar.** Es la base de desarrollo y tiene una alerta
+  revisada y dos explicaciones que nada más tiene, pero está una migración atrás y su corrida vigente
+  es `e3-v1`, así que hoy la consola contra esa base no muestra el corpus de la etapa. Si se
+  conserva, conviene migrarla antes de volver a usarla.
+- Y los dos sidecars `salvo-demo-20260907-160731.db-shm` y `.db-wal`, que se van con su base.
+
+### `demo-orders.v1.json`: recomiendo conservarlo
+
+`EmbeddedDemoOrderSource` compone el nombre del recurso desde `DemoDatasetShape.Current.Version`, y
+el `.csproj` declara como recurso embebido **solo** el v2. El v1 no está embebido, así que **no se
+puede sembrar ni por error**: es un archivo inerte. Conservarlo documenta de dónde salió el v2 y
+deja comparable el cambio de reparto de etiquetas, que es el corazón de la etapa. Retirarlo solo
+evitaría que alguien lo confunda con el corpus vigente, y para eso alcanza con que `docs/muestras/`
+nombre el v2, que ya lo hace desde esta tarea.
+
+### `glosario.mjs` se queda donde está
+
+Moverlo a `tools/` obligaría a tocar la ruta que su propio encabezado documenta y la que
+`glosario-pt.md` cita en su línea 9, para ganar prolijidad de árbol y perder cercanía con los dos
+diccionarios que lee y el archivo que produce. Se queda, y el motivo está escrito en «Límites
+declarados» junto con la objeción: `frontend/src/` es código de la consola y un generador no lo es.
+
+### El artículo para revisores, listo para publicar
+
+Se escribe de cero: el artículo vive fuera del repositorio y esta tarea no puede leer el anterior.
+Va entero acá para que se copie de una sola vez. La geografía está corregida y hay además una
+aclaración que no estaba pedida y que conviene: los tres comercios del corpus están en el corredor
+UTC−3 por una razón técnica, no porque dibujen el mercado de nadie.
+
+---
+
+# Construí una consola antifraude donde la IA no decide nada
+
+Salvo es la consola de riesgo de un comercio electrónico ficticio. Puntúa pedidos con reglas
+deterministas, abre alertas auditables, le pide una segunda opinión a un proveedor antifraude
+externo y pone cada evaluación en palabras. Es un proyecto de portfolio: los datos son sintéticos,
+el proveedor externo es una simulación en proceso y no hay una credencial de nadie en ningún lado.
+
+Lo interesante no es qué hace. Es qué decidí que **no** hiciera.
+
+## Es la consola de un comercio, no un proveedor antifraude
+
+La distinción parece de tamaño y no lo es. Un proveedor evalúa para muchos comercios y ve el fraude
+a través de toda su base: la reputación de una tarjeta, el dispositivo que aparece en cinco
+comercios la misma tarde, el efecto de red. Un comercio ve una sola cosa, su propio historial de
+pedidos, y de ahí salen las seis reglas de Salvo: monto atípico contra la mediana, ráfaga de
+pedidos, dos países en dos horas, comprador nuevo con monto alto, país fuera del habitual y franja
+horaria rara.
+
+Elegir el lado del comercio cambia qué señales existen, y es la primera decisión de dominio del
+proyecto. Todo lo demás se apoya en ella.
+
+## Tres fuentes de verdad que no se mezclan nunca
+
+El score local, la opinión del proveedor externo y el veredicto de la analista son tres cosas
+distintas, y cada una tiene su tabla, su ciclo de vida y su regla de escritura. Mezclarlas es el
+error de diseño que este modelo existe para no cometer.
+
+Dos consecuencias que se ven en el código y no en un párrafo. La primera: la tabla de evaluaciones
+locales tiene un `CHECK` que la restringe a la fuente local, así que ningún estado externo puede
+colarse ahí ni por error de un caso de uso. La segunda es más sutil. Una evaluación no se actualiza
+nunca —se escribe una fila nueva, y su identidad es un fingerprint de su contenido—, así que «la
+más reciente» no sirve para saber qué está vigente: si una importación retroactiva hace que un
+score vuelva a un valor que ya tuvo, 0 → 40 → 0, la tercera evaluación **es** la primera fila otra
+vez. Qué está vigente lo define la corrida de scoring, que referencia una evaluación por pedido. Hay
+un test que es ese rebote escrito.
+
+Y cuando el motor local y el proveedor no coinciden, la consola muestra la discrepancia y no la
+resuelve. No combina los dos veredictos, y no compara los scores: son escalas de sistemas distintos,
+y «externo 11 contra local 90» no significa nada. La discrepancia es información para quien revisa.
+
+## La IA redacta, y lo que redacta se verifica antes de guardarse
+
+Salvo pone cada evaluación en un párrafo en castellano. Hoy lo escribe una plantilla determinista,
+pero el punto no es ese: el punto es que **da igual quién lo escriba**.
+
+«Usá solo las señales suministradas» es una intención mientras vive en un prompt. Es una propiedad
+cuando se comprueba a la salida. Antes de persistir un texto, Salvo verifica que cada cifra que
+menciona esté respaldada por un hecho de esa evaluación y que no cite ninguna regla que la
+evaluación no levantó. Un texto que dijera «cuarenta y ocho veces la mediana» se rechaza, porque
+cuarenta y ocho no es un hecho de esa evaluación. Y un texto rechazado no se guarda, no se registra
+y no se muestra: queda el token ofensor, nunca la frase.
+
+Tres detalles de dónde vive esa verificación, que es la parte que importa:
+
+- **En el caso de uso, entre el puerto y el almacenamiento**, nunca en el adaptador. Si viviera en
+  el adaptador, la plantilla determinista pasaría por educada y un adaptador futuro pasaría porque
+  alguien se acordó. No hay ningún camino a la base que la esquive, y un test de mutación quita la
+  llamada y observa cómo un rechazo se convierte en un texto guardado.
+- **Los hechos se construyen en el dominio**, a partir de los campos que cada regla midió, y son
+  deliberadamente permisivos: incluyen el monto en unidades y no solo en centavos, con separador de
+  miles, el porcentaje redondeado y el instante en hora del comercio. Ser estricto ahí rechaza texto
+  correcto, sistemáticamente. Lo que hace fuerte a la comprobación no es la estrechez del conjunto:
+  es que una cifra inventada no está en él y no se llega a ella redondeando.
+- **Al input del modelo no entra ningún texto que no escriba el motor.** Quedan fuera los campos
+  importados, los identificadores y las notas escritas por personas. Un identificador normalizado a
+  mayúsculas no es seguro por tener formato estricto: admite una instrucción legible en su alfabeto.
+
+La IA no decide fraude, ni severidad, ni bloqueo. No puede escribir en ninguna superficie de
+decisión, y hay tests que invierten todas las etiquetas de fraude de la base y exigen que ni una
+palabra del texto cambie.
+
+## El corpus está construido para que las reglas se equivoquen
+
+Esta es la parte de la que estoy más conforme, y es la menos vistosa.
+
+La primera versión del corpus tenía un solo arquetipo de fraude y las reglas recuperaban sus propias
+etiquetas: precisión, recall y F1 valían 1,00. Un resultado así no prueba el criterio, prueba el
+pipeline. Así que reescribí la fixture con siete arquetipos, tres de ellos **fraude que las reglas
+locales no pueden ver** —fraude amigo, cuenta tomada vista en el mismo dispositivo, prueba de
+tarjetas— y cuatro **pedidos legítimos que las reglas sí marcan**.
+
+Hoy el F1 sobre el holdout es 0,632, con seis verdaderos positivos, tres falsos positivos, cuatro
+falsos negativos y ochenta y siete verdaderos negativos.
+
+Y la afirmación que hace honesta a la cifra: la tasa base es del 9,3 % y **la elegí yo**, igual que
+elegí qué pedidos son fraude y cuáles de ellos el motor no puede ver. Con los errores puestos a
+mano, F1 es un parámetro del diseño y no un resultado. Lo que las métricas sí prueban es que la
+evaluación es honesta —división temporal, holdout sin retuning, aritmética que cierra—, no que las
+reglas generalicen a datos con los que no fueron construidas. Está escrito en el README, con la
+matriz de confusión y su `n`, y también dentro del producto, en el dashboard.
+
+Publicar un F1 de 1,00 habría quedado mejor en una captura. Habría sido peor proyecto.
+
+## Lo que el repositorio dice de sí mismo
+
+Un portfolio que presenta un mock como integración es peor que uno que no integra nada. Salvo no
+puede hacerlo, y no porque lo prometa en un párrafo: poner el proveedor en modo sandbox **hace
+fallar el arranque**, con o sin credencial, y lo mismo pasa con el proveedor de IA. Un valor
+desconocido también falla. Elegir un modo que no existe tiene que ser un error ruidoso y no una
+degradación silenciosa a mock.
+
+En la misma línea, un script comprueba en cada compuerta que cada ruta y cada nombre de test que el
+README cita existan de verdad. La deriva de un documento se detecta, no se promete. Lo que ese
+script **no** puede comprobar es una cifra, y eso también está escrito: por eso el bloque de números
+del README dice de qué corrida salió y de qué fecha.
+
+También está escrito lo que no llegué a hacer. El contraste de color no lo verifica nada
+automáticamente, porque el entorno de tests no calcula estilos: la regla está apagada por su nombre
+y dicha, que es más honesto que dejarla devolver «incompleto» y que alguien lo lea como aprobado. El
+recorrido con lector de pantalla fue parcial —la portada y el encabezado de la cola— y ningún
+documento del repositorio dice otra cosa; la pasada automática sí se hizo entera, con treinta y una
+reglas de accesibilidad y un análisis del árbol renderizado dentro de la compuerta. Y el portugués
+está completo pero no lo revisó un hablante nativo, con un glosario listo para que alguien lo
+corrija fila por fila.
+
+Sobre el portugués: el idioma es del **despliegue**, no de la persona, porque sin autenticación no
+hay a quién preguntarle. Y entra en la identidad de la explicación guardada, que fue la parte
+interesante: si el idioma no formara parte de la identidad de la fila, un despliegue que lo cambia
+encontraría la explicación en el idioma anterior y nunca escribiría la nueva. Nadie traduce lo ya
+guardado; el despliegue en portugués escribe la suya al lado y la castellana queda intacta.
+
+## Una aclaración sobre el contexto
+
+Escribí Salvo mirando el problema que resuelve Koin, que opera principalmente en Brasil y México,
+con presencia en algunos otros países de América Latina. No en Uruguay ni en Estados Unidos. Los
+tres comercios sintéticos del corpus están en Uruguay, Brasil y Argentina por una razón puramente
+técnica —el corredor UTC−3 hace que «franja horaria del comercio» signifique lo mismo para los
+tres—, y no son un dibujo del mercado de nadie.
+
+Salvo tampoco es una integración con Koin ni pretende serlo. Es el modelo del problema: dónde vive
+cada decisión, qué no se puede mezclar con qué, y qué hay que poder demostrar.
+
+---
+
+### Archivos modificados
+
+- `README.md` — el bloque marcado regenerado, «Límites declarados» reescrito entero con las nueve
+  deudas, la matriz de confusión, la corrección del bullet del tokenizador y del nodo del diagrama,
+  el conteo de escenarios del smoke, y los dos textos alternativos que decían «dieciocho alertas».
+- `docs/guion-demo.md` — la señal de `ORD_000011`, el bloque marcado, y las dos frases del cierre.
+- `docs/muestras/README.md` — la sección de `unusual_hour` invertida, el `16,7 %` recalculado, el
+  encabezado de la tabla de señales, y la última referencia viva a `demo-orders.v1.json`.
+- `docs/capturas/README.md` — las cifras, la sección nueva sobre el panel de denegados, y la nota
+  de que la toma 5 muestra dos deudas a propósito.
+- `docs/capturas/*.png` — las seis, regeneradas.
+- `scripts/capturas.sh` — la evaluación externa del corpus antes de fotografiar.
+- `tools/capturas/capturar.mjs` — las dos aserciones nuevas de la toma 4.
+- `DesignAgent/Salvo-Getting-Started.md` — la línea de `http.postBuffer` y el estado, que decía
+  «Etapa 8 en ejecución».
+- `DesignAgent/Salvo-Blueprint.md` — **solo la bitácora**: la decisión 69.
+- `Coordination/Handoffs/Claude.md` — esta entrada.
+
+No se tocó `backend/**`, ni `frontend/src/**` fuera de lo que no hizo falta tocar —al final, nada—,
+ni el Workboard, ni el Progress.
+
+### Verificación
+
+| Comando o comprobación | Resultado |
+| --- | --- |
+| `/brief-check Coordination/Tasks/E9D-CIERRE.md` | Válido en la segunda vuelta, tras cerrar cuatro faltas |
+| Corrida sobre base nueva del 2026-09-07 | Las cifras del bloque salen de ahí, contrastadas contra SQL |
+| `./scripts/check-docs.sh` | Verde: 73 comprobaciones, 0 fallas |
+| `./scripts/check.sh` | **Verde**, salida 0. 73 comprobaciones de documentos, 117 tests de dominio, 172 de integración, 273 de frontend, y los dos builds de producción |
+| `./scripts/smoke-ui.sh` | **Verde**, salida 0. 71 comprobaciones, 0 fallas |
+| `./scripts/capturas.sh` | Seis capturas, con las aserciones nuevas pasando |
+| Importación de las cuatro muestras contra la API | 5/0, 1/5 con los cinco códigos, 21/0, y `400 INVALID_JSON_ROOT` |
+| `grep -rn "1,00\|18 alertas\|18 fraudes" README.md docs/` | Sin resultados |
+| «tres de las seis reglas», «el extractor se borra» | Sin resultados |
+| Falsación de una cifra del README | **Nada la detectó**, como se esperaba |
+| `git status --porcelain` | Limpio; solo paths autorizados en el diff |
+
+Una nota sobre cómo se corrió la compuerta, porque me costó una vuelta: la primera vez la lancé como
+`./scripts/check.sh 2>&1 | tail -40`, y el código de salida que volvió era el de `tail`, no el de la
+compuerta. Un verde así no prueba nada. La segunda vez redirigí a archivo y leí el código de salida
+del script.
+
+### Decisiones y supuestos
+
+- **Las cifras que el brief traía mal se escribieron como manda el árbol**, no como decía el brief:
+  diez puntos de recall y no doce, un código sin rótulo y no dos, y el `16,7 %` recalculado a 0 %
+  con la conclusión invertida. Están arriba con su verificación.
+- **El panel de denegados se publica con sus dos valores**, 43 y 51, cada uno con su momento del
+  flujo, en vez de elegir uno y que el otro parezca un error.
+- **Las capturas se sacaron en castellano**, que es el idioma por defecto y el de la demostración.
+- **`glosario.mjs` se queda** donde está, con su motivo escrito.
+- **`demo-orders.v1.json` se recomienda conservar**, y la decisión es del coordinador.
+- **La decisión 69 es la única entrada nueva de la bitácora.** Las 62 a 68 ya cubren el idioma, el
+  umbral y la contrapositiva de la 58, y las dependencias de accesibilidad no necesitan entrada
+  propia: la 61 ya dice que una dependencia se aprueba por nombre y motivo en el diseño de su etapa,
+  y `D7` lo hizo.
+
+### Riesgos o pendientes
+
+Tres cosas que encontré y **no arreglé porque están fuera de la reserva de esta tarea**. Las tres son
+de producto o de un script que no me tocaba, y las tres son decisión del coordinador.
+
+1. **El aviso de la consola contradice al corpus, y es el más visible de los tres.** La clave
+   `dashboard.qualityCaveat` de `frontend/src/lib/i18n/es.ts` empieza diciendo «La fixture demo fue
+   construida para que las reglas recuperen sus propias etiquetas». Eso era cierto del corpus v1 y es
+   exactamente lo contrario de lo que la Etapa 9 hizo. **Sale en la captura del dashboard que el
+   README publica**, dos pantallas debajo del párrafo donde el README explica que el corpus se
+   construyó para que las reglas se equivoquen. La segunda mitad de la frase sigue siendo verdadera y
+   es la que el README cita. El arreglo es una frase en `es.ts` y su par en `pt.ts`, más regenerar la
+   toma 4; lo dejé sin tocar porque el brief pone los diccionarios fuera de alcance salvo que un
+   documento cite un literal que ya no existe, y este caso es el inverso: el literal existe y es
+   falso. **Es lo primero que yo haría después de integrar esto.**
+2. **El comentario de `NumberTokenizer.cs` describe el sistema anterior.** Dice que corre «sobre los
+   dos lados: sobre el `detail` en inglés que escribe el motor, para construir los hechos». Desde
+   `E9B` los hechos se construyen desde campos tipados y el tokenizador corre sobre un solo lado. El
+   README ya está corregido; el comentario del código no, porque `backend/**` está fuera.
+3. **La cabecera de `scripts/smoke-ui.sh` dice «Seis en total» y lista ocho.** `E9C1` agregó el
+   despliegue en portugués y el idioma desconocido a la lista pero no al conteo. El README ya dice
+   ocho.
+
+Y lo que la etapa decidió no pagar, que ahora está escrito en el README y no es pendiente sino
+límite: el contraste sin verificar, el recorrido con lector de pantalla parcial, el portugués sin
+hablante nativo, `MER_US_MARKET`, los mensajes de fila en inglés y `UNKNOWN_FIELD` sin rótulo, «Se
+importaron 1 pedidos», `glosario.mjs` dentro de `src/`, el desempate de la cola por identificador
+aleatorio y el `explanationId` que no se pinta.
+
+### Integración
+
+- **Orden sugerido:** directo, es la única tarea abierta. **Por merge, nunca por rebase**: el commit
+  que declara la base va en esta rama.
+- **Migraciones o pasos manuales:** ninguna. No hay código de producción en el diff.
+- **Posibles conflictos:** ninguno. Nadie más tiene paths reservados.
+- **Verificación posterior al merge:** `./scripts/check.sh` y `./scripts/smoke-ui.sh` sobre `main`.
+- **Antes del primer `git push` con las capturas adentro**, correr `git config http.postBuffer
+  524288000`. Es la línea que esta tarea agregó a la guía de arranque, y sin ella el empujón falla
+  con un `HTTP 400` que no dice por qué.
+- **Le queda al coordinador**, como siempre: cerrar `E9D` en el Workboard y en el Progress —los
+  cuatro lugares de la lista, incluida la cabecera del Overview—, decidir qué bases `.db` borra,
+  decidir sobre `demo-orders.v1.json`, y publicar el artículo.
