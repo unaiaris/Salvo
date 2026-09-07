@@ -272,11 +272,14 @@ tercera. (Sección histórica de la Etapa 4: las Etapas 5, 6 y 7 se completaron 
       explicada si aparece.
 - [ ] Las seis reglas y las tres bandas alcanzables desde el corpus.
 - [ ] Comercios en mercados plausibles.
-- [ ] Señales estructuradas (`e3-v2`) y portugués.
+- [ ] Señales estructuradas (`e3-v2`), con `detail` conservado como campo heredado.
+- [ ] Portugués: `SALVO_LANGUAGE` del despliegue, y el idioma en la identidad de la explicación.
 - [ ] Pasada de accesibilidad con lector de pantalla real.
 - [ ] Códigos de error de fila traducidos (`describeRecordError`).
-- [ ] Ruta `/orders` y un modo del proveedor simulado que se porte mal.
 - [ ] Repaso final: todos los documentos y el artículo para revisores, con las cifras nuevas.
+
+Fuera de la etapa, dichos: la ruta `/orders`, un proveedor simulado que se porte mal, Anthropic, el
+desempate de la cola por identificador aleatorio, y pintar `explanationId` en el panel de revisión.
 
 ## Decisiones y dependencias abiertas
 

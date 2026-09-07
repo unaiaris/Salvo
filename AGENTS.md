@@ -50,8 +50,16 @@ cambia alcance o arquitectura, actualizar primero su bitácora y después los do
   caso de uso, entre el puerto y el almacenamiento, nunca en el adaptador.
 - Cambiar el texto que produce una plantilla sube su versión, porque la versión forma parte de la
   identidad de la fila.
-- La Etapa 8 es «El argumento del proyecto»: README, diagramas, capturas y guion de demo. La Etapa 9
-  es «Corpus, idiomas y cierre».
+- Etapa 8 completada. Se ejecutó en dos ítems: `E8A-README-DIAGRAMAS` (`1243d54`) y
+  `E8B-DEMO-CAPTURAS` (`6ae7750`). El README pasó a ser el argumento del proyecto, y
+  `scripts/check-docs.sh` entró en la compuerta: cada ruta y cada nombre de test que un documento
+  público cita se comprueba, no se promete.
+- Etapa 9 en ejecución, la última: corpus, idiomas y cierre. El corpus de demostración se construye
+  para que las reglas **se equivoquen** (decisión 65); el idioma es del despliegue (decisión 62); y
+  el umbral de alerta es una política de negocio y no el resultado del barrido (decisión 63).
+- El orden de la Etapa 9 es obligatorio: la fixture primero y el motor después, porque el corpus
+  actual dispara tres de las seis reglas y el extractor de `SignalFacts` es el único oráculo capaz
+  de certificar los campos tipados de las otras tres.
 - El recibo de un callback y la transición que provoca se persisten en una única unidad de trabajo.
   Un duplicado es la ausencia de una segunda fila, detectada por violación de unicidad.
 - El endpoint de callback falla cerrado: sin secreto configurado, `401` a toda petición.

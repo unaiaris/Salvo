@@ -1,8 +1,8 @@
 # Salvo — Blueprint del MVP
 
 > Estado del documento: vigente
-> Estado del proyecto: Etapas 1 a 7 integradas y verificadas; Etapa 8 diseñada, en revisión
-> Última actualización: 2026-09-06
+> Estado del proyecto: Etapas 1 a 8 integradas y verificadas; Etapa 9 en ejecución. Es la última
+> Última actualización: 2026-09-07
 > Seguimiento operativo: [[Salvo-Progress]]
 
 Fuente de verdad del producto, alcance y arquitectura. Salvo es una consola antifraude B2B para un
@@ -127,7 +127,9 @@ Analista de riesgo u operaciones de un comercio electrónico ficticio.
 ### 4.1 Datos e importación
 
 - Seed idempotente con 300 pedidos de una ventana fija de 120 días.
-- Ground truth completo: 300 etiquetas separadas, con 18 fraudes y 282 casos legítimos.
+- Ground truth completo: 300 etiquetas separadas. El reparto **depende de la versión del corpus**:
+  el v1 tiene 18 fraudes y 282 legítimos, construidos de modo que las reglas los recuperaran; el v2
+  se construye para que las reglas **se equivoquen** (decisión 65).
 - Campos mínimos normalizados:
   - `occurredAt` en UTC;
   - `amountCents` positivo para el total del pedido;
@@ -237,7 +239,10 @@ Diseño aprobado para E3:
 - `/alerts/[id]`: contexto, señales del snapshot, evaluación vigente, divergencia y acciones de
   revisión.
 - `/dashboard`: alertas abiertas, monto en riesgo desglosado por moneda, fraude reportado por
-  pedido, tasa de marcado, riesgo temporal y señales principales.
+  pedido, tasa de marcado, riesgo temporal, señales principales y **los pedidos que el proveedor
+  externo denegó sin que hubiera alerta local**. Ese último panel existe porque un pedido sin alerta
+  no tiene ninguna otra pantalla, y sin él el fraude que el motor local no ve es una fila que no se
+  puede mirar.
 - **Toda pantalla de datos declara su procedencia**: de qué corrida es lo que muestra, y cuántos
   pedidos quedaron sin puntuar.
 - El monto en riesgo nunca se totaliza entre monedas.
@@ -809,6 +814,7 @@ completo el MVP local.
 | 62 | El idioma de la consola es del despliegue y entra en la identidad de la explicación; por persona es post-MVP | Sin autenticación no hay a quién preguntarle; y si el idioma no está en la identidad de la fila, un despliegue que lo cambia encuentra la explicación en el idioma anterior y nunca escribe la nueva | 2026-09-07 |
 | 63 | El umbral de alerta es una política de negocio, no el resultado del barrido | El barrido maximiza F1 sobre una cohorte; si sugiere otro umbral, el producto no lo adopta: lo muestra y explica la diferencia | 2026-09-07 |
 | 64 | Una versión de plantilla **no** sube si el texto no cambia | Es la contrapositiva de la 58. Dos versiones con texto idéntico hacen que la consola ofrezca redactar de nuevo para producir el mismo párrafo | 2026-09-07 |
+| 65 | El corpus de demostración se construye para que las reglas se equivoquen, y su reparto de etiquetas es propio de cada versión | Un corpus en el que el score recupera la etiqueta hace que las métricas prueben el pipeline y no el criterio. La decisión 19 sigue vigente en lo que fija —300 pedidos, 300 etiquetas, fixture explícita— y deja de fijar cuántos fraudes | 2026-09-07 |
 
 ## 14. Mapa de documentación
 

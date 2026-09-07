@@ -17,9 +17,9 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 | Work ID | Estado | Propietario | Modelo y esfuerzo | Paths reservados |
 | --- | --- | --- | --- | --- |
 | `E9A-FIXTURE` | `Asignada` | `Claude` | Opus 5 · `high` | `backend/src/Salvo.Infrastructure/Seed/**`, `Salvo.Application/Orders/Seed/**`, el endpoint del seed, el panel del dashboard en backend y frontend, `frontend/src/app/alerts/[id]/divergence.ts`, `messages.ts`, `backend/tests/**` y las fixtures del frontend. **La reserva completa vive en el brief; esta fila la resume.** |
-| `E9B-SENALES-TIPADAS` | `En cola` | `Claude` | por acordar | `e3-v2`, contrato recapturado, el extractor como oráculo |
-| `E9C-PORTUGUES-ACCESIBILIDAD` | `En cola` | `Claude` | por acordar | `SALVO_LANGUAGE`, dos diccionarios, migración de idioma, recorrido con lector de pantalla |
-| `E9D-CIERRE` | `En cola` | `Claude` | por acordar | Repaso final de documentos, capturas y artículo |
+| `E9B-SENALES-TIPADAS` | `Propuesta` | `Claude` | por acordar | `e3-v2`, contrato recapturado, el extractor como oráculo |
+| `E9C-PORTUGUES-ACCESIBILIDAD` | `Propuesta` | `Claude` | por acordar | `SALVO_LANGUAGE`, dos diccionarios, migración de idioma, recorrido con lector de pantalla |
+| `E9D-CIERRE` | `Propuesta` | `Claude` | por acordar | Repaso final de documentos, capturas y artículo |
 
 **El orden es obligatorio y está argumentado en el diseño v2**: la fixture primero y el motor
 después, porque el corpus actual dispara tres de las seis reglas y el extractor de `SignalFacts` es
