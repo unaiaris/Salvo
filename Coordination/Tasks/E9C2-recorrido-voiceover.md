@@ -148,6 +148,10 @@ La pantalla más densa del producto. Tomate el tiempo acá.
       una base nueva**: hacen falta dos versiones vivas. Quedan **no verificados** y así se anota.
 
 13. Ahora el **formulario de veredicto**. `Tab` hasta él.
+    - Si la alerta que abriste tiene una divergencia **que cambió de banda**, el formulario está
+      bloqueado hasta que marques una casilla que dice «Leí en qué cambió la evaluación vigente y
+      quiero emitir el veredicto igual». **Eso es deliberado, no un hallazgo.** Lo que sí es
+      hallazgo: que llegues al botón de enviar sin haber escuchado nunca por qué estaba bloqueado.
     - **Deberías escuchar** «Veredicto» como nombre del grupo, y después las dos opciones:
       «Confirmar segura» con su aclaración «El pedido no es fraude», y «Reportar fraude» con la suya.
     - **Es hallazgo si**: las opciones se anuncian sin su aclaración. La diferencia entre las dos es

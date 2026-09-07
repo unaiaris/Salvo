@@ -28,8 +28,10 @@ ninguna herramienta puede contestar —si una analista que no ve la pantalla pue
 sin haber entendido mal lo que estaba por hacer— lo contesta una persona con un lector de pantalla.
 
 **El punto de partida no es un desastre y el brief no finge que lo sea.** La consola ya tiene
-`<main>`, `<header>` y `<nav aria-label>`; las secciones llevan `aria-labelledby`; las tablas llevan
-`<caption class="sr-only">`; los resultados de acción llevan `role="status"` y `role="alert"`; y la
+`<main>`, `<header>` y `<nav aria-label>`; las secciones llevan `aria-labelledby`; la cola de
+alertas y el panel de denegados llevan `<caption class="sr-only">` —**no todas las tablas**: la
+matriz de confusión tiene una leyenda visible y la del barrido no tiene ninguna, y eso lo mide la
+fase 1—; los resultados de acción llevan `role="status"` y `role="alert"`; y la
 severidad se escribe en palabras a propósito, con el comentario que dice por qué. Esto es una pasada
 de refinamiento sobre algo que ya se pensó, no un rescate.
 
@@ -57,15 +59,25 @@ de refinamiento sobre algo que ya se pensó, no un rescate.
 
 ### Fase 1 — Lo automatizable, y la lista
 
-**1. Averiguar primero qué hay.** `eslint-config-next` ya trae un subconjunto de reglas de
-accesibilidad. **La tarea empieza midiendo cuáles están activas**, y solo agrega lo que falte. Sumar
-un plugin que ya está corriendo es superficie sin beneficio, y este proyecto tiene la regla de no
-agregar dependencias porque sí.
+**1. El punto de partida ya está medido, y el brief lo escribe para que la tarea no lo redescubra.**
+`eslint-config-next` arrastra `eslint-plugin-jsx-a11y` **6.10.2**, que a su vez arrastra `axe-core`
+**4.13.0**; hoy hay **seis reglas de accesibilidad activas en `warn`**, y como `lint` corre con
+`--max-warnings=0`, esas seis **ya rompen la compuerta**. La tarea empieza confirmando esa cuenta y
+enumerando las seis en el handoff.
 
-**2. Las dependencias que falten, con nombre y versión exacta.** Se autorizan, excepcionalmente y
-solo éstas: `eslint-plugin-jsx-a11y` si no está cubierto, y `axe-core` con su enlace a Vitest para
-comprobar el árbol renderizado. **Versiones exactas**, como todo el resto de `package.json`, y el
-handoff dice qué aporta cada una que la otra no.
+Un matiz que hay que tener en cuenta al declararlas: `eslint-plugin-jsx-a11y` queda **anidado** bajo
+`eslint-config-next/node_modules/`, no en la raíz, así que activar más reglas por nombre desde
+`eslint.config.mjs` exige declararlo. `axe-core` sí está en la raíz, pero depender de un transitivo
+no declarado es exactamente lo que se rompe en una instalación limpia.
+
+**2. Las dos dependencias, aprobadas por nombre y motivo en D7 del diseño**, como exige la decisión
+61: `eslint-plugin-jsx-a11y` en `6.10.2` y `axe-core` en `4.13.0`, **las versiones exactas que ya
+están instaladas**. Pasan de transitivas a declaradas y no entra código de terceros que no estuviera
+corriendo.
+
+**No se agrega ningún enlace de terceros entre `axe-core` y Vitest.** El helper se escribe a mano:
+llamar a `axe.run` sobre el contenedor renderizado y afirmar cero violaciones. Si la tarea cree
+necesitar un paquete más, **para y consulta**.
 
 **3. Corregir lo que las herramientas encuentren**, y dejarlas corriendo en `npm run check` para que
 la deriva se detecte en vez de prometerse — el molde de `OpenApiDriftTests` y de `check-docs.sh`.
@@ -78,7 +90,13 @@ avisos que la pantalla no tenía por qué mostrar.
 La fase 1 entrega, con sus pasos escritos en el handoff para que el coordinador los repita:
 
 - **Una alerta con explicación ya escrita**, que es un `POST` y sale barato.
-- **Una alerta con aviso de divergencia**, si se puede producir sin deformar el corpus. El camino es
+- **Una alerta con aviso de divergencia**, si se puede producir sin deformar el corpus. **El pedido
+  retroactivo no tiene archivo propio**: `docs/muestras/**` está reservado para `E9D`, así que el
+  payload va **en línea, dentro de los pasos del handoff**, y no se versiona en ningún lado. Si la
+  divergencia **cambia de banda**, el formulario de veredicto queda bloqueado hasta marcar la
+  casilla de reconocimiento, y eso cambia el paso 13 del recorrido: **se prefiere una divergencia
+  dentro de la misma banda**, y si no se consigue, se avisa en el handoff para que el guión lo diga.
+  El camino es
   insertar un pedido **anterior** a uno ya alertado, para el mismo comercio, de modo que su baseline
   cambie y el rescoreo mueva el score contra el snapshot congelado. **No se puede desde `/import`
   con las muestras que hay**: el corpus termina el 2026-08-28 y la única fila válida de
@@ -159,7 +177,7 @@ reservado. Si hay que renombrar uno, la tarea para y consulta.
 
 - [ ] `/brief-check Coordination/Tasks/E9C2-ACCESIBILIDAD.md` sin faltantes antes de empezar.
 - [ ] El handoff dice **qué reglas de accesibilidad ya estaban activas** antes de agregar nada.
-- [ ] Cada dependencia nueva tiene versión exacta y una línea que dice qué aporta que la otra no.
+- [ ] Las dos dependencias quedan declaradas en `6.10.2` y `4.13.0`, y **no** entró ninguna otra.
 - [ ] Las comprobaciones corren dentro de `npm run check` y por lo tanto en la compuerta.
 - [ ] El estado del recorrido está preparado y sus pasos escritos: una alerta con explicación, y
       una con divergencia **o** la declaración de que no es producible.
@@ -181,7 +199,7 @@ reservado. Si hay que renombrar uno, la tarea para y consulta.
 | Comando/comprobación | Resultado esperado |
 | --- | --- |
 | `/brief-check Coordination/Tasks/E9C2-ACCESIBILIDAD.md` | Brief válido |
-| Reglas activas antes de tocar nada | Enumeradas en el handoff |
+| Las seis reglas activas antes de tocar nada | Enumeradas una por una en el handoff |
 | `npm run check` | Incluye las comprobaciones nuevas y pasa |
 | Estado del recorrido | Explicación escrita; divergencia producida o declarada imposible |
 | Lista de hallazgos | Una fila por hallazgo, con severidad |
@@ -210,7 +228,7 @@ fallar.
 
 - las herramientas encuentran algo que exige tocar el contrato o el backend;
 - un hallazgo solo se arregla rediseñando una pantalla;
-- una dependencia nueva arrastra otras o no se puede fijar en versión exacta;
+- hace falta una dependencia que no sean esas dos, o alguna no se puede fijar en versión exacta;
 - hay que renombrar un test que el README nombra;
 - **siempre, al terminar la fase 1**: la parada no es opcional.
 
@@ -219,7 +237,7 @@ fallar.
 ### De la fase 1
 
 - Resumen del resultado y archivos modificados.
-- **Qué reglas ya estaban activas**, y qué agregó cada dependencia nueva.
+- **Las seis reglas que ya estaban activas**, enumeradas, y qué reglas nuevas se activaron.
 - **Los pasos para dejar la base en el estado que el recorrido necesita.**
 - **La lista de hallazgos**, con severidad y arreglo propuesto.
 - La falsación de la compuerta, con su error exacto.
