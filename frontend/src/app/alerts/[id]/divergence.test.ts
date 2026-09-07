@@ -104,3 +104,77 @@ describe("divergencia", () => {
     expect(notice.kind).toBe("none");
   });
 });
+
+describe("divergencia y versiones del motor", () => {
+  /**
+   * La razón por la que el aviso compara score y señales en vez de identificadores. Cuando el
+   * motor sube de versión, cada evaluación se vuelve a escribir con otro fingerprint y por lo
+   * tanto con otro identificador, sin que nada del riesgo haya cambiado. Comparando
+   * identificadores, **toda** alerta de la base anunciaba «la evaluación cambió (100 → 100)».
+   */
+  it("no avisa cuando la evaluación vigente es otra fila con el mismo score y las mismas reglas", () => {
+    const notice = describeDivergence(
+      detailFrom({
+        currentEvaluation: {
+          evaluationId: "9f9b7f3e-0000-4000-8000-000000000009",
+          score: 100,
+          severity: "CRITICAL",
+          isFlagged: true,
+          signals: [
+            { rule: "amount_anomaly", weight: 40, detail: "Otra redacción de la misma señal." },
+            { rule: "velocity", weight: 25, detail: "Otra redacción también." },
+          ],
+          evaluatedAt: "2026-09-06T10:02:00+00:00",
+        },
+      }),
+    );
+
+    expect(notice.kind).toBe("none");
+  });
+
+  it("sí avisa cuando cambió el peso de una regla, aunque el score total no se mueva", () => {
+    const notice = describeDivergence(
+      detailFrom({
+        snapshot: {
+          evaluationId: "3f3b7f3e-0000-4000-8000-000000000003",
+          score: 100,
+          severity: "CRITICAL",
+          signals: [
+            { rule: "amount_anomaly", weight: 40, detail: "d" },
+            { rule: "velocity", weight: 25, detail: "d" },
+          ],
+        },
+        currentEvaluation: {
+          evaluationId: "9f9b7f3e-0000-4000-8000-000000000009",
+          score: 100,
+          severity: "CRITICAL",
+          isFlagged: true,
+          signals: [
+            { rule: "amount_anomaly", weight: 30, detail: "d" },
+            { rule: "velocity", weight: 35, detail: "d" },
+          ],
+          evaluatedAt: "2026-09-06T10:02:00+00:00",
+        },
+      }),
+    );
+
+    expect(notice.kind).toBe("advisory");
+  });
+
+  it("sí avisa cuando una regla dejó de dispararse", () => {
+    const notice = describeDivergence(
+      detailFrom({
+        currentEvaluation: {
+          evaluationId: "9f9b7f3e-0000-4000-8000-000000000009",
+          score: 100,
+          severity: "CRITICAL",
+          isFlagged: true,
+          signals: [{ rule: "amount_anomaly", weight: 40, detail: "d" }],
+          evaluatedAt: "2026-09-06T10:02:00+00:00",
+        },
+      }),
+    );
+
+    expect(notice.kind).toBe("advisory");
+  });
+});
