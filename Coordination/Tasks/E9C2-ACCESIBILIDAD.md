@@ -65,10 +65,12 @@ de refinamiento sobre algo que ya se pensó, no un rescate.
 `--max-warnings=0`, esas seis **ya rompen la compuerta**. La tarea empieza confirmando esa cuenta y
 enumerando las seis en el handoff.
 
-Un matiz que hay que tener en cuenta al declararlas: `eslint-plugin-jsx-a11y` queda **anidado** bajo
-`eslint-config-next/node_modules/`, no en la raíz, así que activar más reglas por nombre desde
-`eslint.config.mjs` exige declararlo. `axe-core` sí está en la raíz, pero depender de un transitivo
-no declarado es exactamente lo que se rompe en una instalación limpia.
+Un matiz que hay que tener en cuenta al declararlas, y conviene decirlo con precisión: en
+configuración plana **una regla se puede encender por su nombre si un objeto anterior ya registró el
+plugin**, así que ése no es el motivo. El motivo es otro y es doble: `eslint-plugin-jsx-a11y` queda
+**anidado** bajo `eslint-config-next/node_modules/`, de modo que **importarlo** desde
+`eslint.config.mjs` falla; y depender de un transitivo sin declararlo es exactamente lo que se rompe
+en una instalación limpia. `axe-core` sí está en la raíz, y le vale el segundo motivo.
 
 **2. Las dos dependencias, aprobadas por nombre y motivo en D7 del diseño**, como exige la decisión
 61: `eslint-plugin-jsx-a11y` en `6.10.2` y `axe-core` en `4.13.0`, **las versiones exactas que ya
@@ -76,8 +78,16 @@ están instaladas**. Pasan de transitivas a declaradas y no entra código de ter
 corriendo.
 
 **No se agrega ningún enlace de terceros entre `axe-core` y Vitest.** El helper se escribe a mano:
-llamar a `axe.run` sobre el contenedor renderizado y afirmar cero violaciones. Si la tarea cree
-necesitar un paquete más, **para y consulta**.
+llamar a `axe.run` sobre el contenedor renderizado y afirmar cero violaciones. Vitest ya corre en
+`jsdom`, que es lo que `axe.run` necesita. Si la tarea cree necesitar un paquete más, **para y
+consulta**.
+
+**Y hay un límite que el handoff tiene que decir, no dar por sabido: dentro de `jsdom`, `axe-core`
+no puede evaluar contraste de color.** Esas reglas vuelven como *incompletas*, no como violaciones,
+así que el helper afirma **estructura, no contraste**. Sin escribirlo, la etapa dejaría implícito
+que el contraste se verificó, y no. Si el recorrido con lector de pantalla no lo cubre —y no lo
+cubre, porque quien no ve la pantalla no lo nota— entonces el contraste queda **no verificado y
+dicho**.
 
 **3. Corregir lo que las herramientas encuentren**, y dejarlas corriendo en `npm run check` para que
 la deriva se detecte en vez de prometerse — el molde de `OpenApiDriftTests` y de `check-docs.sh`.
@@ -178,6 +188,8 @@ reservado. Si hay que renombrar uno, la tarea para y consulta.
 - [ ] `/brief-check Coordination/Tasks/E9C2-ACCESIBILIDAD.md` sin faltantes antes de empezar.
 - [ ] El handoff dice **qué reglas de accesibilidad ya estaban activas** antes de agregar nada.
 - [ ] Las dos dependencias quedan declaradas en `6.10.2` y `4.13.0`, y **no** entró ninguna otra.
+- [ ] El handoff dice que el helper afirma estructura y **no** contraste, y que el contraste queda
+      sin verificar.
 - [ ] Las comprobaciones corren dentro de `npm run check` y por lo tanto en la compuerta.
 - [ ] El estado del recorrido está preparado y sus pasos escritos: una alerta con explicación, y
       una con divergencia **o** la declaración de que no es producible.
