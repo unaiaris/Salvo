@@ -20,7 +20,13 @@ cd ~/Proyectos/Salvo && ./scripts/demo.sh
 ```
 
 Eso levanta la API y la consola sobre una base nueva con el corpus sembrado y la corrida hecha.
-Anotá el puerto que imprime. Abrí la consola en Chrome — **no en Brave**, que es tu navegador de uso
+Anotá el puerto que imprime.
+
+**Además vas a necesitar el estado que preparó la fase 1**, y viene con sus pasos escritos en el
+handoff: al menos una alerta **con explicación escrita** y, si se pudo producir, una **con aviso de
+divergencia**. Una base recién sembrada no tiene ninguna de las dos, y sin ellas los pasos 11 y 12
+no verifican nada. Si el handoff dice que la divergencia no se pudo producir, saltá el paso 11 y
+anotalo como no verificado: eso es información honesta, no una falta tuya. Abrí la consola en Chrome — **no en Brave**, que es tu navegador de uso
 personal y ya lo dejamos afuera para las capturas.
 
 **VoiceOver se prende y se apaga con `Cmd + F5`.** La primera vez te va a ofrecer un tutorial: podés
@@ -39,8 +45,8 @@ saltearlo. Bajá el volumen antes, que arranca fuerte.
 | `VO + U` | Abre el rotor. Con `→` y `←` cambiás de lista: encabezados, enlaces, controles. `Esc` cierra |
 | `VO + Espacio` | Activa lo que está bajo el cursor, como un clic |
 
-Si te perdés: `VO + Shift + Inicio` vuelve el cursor al principio de la página. Si se traba,
-`Cmd + F5` dos veces.
+Si te perdés: `VO + Shift + Fn + ←` vuelve el cursor al principio de la página —un MacBook no
+tiene tecla `Inicio`, la hace `Fn + ←`—. Si se traba, `Cmd + F5` dos veces.
 
 ## Cómo anotar
 
@@ -69,12 +75,14 @@ Ejemplo real de cómo se ve uno bueno:
      no son datos reales.
 
 2. `VO + U`, movete hasta la lista de **encabezados** con `→`.
-   - **Es hallazgo si**: la lista está vacía, o hay un solo encabezado, o los encabezados no
-     describen lo que sigue.
+   - **Deberías escuchar** un encabezado: el título de la página. Que haya uno solo acá **es
+     correcto** —la cabecera no lleva encabezado y la navegación se anuncia por su etiqueta—, así
+     que no lo anotes.
+   - **Es hallazgo si**: la lista está vacía, o el encabezado que hay no describe la página.
 
 3. `Esc`, después `Tab` cuatro o cinco veces.
-   - **Deberías escuchar** los enlaces de navegación: «Alertas», «Importación», «Dashboard», y
-     después «Ir a la cola de alertas».
+   - **Deberías escuchar**, en este orden: el enlace de marca «Salvo», después «Alertas»,
+     «Importación», «Dashboard», y por último «Ir a la cola de alertas».
    - **Es hallazgo si**: algún `Tab` cae en algo que no se anuncia, o si el foco se va a la barra
      del navegador antes de recorrer la página.
 
@@ -97,8 +105,9 @@ Es la pantalla que una analista usa todo el día. Si esta no funciona, no funcio
 7. Recorré **una fila entera** con `VO + →`, celda por celda.
    - **Deberías escuchar**, para cada celda, **el nombre de la columna y después el valor**: por
      ejemplo «Severidad del snapshot, CRÍTICA» y «Score vigente, 90».
-   - **Es hallazgo si**: dice el valor suelto, sin el nombre de la columna. En una tabla de cinco
-     columnas, «90» sin más no significa nada.
+   - **Es hallazgo si**: dice el valor suelto, sin el nombre de la columna. Las columnas son seis
+     —Pedido, Severidad del snapshot, Score del snapshot, Score vigente, Monto y Ocurrió—, así que
+     «90» sin más no significa nada: hay dos columnas de score.
    - **Es hallazgo si**: la severidad se anuncia solo como un color o no se anuncia. Tiene que decir
      una palabra: CRÍTICA, ALTA, MEDIA.
 
@@ -120,15 +129,23 @@ La pantalla más densa del producto. Tomate el tiempo acá.
       inusual»— seguido del peso y de la frase completa que la explica.
     - **Es hallazgo si**: el peso se lee como «más cuarenta» sin decir de qué, o la frase se corta.
 
-11. Si esta alerta tiene **aviso de divergencia** —una frase que empieza con «La evaluación del
-    pedido cambió» o «La alerta se abrió en»—, escuchala entera.
+11. **El aviso de divergencia.** Abrí la alerta que el handoff de la fase 1 señale como la que lo
+    tiene, y escuchá la frase entera: empieza con «La evaluación del pedido cambió» o «La alerta se
+    abrió en».
     - **Es hallazgo si**: se lee como texto suelto en el medio de otra cosa, sin nada que indique
       que es un aviso. Esa frase cambia lo que la analista está por hacer.
-    - Si esta alerta no lo tiene, seguí. En la pantalla 5 vamos a provocar uno.
+    - **Si el handoff dice que no se pudo producir, saltá este paso y anotá «divergencia: no
+      verificada».** No intentes provocarla importando: el corpus termina el 28 de agosto y la única
+      fila válida de la muestra es del 29, para un comprador sin historia en ese comercio, así que
+      no cambia ningún baseline y ninguna evaluación existente se mueve.
 
-12. El bloque de **explicación**. Si dice que está desactualizada o escrita por otra plantilla,
-    escuchá ese aviso.
-    - **Es hallazgo si**: el aviso no se distingue del párrafo de la explicación.
+12. El bloque de **explicación**. `Tab` hasta el botón que la pide y activalo.
+    - **Deberías escuchar** que algo pasó, y después el párrafo redactado, **sin tener que ir a
+      buscarlo**.
+    - **Es hallazgo si**: la explicación aparece y VoiceOver no dice nada. Es el mismo modo de falla
+      del paso 15 y en la misma pantalla.
+    - Los avisos de «desactualizada» y «escrita por otra plantilla» **no se pueden provocar sobre
+      una base nueva**: hacen falta dos versiones vivas. Quedan **no verificados** y así se anota.
 
 13. Ahora el **formulario de veredicto**. `Tab` hasta él.
     - **Deberías escuchar** «Veredicto» como nombre del grupo, y después las dos opciones:
@@ -168,8 +185,13 @@ La pantalla más densa del producto. Tomate el tiempo acá.
     - **Deberías escuchar**, al terminar, cuántos registros se rechazaron **sin ir a buscarlo**.
     - **Es hallazgo si**: la pantalla se llena de errores y VoiceOver sigue callado.
 21. Recorré la lista de rechazos con `VO + →`.
-    - **Deberías escuchar**, por cada uno, la fila y el motivo en castellano.
-    - **Es hallazgo si**: el motivo suena a código —`DUPLICATE_REFERENCE`— en vez de a frase.
+    - **Deberías escuchar**, por cada uno, el número de registro, la línea, el campo y el motivo en
+      castellano. Por ejemplo: «Registro 6, línea 7 · campo `merchantReferenceId` · La referencia ya
+      existe con otros datos», seguido del **detalle técnico de la API en inglés**.
+    - **Ese fragmento en inglés al final es deliberado** y está documentado: es el mensaje crudo de
+      la API, que se conserva a propósito. **No lo anotes como hallazgo.**
+    - **Es hallazgo si**: el motivo suena a código —`REFERENCE_CONFLICT` leído tal cual— en vez de a
+      frase, o si no se dice de qué registro se trata.
 22. Ejecutá una corrida de scoring desde esta pantalla.
     - **Es hallazgo si**: no se anuncia que terminó, ni qué cambió.
 

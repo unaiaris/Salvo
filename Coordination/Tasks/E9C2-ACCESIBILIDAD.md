@@ -70,7 +70,25 @@ handoff dice qué aporta cada una que la otra no.
 **3. Corregir lo que las herramientas encuentren**, y dejarlas corriendo en `npm run check` para que
 la deriva se detecte en vez de prometerse — el molde de `OpenApiDriftTests` y de `check-docs.sh`.
 
-**4. Entregar la lista y PARAR.** Esto no es opcional y es la forma de la tarea:
+**4. Preparar el estado que el recorrido necesita.** Una base recién sembrada no sirve para el
+guión: **ninguna alerta tiene explicación escrita**, y **el aviso de divergencia no aparece**. Los
+pasos 11 y 12 del recorrido quedarían verificando nada, y peor: producirían hallazgos falsos sobre
+avisos que la pantalla no tenía por qué mostrar.
+
+La fase 1 entrega, con sus pasos escritos en el handoff para que el coordinador los repita:
+
+- **Una alerta con explicación ya escrita**, que es un `POST` y sale barato.
+- **Una alerta con aviso de divergencia**, si se puede producir sin deformar el corpus. El camino es
+  insertar un pedido **anterior** a uno ya alertado, para el mismo comercio, de modo que su baseline
+  cambie y el rescoreo mueva el score contra el snapshot congelado. **No se puede desde `/import`
+  con las muestras que hay**: el corpus termina el 2026-08-28 y la única fila válida de
+  `docs/muestras/import-con-errores.csv` es del 29, para un comprador sin historia en ese comercio.
+  Si conseguirlo exige tantear montos, **se declara no producible y el recorrido salta el paso 11**.
+  Un aviso no verificado y dicho vale más que un paso que fabrica hallazgos falsos.
+- Los avisos de «explicación desactualizada» y «escrita por otra plantilla» **no** se piden: exigen
+  dos versiones vivas y quedan declarados como no verificados.
+
+**5. Entregar la lista y PARAR.** Esto no es opcional y es la forma de la tarea:
 
 - La lista va en el handoff, con **una fila por hallazgo**: pantalla, qué pasa, severidad
   —`alta` si impide completar una tarea, `media` si la vuelve confusa, `baja` si es incomodidad—, y
@@ -143,6 +161,8 @@ reservado. Si hay que renombrar uno, la tarea para y consulta.
 - [ ] El handoff dice **qué reglas de accesibilidad ya estaban activas** antes de agregar nada.
 - [ ] Cada dependencia nueva tiene versión exacta y una línea que dice qué aporta que la otra no.
 - [ ] Las comprobaciones corren dentro de `npm run check` y por lo tanto en la compuerta.
+- [ ] El estado del recorrido está preparado y sus pasos escritos: una alerta con explicación, y
+      una con divergencia **o** la declaración de que no es producible.
 - [ ] La lista de hallazgos existe, con severidad y arreglo propuesto por fila.
 - [ ] **La tarea se detuvo** y no corrigió nada fuera de lo que las herramientas encontraron.
 - [ ] `/gate` y `./scripts/smoke-ui.sh` verdes.
@@ -163,6 +183,7 @@ reservado. Si hay que renombrar uno, la tarea para y consulta.
 | `/brief-check Coordination/Tasks/E9C2-ACCESIBILIDAD.md` | Brief válido |
 | Reglas activas antes de tocar nada | Enumeradas en el handoff |
 | `npm run check` | Incluye las comprobaciones nuevas y pasa |
+| Estado del recorrido | Explicación escrita; divergencia producida o declarada imposible |
 | Lista de hallazgos | Una fila por hallazgo, con severidad |
 | Parada tras la fase 1 | La rama no tiene correcciones que el recorrido no pidió |
 | Literales nuevos | En `es.ts` **y** en `pt.ts` |
@@ -199,6 +220,7 @@ fallar.
 
 - Resumen del resultado y archivos modificados.
 - **Qué reglas ya estaban activas**, y qué agregó cada dependencia nueva.
+- **Los pasos para dejar la base en el estado que el recorrido necesita.**
 - **La lista de hallazgos**, con severidad y arreglo propuesto.
 - La falsación de la compuerta, con su error exacto.
 - Estado: `Parcial — en espera del recorrido con lector de pantalla`.
