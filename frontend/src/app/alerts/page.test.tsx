@@ -6,6 +6,7 @@ import {
   problemResponse,
   wireAlertList,
   wireAlertListItem,
+  mockConsoleFetch,
 } from "@/test/fixtures";
 import { renderableServerTree } from "@/test/server-tree";
 import AlertsPage from "./page";
@@ -96,7 +97,7 @@ describe("cola de alertas", () => {
   });
 
   it("traduce un problem+json del feed sin mostrar solo el detalle crudo", async () => {
-    fetchMock.mockResolvedValue(problemResponse(400, "INVALID_SORT", "sort must be CREATED_DESC…"));
+    mockConsoleFetch(fetchMock, () => problemResponse(400, "INVALID_SORT", "sort must be CREATED_DESC…"));
     await renderFeed();
 
     expect(screen.getByRole("alert")).toHaveTextContent(/orden que la API no reconoce/i);

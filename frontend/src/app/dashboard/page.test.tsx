@@ -10,7 +10,7 @@ import {
 } from "@/test/fixtures";
 import { renderableServerTree } from "@/test/server-tree";
 import DashboardPage from "./page";
-import { FIXTURE_CAVEAT } from "./quality-section";
+import { messagesFor } from "@/lib/i18n/dictionary";
 
 let fetchMock: ReturnType<typeof vi.fn>;
 
@@ -240,7 +240,7 @@ describe("sección de calidad", () => {
     await renderDashboard();
 
     expect(screen.getByRole("region", { name: "Calidad del criterio" })).toBeInTheDocument();
-    expect(screen.getByText(FIXTURE_CAVEAT)).toBeInTheDocument();
+    expect(screen.getByText(messagesFor("es").dashboard.qualityCaveat)).toBeInTheDocument();
   });
 
   it("no aparece, ni se consulta el endpoint, cuando la instancia no es de demostración", async () => {
@@ -248,7 +248,7 @@ describe("sección de calidad", () => {
     await renderDashboard();
 
     expect(screen.queryByRole("region", { name: "Calidad del criterio" })).not.toBeInTheDocument();
-    expect(screen.queryByText(FIXTURE_CAVEAT)).not.toBeInTheDocument();
+    expect(screen.queryByText(messagesFor("es").dashboard.qualityCaveat)).not.toBeInTheDocument();
     expect(requestedPaths()).not.toContain("/api/evaluation-metrics");
     // El resto del dashboard no depende de la demo.
     expect(screen.getByRole("region", { name: /Monto en riesgo/ })).toBeInTheDocument();
@@ -260,7 +260,7 @@ describe("sección de calidad", () => {
     });
     await renderDashboard();
 
-    expect(screen.getByText(FIXTURE_CAVEAT)).toBeInTheDocument();
+    expect(screen.getByText(messagesFor("es").dashboard.qualityCaveat)).toBeInTheDocument();
     expect(
       screen.getByText("Todavía no se pueden calcular las métricas de calidad"),
     ).toBeInTheDocument();

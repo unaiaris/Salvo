@@ -1,5 +1,7 @@
+import type { Language } from "@/lib/api/contract";
 import type { ApiFailure } from "@/lib/api/failures";
 import { describeFailure } from "@/lib/api/messages";
+import { formatting } from "@/lib/format";
 
 /**
  * How a failure looks on screen: the console's own sentence first, the API's `detail` underneath as
@@ -7,12 +9,14 @@ import { describeFailure } from "@/lib/api/messages";
  */
 export function FailureNotice({
   failure,
+  language,
   children,
 }: {
   readonly failure: ApiFailure;
+  readonly language: Language;
   readonly children?: React.ReactNode;
 }) {
-  const message = describeFailure(failure);
+  const message = describeFailure(failure, language);
   const technicalDetail = failure.kind === "problem" ? failure.detail : null;
 
   return (
@@ -28,7 +32,7 @@ export function FailureNotice({
       <p className="mt-2 text-sm font-medium leading-6">{message.recovery}</p>
       {technicalDetail !== null && (
         <p className="mt-3 border-t border-rose-200 pt-3 text-xs text-rose-800">
-          Detalle técnico de la API: {technicalDetail}
+          {formatting(language).t.common.technicalDetail(technicalDetail)}
         </p>
       )}
       {children}

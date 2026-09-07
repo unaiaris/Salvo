@@ -1,18 +1,29 @@
-import type { AlertOrder } from "@/lib/api/contract";
-import { formatAmount, formatInstant } from "@/lib/format";
+import type { AlertOrder, Language } from "@/lib/api/contract";
+import { formatting } from "@/lib/format";
 
 /** The order the alert is about. Buyer and device are pseudonymous references, never identities. */
-export function OrderBlock({ order }: { readonly order: AlertOrder }) {
+export function OrderBlock({
+  order,
+  language,
+}: {
+  readonly order: AlertOrder;
+  readonly language: Language;
+}) {
+  const f = formatting(language);
+  const { t } = f;
   const rows = [
-    { label: "Referencia del comercio", value: order.merchantReferenceId },
-    { label: "Comprador", value: order.buyerReferenceId },
-    { label: "Monto", value: formatAmount(order.amountCents, order.currencyCode) },
-    { label: "Ocurrió", value: formatInstant(order.occurredAt) },
+    { label: t.alertDetail.orderReference, value: order.merchantReferenceId },
+    { label: t.alertDetail.orderBuyer, value: order.buyerReferenceId },
+    { label: t.alertDetail.orderAmount, value: f.formatAmount(order.amountCents, order.currencyCode) },
+    { label: t.alertDetail.orderOccurred, value: f.formatInstant(order.occurredAt) },
     {
-      label: "Origen",
+      label: t.alertDetail.orderOrigin,
       value: order.city === null ? order.countryCode : `${order.city} (${order.countryCode})`,
     },
-    { label: "Sesión de dispositivo", value: order.deviceSessionId ?? "sin registrar" },
+    {
+      label: t.alertDetail.orderDeviceSession,
+      value: order.deviceSessionId ?? t.alertDetail.orderDeviceSessionAbsent,
+    },
   ];
 
   return (
@@ -21,7 +32,7 @@ export function OrderBlock({ order }: { readonly order: AlertOrder }) {
       className="rounded-lg border border-slate-200 bg-white p-5"
     >
       <h2 id="order-title" className="text-lg font-semibold text-slate-900">
-        Pedido
+        {t.alertDetail.orderTitle}
       </h2>
       <dl className="mt-3 grid gap-x-8 gap-y-3 sm:grid-cols-2">
         {rows.map((row) => (

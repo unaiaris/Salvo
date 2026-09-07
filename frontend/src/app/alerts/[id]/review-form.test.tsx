@@ -57,13 +57,13 @@ afterEach(() => {
 
 describe("formulario de revisión", () => {
   it("no envía sin veredicto elegido", () => {
-    render(<ReviewForm alertId="a1" explanationId="" requiresAcknowledgement={false} divergenceSummary="" />);
+    render(<ReviewForm alertId="a1" explanationId="" requiresAcknowledgement={false} divergenceSummary="" language="es" />);
 
     expect(screen.getByRole("button", { name: /Registrar veredicto/i })).toBeDisabled();
   });
 
   it("habilita el envío al elegir un veredicto", async () => {
-    render(<ReviewForm alertId="a1" explanationId="" requiresAcknowledgement={false} divergenceSummary="" />);
+    render(<ReviewForm alertId="a1" explanationId="" requiresAcknowledgement={false} divergenceSummary="" language="es" />);
 
     choose(/Confirmar segura/i);
 
@@ -77,6 +77,7 @@ describe("formulario de revisión", () => {
         explanationId=""
         requiresAcknowledgement
         divergenceSummary="La alerta se abrió en CRÍTICA con score 100. La evaluación vigente está en MEDIA con score 45."
+      language="es"
       />,
     );
 
@@ -93,7 +94,7 @@ describe("formulario de revisión", () => {
   });
 
   it("sin divergencia de banda no hay casilla que bloquee", async () => {
-    render(<ReviewForm alertId="a1" explanationId="" requiresAcknowledgement={false} divergenceSummary="" />);
+    render(<ReviewForm alertId="a1" explanationId="" requiresAcknowledgement={false} divergenceSummary="" language="es" />);
 
     choose(/Confirmar segura/i);
 
@@ -107,7 +108,7 @@ describe("formulario de revisión", () => {
     const note = "El comprador tiene tres pedidos previos entregados sin contracargo.";
     reviewAlert.mockResolvedValue(conflict({ submittedNote: note, submittedStatus: "CONFIRMED_SAFE" }));
 
-    render(<ReviewForm alertId="a1" explanationId="" requiresAcknowledgement={false} divergenceSummary="" />);
+    render(<ReviewForm alertId="a1" explanationId="" requiresAcknowledgement={false} divergenceSummary="" language="es" />);
 
     choose(/Confirmar segura/i);
     typeNote(note);
@@ -123,7 +124,7 @@ describe("formulario de revisión", () => {
       conflict({ submittedNote: "", submittedStatus: "REPORTED_FRAUD", acknowledged: true }),
     );
 
-    render(<ReviewForm alertId="a1" explanationId="" requiresAcknowledgement divergenceSummary="Cambió la banda." />);
+    render(<ReviewForm alertId="a1" explanationId="" requiresAcknowledgement divergenceSummary="Cambió la banda." language="es" />);
 
     choose(/Reportar fraude/i);
     fireEvent.click(screen.getByRole("checkbox"));
@@ -136,7 +137,7 @@ describe("formulario de revisión", () => {
   it("muestra el detalle de la API como información secundaria, no como el texto principal", async () => {
     reviewAlert.mockResolvedValue(conflict({ submittedStatus: "CONFIRMED_SAFE" }));
 
-    render(<ReviewForm alertId="a1" explanationId="" requiresAcknowledgement={false} divergenceSummary="" />);
+    render(<ReviewForm alertId="a1" explanationId="" requiresAcknowledgement={false} divergenceSummary="" language="es" />);
 
     choose(/Confirmar segura/i);
     submit();
@@ -147,7 +148,7 @@ describe("formulario de revisión", () => {
   });
 
   it("limita la nota a 2000 caracteres en el propio campo", () => {
-    render(<ReviewForm alertId="a1" explanationId="" requiresAcknowledgement={false} divergenceSummary="" />);
+    render(<ReviewForm alertId="a1" explanationId="" requiresAcknowledgement={false} divergenceSummary="" language="es" />);
 
     expect(screen.getByRole("textbox")).toHaveAttribute("maxlength", "2000");
   });
@@ -155,7 +156,7 @@ describe("formulario de revisión", () => {
   it("manda el id de la alerta en el formulario, no como prop de servidor", async () => {
     reviewAlert.mockResolvedValue(conflict());
 
-    render(<ReviewForm alertId="a1" explanationId="" requiresAcknowledgement={false} divergenceSummary="" />);
+    render(<ReviewForm alertId="a1" explanationId="" requiresAcknowledgement={false} divergenceSummary="" language="es" />);
 
     choose(/Confirmar segura/i);
     submit();
@@ -182,6 +183,7 @@ describe("formulario de revisión", () => {
         explanationId="6f6b7f3e-0000-4000-8000-000000000006"
         requiresAcknowledgement={false}
         divergenceSummary=""
+        language="es"
       />,
     );
 
@@ -197,7 +199,7 @@ describe("formulario de revisión", () => {
   it("sin explicación manda el campo vacío y la revisión sigue funcionando igual", async () => {
     reviewAlert.mockResolvedValue(conflict());
 
-    render(<ReviewForm alertId="a1" explanationId="" requiresAcknowledgement={false} divergenceSummary="" />);
+    render(<ReviewForm alertId="a1" explanationId="" requiresAcknowledgement={false} divergenceSummary="" language="es" />);
 
     choose(/Confirmar segura/i);
     submit();
@@ -216,6 +218,7 @@ describe("formulario de revisión", () => {
         explanationId="6f6b7f3e-0000-4000-8000-000000000006"
         requiresAcknowledgement={false}
         divergenceSummary=""
+        language="es"
       />,
     );
 

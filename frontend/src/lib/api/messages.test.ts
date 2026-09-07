@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import type { ApiFailure } from "./failures";
 import { describeFailure, isKnownFailureCode, knownFailureCodes } from "./messages";
+import { messagesFor } from "@/lib/i18n/dictionary";
+import { CONSOLE_LANGUAGES } from "./contract";
 
 /**
  * Every code the API can answer with has its own message, and none of them falls back to the generic
@@ -113,15 +115,46 @@ describe("mensajes de error", () => {
     expect([...knownFailureCodes()].sort()).toEqual([...API_CODES].sort());
   });
 
+  /**
+   * The same catalogue in every language, asserted rather than trusted to the type.
+   *
+   * `Dictionary` already refuses a `pt.ts` with a code missing, so this cannot fail while the
+   * dictionaries are typed the way they are. It is here for the day somebody loosens that type:
+   * the exactness of the catalogue is decision 57, and it should not rest on one `typeof`.
+   */
+  it("el catálogo es el mismo en los dos idiomas", () => {
+    for (const language of CONSOLE_LANGUAGES) {
+      expect(Object.keys(messagesFor(language).failures).sort(), language).toEqual(
+        [...API_CODES].sort(),
+      );
+    }
+  });
+
+  /** Every code answers in both languages, and never with the same sentence in both. */
+  it("cada código tiene texto propio en los dos idiomas", () => {
+    for (const code of API_CODES) {
+      const spanish = describeFailure(problem(code), "es");
+      const portuguese = describeFailure(problem(code), "pt");
+
+      expect(portuguese.title.length, code).toBeGreaterThan(0);
+      expect(portuguese.body.length, code).toBeGreaterThan(0);
+      expect(portuguese.recovery.length, code).toBeGreaterThan(0);
+      expect(portuguese.title, code).not.toBe(spanish.title);
+
+      // Where a message belongs on screen is a fact about the console, not about the reader.
+      expect(portuguese.isFormError, code).toBe(spanish.isFormError);
+    }
+  });
+
   it("da un texto distinto a cada código", () => {
-    const titles = API_CODES.map((code) => describeFailure(problem(code)).title);
+    const titles = API_CODES.map((code) => describeFailure(problem(code), "es").title);
 
     expect(new Set(titles).size).toBe(API_CODES.length);
   });
 
   it("da una acción de recuperación a cada código", () => {
     for (const code of API_CODES) {
-      const message = describeFailure(problem(code));
+      const message = describeFailure(problem(code), "es");
 
       expect(message.body.length, code).toBeGreaterThan(0);
       expect(message.recovery.length, code).toBeGreaterThan(0);
@@ -129,16 +162,16 @@ describe("mensajes de error", () => {
   });
 
   it("ningún código conocido cae en el texto genérico", () => {
-    const generic = describeFailure(problem("UN_CODIGO_QUE_NO_EXISTE", 418));
+    const generic = describeFailure(problem("UN_CODIGO_QUE_NO_EXISTE", 418), "es");
 
     for (const code of API_CODES) {
-      expect(describeFailure(problem(code)).title, code).not.toBe(generic.title);
+      expect(describeFailure(problem(code), "es").title, code).not.toBe(generic.title);
     }
   });
 
   it("nunca muestra «Error 409» ni el detalle crudo como texto principal", () => {
     for (const code of API_CODES) {
-      const message = describeFailure(problem(code));
+      const message = describeFailure(problem(code), "es");
 
       expect(message.title).not.toMatch(/\b(4\d\d|5\d\d)\b/);
       expect(message.title).not.toContain("detalle técnico de la API");
@@ -147,7 +180,7 @@ describe("mensajes de error", () => {
   });
 
   it("marca como error de formulario lo que la analista puede corregir en el formulario", () => {
-    const formErrors = API_CODES.filter((code) => describeFailure(problem(code)).isFormError);
+    const formErrors = API_CODES.filter((code) => describeFailure(problem(code), "es").isFormError);
 
     // Un archivo mal formado o de formato equivocado se corrige eligiendo otro archivo, ahí mismo.
     // Un conflicto de corrida o de datos de demo no: no hay campo que cambiar.
@@ -173,22 +206,22 @@ describe("mensajes de error", () => {
   });
 
   it("nombra el límite real de la nota", () => {
-    expect(describeFailure(problem("NOTE_TOO_LONG", 400)).body).toContain("2000");
+    expect(describeFailure(problem("NOTE_TOO_LONG", 400), "es").body).toContain("2000");
   });
 
   it("dice que un veredicto no se reabre cuando otra persona ya revisó", () => {
-    expect(describeFailure(problem("ALERT_ALREADY_REVIEWED")).body).toMatch(/no se reabre/i);
+    expect(describeFailure(problem("ALERT_ALREADY_REVIEWED"), "es").body).toMatch(/no se reabre/i);
   });
 
   it("manda de vuelta al aviso de divergencia", () => {
-    expect(describeFailure(problem("ALERT_DIVERGENCE_NOT_ACKNOWLEDGED")).recovery).toMatch(
+    expect(describeFailure(problem("ALERT_DIVERGENCE_NOT_ACKNOWLEDGED"), "es").recovery).toMatch(
       /casilla/i,
     );
   });
 
   it("distingue timeout, API caída y contrato roto", () => {
     const titles = (["timeout", "unreachable", "malformed"] as const).map(
-      (kind) => describeFailure({ kind }).title,
+      (kind) => describeFailure({ kind }, "es").title,
     );
 
     expect(new Set(titles).size).toBe(3);
@@ -196,18 +229,18 @@ describe("mensajes de error", () => {
 
   it("traduce un código desconocido sin fingir que lo entiende", () => {
     // Un código que ninguna etapa emite: los del proveedor externo ya están en el catálogo.
-    const message = describeFailure(problem("EXTERNAL_PROVIDER_TIMEOUT", 409));
+    const message = describeFailure(problem("EXTERNAL_PROVIDER_TIMEOUT", 409), "es");
 
     expect(message.title).toMatch(/rechazó la operación/i);
     expect(message.body).toContain("409");
   });
 
   it("ofrece ejecutar la corrida cuando faltan las métricas, y reintentar cuando la corrida chocó", () => {
-    expect(describeFailure(problem("METRICS_UNAVAILABLE")).recovery).toMatch(/corrida de scoring/i);
-    expect(describeFailure(problem("SCORING_RUN_CONFLICT")).recovery).toMatch(/volvé a ejecutar/i);
+    expect(describeFailure(problem("METRICS_UNAVAILABLE"), "es").recovery).toMatch(/corrida de scoring/i);
+    expect(describeFailure(problem("SCORING_RUN_CONFLICT"), "es").recovery).toMatch(/volvé a ejecutar/i);
   });
 
   it("nombra el límite real del archivo de importación", () => {
-    expect(describeFailure(problem("FILE_TOO_LARGE", 413)).body).toContain("5 MiB");
+    expect(describeFailure(problem("FILE_TOO_LARGE", 413), "es").body).toContain("5 MiB");
   });
 });

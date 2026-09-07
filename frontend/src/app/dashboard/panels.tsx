@@ -7,8 +7,9 @@ import {
   type DashboardReportedFraud,
   type DashboardExternalDenials,
   type DashboardSignal,
+  type Language,
 } from "@/lib/api/contract";
-import { formatAmount, formatCount, formatDate, formatPercent, ruleLabel } from "@/lib/format";
+import { formatting } from "@/lib/format";
 
 export function Panel({
   title,
@@ -43,13 +44,20 @@ export function Panel({
  * `ALTA` right now" — and in the demo corpus that is permanently the case, which makes it exactly
  * the kind of absence that stops being noticed.
  */
-export function OpenAlertsPanel({ openAlerts }: { readonly openAlerts: DashboardOpenAlerts }) {
+export function OpenAlertsPanel({
+  openAlerts,
+  language,
+}: {
+  readonly openAlerts: DashboardOpenAlerts;
+  readonly language: Language;
+}) {
   const counts = new Map(openAlerts.bySeverity.map((entry) => [entry.severity, entry.alertCount]));
+  const f = formatting(language);
 
   return (
     <>
       <p className="text-3xl font-semibold tabular-nums text-slate-950">
-        {formatCount(openAlerts.total)}
+        {f.formatCount(openAlerts.total)}
       </p>
       <ul className="mt-4 flex flex-col gap-2">
         {DASHBOARD_SEVERITY_ORDER.map((severity) => {
@@ -57,9 +65,9 @@ export function OpenAlertsPanel({ openAlerts }: { readonly openAlerts: Dashboard
 
           return (
             <li key={severity} className="flex items-center justify-between gap-4">
-              <SeverityBadge severity={severity} />
+              <SeverityBadge severity={severity} language={language} />
               <span className="text-sm tabular-nums text-slate-800">
-                {count === 0 ? "sin alertas" : formatCount(count)}
+                {count === 0 ? f.t.dashboard.openAlertsNone : f.formatCount(count)}
               </span>
             </li>
           );
@@ -76,9 +84,17 @@ export function OpenAlertsPanel({ openAlerts }: { readonly openAlerts: Dashboard
  * a reference date and a policy for orders that are months old, none of which this stage has. The
  * shape of the API forces the point — `amountAtRisk` is a list — and the rendering keeps it.
  */
-export function AmountAtRiskPanel({ rows }: { readonly rows: readonly DashboardAmountAtRisk[] }) {
+export function AmountAtRiskPanel({
+  rows,
+  language,
+}: {
+  readonly rows: readonly DashboardAmountAtRisk[];
+  readonly language: Language;
+}) {
+  const f = formatting(language);
+
   if (rows.length === 0) {
-    return <p className="text-sm text-slate-600">No hay ninguna alerta abierta con monto asociado.</p>;
+    return <p className="text-sm text-slate-600">{f.t.dashboard.amountAtRiskNone}</p>;
   }
 
   return (
@@ -86,10 +102,10 @@ export function AmountAtRiskPanel({ rows }: { readonly rows: readonly DashboardA
       {rows.map((row) => (
         <li key={row.currencyCode} className="flex items-baseline justify-between gap-4">
           <span className="text-lg font-semibold tabular-nums text-slate-950">
-            {formatAmount(row.amountCents, row.currencyCode)}
+            {f.formatAmount(row.amountCents, row.currencyCode)}
           </span>
           <span className="text-xs text-slate-600">
-            {row.alertCount === 1 ? "1 alerta" : `${formatCount(row.alertCount)} alertas`}
+            {f.t.dashboard.alertCount(row.alertCount, f.formatCount(row.alertCount))}
           </span>
         </li>
       ))}
@@ -105,13 +121,17 @@ export function AmountAtRiskPanel({ rows }: { readonly rows: readonly DashboardA
  * and does not pretend to be — outside a demo corpus nobody knows which orders really were fraud,
  * only what the analyst concluded.
  */
-export function ReportedFraudPanel({ rows }: { readonly rows: readonly DashboardReportedFraud[] }) {
+export function ReportedFraudPanel({
+  rows,
+  language,
+}: {
+  readonly rows: readonly DashboardReportedFraud[];
+  readonly language: Language;
+}) {
+  const f = formatting(language);
+
   if (rows.length === 0) {
-    return (
-      <p className="text-sm text-slate-600">
-        Todavía nadie marcó una alerta como fraude en esta base.
-      </p>
-    );
+    return <p className="text-sm text-slate-600">{f.t.dashboard.reportedFraudNone}</p>;
   }
 
   return (
@@ -119,10 +139,10 @@ export function ReportedFraudPanel({ rows }: { readonly rows: readonly Dashboard
       {rows.map((row) => (
         <li key={row.currencyCode} className="flex items-baseline justify-between gap-4">
           <span className="text-lg font-semibold tabular-nums text-slate-950">
-            {formatAmount(row.amountCents, row.currencyCode)}
+            {f.formatAmount(row.amountCents, row.currencyCode)}
           </span>
           <span className="text-xs text-slate-600">
-            {row.orderCount === 1 ? "1 pedido" : `${formatCount(row.orderCount)} pedidos`}
+            {f.t.dashboard.orderCount(row.orderCount, f.formatCount(row.orderCount))}
           </span>
         </li>
       ))}
@@ -133,26 +153,25 @@ export function ReportedFraudPanel({ rows }: { readonly rows: readonly Dashboard
 export function FlagRatePanel({
   flagRate,
   scoredOrders,
+  language,
 }: {
   readonly flagRate: number | null;
   readonly scoredOrders: number;
+  readonly language: Language;
 }) {
+  const f = formatting(language);
+
   if (flagRate === null) {
-    return (
-      <p className="text-sm text-slate-600">
-        La corrida vigente no cubrió ningún pedido, así que no hay proporción que calcular.
-      </p>
-    );
+    return <p className="text-sm text-slate-600">{f.t.dashboard.flagRateNone}</p>;
   }
 
   return (
     <>
       <p className="text-3xl font-semibold tabular-nums text-slate-950">
-        {formatPercent(flagRate)}
+        {f.formatPercent(flagRate)}
       </p>
       <p className="mt-2 text-sm leading-6 text-slate-600">
-        Proporción de los {formatCount(scoredOrders)} pedidos de la corrida vigente que las reglas
-        denegaron.
+        {f.t.dashboard.flagRateHint(f.formatCount(scoredOrders))}
       </p>
     </>
   );
@@ -165,9 +184,17 @@ export function FlagRatePanel({
  * fires at twenty points on sixteen orders and never reaches the alerting floor is noise on this
  * panel, and it would be the tallest bar on it.
  */
-export function TopSignalsPanel({ signals }: { readonly signals: readonly DashboardSignal[] }) {
+export function TopSignalsPanel({
+  signals,
+  language,
+}: {
+  readonly signals: readonly DashboardSignal[];
+  readonly language: Language;
+}) {
+  const f = formatting(language);
+
   if (signals.length === 0) {
-    return <p className="text-sm text-slate-600">Ninguna alerta abierta, así que ninguna señal.</p>;
+    return <p className="text-sm text-slate-600">{f.t.dashboard.topSignalsNone}</p>;
   }
 
   const highest = Math.max(...signals.map((signal) => signal.alertCount), 1);
@@ -177,8 +204,8 @@ export function TopSignalsPanel({ signals }: { readonly signals: readonly Dashbo
       {signals.map((signal) => (
         <li key={signal.rule} className="flex flex-col gap-1">
           <div className="flex items-baseline justify-between gap-4 text-sm">
-            <span className="text-slate-800">{ruleLabel(signal.rule)}</span>
-            <span className="tabular-nums text-slate-600">{formatCount(signal.alertCount)}</span>
+            <span className="text-slate-800">{f.ruleLabel(signal.rule)}</span>
+            <span className="tabular-nums text-slate-600">{f.formatCount(signal.alertCount)}</span>
           </div>
           <div className="h-1.5 w-full rounded-full bg-slate-100">
             <div
@@ -205,40 +232,47 @@ export function TopSignalsPanel({ signals }: { readonly signals: readonly Dashbo
  */
 export function ExternalDenialsPanel({
   denials,
+  language,
 }: {
   readonly denials: DashboardExternalDenials;
+  readonly language: Language;
 }) {
+  const f = formatting(language);
+
   if (denials.total === 0) {
-    return (
-      <p className="text-sm text-slate-600">
-        Ningún pedido denegado por el proveedor quedó fuera de la cola. O nadie pidió todavía la
-        evaluación externa, o el proveedor y el motor local coincidieron en todo.
-      </p>
-    );
+    return <p className="text-sm text-slate-600">{f.t.dashboard.denialsNone}</p>;
   }
 
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm text-slate-700">
         <span className="text-2xl font-semibold tabular-nums text-slate-950">
-          {formatCount(denials.total)}
+          {f.formatCount(denials.total)}
         </span>{" "}
-        {denials.total === 1 ? "pedido" : "pedidos"}
+        {f.t.dashboard.denialsOrderWord(denials.total)}
         {denials.listed < denials.total
-          && ` · se listan los ${formatCount(denials.listed)} más recientes`}
+          && f.t.dashboard.denialsListed(f.formatCount(denials.listed))}
       </p>
       <div className="max-h-80 overflow-y-auto overflow-x-auto rounded-md border border-slate-200">
         <table className="w-full min-w-[34rem] border-collapse text-left text-xs">
-          <caption className="sr-only">
-            Pedidos denegados por el proveedor externo que no abrieron ninguna alerta local
-          </caption>
+          <caption className="sr-only">{f.t.dashboard.denialsCaption}</caption>
           <thead className="sticky top-0 bg-slate-50 text-slate-600">
             <tr>
-              <th scope="col" className="px-3 py-2 font-medium">Pedido</th>
-              <th scope="col" className="px-3 py-2 font-medium">Fecha</th>
-              <th scope="col" className="px-3 py-2 text-right font-medium">Monto</th>
-              <th scope="col" className="px-3 py-2 font-medium">País</th>
-              <th scope="col" className="px-3 py-2 text-right font-medium">Score local</th>
+              <th scope="col" className="px-3 py-2 font-medium">
+                {f.t.dashboard.denialsColumnOrder}
+              </th>
+              <th scope="col" className="px-3 py-2 font-medium">
+                {f.t.dashboard.denialsColumnDate}
+              </th>
+              <th scope="col" className="px-3 py-2 text-right font-medium">
+                {f.t.dashboard.denialsColumnAmount}
+              </th>
+              <th scope="col" className="px-3 py-2 font-medium">
+                {f.t.dashboard.denialsColumnCountry}
+              </th>
+              <th scope="col" className="px-3 py-2 text-right font-medium">
+                {f.t.dashboard.denialsColumnScore}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -247,13 +281,15 @@ export function ExternalDenialsPanel({
                 <th scope="row" className="px-3 py-2 font-normal text-slate-900">
                   {item.merchantReferenceId}
                 </th>
-                <td className="px-3 py-2 text-slate-700">{formatDate(item.occurredAt)}</td>
+                <td className="px-3 py-2 text-slate-700">{f.formatDate(item.occurredAt)}</td>
                 <td className="px-3 py-2 text-right tabular-nums text-slate-700">
-                  {formatAmount(item.amountCents, item.currencyCode)}
+                  {f.formatAmount(item.amountCents, item.currencyCode)}
                 </td>
                 <td className="px-3 py-2 text-slate-700">{item.countryCode}</td>
                 <td className="px-3 py-2 text-right tabular-nums text-slate-700">
-                  {item.localRiskScore === null ? "sin puntuar" : formatCount(item.localRiskScore)}
+                  {item.localRiskScore === null
+                    ? f.t.dashboard.denialsUnscored
+                    : f.formatCount(item.localRiskScore)}
                 </td>
               </tr>
             ))}

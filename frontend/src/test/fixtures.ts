@@ -399,3 +399,26 @@ export function wireSeedResult(overrides: WirePayload = {}): WirePayload {
     ...overrides,
   };
 }
+
+/**
+ * A fetch mock that answers the capabilities route by itself and hands everything else to
+ * <paramref name="answer" />.
+ *
+ * Every server action asks the API for the deployment language before it does anything else, so a
+ * mock built with `mockResolvedValue` breaks for a reason that has nothing to do with the test: one
+ * `Response` object is returned twice and a body reads exactly once, so the second read is empty.
+ * Answering per call — and building a fresh response each time — keeps these tests about what they
+ * were about.
+ */
+export function mockConsoleFetch(
+  fetchMock: { mockImplementation: (handler: (url: URL) => Promise<Response>) => unknown },
+  answer: (url: URL) => Response,
+): void {
+  fetchMock.mockImplementation((url: URL) =>
+    Promise.resolve(
+      url.pathname === "/api/system/capabilities"
+        ? jsonResponse(wireCapabilities())
+        : answer(url),
+    ),
+  );
+}

@@ -1,11 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { EXPLANATION_STATUS } from "@/lib/api/contract";
+import { deploymentLanguage } from "@/lib/api/console";
+import { EXPLANATION_STATUS, type Language } from "@/lib/api/contract";
 import { requestAlertExplanation } from "@/lib/api/explanations";
 import type { ApiFailure } from "@/lib/api/failures";
 import { describeFailure } from "@/lib/api/messages";
-import { explanationFailureLabel } from "@/lib/format";
+import { formatting } from "@/lib/format";
 import type { ExplanationActionState, ExplanationAsk } from "./explanation-state";
 
 /**
@@ -15,27 +16,30 @@ import type { ExplanationActionState, ExplanationAsk } from "./explanation-state
  * and a sentence read twice is a sentence the reader stops trusting to mean anything. The legend
  * says who wrote the text and what was checked before it was kept; this says what has just changed.
  */
-const WRITTEN: Readonly<Record<Exclude<ExplanationAsk, "none">, { title: string; body: string }>> = {
-  first: {
-    title: "Explicación redactada",
-    body:
-      "El texto quedó guardado junto a la evaluación y ya se muestra arriba. Una explicación " +
-      "escrita no se reescribe: si el pedido vuelve a evaluarse, la evaluación nueva lleva la suya.",
-  },
-  retry: {
-    title: "Explicación redactada en el nuevo intento",
-    body:
-      "El texto quedó guardado junto a la evaluación y ya se muestra arriba. Una explicación " +
-      "escrita no se reescribe: si el pedido vuelve a evaluarse, la evaluación nueva lleva la suya.",
-  },
-  currentTemplate: {
-    title: "Redactada de nuevo con la plantilla vigente",
-    body:
-      "El texto nuevo se escribió al lado del anterior y es el que se muestra arriba. El anterior " +
-      "sigue guardado sin cambios, porque es el registro de lo que se pudo leer mientras se " +
-      "formaba el veredicto.",
-  },
-};
+function written(
+  ask: Exclude<ExplanationAsk, "none">,
+  language: Language,
+): { title: string; body: string } {
+  const { outcomes } = formatting(language).t;
+
+  switch (ask) {
+    case "first":
+      return {
+        title: outcomes.explanationWrittenFirstTitle,
+        body: outcomes.explanationWrittenBody,
+      };
+    case "retry":
+      return {
+        title: outcomes.explanationWrittenRetryTitle,
+        body: outcomes.explanationWrittenBody,
+      };
+    case "currentTemplate":
+      return {
+        title: outcomes.explanationWrittenCurrentTemplateTitle,
+        body: outcomes.explanationWrittenCurrentTemplateBody,
+      };
+  }
+}
 
 /**
  * Asking for the evaluation to be put into words: for the first time, again after a failure, or
@@ -57,10 +61,12 @@ export async function explainEvaluation(
   const alertId = readField(formData, "alertId");
   const ask = readAsk(formData);
   const regenerate = ask === "retry";
+  const language = await deploymentLanguage();
+  const f = formatting(language);
 
   const result = await requestAlertExplanation(alertId, regenerate);
   if (!result.ok) {
-    return failed(result.failure, submissionId);
+    return failed(result.failure, language, submissionId);
   }
 
   revalidatePath(`/alerts/${alertId}`);
@@ -70,8 +76,8 @@ export async function explainEvaluation(
   if (!applied) {
     return {
       outcome: "done",
-      title: "Esta evaluación ya tenía su explicación",
-      body: "No se le pidió nada al proveedor: la que ya estaba escrita es la que se muestra arriba.",
+      title: f.t.outcomes.explanationUnchangedTitle,
+      body: f.t.outcomes.explanationUnchangedBody,
       recovery: "",
       technicalDetail: "",
       submissionId,
@@ -81,7 +87,7 @@ export async function explainEvaluation(
   if (explanation.status === EXPLANATION_STATUS.ready) {
     return {
       outcome: "done",
-      ...WRITTEN[ask],
+      ...written(ask, language),
       recovery: "",
       technicalDetail: "",
       submissionId,
@@ -92,21 +98,27 @@ export async function explainEvaluation(
   // and not an error: a provider that invents a figure is an ordinary outcome of asking.
   return {
     outcome: "failed",
-    title: "No se pudo redactar la explicación",
+    title: f.t.outcomes.explanationFailedTitle,
     body:
       explanation.failureCode === null
-        ? "El proveedor no dejó ningún texto utilizable."
-        : `${explanationFailureLabel(explanation.failureCode)}.`,
+        ? f.t.outcomes.explanationFailedWithoutCode
+        : f.t.outcomes.explanationFailedWithCode(
+            f.explanationFailureLabel(explanation.failureCode),
+          ),
     recovery: explanation.attemptsExhausted
-      ? "Se agotaron los intentos para esta evaluación. El veredicto no necesita una explicación para emitirse."
-      : "Podés volver a intentarlo. Un texto que no se pudo verificar no se guarda ni se muestra.",
+      ? f.t.outcomes.explanationFailedExhausted
+      : f.t.outcomes.explanationFailedRetry,
     technicalDetail: "",
     submissionId,
   };
 }
 
-function failed(failure: ApiFailure, submissionId: number): ExplanationActionState {
-  const message = describeFailure(failure);
+function failed(
+  failure: ApiFailure,
+  language: Language,
+  submissionId: number,
+): ExplanationActionState {
+  const message = describeFailure(failure, language);
 
   return {
     outcome: "failed",

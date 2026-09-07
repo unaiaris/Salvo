@@ -17,7 +17,7 @@ namespace Salvo.Api.IntegrationTests;
 /// its Spanish counterpart writes, because the numbers are a claim about the evaluation and only
 /// the words around them belong to a language. The Portuguese was written by the same hand that
 /// wrote the vocabulary and <strong>has not been reviewed by a native speaker</strong>;
-/// <c>docs/glosario-pt.md</c> says so and is where a correction goes.
+/// <c>frontend/src/lib/i18n/glosario-pt.md</c> says so and is where a correction goes.
 /// </para>
 /// </remarks>
 public sealed class ExplanationGoldenPortugueseTests

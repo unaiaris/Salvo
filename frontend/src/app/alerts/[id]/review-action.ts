@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { submitAlertReview } from "@/lib/api/alerts";
+import { deploymentLanguage } from "@/lib/api/console";
 import { describeFailure } from "@/lib/api/messages";
+import { formatting } from "@/lib/format";
 import type { ReviewFormState } from "./review-state";
 
 /**
@@ -23,6 +25,8 @@ export async function reviewAlert(
   const note = readField(formData, "note");
   const acknowledged = formData.get("acknowledgedDivergence") !== null;
   const explanationId = readField(formData, "explanationId");
+  const language = await deploymentLanguage();
+  const { outcomes } = formatting(language).t;
 
   const echo = {
     submittedStatus: newStatus,
@@ -39,7 +43,7 @@ export async function reviewAlert(
   });
 
   if (!result.ok) {
-    const message = describeFailure(result.failure);
+    const message = describeFailure(result.failure, language);
 
     return {
       ...echo,
@@ -60,9 +64,9 @@ export async function reviewAlert(
     return {
       ...echo,
       outcome: "unchanged",
-      title: "La alerta ya tenía exactamente este veredicto",
-      body: "No se registró una revisión nueva porque el veredicto y la nota guardados coinciden con los que enviaste.",
-      recovery: "El veredicto vigente es el que se muestra abajo.",
+      title: outcomes.reviewUnchangedTitle,
+      body: outcomes.reviewUnchangedBody,
+      recovery: outcomes.reviewUnchangedRecovery,
       technicalDetail: "",
       isFormError: false,
     };
@@ -71,8 +75,8 @@ export async function reviewAlert(
   return {
     ...echo,
     outcome: "applied",
-    title: "Veredicto registrado",
-    body: "La revisión quedó guardada junto con su auditoría. Un veredicto es definitivo: esta alerta no se reabre.",
+    title: outcomes.reviewAppliedTitle,
+    body: outcomes.reviewAppliedBody,
     recovery: "",
     technicalDetail: "",
     isFormError: false,

@@ -1,5 +1,8 @@
 import "server-only";
 
+import { cache } from "react";
+
+import { DEFAULT_LANGUAGE, type Language } from "./contract";
 import type {
   Capabilities,
   Dashboard,
@@ -55,8 +58,47 @@ function project<T>(result: ApiResult<unknown>, guard: (value: unknown) => T | n
  * way, so the console asks instead of probing: a 404 on the seed route is indistinguishable from a
  * misspelled path or an API that is down.
  */
-export async function fetchCapabilities(): Promise<ApiResult<Capabilities>> {
+/**
+ * Memoised for the render pass, because two callers now need it: the screen, which decides whether
+ * to offer the demo controls, and {@link deploymentLanguage}, which reads the language out of the
+ * same response. Asking twice for one answer would double the round trip on every page — and a
+ * test asserts that this route is asked exactly once, which is what caught it.
+ */
+export const fetchCapabilities = cache(async (): Promise<ApiResult<Capabilities>> => {
   return project(await requestJson({ path: "/api/system/capabilities" }), projectCapabilities);
+});
+
+/**
+ * The language this deployment writes and renders in.
+ *
+ * <strong>Read from the API and never from the environment of the Next process.</strong>
+ * `SALVO_LANGUAGE` has exactly one reader, the API, which refuses to start on a value it cannot
+ * write and publishes what it parsed here. Two independent readers of one variable is a deployment
+ * where a misconfigured console renders one language around a paragraph in the other, and nothing
+ * anywhere reports a problem.
+ *
+ * Memoised per render pass, so the layout, the page and a server action inside one request agree
+ * and pay for one call between them.
+ *
+ * A failure falls back to the default rather than refusing the page: the language is a concern of
+ * presentation, and a screen that cannot say which language it is in still has to render. The
+ * unreadable capabilities are announced on the screen by whoever asked for them.
+ */
+export const deploymentLanguage = cache(async (): Promise<Language> => {
+  return languageOf(await fetchCapabilities());
+});
+
+/**
+ * The language carried by a capabilities read somebody already did.
+ *
+ * Three of the four screens ask for the capabilities anyway — they decide whether to offer the demo
+ * controls — so they take the language out of that answer instead of asking again. Pure, and
+ * therefore observable: `fetchCapabilities` is memoised for the render pass, but memoisation is a
+ * property of the framework's request scope and a test cannot see it. One read and one decision is
+ * a property of this code, and the import screen asserts it.
+ */
+export function languageOf(capabilities: ApiResult<Capabilities>): Language {
+  return capabilities.ok ? capabilities.value.language : DEFAULT_LANGUAGE;
 }
 
 export async function fetchDashboard(): Promise<ApiResult<Dashboard>> {

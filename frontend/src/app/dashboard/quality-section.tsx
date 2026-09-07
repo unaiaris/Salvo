@@ -1,8 +1,13 @@
 import Link from "next/link";
 import { FailureNotice } from "@/components/failure-notice";
-import type { EvaluationMetrics, MetricsFigures, ThresholdMetrics } from "@/lib/api/contract";
+import type {
+  EvaluationMetrics,
+  Language,
+  MetricsFigures,
+  ThresholdMetrics,
+} from "@/lib/api/contract";
 import type { ApiResult } from "@/lib/api/failures";
-import { formatCount, formatInstant, formatPercent } from "@/lib/format";
+import { formatting, type Formatting } from "@/lib/format";
 
 /**
  * The quality of the detection criterion — a different surface from the operational dashboard, and
@@ -16,21 +21,23 @@ import { formatCount, formatInstant, formatPercent } from "@/lib/format";
  */
 
 /**
- * The sentence that has to be on screen whenever the figures are, and that nothing can collapse or
- * dismiss.
+ * The caveat that has to be on screen whenever the figures are, and that nothing can collapse or
+ * dismiss, lives in the dictionaries under `dashboard.qualityCaveat`.
  *
- * An F1 of 1,00 with no such caveat reads as an overfitted fixture and quietly discredits everything
- * around it. Stated, it reads as what it is: proof that the evaluation pipeline is honest — temporal
+ * An F1 with no such caveat reads as an overfitted fixture and quietly discredits everything around
+ * it. Stated, it reads as what it is: proof that the evaluation pipeline is honest — temporal
  * split, holdout with no retuning, arithmetic that checks out — not proof that the rules would
- * generalise to a corpus they were not built alongside. Enriching the fixture with harder cases is
- * scheduled work for stage 9; until then the caveat is what carries the truth.
+ * generalise to a corpus they were not built alongside.
  */
-export const FIXTURE_CAVEAT =
-  "La fixture demo fue construida para que las reglas recuperen sus propias etiquetas. Estas "
-  + "métricas prueban el pipeline de evaluación —división temporal, holdout sin retuning, cálculo "
-  + "correcto—, no la calidad del criterio de detección.";
+export function QualitySection({
+  metrics,
+  language,
+}: {
+  readonly metrics: ApiResult<EvaluationMetrics>;
+  readonly language: Language;
+}) {
+  const f = formatting(language);
 
-export function QualitySection({ metrics }: { readonly metrics: ApiResult<EvaluationMetrics> }) {
   return (
     <section
       aria-labelledby="quality-title"
@@ -38,31 +45,28 @@ export function QualitySection({ metrics }: { readonly metrics: ApiResult<Evalua
     >
       <div className="flex flex-col gap-2">
         <h2 id="quality-title" className="text-lg font-semibold text-slate-900">
-          Calidad del criterio
+          {f.t.dashboard.qualityTitle}
         </h2>
-        <p className="max-w-3xl text-sm leading-6 text-slate-700">
-          Medida contra las etiquetas del corpus de demostración. Ninguna cifra del resto de esta
-          pantalla usa esas etiquetas.
-        </p>
+        <p className="max-w-3xl text-sm leading-6 text-slate-700">{f.t.dashboard.qualityLead}</p>
         {/*
           Not a dismissible banner and not an accordion: it is part of the figures, so it is rendered
           before them and cannot be closed.
         */}
         <p className="max-w-3xl rounded-md border-l-4 border-amber-500 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
-          {FIXTURE_CAVEAT}
+          {f.t.dashboard.qualityCaveat}
         </p>
       </div>
 
       {metrics.ok ? (
-        <QualityFigures metrics={metrics.value} />
+        <QualityFigures metrics={metrics.value} f={f} />
       ) : (
-        <FailureNotice failure={metrics.failure}>
+        <FailureNotice failure={metrics.failure} language={language}>
           <p className="mt-3 text-sm">
             <Link
               href="/import"
               className="font-semibold underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-900"
             >
-              Ejecutar scoring
+              {f.t.common.runScoring}
             </Link>
           </p>
         </FailureNotice>
@@ -71,40 +75,56 @@ export function QualitySection({ metrics }: { readonly metrics: ApiResult<Evalua
   );
 }
 
-function QualityFigures({ metrics }: { readonly metrics: EvaluationMetrics }) {
+function QualityFigures({
+  metrics,
+  f,
+}: {
+  readonly metrics: EvaluationMetrics;
+  readonly f: Formatting;
+}) {
+  const { t } = f;
+
   return (
     <div className="flex flex-col gap-6">
       <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Figure term="Pedidos puntuados" value={formatCount(metrics.scoredOrders)} />
-        <Figure term="Con etiqueta" value={formatCount(metrics.labeledOrders)} />
+        <Figure term={t.dashboard.qualityScoredOrders} value={f.formatCount(metrics.scoredOrders)} />
+        <Figure term={t.dashboard.qualityLabeled} value={f.formatCount(metrics.labeledOrders)} />
         <Figure
-          term="Sin etiqueta"
-          value={formatCount(metrics.unlabeledOrders)}
-          hint="Se cuentan y se excluyen: un pedido importado nunca trae etiqueta."
+          term={t.dashboard.qualityUnlabeled}
+          value={f.formatCount(metrics.unlabeledOrders)}
+          hint={t.dashboard.qualityUnlabeledHint}
         />
-        <Figure term="Configuración de reglas" value={metrics.ruleConfigVersion} />
+        <Figure term={t.dashboard.qualityRuleConfig} value={metrics.ruleConfigVersion} />
       </dl>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <FiguresBlock
-          title={`Holdout · ${formatCount(metrics.holdoutOrders)} pedidos`}
-          description={`Umbral ${formatCount(metrics.selectedThreshold.threshold)}, elegido sobre la cohorte de calibración y aplicado acá sin retocar nada.`}
+          title={t.dashboard.qualityHoldoutTitle(f.formatCount(metrics.holdoutOrders))}
+          description={t.dashboard.qualityHoldoutHint(
+            f.formatCount(metrics.selectedThreshold.threshold),
+          )}
           figures={metrics.holdout}
+          f={f}
         />
         <FiguresBlock
-          title={`Calibración · ${formatCount(metrics.calibrationOrders)} pedidos`}
-          description="La cohorte temprana, sobre la que se eligió el umbral. No es una medición independiente."
+          title={t.dashboard.qualityCalibrationTitle(f.formatCount(metrics.calibrationOrders))}
+          description={t.dashboard.qualityCalibrationHint}
           figures={metrics.selectedThreshold.metrics}
+          f={f}
         />
       </div>
 
       <ThresholdSweep
         sweep={metrics.calibrationSweep}
         selected={metrics.selectedThreshold.threshold}
+        f={f}
       />
 
       <p className="text-xs text-slate-600">
-        Corrida #{formatCount(metrics.scoringRunSequence)}, {formatInstant(metrics.scoringRunCompletedAt)}.
+        {t.dashboard.qualityRunFootnote(
+          f.formatCount(metrics.scoringRunSequence),
+          f.formatInstant(metrics.scoringRunCompletedAt),
+        )}
       </p>
     </div>
   );
@@ -129,20 +149,23 @@ function Figure({
 }
 
 /** A ratio that may legitimately not exist: precision has no value when nothing was flagged. */
-function ratio(value: number | null): string {
-  return value === null ? "sin definir" : formatPercent(value);
+function ratio(value: number | null, f: Formatting): string {
+  return value === null ? f.t.dashboard.qualityUndefined : f.formatPercent(value);
 }
 
 function FiguresBlock({
   title,
   description,
   figures,
+  f,
 }: {
   readonly title: string;
   readonly description: string;
   readonly figures: MetricsFigures;
+  readonly f: Formatting;
 }) {
   const { matrix } = figures;
+  const { t } = f;
 
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-5">
@@ -150,34 +173,39 @@ function FiguresBlock({
       <p className="mt-1 text-xs leading-5 text-slate-600">{description}</p>
 
       <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-        <Pair term="Precisión" value={ratio(figures.precision)} />
-        <Pair term="Recall" value={ratio(figures.recall)} />
-        <Pair term="F1" value={ratio(figures.f1)} />
-        <Pair term="Tasa de falsos positivos" value={ratio(figures.falsePositiveRate)} />
+        <Pair term={t.dashboard.qualityPrecision} value={ratio(figures.precision, f)} />
+        <Pair term={t.dashboard.qualityRecall} value={ratio(figures.recall, f)} />
+        <Pair term={t.dashboard.qualityF1} value={ratio(figures.f1, f)} />
+        <Pair
+          term={t.dashboard.qualityFalsePositiveRate}
+          value={ratio(figures.falsePositiveRate, f)}
+        />
       </dl>
 
       <table className="mt-4 w-full border-collapse text-sm">
-        <caption className="pb-1 text-left text-xs text-slate-600">Matriz de confusión</caption>
+        <caption className="pb-1 text-left text-xs text-slate-600">
+          {t.dashboard.qualityMatrixCaption}
+        </caption>
         <tbody>
           <tr className="border-b border-slate-100">
             <th scope="row" className="py-1 text-left font-normal text-slate-700">
-              Verdaderos positivos
+              {t.dashboard.qualityTruePositives}
             </th>
-            <td className="py-1 text-right tabular-nums">{formatCount(matrix.truePositives)}</td>
+            <td className="py-1 text-right tabular-nums">{f.formatCount(matrix.truePositives)}</td>
             <th scope="row" className="py-1 pl-4 text-left font-normal text-slate-700">
-              Falsos positivos
+              {t.dashboard.qualityFalsePositives}
             </th>
-            <td className="py-1 text-right tabular-nums">{formatCount(matrix.falsePositives)}</td>
+            <td className="py-1 text-right tabular-nums">{f.formatCount(matrix.falsePositives)}</td>
           </tr>
           <tr>
             <th scope="row" className="py-1 text-left font-normal text-slate-700">
-              Falsos negativos
+              {t.dashboard.qualityFalseNegatives}
             </th>
-            <td className="py-1 text-right tabular-nums">{formatCount(matrix.falseNegatives)}</td>
+            <td className="py-1 text-right tabular-nums">{f.formatCount(matrix.falseNegatives)}</td>
             <th scope="row" className="py-1 pl-4 text-left font-normal text-slate-700">
-              Verdaderos negativos
+              {t.dashboard.qualityTrueNegatives}
             </th>
-            <td className="py-1 text-right tabular-nums">{formatCount(matrix.trueNegatives)}</td>
+            <td className="py-1 text-right tabular-nums">{f.formatCount(matrix.trueNegatives)}</td>
           </tr>
         </tbody>
       </table>
@@ -205,37 +233,40 @@ function Pair({ term, value }: { readonly term: string; readonly value: string }
 function ThresholdSweep({
   sweep,
   selected,
+  f,
 }: {
   readonly sweep: readonly ThresholdMetrics[];
   readonly selected: number;
+  readonly f: Formatting;
 }) {
+  const { t } = f;
+
   return (
     <details className="rounded-lg border border-slate-200 bg-white p-4">
       <summary className="cursor-pointer text-sm font-semibold text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900">
-        Barrido de umbrales sobre la cohorte de calibración ({formatCount(sweep.length)} puntos)
+        {t.dashboard.qualitySweepSummary(f.formatCount(sweep.length))}
       </summary>
       <p className="mt-2 text-xs leading-5 text-slate-600">
-        Solo los umbrales donde la matriz de confusión cambia. El umbral{" "}
-        {formatCount(selected)} es el que se eligió y el que se aplicó al holdout.
+        {t.dashboard.qualitySweepHint(f.formatCount(selected))}
       </p>
       <div className="mt-3 overflow-x-auto">
         <table className="w-full min-w-[30rem] border-collapse text-sm">
           <thead>
             <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-600">
               <th scope="col" className="py-2 pr-4 font-semibold">
-                Umbral
+                {t.dashboard.qualitySweepThreshold}
               </th>
               <th scope="col" className="py-2 pr-4 text-right font-semibold">
-                Precisión
+                {t.dashboard.qualityPrecision}
               </th>
               <th scope="col" className="py-2 pr-4 text-right font-semibold">
-                Recall
+                {t.dashboard.qualityRecall}
               </th>
               <th scope="col" className="py-2 pr-4 text-right font-semibold">
-                F1
+                {t.dashboard.qualityF1}
               </th>
               <th scope="col" className="py-2 text-right font-semibold">
-                Falsos positivos
+                {t.dashboard.qualityFalsePositives}
               </th>
             </tr>
           </thead>
@@ -250,18 +281,20 @@ function ThresholdSweep({
                 }
               >
                 <th scope="row" className="py-1.5 pr-4 text-left font-normal text-slate-700">
-                  {formatCount(point.threshold)}
-                  {point.threshold === selected && " · elegido"}
+                  {f.formatCount(point.threshold)}
+                  {point.threshold === selected && t.dashboard.qualitySweepChosen}
                 </th>
                 <td className="py-1.5 pr-4 text-right tabular-nums">
-                  {ratio(point.metrics.precision)}
+                  {ratio(point.metrics.precision, f)}
                 </td>
                 <td className="py-1.5 pr-4 text-right tabular-nums">
-                  {ratio(point.metrics.recall)}
+                  {ratio(point.metrics.recall, f)}
                 </td>
-                <td className="py-1.5 pr-4 text-right tabular-nums">{ratio(point.metrics.f1)}</td>
+                <td className="py-1.5 pr-4 text-right tabular-nums">
+                  {ratio(point.metrics.f1, f)}
+                </td>
                 <td className="py-1.5 text-right tabular-nums">
-                  {ratio(point.metrics.falsePositiveRate)}
+                  {ratio(point.metrics.falsePositiveRate, f)}
                 </td>
               </tr>
             ))}

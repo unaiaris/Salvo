@@ -1,6 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
+import type { Language } from "@/lib/api/contract";
+import { messagesFor } from "@/lib/i18n/dictionary";
 import { deliverCallback, requestExternal } from "./external-action";
 import { INITIAL_EXTERNAL_STATE } from "./external-state";
 
@@ -11,6 +13,10 @@ import { INITIAL_EXTERNAL_STATE } from "./external-state";
  * external evaluation object crosses here — the rule of decision 42 — and neither button ever
  * carries a verdict: the request asks the provider, and the delivery asks the API to ask it. What
  * the provider says is never something this component could choose.
+ *
+ * The wording is read from the dictionary here rather than passed in, for the reason `E7B` found:
+ * a label handed down as a prop rides in the RSC payload of every page whether the button renders
+ * or not.
  */
 export function ExternalActions({
   orderId,
@@ -18,13 +24,16 @@ export function ExternalActions({
   externalEvaluationId,
   canRequest,
   canDeliver,
+  language,
 }: {
   readonly orderId: string;
   readonly alertId: string;
   readonly externalEvaluationId: string;
   readonly canRequest: boolean;
   readonly canDeliver: boolean;
+  readonly language: Language;
 }) {
+  const { alertDetail } = messagesFor(language);
   const [requestState, requestAction, requesting] = useActionState(
     requestExternal,
     INITIAL_EXTERNAL_STATE,
@@ -45,7 +54,7 @@ export function ExternalActions({
             disabled={requesting}
             className="inline-flex rounded-md border border-violet-700 px-4 py-2 text-sm font-semibold text-violet-900 disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400 hover:bg-violet-700 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-900"
           >
-            {requesting ? "Consultando al proveedor…" : "Solicitar evaluación externa"}
+            {requesting ? alertDetail.externalRequestPending : alertDetail.externalRequestButton}
           </button>
         </form>
       )}
@@ -59,12 +68,10 @@ export function ExternalActions({
             disabled={delivering}
             className="inline-flex rounded-md border border-violet-700 px-4 py-2 text-sm font-semibold text-violet-900 disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400 hover:bg-violet-700 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-900"
           >
-            {delivering ? "Entregando el callback…" : "Entregar el callback del proveedor"}
+            {delivering ? alertDetail.externalDeliverPending : alertDetail.externalDeliverButton}
           </button>
           <p className="text-xs leading-5 text-slate-600">
-            Simula la llegada del callback que el proveedor enviaría por su cuenta. Existe solo
-            porque esta instancia se declara de demostración: quien lo pulsa elige qué evaluación,
-            nunca qué responde el proveedor.
+            {alertDetail.externalDeliverHint}
           </p>
         </form>
       )}

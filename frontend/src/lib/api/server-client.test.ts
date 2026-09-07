@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { jsonResponse, problemResponse, wireAlertDetail, wireAlertList } from "@/test/fixtures";
+import { jsonResponse, problemResponse, wireAlertDetail, wireAlertList,
+  mockConsoleFetch,
+} from "@/test/fixtures";
 import { fetchAlert, fetchOpenAlerts, submitAlertReview } from "./alerts";
 import { requestJson } from "./server-client";
 import { describeFailure } from "./messages";
@@ -28,7 +30,7 @@ describe("el cliente de la API", () => {
   it("pide URLs absolutas, no rutas relativas al rewrite", async () => {
     // El rewrite de next.config.ts solo existe para el navegador; en Node una ruta relativa es un
     // TypeError, así que la URL absoluta no es una preferencia de estilo.
-    fetchMock.mockResolvedValue(jsonResponse(wireAlertList()));
+    mockConsoleFetch(fetchMock, () => jsonResponse(wireAlertList()));
 
     await fetchOpenAlerts();
 
@@ -38,7 +40,7 @@ describe("el cliente de la API", () => {
   });
 
   it("pide una sola página de 200 alertas abiertas por score vigente descendente", async () => {
-    fetchMock.mockResolvedValue(jsonResponse(wireAlertList()));
+    mockConsoleFetch(fetchMock, () => jsonResponse(wireAlertList()));
 
     await fetchOpenAlerts();
 
@@ -50,7 +52,7 @@ describe("el cliente de la API", () => {
   });
 
   it("fija un timeout explícito en toda llamada", async () => {
-    fetchMock.mockResolvedValue(jsonResponse(wireAlertDetail()));
+    mockConsoleFetch(fetchMock, () => jsonResponse(wireAlertDetail()));
 
     await fetchAlert("2f2b7f3e-0000-4000-8000-000000000002");
     await submitAlertReview("2f2b7f3e-0000-4000-8000-000000000002", {
@@ -66,7 +68,7 @@ describe("el cliente de la API", () => {
   });
 
   it("no cachea: una revisión tiene que verse en la lectura siguiente", async () => {
-    fetchMock.mockResolvedValue(jsonResponse(wireAlertList()));
+    mockConsoleFetch(fetchMock, () => jsonResponse(wireAlertList()));
 
     await fetchOpenAlerts();
 
@@ -83,7 +85,7 @@ describe("el cliente de la API", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.failure.kind).toBe("timeout");
-      expect(describeFailure(result.failure).title).toMatch(/tardó demasiado/i);
+      expect(describeFailure(result.failure, "es").title).toMatch(/tardó demasiado/i);
     }
   });
 
@@ -119,7 +121,7 @@ describe("el cliente de la API", () => {
   });
 
   it("lee el código de problem+json, que es una extensión fuera del schema", async () => {
-    fetchMock.mockResolvedValue(
+    mockConsoleFetch(fetchMock, () => 
       problemResponse(409, "ALERT_ALREADY_REVIEWED", "Alert 2f2b… was already reviewed."),
     );
 
@@ -139,7 +141,7 @@ describe("el cliente de la API", () => {
   });
 
   it("tolera un error sin cuerpo legible", async () => {
-    fetchMock.mockResolvedValue(new Response("<html>502</html>", { status: 502 }));
+    mockConsoleFetch(fetchMock, () => new Response("<html>502</html>", { status: 502 }));
 
     const result = await fetchOpenAlerts();
 
@@ -151,7 +153,7 @@ describe("el cliente de la API", () => {
   });
 
   it("rechaza una respuesta que no respeta el contrato en vez de renderizarla a medias", async () => {
-    fetchMock.mockResolvedValue(jsonResponse({ items: "no es una lista" }));
+    mockConsoleFetch(fetchMock, () => jsonResponse({ items: "no es una lista" }));
 
     const result = await fetchOpenAlerts();
 
@@ -162,7 +164,7 @@ describe("el cliente de la API", () => {
   });
 
   it("envía la revisión como JSON con los cuatro campos del contrato", async () => {
-    fetchMock.mockResolvedValue(jsonResponse({ applied: true, alert: wireAlertDetail() }));
+    mockConsoleFetch(fetchMock, () => jsonResponse({ applied: true, alert: wireAlertDetail() }));
 
     await submitAlertReview("2f2b7f3e-0000-4000-8000-000000000002", {
       newStatus: "REPORTED_FRAUD",
@@ -183,7 +185,7 @@ describe("el cliente de la API", () => {
   });
 
   it("manda la nota vacía como null, no como cadena vacía", async () => {
-    fetchMock.mockResolvedValue(jsonResponse({ applied: true, alert: wireAlertDetail() }));
+    mockConsoleFetch(fetchMock, () => jsonResponse({ applied: true, alert: wireAlertDetail() }));
 
     await submitAlertReview("2f2b7f3e-0000-4000-8000-000000000002", {
       newStatus: "CONFIRMED_SAFE",

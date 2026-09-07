@@ -1,7 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { jsonResponse, wireAlertDetail, wireCapabilities, wireExplanation } from "@/test/fixtures";
+import { jsonResponse, wireAlertDetail, wireCapabilities, wireExplanation,
+  mockConsoleFetch,
+} from "@/test/fixtures";
 import { renderableServerTree } from "@/test/server-tree";
 import { explainEvaluation } from "./explanation-action";
 import { INITIAL_EXPLANATION_STATE } from "./explanation-state";
@@ -34,9 +36,17 @@ async function ask(question = "first") {
   return explainEvaluation(INITIAL_EXPLANATION_STATE, submission(question));
 }
 
-/** The body the API was posted, so a test can read which request the question became. */
+/**
+ * The body of the nth explanation request, so a test can read which request the question became.
+ *
+ * Counted over the explanation calls rather than over every call: each action asks the API for the
+ * deployment language first, and indexing raw positions would make this about that instead.
+ */
 function postedBody(call: number): Record<string, unknown> {
-  const [, init] = fetchMock.mock.calls[call] as [URL, RequestInit];
+  const explanationCalls = fetchMock.mock.calls.filter(
+    ([url]) => (url as URL).pathname !== "/api/system/capabilities",
+  );
+  const [, init] = explanationCalls[call] as [URL, RequestInit];
 
   return JSON.parse(String(init.body)) as Record<string, unknown>;
 }
@@ -116,7 +126,7 @@ describe("acción de explicación", () => {
   });
 
   it("con la plantilla vigente dice que el texto anterior sigue guardado", async () => {
-    fetchMock.mockResolvedValue(jsonResponse({ applied: true, explanation: wireExplanation() }));
+    mockConsoleFetch(fetchMock, () => jsonResponse({ applied: true, explanation: wireExplanation() }));
 
     const state = await ask("currentTemplate");
 
@@ -141,7 +151,7 @@ describe("acción de explicación", () => {
       const legend = sentences(await writtenBlock());
 
       vi.clearAllMocks();
-      fetchMock.mockResolvedValue(jsonResponse({ applied: true, explanation: wireExplanation() }));
+      mockConsoleFetch(fetchMock, () => jsonResponse({ applied: true, explanation: wireExplanation() }));
       const notice = sentences((await ask(question)).body);
 
       expect(notice.length).toBeGreaterThan(1);
@@ -150,7 +160,7 @@ describe("acción de explicación", () => {
   );
 
   it("con applied=false no dice que se acaba de redactar nada", async () => {
-    fetchMock.mockResolvedValue(jsonResponse({ applied: false, explanation: wireExplanation() }));
+    mockConsoleFetch(fetchMock, () => jsonResponse({ applied: false, explanation: wireExplanation() }));
 
     const state = await ask();
 
@@ -160,7 +170,7 @@ describe("acción de explicación", () => {
   });
 
   it("una fila sin texto utilizable es un fallo, aunque la petición haya salido bien", async () => {
-    fetchMock.mockResolvedValue(
+    mockConsoleFetch(fetchMock, () => 
       jsonResponse({
         applied: true,
         explanation: wireExplanation({

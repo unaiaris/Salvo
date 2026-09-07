@@ -16,7 +16,7 @@ function detailFrom(overrides: Record<string, unknown>): AlertDetail {
 
 describe("divergencia", () => {
   it("no avisa nada cuando la evaluación vigente es la del snapshot", () => {
-    expect(describeDivergence(detailFrom({})).kind).toBe("none");
+    expect(describeDivergence(detailFrom({}), "es").kind).toBe("none");
   });
 
   it("bloquea cuando cambió la banda", () => {
@@ -30,6 +30,7 @@ describe("divergencia", () => {
           currentSeverity: "MEDIUM",
         },
       }),
+      "es",
     );
 
     expect(notice.kind).toBe("blocking");
@@ -53,6 +54,7 @@ describe("divergencia", () => {
           currentSeverity: null,
         },
       }),
+      "es",
     );
 
     expect(notice.kind).toBe("blocking");
@@ -88,6 +90,7 @@ describe("divergencia", () => {
           currentSeverity: "CRITICAL",
         },
       }),
+      "es",
     );
 
     expect(notice.kind).toBe("advisory");
@@ -99,7 +102,7 @@ describe("divergencia", () => {
   });
 
   it("no inventa un aviso cuando no hay evaluación vigente y tampoco hay divergencia de banda", () => {
-    const notice = describeDivergence(detailFrom({ currentEvaluation: null }));
+    const notice = describeDivergence(detailFrom({ currentEvaluation: null }), "es");
 
     expect(notice.kind).toBe("none");
   });
@@ -127,6 +130,7 @@ describe("divergencia y versiones del motor", () => {
           evaluatedAt: "2026-09-06T10:02:00+00:00",
         },
       }),
+      "es",
     );
 
     expect(notice.kind).toBe("none");
@@ -163,6 +167,7 @@ describe("divergencia y versiones del motor", () => {
           evaluatedAt: "2026-09-06T10:02:00+00:00",
         },
       }),
+      "es",
     );
 
     expect(notice.kind).toBe("none");
@@ -192,6 +197,7 @@ describe("divergencia y versiones del motor", () => {
           evaluatedAt: "2026-09-06T10:02:00+00:00",
         },
       }),
+      "es",
     );
 
     expect(notice.kind).toBe("advisory");
@@ -209,6 +215,7 @@ describe("divergencia y versiones del motor", () => {
           evaluatedAt: "2026-09-06T10:02:00+00:00",
         },
       }),
+      "es",
     );
 
     expect(notice.kind).toBe("advisory");

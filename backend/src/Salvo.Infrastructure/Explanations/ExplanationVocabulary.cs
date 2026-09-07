@@ -163,7 +163,7 @@ internal abstract class ExplanationVocabulary
     /// <remarks>
     /// Brazilian Portuguese, and «estabelecimento» rather than «comércio» for the merchant, which
     /// is the word Brazilian acquiring uses for the party that takes the order. Not reviewed by a
-    /// native speaker: <c>docs/glosario-pt.md</c> says so, and says it beside every line, so that
+    /// native speaker: <c>frontend/src/lib/i18n/glosario-pt.md</c> says so, and says it beside every line, so that
     /// somebody who does speak it can correct one row at a time without opening this file.
     /// </remarks>
     private sealed class PortugueseVocabulary : ExplanationVocabulary

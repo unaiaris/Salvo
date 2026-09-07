@@ -1,6 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
+import type { Language } from "@/lib/api/contract";
+import { messagesFor } from "@/lib/i18n/dictionary";
 import {
   deliverAllCallbacks,
   executeScoringRun,
@@ -17,8 +19,9 @@ import { INITIAL_ACTION_STATE } from "./action-state";
  * the corpus. Whether the demo button exists at all is decided on the server from
  * `GET /api/system/capabilities`; this component is not rendered when the deployment says no.
  */
-export function SeedDemoButton() {
+export function SeedDemoButton({ language }: { readonly language: Language }) {
   const [state, formAction, pending] = useActionState(seedDemoCorpus, INITIAL_ACTION_STATE);
+  const { importPage } = messagesFor(language);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -28,10 +31,10 @@ export function SeedDemoButton() {
           disabled={pending}
           className="inline-flex rounded-md border border-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400 hover:bg-slate-900 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
         >
-          {pending ? "Cargando corpus…" : "Cargar corpus de demostración"}
+          {pending ? importPage.seedButtonPending : importPage.seedButton}
         </button>
       </div>
-      <ActionOutcome state={state} />
+      <ActionOutcome state={state} language={language} />
     </form>
   );
 }
@@ -44,8 +47,9 @@ export function SeedDemoButton() {
  * as many words, because a console where importing silently did the scoring would be a console that
  * hides when the corpus was last read.
  */
-export function RunScoringButton() {
+export function RunScoringButton({ language }: { readonly language: Language }) {
   const [state, formAction, pending] = useActionState(executeScoringRun, INITIAL_ACTION_STATE);
+  const { importPage } = messagesFor(language);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -55,16 +59,13 @@ export function RunScoringButton() {
           disabled={pending}
           className="inline-flex rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-400 hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
         >
-          {pending ? "Ejecutando corrida…" : "Ejecutar scoring"}
+          {pending ? importPage.scoringButtonPending : importPage.scoringButton}
         </button>
       </div>
       {pending && (
-        <p className="text-sm text-slate-600">
-          La corrida evalúa el corpus en orden temporal. En un corpus de trescientos pedidos tarda
-          unos segundos.
-        </p>
+        <p className="text-sm text-slate-600">{importPage.scoringRunning}</p>
       )}
-      <ActionOutcome state={state} />
+      <ActionOutcome state={state} language={language} />
     </form>
   );
 }
@@ -77,8 +78,9 @@ export function RunScoringButton() {
  * callback or holds a secret: the first asks the API to consult the provider, and the second asks
  * the API to deliver what the provider would have sent.
  */
-export function RequestCorpusExternalButton() {
+export function RequestCorpusExternalButton({ language }: { readonly language: Language }) {
   const [state, formAction, pending] = useActionState(requestCorpusExternal, INITIAL_ACTION_STATE);
+  const { importPage } = messagesFor(language);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -88,22 +90,20 @@ export function RequestCorpusExternalButton() {
           disabled={pending}
           className="inline-flex rounded-md border border-violet-700 px-4 py-2 text-sm font-semibold text-violet-900 disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400 hover:bg-violet-700 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-900"
         >
-          {pending ? "Consultando al proveedor…" : "Solicitar evaluación externa del corpus"}
+          {pending ? importPage.externalRequestPending : importPage.externalRequestButton}
         </button>
       </div>
       {pending && (
-        <p className="text-sm text-slate-600">
-          Se consulta pedido por pedido, reservando la fila antes de llamar. En un corpus de
-          trescientos pedidos tarda unos segundos.
-        </p>
+        <p className="text-sm text-slate-600">{importPage.externalRequestRunning}</p>
       )}
-      <ActionOutcome state={state} />
+      <ActionOutcome state={state} language={language} />
     </form>
   );
 }
 
-export function DeliverCallbacksButton() {
+export function DeliverCallbacksButton({ language }: { readonly language: Language }) {
   const [state, formAction, pending] = useActionState(deliverAllCallbacks, INITIAL_ACTION_STATE);
+  const { importPage } = messagesFor(language);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -113,10 +113,10 @@ export function DeliverCallbacksButton() {
           disabled={pending}
           className="inline-flex rounded-md border border-violet-700 px-4 py-2 text-sm font-semibold text-violet-900 disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400 hover:bg-violet-700 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-900"
         >
-          {pending ? "Entregando callbacks…" : "Entregar los callbacks del proveedor"}
+          {pending ? importPage.externalDeliverPending : importPage.externalDeliverButton}
         </button>
       </div>
-      <ActionOutcome state={state} />
+      <ActionOutcome state={state} language={language} />
     </form>
   );
 }

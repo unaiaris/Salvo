@@ -1,11 +1,17 @@
 import Link from "next/link";
 import { FailureNotice } from "@/components/failure-notice";
 import type { ApiResult } from "@/lib/api/failures";
-import type { SeedPreview } from "@/lib/api/contract";
+import type { Language, SeedPreview } from "@/lib/api/contract";
 import { Provenance } from "@/components/provenance";
-import { fetchCapabilities, fetchDashboard, fetchSeedPreview } from "@/lib/api/console";
+import {
+  deploymentLanguage,
+  fetchCapabilities,
+  fetchDashboard,
+  fetchSeedPreview,
+  languageOf,
+} from "@/lib/api/console";
 import { IMPORT_MAX_FILE_BYTES, SEED_CONFLICT } from "@/lib/api/contract";
-import { formatCount } from "@/lib/format";
+import { formatting } from "@/lib/format";
 import { ActionSection } from "./action-section";
 import {
   DeliverCallbacksButton,
@@ -21,7 +27,9 @@ import { ImportForm } from "./import-form";
  */
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Importación · Salvo" };
+export async function generateMetadata() {
+  return { title: formatting(await deploymentLanguage()).t.meta.import };
+}
 
 const MAX_FILE_MIB = IMPORT_MAX_FILE_BYTES / (1024 * 1024);
 
@@ -36,6 +44,8 @@ const MAX_FILE_MIB = IMPORT_MAX_FILE_BYTES / (1024 * 1024);
  */
 export default async function ImportPage() {
   const [capabilities, dashboard] = await Promise.all([fetchCapabilities(), fetchDashboard()]);
+  const language = languageOf(capabilities);
+  const { t } = formatting(language);
   // Asked for only where the route exists, like the quality metrics of the dashboard. It says
   // what loading the corpus would do, so a database that cannot take it is announced here rather
   // than discovered by pressing the button.
@@ -46,77 +56,49 @@ export default async function ImportPage() {
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
-          Importación y scoring
+          {t.importPage.title}
         </h1>
-        <p className="max-w-3xl text-sm leading-6 text-slate-600">
-          Importar escribe pedidos y nada más. Las evaluaciones y las alertas las produce una corrida
-          de scoring, que se ejecuta desde acá: hasta que no la corras, la cola de alertas y el
-          dashboard siguen mostrando el estado de la corrida anterior.
-        </p>
+        <p className="max-w-3xl text-sm leading-6 text-slate-600">{t.importPage.lead}</p>
       </div>
 
-      {!capabilities.ok && <FailureNotice failure={capabilities.failure} />}
+      {!capabilities.ok && <FailureNotice failure={capabilities.failure} language={language} />}
 
       {dashboard.ok ? (
         <CorpusStatus
           run={dashboard.value.scoringRun}
           ordersPendingScoring={dashboard.value.ordersPendingScoring}
+          language={language}
         />
       ) : (
-        <FailureNotice failure={dashboard.failure} />
+        <FailureNotice failure={dashboard.failure} language={language} />
       )}
 
       {demoEnabled && (
-        <ActionSection
-          title="Corpus de demostración"
-          description={
-            "Trescientos pedidos sintéticos con sus etiquetas de fraude, pensados para poder medir "
-            + "el criterio: incluye fraude que las reglas locales no pueden ver y pedidos legítimos "
-            + "que sí marcan. La carga es idempotente: repetirla no duplica nada. Esta sección "
-            + "existe solo porque esta instancia se declara de demostración."
-          }
-        >
-          <SeedConflictNotice preview={seedPreview} />
-          <SeedDemoButton />
+        <ActionSection title={t.importPage.seedTitle} description={t.importPage.seedDescription}>
+          <SeedConflictNotice preview={seedPreview} language={language} />
+          <SeedDemoButton language={language} />
         </ActionSection>
       )}
 
-      <ActionSection
-        title="Importar un archivo"
-        description={
-          "CSV o JSON. La validación es estricta por registro y la escritura atómica por archivo: "
-          + "los registros rechazados se listan uno por uno y no se escribe ninguno de ellos."
-        }
-      >
-        <ImportForm maxFileMib={MAX_FILE_MIB} />
+      <ActionSection title={t.importPage.fileTitle} description={t.importPage.fileDescription}>
+        <ImportForm maxFileMib={MAX_FILE_MIB} language={language} />
       </ActionSection>
 
       <ActionSection
-        title="Ejecutar scoring"
-        description={
-          "Evalúa el corpus completo en orden temporal, con el baseline construido solo con la "
-          + "historia anterior a cada pedido, y abre las alertas que correspondan. Es idempotente: "
-          + "una evaluación cuyo resultado no cambió se reusa en vez de duplicarse, y una alerta ya "
-          + "abierta o ya revisada no se vuelve a abrir."
-        }
+        title={t.importPage.scoringTitle}
+        description={t.importPage.scoringDescription}
       >
-        <RunScoringButton />
+        <RunScoringButton language={language} />
       </ActionSection>
 
       {capabilities.ok && capabilities.value.externalCallbackTriggerEnabled && (
         <ActionSection
-          title="Proveedor antifraude externo"
-          description={
-            "Una segunda opinión sobre cada pedido, de un proveedor externo simulado. El detalle de "
-            + "una alerta permite pedirla de a un pedido; acá se pide para el corpus entero, que es "
-            + "lo único que alcanza a los pedidos que nunca abrieron una alerta. Entregar los "
-            + "callbacks simula la respuesta que el proveedor mandaría por su cuenta: quien lo pulsa "
-            + "elige qué evaluación, nunca qué responde el proveedor. Repetirlo no repite efectos."
-          }
+          title={t.importPage.externalTitle}
+          description={t.importPage.externalDescription}
         >
           <div className="flex flex-col gap-6">
-            <RequestCorpusExternalButton />
-            <DeliverCallbacksButton />
+            <RequestCorpusExternalButton language={language} />
+            <DeliverCallbacksButton language={language} />
           </div>
         </ActionSection>
       )}
@@ -135,7 +117,15 @@ export default async function ImportPage() {
  * A preview that failed renders nothing: it is a courtesy, and the load itself still refuses with
  * its own message. Announcing "we could not check" would be noise on a screen that has none.
  */
-function SeedConflictNotice({ preview }: { readonly preview: ApiResult<SeedPreview> | null }) {
+function SeedConflictNotice({
+  preview,
+  language,
+}: {
+  readonly preview: ApiResult<SeedPreview> | null;
+  readonly language: Language;
+}) {
+  const { t } = formatting(language);
+
   if (preview === null || !preview.ok || preview.value.conflict === null) {
     return null;
   }
@@ -150,16 +140,13 @@ function SeedConflictNotice({ preview }: { readonly preview: ApiResult<SeedPrevi
     >
       <h3 id="seed-conflict-title" className="font-semibold">
         {previous
-          ? "Esta base tiene una versión anterior del corpus de demostración"
-          : "Esta base tiene pedidos importados con las mismas referencias"}
+          ? t.importPage.seedConflictPreviousTitle
+          : t.importPage.seedConflictImportedTitle}
       </h3>
       <p className="mt-1">
         {previous
-          ? `Cargar la versión ${preview.value.datasetVersion} exige una base nueva: un pedido es `
-            + "inmutable, así que las dos versiones no pueden convivir bajo las mismas referencias "
-            + "de comercio. La base actual no se toca ni se pierde: deja de ser la de demostración."
-          : "Los pedidos que ya están usan las mismas referencias que la fixture y tienen otros "
-            + "datos. La carga se cancela entera antes que pisar ninguno."}
+          ? t.importPage.seedConflictPreviousBody(preview.value.datasetVersion)
+          : t.importPage.seedConflictImportedBody}
       </p>
     </section>
   );
@@ -173,33 +160,34 @@ function SeedConflictNotice({ preview }: { readonly preview: ApiResult<SeedPrevi
 function CorpusStatus({
   run,
   ordersPendingScoring,
+  language,
 }: {
   readonly run: { readonly sequence: number; readonly completedAt: string } | null;
   readonly ordersPendingScoring: number;
+  readonly language: Language;
 }) {
+  const f = formatting(language);
+  const { t } = f;
+
   return (
     <section
       aria-labelledby="corpus-status"
       className="rounded-lg border border-slate-200 bg-white p-5"
     >
       <h2 id="corpus-status" className="text-base font-semibold text-slate-900">
-        Estado del corpus
+        {t.importPage.corpusStatusTitle}
       </h2>
       <div className="mt-2">
-        <Provenance run={run} />
+        <Provenance run={run} language={language} />
       </div>
       {ordersPendingScoring > 0 ? (
         <p className="mt-2 text-sm font-medium leading-6 text-amber-900">
-          {ordersPendingScoring === 1
-            ? "Hay 1 pedido sin puntuar por la corrida vigente."
-            : `Hay ${formatCount(ordersPendingScoring)} pedidos sin puntuar por la corrida vigente.`}{" "}
-          No aparecen en el dashboard ni pueden generar alertas hasta que ejecutes una corrida.
+          {t.importPage.corpusPending(ordersPendingScoring, f.formatCount(ordersPendingScoring))}{" "}
+          {t.importPage.corpusPendingHint}
         </p>
       ) : (
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          {run === null
-            ? "No hay pedidos sin puntuar porque todavía no hay ninguno en la base."
-            : "Todos los pedidos de la base están cubiertos por la corrida vigente."}
+          {run === null ? t.importPage.corpusEmpty : t.importPage.corpusCovered}
         </p>
       )}
       <p className="mt-3 text-sm">
@@ -207,7 +195,7 @@ function CorpusStatus({
           href="/dashboard"
           className="font-medium text-slate-900 underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
         >
-          Ver el dashboard
+          {t.common.viewDashboard}
         </Link>
       </p>
     </section>
