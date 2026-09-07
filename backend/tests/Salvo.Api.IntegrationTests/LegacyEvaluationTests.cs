@@ -76,10 +76,48 @@ public sealed class LegacyEvaluationTests
     }
 
     /// <summary>
+    /// The configuration used to explain a row is the configuration <em>that row</em> was written
+    /// under, and never a constant.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// It cannot be seen by comparing paragraphs, because `e3-v1` and `e3-v2` carry the same
+    /// thresholds — which is exactly why a mistake here would stay invisible until the day they do
+    /// not, and why this test reaches for the one case that is observable now: an evaluation stamped
+    /// with a version this build has never heard of. Resolving by row refuses it. A hard-coded
+    /// configuration would explain it happily, under thresholds nobody can claim applied to it.
+    /// </para>
+    /// <para>
+    /// It is unreachable through the API — every version that reaches the database is one this build
+    /// wrote — so the row is planted directly.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task AnEvaluationOfAnUnknownVersionIsRefusedInsteadOfExplainedUnderAnotherOne()
+    {
+        await using var factory = new SalvoApiFactory();
+        using var client = await factory.CreateMigratedClientAsync();
+        await AlertTestCorpus.ImportAsync(client, AlertTestCorpus.DivergenceBase());
+
+        var alertId = await OpenLegacyAlertAsync(factory, CapturedProse(), version: "e3-v0");
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var handler = scope.ServiceProvider.GetRequiredService<RequestExplanationHandler>();
+
+        var refused = await Assert.ThrowsAsync<ArgumentException>(
+            () => handler.HandleAsync(alertId, regenerate: false, CancellationToken.None));
+
+        Assert.Contains("e3-v0", refused.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// Persists one `e3-v1` evaluation and the alert it opened, the way a scoring run of that
     /// version would have left them.
     /// </summary>
-    private static async Task<Guid> OpenLegacyAlertAsync(SalvoApiFactory factory, string prose)
+    private static async Task<Guid> OpenLegacyAlertAsync(
+        SalvoApiFactory factory,
+        string prose,
+        string version = "e3-v1")
     {
         await using var scope = factory.Services.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<SalvoDbContext>();
@@ -93,7 +131,7 @@ public sealed class LegacyEvaluationTests
         var runId = Guid.NewGuid();
         var evaluation = RiskEvaluation.ForLocal(
             Guid.NewGuid(),
-            "e3-v1",
+            version,
             new(orderId, at, 70, true, [new(RiskRuleNames.AmountAnomaly, 70) { Detail = prose }]),
             at);
         var alert = Alert.Open(
@@ -107,7 +145,7 @@ public sealed class LegacyEvaluationTests
             at);
 
         await store.SaveRunAsync(
-            ScoringRun.Complete(runId, 1, "e3-v1", at, at, 1, 1, 0, 1, 0, 0),
+            ScoringRun.Complete(runId, 1, version, at, at, 1, 1, 0, 1, 0, 0),
             [evaluation],
             [RunEvaluation.Create(runId, orderId, evaluation.Id)],
             [alert],
