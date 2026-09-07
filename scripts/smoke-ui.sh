@@ -301,6 +301,23 @@ expect_text "/import" "Todos los pedidos de la base están cubiertos"
 expect_text "/alerts" "Cola de alertas"
 expect_text "/alerts/${alert_id}" "Snapshot que abrió la alerta"
 expect_text "/alerts/${alert_id}" "Evaluación vigente"
+# `e3-v2`: el motor emite los campos de cada señal y la consola compone la frase.
+#
+# Se comprueba sobre `ORD_000011`, no sobre la alerta que la cola devuelva primero: es un pedido que
+# la fixture pone a propósito y que dispara `amount_anomaly`, así que la frase que tiene que aparecer
+# se sabe de antemano. Comprobar solo que la prosa inglesa **no** está pasaría igual si la frase
+# saliera vacía, que es justamente la manera en que esto se rompería.
+anomaly_alert_id="$(
+  curl -sS --max-time 30 "${api_base}/api/alerts?status=OPEN&pageSize=100" \
+    | node -e 'let raw="";process.stdin.on("data",c=>raw+=c).on("end",()=>{const hit=JSON.parse(raw).items.find(i=>i.merchantReferenceId==="ORD_000011");process.stdout.write(hit ? hit.id : "");})'
+)"
+[[ -n "$anomaly_alert_id" ]] || fail "ORD_000011 no tiene alerta abierta: la fixture cambió y esta comprobación quedó sin sujeto."
+expect_text "/alerts/${anomaly_alert_id}" "veces la mediana del comercio"
+expect_text "/alerts/${anomaly_alert_id}" "pedidos previos"
+# Y nada de la prosa que escribía `e3-v1`, que es lo que un analista leía antes.
+expect_no_text "/alerts/${anomaly_alert_id}" "cents is"
+expect_no_text "/alerts/${anomaly_alert_id}" "prior orders"
+expect_no_text "/alerts/${anomaly_alert_id}" "differs from habitual"
 # El tercer bloque de la Etapa 6, en su estado inicial: nadie pidió todavía la opinión del proveedor.
 expect_text "/alerts/${alert_id}" "Evaluación externa"
 expect_text "/alerts/${alert_id}" "Solicitar evaluación externa"
