@@ -178,7 +178,7 @@ public sealed class AlertCreationTests
         var evaluation = RiskEvaluation.ForLocal(
             Guid.NewGuid(),
             "e3-v1",
-            new(orderId, DateTimeOffset.UnixEpoch, 70, true, [new("amount_anomaly", 40, "d"), new("new_buyer_high_value", 30, "d")]),
+            new(orderId, DateTimeOffset.UnixEpoch, 70, true, [new("amount_anomaly", 40) { Detail = "d" }, new("new_buyer_high_value", 30) { Detail = "d" }]),
             DateTimeOffset.UnixEpoch);
         var alert = Alert.Open(
             Guid.NewGuid(),

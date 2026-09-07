@@ -1,7 +1,7 @@
 import { NoSeverityBadge, SeverityBadge } from "@/components/severity-badge";
 import { scoringRunLabel } from "@/components/provenance";
 import type { AlertEvaluation, AlertSignal, AlertSnapshot, ScoringRun } from "@/lib/api/contract";
-import { formatInstant, ruleLabel } from "@/lib/format";
+import { formatInstant, ruleLabel, signalSentence } from "@/lib/format";
 
 /**
  * The snapshot and the current evaluation, as two blocks that never blend.
@@ -23,7 +23,7 @@ function SignalList({ signals }: { readonly signals: readonly AlertSignal[] }) {
             <span>{ruleLabel(signal.rule)}</span>
             <span className="tabular-nums text-slate-700">+{signal.weight}</span>
           </p>
-          <p className="mt-1 text-xs leading-5 text-slate-600">{signal.detail}</p>
+          <p className="mt-1 text-xs leading-5 text-slate-600">{signalSentence(signal)}</p>
         </li>
       ))}
     </ul>

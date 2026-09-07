@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { AlertDetail } from "@/lib/api/contract";
 import { projectAlertDetail } from "@/lib/api/guards";
-import { wireAlertDetail } from "@/test/fixtures";
+import { wireAlertDetail, wireLegacySignal, wireSignal } from "@/test/fixtures";
 import { describeDivergence } from "./divergence";
 
 function detailFrom(overrides: Record<string, unknown>): AlertDetail {
@@ -121,9 +121,45 @@ describe("divergencia y versiones del motor", () => {
           severity: "CRITICAL",
           isFlagged: true,
           signals: [
-            { rule: "amount_anomaly", weight: 40, detail: "Otra redacción de la misma señal." },
-            { rule: "velocity", weight: 25, detail: "Otra redacción también." },
+            wireLegacySignal({ detail: "Otra redacción de la misma señal." }),
+            wireLegacySignal({ rule: "velocity", weight: 25, detail: "Otra redacción también." }),
           ],
+          evaluatedAt: "2026-09-06T10:02:00+00:00",
+        },
+      }),
+    );
+
+    expect(notice.kind).toBe("none");
+  });
+
+  /**
+   * The case this whole notice was rewritten for, now that it has actually happened.
+   *
+   * An alert opened under `e3-v1` keeps a snapshot of English sentences, and rescoring under
+   * `e3-v2` writes a new evaluation row of the same order with the same score and the same rules at
+   * the same weights. Nothing about the risk changed — only how a signal is written — so the
+   * console must say nothing. Comparing identifiers, or comparing `detail`, would announce «la
+   * evaluación cambió» on every alert in the database at once, which is the fastest way to teach an
+   * analyst to ignore the notice.
+   */
+  it("no avisa cuando lo único que cambió es la versión que escribió las señales", () => {
+    const notice = describeDivergence(
+      detailFrom({
+        snapshot: {
+          evaluationId: "3f3b7f3e-0000-4000-8000-000000000003",
+          score: 100,
+          severity: "CRITICAL",
+          signals: [
+            wireLegacySignal({ weight: 40 }),
+            wireLegacySignal({ rule: "velocity", weight: 25, detail: "4 orders within 10 minutes." }),
+          ],
+        },
+        currentEvaluation: {
+          evaluationId: "9f9b7f3e-0000-4000-8000-000000000009",
+          score: 100,
+          severity: "CRITICAL",
+          isFlagged: true,
+          signals: [wireSignal({ weight: 40 }), wireSignal({ rule: "velocity", weight: 25 })],
           evaluatedAt: "2026-09-06T10:02:00+00:00",
         },
       }),
@@ -140,8 +176,8 @@ describe("divergencia y versiones del motor", () => {
           score: 100,
           severity: "CRITICAL",
           signals: [
-            { rule: "amount_anomaly", weight: 40, detail: "d" },
-            { rule: "velocity", weight: 25, detail: "d" },
+            wireSignal({ weight: 40 }),
+            wireSignal({ rule: "velocity", weight: 25 }),
           ],
         },
         currentEvaluation: {
@@ -150,8 +186,8 @@ describe("divergencia y versiones del motor", () => {
           severity: "CRITICAL",
           isFlagged: true,
           signals: [
-            { rule: "amount_anomaly", weight: 30, detail: "d" },
-            { rule: "velocity", weight: 35, detail: "d" },
+            wireSignal({ weight: 30 }),
+            wireSignal({ rule: "velocity", weight: 35 }),
           ],
           evaluatedAt: "2026-09-06T10:02:00+00:00",
         },
@@ -169,7 +205,7 @@ describe("divergencia y versiones del motor", () => {
           score: 100,
           severity: "CRITICAL",
           isFlagged: true,
-          signals: [{ rule: "amount_anomaly", weight: 40, detail: "d" }],
+          signals: [wireSignal({ weight: 40 })],
           evaluatedAt: "2026-09-06T10:02:00+00:00",
         },
       }),

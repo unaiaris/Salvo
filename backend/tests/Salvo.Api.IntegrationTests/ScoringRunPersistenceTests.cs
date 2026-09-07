@@ -24,7 +24,7 @@ public sealed class ScoringRunPersistenceTests
         var first = await RunScoringAsync(client);
         var second = await RunScoringAsync(client);
 
-        Assert.Equal("e3-v1", first.RuleConfigVersion);
+        Assert.Equal("e3-v2", first.RuleConfigVersion);
         Assert.Equal(300, first.OrderCount);
         Assert.Equal(300, first.EvaluationsCreated);
         Assert.Equal(0, first.EvaluationsReused);
@@ -97,18 +97,28 @@ public sealed class ScoringRunPersistenceTests
                 .Select(row => $"{row.MerchantReferenceId}:{row.Score}:{row.EvaluationFingerprint}"));
         var digest = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(manifest)));
 
-        // Golden values. They change only when the corpus, the rule configuration or the wording of
-        // a signal detail changes: a redaction edit that did not bump the rule config version breaks
-        // this test loudly instead of silently appending 300 "new" evaluations on the next run.
+        // Golden values. They change only when the corpus, the rule configuration or the way a
+        // signal is written changes: an edit that did not bump the rule config version breaks this
+        // test loudly instead of silently appending 300 "new" evaluations on the next run.
         // The single fingerprint is taken from an order that raised signals on purpose. The
         // earlier one pinned ORD_000001, which scores zero with no signals, and a fingerprint over
         // an empty evaluation depends on the order identifier and the rule configuration and on
         // nothing the corpus says — so it survived the whole fixture being replaced without moving
         // a digit. The manifest digest below is what actually holds the corpus.
+        //
+        // Both values moved with `e3-v2`, and moving them was the point rather than the cost. The
+        // fingerprint is SHA-256 over `orderId | source | ruleConfigVersion | score | signals`, and
+        // `e3-v2` changes two of those five: the version string, and the canonical signal text that
+        // stopped being an English sentence and became the fields it was made of. Nothing here was
+        // adjusted to make a red test green — the scores above did not move, and if any of them had,
+        // that would have been a defect rather than an update.
+        //
+        //   ORD_000011  39a65ad9…905a6  ->  d745b194…a9521
+        //   manifest    f7c82225…d8514  ->  c7d84558…81f72
         Assert.Equal(
-            "39a65ad97b9472cf5586bbcb3332e16e8b1d4a43b2a1f3e65cd429c8c27905a6",
+            "d745b194130014fc4d2a49a8bbc1d2773b07a321a458aaa7e2c4867da63a9521",
             rows.Single(row => row.MerchantReferenceId == "ORD_000011").EvaluationFingerprint);
-        Assert.Equal("f7c8222541827ad361f570ad06911c60131fdb0f507087b3dbbf038fcded8514", digest);
+        Assert.Equal("c7d845584f951c1cb86e3eff844d6569bcd1d687f82a2ed529574378e9b81f72", digest);
     }
 
     [Fact]

@@ -105,7 +105,7 @@ public sealed class RiskEvaluationIdentityTests
         var flagged = RiskEvaluation.ForLocal(
             Guid.NewGuid(),
             "e3-v1",
-            new(orderId, CreatedAt, 60, true, [new(RiskRuleNames.AmountAnomaly, 40, "detail")]),
+            new(orderId, CreatedAt, 60, true, [new(RiskRuleNames.AmountAnomaly, 40) { Detail = "detail" }]),
             CreatedAt);
         var clean = RiskEvaluation.ForLocal(
             Guid.NewGuid(),

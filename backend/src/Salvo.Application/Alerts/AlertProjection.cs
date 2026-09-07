@@ -207,7 +207,36 @@ public static class AlertProjection
         }
 
         return RiskSignalSerializer.Deserialize(signalsJson)
-            .Select(signal => new AlertSignalView(signal.Rule, signal.Weight, signal.Detail))
+            .Select(signal => new AlertSignalView(
+                signal.Rule,
+                signal.Weight,
+                signal.AmountCents,
+                signal.CurrencyCode,
+                signal.Ratio,
+                signal.Scope switch
+                {
+                    AmountMedianScope.Buyer => "buyer",
+                    AmountMedianScope.Merchant => "merchant",
+                    _ => null,
+                },
+                signal.MedianCents,
+                signal.HistoryCount,
+                signal.WindowDays,
+                signal.OrderCount,
+                signal.WindowMinutes,
+                signal.Threshold,
+                signal.FromCountry,
+                signal.ToCountry,
+                signal.ElapsedMinutes,
+                signal.BucketStartHour,
+                signal.BucketEndHour,
+                signal.TimeZoneId,
+                signal.ObservedCount,
+                signal.TotalCount,
+                signal.SharePercent,
+                signal.Country,
+                signal.HabitualCountry,
+                signal.Detail))
             .ToArray();
     }
 }

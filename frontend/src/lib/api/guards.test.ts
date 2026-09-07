@@ -13,6 +13,7 @@ import {
   wireScoringRunSummary,
   wireSeedPreview,
   wireSeedResult,
+  wireLegacySignal,
   wireSignal,
 } from "@/test/fixtures";
 import {
@@ -74,7 +75,70 @@ describe("las guardas descartan claves desconocidas", () => {
   it("conserva exactamente las claves del contrato", () => {
     const projected = projectSignal(wireSignal({ isFraudLabel: true }));
 
-    expect(Object.keys(projected ?? {}).sort()).toEqual(["detail", "rule", "weight"]);
+    expect(Object.keys(projected ?? {}).sort()).toEqual([
+      "amountCents",
+      "bucketEndHour",
+      "bucketStartHour",
+      "country",
+      "currencyCode",
+      "detail",
+      "elapsedMinutes",
+      "fromCountry",
+      "habitualCountry",
+      "historyCount",
+      "medianCents",
+      "observedCount",
+      "orderCount",
+      "ratio",
+      "rule",
+      "scope",
+      "sharePercent",
+      "threshold",
+      "timeZoneId",
+      "toCountry",
+      "totalCount",
+      "weight",
+      "windowDays",
+      "windowMinutes",
+    ]);
+  });
+
+  /**
+   * Which fields a signal carries is decided by which rule fired, and by which version wrote it.
+   * What no signal may be is empty: fields or prose, and a row with neither says nothing at all.
+   */
+  it("acepta una señal e3-v2, que trae campos y ninguna prosa", () => {
+    const projected = projectSignal(wireSignal());
+
+    expect(projected?.ratio).toBe(23.2);
+    expect(projected?.amountCents).toBe(201111);
+    expect(projected?.detail).toBeNull();
+  });
+
+  it("acepta una señal e3-v1, que trae prosa y ningún campo", () => {
+    const projected = projectSignal(wireLegacySignal());
+
+    expect(projected?.detail).toBe(
+      "201111 BRL cents is 23.2x the buyer median 8685 over 3 prior orders in 90 days.",
+    );
+    expect(projected?.ratio).toBeNull();
+    expect(projected?.amountCents).toBeNull();
+  });
+
+  it("descarta una señal sin campos y sin prosa", () => {
+    expect(projectSignal(wireLegacySignal({ detail: null }))).toBeNull();
+  });
+
+  it("descarta una señal cuyo campo llegó con un tipo que el contrato no declara", () => {
+    expect(projectSignal(wireSignal({ ratio: "no es un número" }))).toBeNull();
+    expect(projectSignal(wireSignal({ amountCents: 1.5 }))).toBeNull();
+  });
+
+  it("descarta una señal a la que le falta una clave que el contrato exige", () => {
+    const signal = wireSignal();
+    delete signal.sharePercent;
+
+    expect(projectSignal(signal)).toBeNull();
   });
 });
 

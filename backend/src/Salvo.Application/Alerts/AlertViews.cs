@@ -2,7 +2,40 @@ using Salvo.Application.Explanations;
 
 namespace Salvo.Application.Alerts;
 
-public sealed record AlertSignalView(string Rule, int Weight, string Detail);
+/// <summary>
+/// One rule that fired, as the fields it measured.
+/// </summary>
+/// <remarks>
+/// Flat and nullable by rule, which is the shape the domain signal has and the shape the console's
+/// guard can project without branching. <c>Detail</c> is the sentence <c>e3-v1</c> wrote and is
+/// present only on an evaluation stored by that version; the snapshot of an alert opened back then
+/// is never rewritten, so it has to stay readable. A signal carries one or the other, never both.
+/// </remarks>
+public sealed record AlertSignalView(
+    string Rule,
+    int Weight,
+    long? AmountCents,
+    string? CurrencyCode,
+    decimal? Ratio,
+    string? Scope,
+    long? MedianCents,
+    int? HistoryCount,
+    int? WindowDays,
+    int? OrderCount,
+    int? WindowMinutes,
+    int? Threshold,
+    string? FromCountry,
+    string? ToCountry,
+    decimal? ElapsedMinutes,
+    int? BucketStartHour,
+    int? BucketEndHour,
+    string? TimeZoneId,
+    int? ObservedCount,
+    int? TotalCount,
+    decimal? SharePercent,
+    string? Country,
+    string? HabitualCountry,
+    string? Detail);
 
 /// <summary>
 /// The frozen evaluation that opened the alert. It is never rewritten, so it always describes the

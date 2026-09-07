@@ -10,7 +10,7 @@ public sealed class EvaluateLocalRiskHandler(
     public async Task<LocalRiskEvaluationResult> HandleAsync(CancellationToken cancellationToken)
     {
         var orders = await orderReader.GetAllChronologicallyAsync(cancellationToken);
-        var config = RuleConfig.E3V1;
+        var config = RuleConfig.Current;
         var assessments = TemporalRiskEngine.Score(orders, config);
 
         var orderIds = assessments.Select(assessment => assessment.OrderId).ToArray();

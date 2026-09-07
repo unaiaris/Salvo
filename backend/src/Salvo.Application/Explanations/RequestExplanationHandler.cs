@@ -171,20 +171,31 @@ public sealed class RequestExplanationHandler(
         ExplanationTarget target,
         CancellationToken cancellationToken)
     {
-        var config = RuleConfig.E3V1;
+        // The configuration of the row being explained, never the current one. The thresholds
+        // of the two live versions are equal today, which is exactly why choosing wrong here would
+        // stay invisible until the day they are not: a paragraph that is correct about the wrong
+        // evaluation.
+        var config = RuleConfig.ForVersion(target.RuleConfigVersion);
         var input = ExplanationInputFactory.For(target);
 
         ExplanationFacts facts;
         try
         {
-            facts = ExplanationFacts.For(input, SignalFacts.ParseAll(input.Signals), config);
+            facts = ExplanationFacts.For(input, SignalFacts.ForAll(input.Signals), config);
         }
         catch (SignalDetailNotRecognizedException exception)
         {
-            // The engine wrote a signal in a shape this build cannot read, which means no provider
-            // can be asked about it and no summary could be checked if one arrived. Unreachable
-            // while the rule configuration and its golden fingerprints agree, and a named failure
-            // rather than a silent one if they ever stop agreeing.
+            // The evaluation states its signals as `e3-v1` prose, which nothing reads any more. No
+            // provider can be asked about it and no summary could be checked if one arrived, so the
+            // attempt is closed rather than left reserved. The row itself is intact and the console
+            // still shows it exactly as it was written; only the grounding facts cannot be built.
+            //
+            // The code is a compromise and worth naming as one. `PROVIDER_UNAVAILABLE` is the
+            // closest of the nine that exist and it is not the truth — no provider was called. The
+            // honest code would be a tenth value, and the failure codes are enumerated in a database
+            // check constraint, so adding one means a migration. `E9B` forbids migrations and says
+            // to stop and ask when one is needed, so this stays as it is and the coordinator
+            // decides. It is unreachable on a freshly seeded database, which has no `e3-v1` row.
             await SettleAsync(explanation, ExplanationFailureCode.ProviderUnavailable, exception.Message);
 
             return;

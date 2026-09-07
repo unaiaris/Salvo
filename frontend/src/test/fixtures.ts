@@ -11,11 +11,56 @@ export type WirePayload = Record<string, unknown>;
 
 const RUN = { sequence: 3, completedAt: "2026-09-02T21:14:00+00:00" };
 
+/**
+ * A signal as `e3-v2` writes it: its fields, and no sentence.
+ *
+ * Every field of the contract is present, because that is what the API sends — the ones a rule does
+ * not use arrive as `null` rather than missing. `wireLegacySignal` is the other half: an evaluation
+ * stored by `e3-v1`, which is the snapshot of every alert opened before the engine changed and is
+ * never rewritten.
+ */
 export function wireSignal(overrides: WirePayload = {}): WirePayload {
   return {
     rule: "amount_anomaly",
     weight: 40,
-    detail: "El monto es 6,2 veces la mediana del comprador.",
+    amountCents: 201111,
+    currencyCode: "BRL",
+    ratio: 23.2,
+    scope: "buyer",
+    medianCents: 8685,
+    historyCount: 3,
+    windowDays: 90,
+    orderCount: null,
+    windowMinutes: null,
+    threshold: null,
+    fromCountry: null,
+    toCountry: null,
+    elapsedMinutes: null,
+    bucketStartHour: null,
+    bucketEndHour: null,
+    timeZoneId: null,
+    observedCount: null,
+    totalCount: null,
+    sharePercent: null,
+    country: null,
+    habitualCountry: null,
+    detail: null,
+    ...overrides,
+  };
+}
+
+/** A signal stored by `e3-v1`: an English sentence and not one field. */
+export function wireLegacySignal(overrides: WirePayload = {}): WirePayload {
+  return {
+    ...wireSignal(),
+    amountCents: null,
+    currencyCode: null,
+    ratio: null,
+    scope: null,
+    medianCents: null,
+    historyCount: null,
+    windowDays: null,
+    detail: "201111 BRL cents is 23.2x the buyer median 8685 over 3 prior orders in 90 days.",
     ...overrides,
   };
 }
@@ -51,7 +96,7 @@ export function wireAlertDetail(overrides: WirePayload = {}): WirePayload {
       evaluationId: "3f3b7f3e-0000-4000-8000-000000000003",
       score: 100,
       severity: "CRITICAL",
-      signals: [wireSignal(), wireSignal({ rule: "velocity", weight: 25, detail: "4 pedidos en 1 h." })],
+      signals: [wireSignal(), wireSignal({ rule: "velocity", weight: 25, amountCents: null, currencyCode: null, ratio: null, scope: null, medianCents: null, historyCount: null, windowDays: null, orderCount: 4, windowMinutes: 10, threshold: 4 })],
     },
     // The same evaluation as the snapshot, so it carries the same signals. It used to carry a
     // shorter list under the same identifier, which no API response can produce: an evaluation is
@@ -61,7 +106,7 @@ export function wireAlertDetail(overrides: WirePayload = {}): WirePayload {
       score: 100,
       severity: "CRITICAL",
       isFlagged: true,
-      signals: [wireSignal(), wireSignal({ rule: "velocity", weight: 25, detail: "4 pedidos en 1 h." })],
+      signals: [wireSignal(), wireSignal({ rule: "velocity", weight: 25, amountCents: null, currencyCode: null, ratio: null, scope: null, medianCents: null, historyCount: null, windowDays: null, orderCount: 4, windowMinutes: 10, threshold: 4 })],
       evaluatedAt: "2026-08-31T10:02:00+00:00",
     },
     currentRun: { ...RUN },

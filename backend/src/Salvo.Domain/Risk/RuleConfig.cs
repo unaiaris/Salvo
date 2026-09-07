@@ -1,10 +1,28 @@
 namespace Salvo.Domain.Risk;
 
+/// <summary>
+/// The thresholds, windows and weights the engine judges by, and the version that names them.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <c>e3-v2</c> keeps every number of <c>e3-v1</c> and changes only how a signal is written: prose
+/// became fields. The two configurations therefore judge identically and differ solely in the
+/// version each evaluation is stamped with, which is exactly what makes the change one of
+/// representation.
+/// </para>
+/// <para>
+/// Two live versions is why <see cref="ForVersion"/> exists. Reading a stored row means resolving
+/// the configuration <em>that row</em> was written under: explaining an <c>e3-v1</c> evaluation
+/// with the thresholds of another version would produce a paragraph that is correct about the
+/// wrong evaluation. The thresholds happen to be equal today, which is precisely why a mistake here
+/// would be invisible until the day they are not.
+/// </para>
+/// </remarks>
 public sealed class RuleConfig
 {
-    private RuleConfig()
+    private RuleConfig(string version)
     {
-        Version = "e3-v1";
+        Version = version;
         ScoreCap = 100;
         FlagThreshold = 60;
         BusinessTimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Montevideo");
@@ -41,7 +59,39 @@ public sealed class RuleConfig
         Validate();
     }
 
-    public static RuleConfig E3V1 { get; } = new();
+    /// <summary>The version that wrote each signal as an English sentence.</summary>
+    public static RuleConfig E3V1 { get; } = new("e3-v1");
+
+    /// <summary>The version that writes each signal as its fields.</summary>
+    public static RuleConfig E3V2 { get; } = new("e3-v2");
+
+    /// <summary>What the engine writes with now. Every new evaluation is stamped with it.</summary>
+    public static RuleConfig Current => E3V2;
+
+    /// <summary>Every configuration this build knows how to read a stored evaluation under.</summary>
+    public static IReadOnlyList<RuleConfig> Known { get; } = [E3V1, E3V2];
+
+    /// <summary>
+    /// The configuration a stored evaluation was written under.
+    /// </summary>
+    /// <exception cref="ArgumentException">
+    /// No configuration of this build carries that version, so nothing can be said about the row
+    /// with any authority.
+    /// </exception>
+    public static RuleConfig ForVersion(string version)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(version);
+
+        foreach (var candidate in Known)
+        {
+            if (string.Equals(candidate.Version, version, StringComparison.Ordinal))
+            {
+                return candidate;
+            }
+        }
+
+        throw new ArgumentException($"Unknown rule configuration version '{version}'.", nameof(version));
+    }
 
     public string Version { get; }
 

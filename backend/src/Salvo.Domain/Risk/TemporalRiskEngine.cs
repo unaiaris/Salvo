@@ -1,4 +1,3 @@
-using System.Globalization;
 using Salvo.Domain.Orders;
 
 namespace Salvo.Domain.Risk;
@@ -76,18 +75,18 @@ public static class TemporalRiskEngine
 
         long median;
         int historyCount;
-        string scope;
+        AmountMedianScope scope;
         if (buyerAmounts.Length >= config.AmountBuyerMinimumHistory)
         {
             median = Median(buyerAmounts);
             historyCount = buyerAmounts.Length;
-            scope = "buyer";
+            scope = AmountMedianScope.Buyer;
         }
         else if (merchantAmounts.Length >= config.AmountMerchantMinimumHistory)
         {
             median = Median(merchantAmounts);
             historyCount = merchantAmounts.Length;
-            scope = "merchant";
+            scope = AmountMedianScope.Merchant;
         }
         else
         {
@@ -99,13 +98,15 @@ public static class TemporalRiskEngine
             return;
         }
 
-        var ratio = (decimal)order.AmountCents / median;
-        signals.Add(new(
-            RiskRuleNames.AmountAnomaly,
+        signals.Add(RiskSignal.AmountAnomaly(
             config.AmountAnomalyWeight,
-            string.Create(
-                CultureInfo.InvariantCulture,
-                $"{order.AmountCents} {order.CurrencyCode} cents is {ratio:0.0}x the {scope} median {median} over {historyCount} prior orders in 90 days.")));
+            order.AmountCents,
+            order.CurrencyCode,
+            (decimal)order.AmountCents / median,
+            scope,
+            median,
+            historyCount,
+            config.AmountLookback.Days));
     }
 
     private static void AddVelocity(
@@ -121,12 +122,11 @@ public static class TemporalRiskEngine
             return;
         }
 
-        signals.Add(new(
-            RiskRuleNames.Velocity,
+        signals.Add(RiskSignal.Velocity(
             config.VelocityWeight,
-            string.Create(
-                CultureInfo.InvariantCulture,
-                $"{previousCount + 1} orders including the current order occurred within {config.VelocityWindow.TotalMinutes:0} minutes; threshold is {config.VelocityMinimumPriorOrders + 1}.")));
+            previousCount + 1,
+            (int)config.VelocityWindow.TotalMinutes,
+            config.VelocityMinimumPriorOrders + 1));
     }
 
     private static void AddCrossBorderVelocity(
@@ -146,12 +146,11 @@ public static class TemporalRiskEngine
         }
 
         var elapsed = order.OccurredAt - conflicting.OccurredAt;
-        signals.Add(new(
-            RiskRuleNames.CrossBorderVelocity,
+        signals.Add(RiskSignal.CrossBorderVelocity(
             config.CrossBorderVelocityWeight,
-            string.Create(
-                CultureInfo.InvariantCulture,
-                $"Country changed from {conflicting.CountryCode} to {order.CountryCode} within {elapsed.TotalMinutes:0.##} minutes for the same merchant and buyer.")));
+            conflicting.CountryCode,
+            order.CountryCode,
+            (decimal)elapsed.TotalMinutes));
     }
 
     private static void AddUnusualHour(
@@ -178,13 +177,14 @@ public static class TemporalRiskEngine
 
         var bucketStart = currentBucket * config.UnusualHourBucketHours;
         var bucketEnd = bucketStart + config.UnusualHourBucketHours;
-        var share = (decimal)bucketCount * 100 / history.Length;
-        signals.Add(new(
-            RiskRuleNames.UnusualHour,
+        signals.Add(RiskSignal.UnusualHour(
             config.UnusualHourWeight,
-            string.Create(
-                CultureInfo.InvariantCulture,
-                $"Local bucket {bucketStart:00}:00-{bucketEnd:00}:00 in {config.BusinessTimeZone.Id} appeared in {bucketCount} of {history.Length} prior orders ({share:0.0}%).")));
+            bucketStart,
+            bucketEnd,
+            config.BusinessTimeZone.Id,
+            bucketCount,
+            history.Length,
+            (decimal)bucketCount * 100 / history.Length));
     }
 
     private static void AddNewBuyerHighValue(
@@ -214,13 +214,13 @@ public static class TemporalRiskEngine
             return;
         }
 
-        var ratio = (decimal)order.AmountCents / median;
-        signals.Add(new(
-            RiskRuleNames.NewBuyerHighValue,
+        signals.Add(RiskSignal.NewBuyerHighValue(
             config.NewBuyerHighValueWeight,
-            string.Create(
-                CultureInfo.InvariantCulture,
-                $"The buyer has no prior merchant orders and {order.AmountCents} {order.CurrencyCode} cents is {ratio:0.0}x the merchant median {median} over {merchantAmounts.Length} prior orders.")));
+            order.AmountCents,
+            order.CurrencyCode,
+            median,
+            merchantAmounts.Length,
+            (decimal)order.AmountCents / median));
     }
 
     private static void AddForeignCountry(
@@ -250,13 +250,13 @@ public static class TemporalRiskEngine
             return;
         }
 
-        var share = (decimal)habitual.Count * 100 / history.Length;
-        signals.Add(new(
-            RiskRuleNames.ForeignCountry,
+        signals.Add(RiskSignal.ForeignCountry(
             config.ForeignCountryWeight,
-            string.Create(
-                CultureInfo.InvariantCulture,
-                $"{order.CountryCode} differs from habitual {habitual.Country}, observed in {habitual.Count} of {history.Length} prior merchant orders ({share:0.0}%).")));
+            order.CountryCode,
+            habitual.Country,
+            habitual.Count,
+            history.Length,
+            (decimal)habitual.Count * 100 / history.Length));
     }
 
     private static int GetLocalHourBucket(DateTimeOffset occurredAt, RuleConfig config)

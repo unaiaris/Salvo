@@ -5,11 +5,12 @@ namespace Salvo.Domain.Explanations;
 /// writes.
 /// </summary>
 /// <remarks>
-/// Declared rather than silent, and that is the whole point. The extractor of
-/// <see cref="SignalFacts"/> reads prose the engine composed; if that prose ever changes without
-/// the rule configuration version changing with it, an explanation built on a half-understood
-/// signal would be worse than no explanation at all. The caller turns this into a failed
-/// explanation with a code, never into a summary.
+/// Declared rather than silent, and that is the whole point. What raises it now is an
+/// <c>e3-v1</c> row, whose signals are English sentences that nothing here reads any more: the
+/// snapshot of an alert opened before the engine emitted fields, never rewritten by decision 33.
+/// An explanation built on a half-understood signal would be worse than no explanation at all, so
+/// the caller turns this into a failed explanation with a code, never into a summary and never into
+/// an unhandled exception.
 /// </remarks>
 public sealed class SignalDetailNotRecognizedException : Exception
 {

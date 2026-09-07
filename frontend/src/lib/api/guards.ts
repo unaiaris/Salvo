@@ -190,6 +190,18 @@ function projectList<T>(value: unknown, project: (item: unknown) => T | null): r
   return projected;
 }
 
+/**
+ * One signal, as the fields it measured.
+ *
+ * Every field but the rule and its weight is optional, because which ones a signal carries is
+ * decided by which rule fired. What is *not* optional is that it carry something: a signal with no
+ * fields and no `detail` says nothing at all, and letting it through would put an empty line in the
+ * evaluation block instead of a rejection anybody can see.
+ *
+ * `detail` is the sentence `e3-v1` wrote. An alert opened before `e3-v2` still has that snapshot and
+ * always will — a snapshot is never rewritten — so a signal arrives as fields or as prose, and this
+ * accepts either.
+ */
 export function projectSignal(value: unknown): AlertSignal | null {
   const raw = asRecord(value);
   if (raw === null) {
@@ -198,13 +210,70 @@ export function projectSignal(value: unknown): AlertSignal | null {
 
   const rule = text(raw.rule);
   const weight = integer(raw.weight);
-  const detail = text(raw.detail);
 
-  if (rule === null || weight === null || detail === null) {
+  if (rule === null || weight === null) {
     return null;
   }
 
-  return { rule, weight, detail };
+  const amountCents = nullableInteger(raw.amountCents);
+  const currencyCode = nullableText(raw.currencyCode);
+  const ratio = nullableDecimal(raw.ratio);
+  const scope = nullableText(raw.scope);
+  const medianCents = nullableInteger(raw.medianCents);
+  const historyCount = nullableInteger(raw.historyCount);
+  const windowDays = nullableInteger(raw.windowDays);
+  const orderCount = nullableInteger(raw.orderCount);
+  const windowMinutes = nullableInteger(raw.windowMinutes);
+  const threshold = nullableInteger(raw.threshold);
+  const fromCountry = nullableText(raw.fromCountry);
+  const toCountry = nullableText(raw.toCountry);
+  const elapsedMinutes = nullableDecimal(raw.elapsedMinutes);
+  const bucketStartHour = nullableInteger(raw.bucketStartHour);
+  const bucketEndHour = nullableInteger(raw.bucketEndHour);
+  const timeZoneId = nullableText(raw.timeZoneId);
+  const observedCount = nullableInteger(raw.observedCount);
+  const totalCount = nullableInteger(raw.totalCount);
+  const sharePercent = nullableDecimal(raw.sharePercent);
+  const country = nullableText(raw.country);
+  const habitualCountry = nullableText(raw.habitualCountry);
+  const detail = nullableText(raw.detail);
+
+  const projected = {
+    rule,
+    weight,
+    amountCents,
+    currencyCode,
+    ratio,
+    scope,
+    medianCents,
+    historyCount,
+    windowDays,
+    orderCount,
+    windowMinutes,
+    threshold,
+    fromCountry,
+    toCountry,
+    elapsedMinutes,
+    bucketStartHour,
+    bucketEndHour,
+    timeZoneId,
+    observedCount,
+    totalCount,
+    sharePercent,
+    country,
+    habitualCountry,
+    detail,
+  };
+
+  if (Object.values(projected).some((field) => field === undefined)) {
+    return null;
+  }
+
+  const said = Object.entries(projected).some(
+    ([name, field]) => name !== "rule" && name !== "weight" && field !== null,
+  );
+
+  return said ? (projected as AlertSignal) : null;
 }
 
 export function projectScoringRun(value: unknown): ScoringRun | null {

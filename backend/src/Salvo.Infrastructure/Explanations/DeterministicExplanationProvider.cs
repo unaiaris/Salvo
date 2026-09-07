@@ -57,8 +57,8 @@ public sealed class DeterministicExplanationProvider : IExplanationProvider
         ArgumentNullException.ThrowIfNull(input);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var config = RuleConfig.E3V1;
-        var signals = SignalFacts.ParseAll(input.Signals);
+        var config = RuleConfig.ForVersion(input.RuleConfigVersion);
+        var signals = SignalFacts.ForAll(input.Signals);
         var builder = new StringBuilder();
 
         Open(builder, input, signals, config);
@@ -158,7 +158,7 @@ public sealed class DeterministicExplanationProvider : IExplanationProvider
                 + $"{Number(signal.HistoryCount ?? 0)} pedidos previos.",
 
             RiskRuleNames.ForeignCountry =>
-                $"El país del pedido, {signal.ToCountry}, difiere del habitual del comercio, "
+                $"El país del pedido, {signal.Country}, difiere del habitual del comercio, "
                 + $"{signal.HabitualCountry}, observado en {Number(signal.ObservedCount ?? 0)} de "
                 + $"{Number(signal.TotalCount ?? 0)} pedidos previos: un "
                 + $"{Number(signal.SharePercent ?? 0m, 0)} %.",
