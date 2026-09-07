@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text.RegularExpressions;
 using Salvo.Domain.Risk;
 
 namespace Salvo.Domain.Explanations;
@@ -9,11 +8,14 @@ namespace Salvo.Domain.Explanations;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <strong>The engine writes these fields now, and this type mostly copies them.</strong> That was
-/// the point of putting the seam here in stage 7: the template that writes the summary and
+/// <strong>The engine writes these fields, and this type copies them.</strong> That was the point of
+/// putting the seam here in stage 7: the template that writes the summary and
 /// <see cref="ExplanationFacts"/> that grounds it did not have to change when the engine stopped
-/// writing sentences. What is left of the extractor reads an <c>e3-v1</c> row, and an <c>e3-v1</c>
-/// row is the snapshot of every alert opened before this version — never rewritten, by decision 33.
+/// writing sentences, and the six regular expressions that used to read those sentences are gone —
+/// they were certified against their replacement over the whole demo corpus first, and the capture
+/// they signed outlives them. An <c>e3-v1</c> row is refused here with a named failure: it is the
+/// snapshot of an alert opened before this version, never rewritten by decision 33, still perfectly
+/// readable on screen, and simply not something a summary can be checked against any more.
 /// </para>
 /// <para>
 /// <see cref="Numbers"/> is what the grounding facts consume, and with fields it is
@@ -25,7 +27,7 @@ namespace Salvo.Domain.Explanations;
 /// way.
 /// </para>
 /// </remarks>
-public sealed partial record SignalFacts
+public sealed record SignalFacts
 {
     public required string Rule { get; init; }
 
@@ -103,16 +105,18 @@ public sealed partial record SignalFacts
     public string? HabitualCountry { get; init; }
 
     /// <summary>
-    /// Reads one signal, whichever version wrote it.
+    /// Reads one signal.
     /// </summary>
     /// <exception cref="SignalDetailNotRecognizedException">
-    /// The signal is <c>e3-v1</c> prose that does not have the shape its rule writes.
+    /// The signal states itself as <c>e3-v1</c> prose, which nothing here reads any more.
     /// </exception>
     public static SignalFacts For(RiskSignal signal)
     {
         ArgumentNullException.ThrowIfNull(signal);
 
-        return signal.Detail is { } prose ? Parse(signal, prose) : FromFields(signal);
+        return signal.Detail is null
+            ? FromFields(signal)
+            : throw SignalDetailNotRecognizedException.ForRule(signal.Rule);
     }
 
     public static IReadOnlyList<SignalFacts> ForAll(IReadOnlyList<RiskSignal> signals)
@@ -247,168 +251,4 @@ public sealed partial record SignalFacts
     {
         return new(value.ToString(CultureInfo.InvariantCulture), [new(value, decimals)]);
     }
-
-    /// <summary>
-    /// Reads an <c>e3-v1</c> signal, whose fields live inside the sentence the engine wrote.
-    /// </summary>
-    private static SignalFacts Parse(RiskSignal signal, string prose)
-    {
-        var facts = new SignalFacts
-        {
-            Rule = signal.Rule,
-            Weight = signal.Weight,
-            Numbers = NumberTokenizer.Extract(prose),
-        };
-
-        return signal.Rule switch
-        {
-            RiskRuleNames.AmountAnomaly => ReadAmountAnomaly(facts, prose),
-            RiskRuleNames.Velocity => ReadVelocity(facts, prose),
-            RiskRuleNames.CrossBorderVelocity => ReadCrossBorderVelocity(facts, prose),
-            RiskRuleNames.UnusualHour => ReadUnusualHour(facts, prose),
-            RiskRuleNames.NewBuyerHighValue => ReadNewBuyerHighValue(facts, prose),
-            RiskRuleNames.ForeignCountry => ReadForeignCountry(facts, prose),
-            _ => throw SignalDetailNotRecognizedException.ForRule(signal.Rule),
-        };
-    }
-
-    private static SignalFacts ReadAmountAnomaly(SignalFacts facts, string detail)
-    {
-        var match = Require(AmountAnomalyPattern(), detail, facts.Rule);
-
-        return facts with
-        {
-            AmountCents = Amount(match, "amount"),
-            CurrencyCode = match.Groups["currency"].Value,
-            Ratio = Number(match, "ratio"),
-            Scope = string.Equals(match.Groups["scope"].Value, "buyer", StringComparison.Ordinal)
-                ? AmountMedianScope.Buyer
-                : AmountMedianScope.Merchant,
-            MedianCents = Amount(match, "median"),
-            HistoryCount = Count(match, "history"),
-            WindowDays = Count(match, "window"),
-        };
-    }
-
-    private static SignalFacts ReadVelocity(SignalFacts facts, string detail)
-    {
-        var match = Require(VelocityPattern(), detail, facts.Rule);
-
-        return facts with
-        {
-            OrderCount = Count(match, "orders"),
-            WindowMinutes = Count(match, "minutes"),
-            Threshold = Count(match, "threshold"),
-        };
-    }
-
-    private static SignalFacts ReadCrossBorderVelocity(SignalFacts facts, string detail)
-    {
-        var match = Require(CrossBorderVelocityPattern(), detail, facts.Rule);
-
-        return facts with
-        {
-            FromCountry = match.Groups["from"].Value,
-            ToCountry = match.Groups["to"].Value,
-            ElapsedMinutes = Number(match, "elapsed"),
-        };
-    }
-
-    private static SignalFacts ReadUnusualHour(SignalFacts facts, string detail)
-    {
-        var match = Require(UnusualHourPattern(), detail, facts.Rule);
-
-        return facts with
-        {
-            BucketStartHour = Count(match, "start"),
-            BucketEndHour = Count(match, "end"),
-            TimeZoneId = match.Groups["zone"].Value,
-            ObservedCount = Count(match, "observed"),
-            TotalCount = Count(match, "total"),
-            SharePercent = Number(match, "share"),
-        };
-    }
-
-    private static SignalFacts ReadNewBuyerHighValue(SignalFacts facts, string detail)
-    {
-        var match = Require(NewBuyerHighValuePattern(), detail, facts.Rule);
-
-        return facts with
-        {
-            AmountCents = Amount(match, "amount"),
-            CurrencyCode = match.Groups["currency"].Value,
-            MedianCents = Amount(match, "median"),
-            HistoryCount = Count(match, "history"),
-            Ratio = Number(match, "ratio"),
-        };
-    }
-
-    private static SignalFacts ReadForeignCountry(SignalFacts facts, string detail)
-    {
-        var match = Require(ForeignCountryPattern(), detail, facts.Rule);
-
-        return facts with
-        {
-            Country = match.Groups["country"].Value,
-            HabitualCountry = match.Groups["habitual"].Value,
-            ObservedCount = Count(match, "observed"),
-            TotalCount = Count(match, "total"),
-            SharePercent = Number(match, "share"),
-        };
-    }
-
-    private static Match Require(Regex pattern, string detail, string rule)
-    {
-        var match = pattern.Match(detail);
-
-        return match.Success ? match : throw SignalDetailNotRecognizedException.ForRule(rule);
-    }
-
-    private static decimal Number(Match match, string group)
-    {
-        return decimal.Parse(
-            match.Groups[group].Value,
-            NumberStyles.AllowDecimalPoint,
-            CultureInfo.InvariantCulture);
-    }
-
-    private static int Count(Match match, string group)
-    {
-        return int.Parse(match.Groups[group].Value, CultureInfo.InvariantCulture);
-    }
-
-    private static long Amount(Match match, string group)
-    {
-        return long.Parse(match.Groups[group].Value, CultureInfo.InvariantCulture);
-    }
-
-    [GeneratedRegex(
-        @"^(?<amount>\d+) (?<currency>[A-Z]{3}) cents is (?<ratio>[\d.]+)x the (?<scope>buyer|merchant) median (?<median>\d+) over (?<history>\d+) prior orders in (?<window>\d+) days\.$",
-        RegexOptions.CultureInvariant)]
-    private static partial Regex AmountAnomalyPattern();
-
-    [GeneratedRegex(
-        @"^(?<orders>\d+) orders including the current order occurred within (?<minutes>\d+) minutes; threshold is (?<threshold>\d+)\.$",
-        RegexOptions.CultureInvariant)]
-    private static partial Regex VelocityPattern();
-
-    [GeneratedRegex(
-        @"^Country changed from (?<from>[A-Z]{2}) to (?<to>[A-Z]{2}) within (?<elapsed>[\d.]+) minutes for the same merchant and buyer\.$",
-        RegexOptions.CultureInvariant)]
-    private static partial Regex CrossBorderVelocityPattern();
-
-    [GeneratedRegex(
-        @"^Local bucket (?<start>\d{2}):00-(?<end>\d{2}):00 in (?<zone>\S+) appeared in (?<observed>\d+) of (?<total>\d+) prior orders \((?<share>[\d.]+)%\)\.$",
-        RegexOptions.CultureInvariant)]
-    private static partial Regex UnusualHourPattern();
-
-    [GeneratedRegex(
-        @"^The buyer has no prior merchant orders and (?<amount>\d+) (?<currency>[A-Z]{3}) cents is (?<ratio>[\d.]+)x the merchant median (?<median>\d+) over (?<history>\d+) prior orders\.$",
-        RegexOptions.CultureInvariant)]
-    private static partial Regex NewBuyerHighValuePattern();
-
-    [GeneratedRegex(
-        @"^(?<country>[A-Z]{2}) differs from habitual (?<habitual>[A-Z]{2}), observed in (?<observed>\d+) of (?<total>\d+) prior merchant orders \((?<share>[\d.]+)%\)\.$",
-        RegexOptions.CultureInvariant)]
-    private static partial Regex ForeignCountryPattern();
 }

@@ -7,7 +7,7 @@ namespace Salvo.Domain.Tests;
 /// The tokenizer and the fact set, against the prose the engine really writes.
 /// </summary>
 /// <remarks>
-/// Every detail quoted here was taken from a persisted evaluation, not invented for the test. The
+/// Every figure quoted here was taken from a persisted evaluation, not invented for the test. The
 /// point of the exercise is that the five false rejections the adversarial review found against
 /// real rows do not happen: an amount in units, a thousands separator, a rounded percentage, an
 /// instant in business time, and a true figure that lives in the configuration rather than in the
@@ -15,13 +15,15 @@ namespace Salvo.Domain.Tests;
 /// </remarks>
 public sealed class ExplanationFactsTests
 {
-    /// <summary>The three signals of <c>ORD_000011</c>, score 90, in canonical order.</summary>
+    /// <summary>
+    /// The three signals of <c>ORD_000011</c>, score 90, in canonical order, as <c>e3-v2</c> writes
+    /// them and with the values the engine measured over the demo corpus.
+    /// </summary>
     private static readonly RiskSignal[] Signals =
     [
-        new(RiskRuleNames.AmountAnomaly, 40) { Detail = "201111 BRL cents is 23.2x the merchant median 8685 over 3 prior orders in 90 days." },
-        new(RiskRuleNames.NewBuyerHighValue, 30) { Detail = "The buyer has no prior merchant orders and 201111 BRL cents is 23.2x the merchant "
-            + "median 8685 over 3 prior orders." },
-        new(RiskRuleNames.ForeignCountry, 20) { Detail = "US differs from habitual BR, observed in 3 of 3 prior merchant orders (100.0%)." },
+        RiskSignal.AmountAnomaly(40, 50786, "BRL", 50786m / 14937, AmountMedianScope.Merchant, 14937, 3, 90),
+        RiskSignal.NewBuyerHighValue(30, 50786, "BRL", 14937, 3, 50786m / 14937),
+        RiskSignal.ForeignCountry(20, "AR", "BR", 3, 3, 100m),
     ];
 
     /// <summary>
@@ -87,21 +89,22 @@ public sealed class ExplanationFactsTests
         var newBuyer = SignalFacts.For(Signals[1]);
         var foreign = SignalFacts.For(Signals[2]);
 
-        Assert.Equal(201111L, amount.AmountCents);
+        Assert.Equal(50786L, amount.AmountCents);
         Assert.Equal("BRL", amount.CurrencyCode);
-        Assert.Equal(23.2m, amount.Ratio);
+        Assert.Equal(3.4m, amount.Ratio);
         Assert.Equal(AmountMedianScope.Merchant, amount.Scope);
-        Assert.Equal(8685L, amount.MedianCents);
+        Assert.Equal(14937L, amount.MedianCents);
         Assert.Equal(3, amount.HistoryCount);
         Assert.Equal(90, amount.WindowDays);
 
-        Assert.Equal(201111L, newBuyer.AmountCents);
+        Assert.Equal(50786L, newBuyer.AmountCents);
         Assert.Equal("BRL", newBuyer.CurrencyCode);
-        Assert.Equal(23.2m, newBuyer.Ratio);
-        Assert.Equal(8685L, newBuyer.MedianCents);
+        Assert.Equal(3.4m, newBuyer.Ratio);
+        Assert.Equal(14937L, newBuyer.MedianCents);
         Assert.Equal(3, newBuyer.HistoryCount);
+        Assert.Null(newBuyer.Scope);
 
-        Assert.Equal("US", foreign.Country);
+        Assert.Equal("AR", foreign.Country);
         Assert.Equal("BR", foreign.HabitualCountry);
         Assert.Equal(3, foreign.ObservedCount);
         Assert.Equal(3, foreign.TotalCount);
@@ -109,51 +112,15 @@ public sealed class ExplanationFactsTests
     }
 
     /// <summary>
-    /// The amount, the currency, the median and the time zone, which the patterns have always
-    /// captured and the extractor used to throw away.
-    /// </summary>
-    /// <remarks>
-    /// They are read here, one task before the engine emits them, for a reason that is the whole
-    /// argument of <c>E9B</c>: the golden capture certifies <c>e3-v2</c> field by field against
-    /// what this extractor read from real <c>e3-v1</c> prose. A column the extractor cannot read is
-    /// a column that would enter the fingerprint with nothing having checked it. This is work that
-    /// dies with the extractor, and it is the price of an oracle that covers the whole table.
-    /// </remarks>
-    [Fact]
-    public void TheFieldsTheExtractorUsedToDiscardAreReadToo()
-    {
-        var unusualHour = SignalFacts.For(new(RiskRuleNames.UnusualHour, 10) { Detail = "Local bucket 00:00-06:00 in America/Montevideo appeared in 1 of 21 prior orders (4.8%)." });
-
-        Assert.Equal("America/Montevideo", unusualHour.TimeZoneId);
-
-        // A signal of every rule that names money says which money it is, so a sentence can state
-        // the median in units without the verifier calling it invented.
-        foreach (var signal in new[] { SignalFacts.For(Signals[0]), SignalFacts.For(Signals[1]) })
-        {
-            Assert.Equal(201111L, signal.AmountCents);
-            Assert.Equal("BRL", signal.CurrencyCode);
-            Assert.Equal(8685L, signal.MedianCents);
-        }
-
-        // The rules that name no money and no zone leave every one of those fields alone.
-        var velocity = SignalFacts.For(new(RiskRuleNames.Velocity, 30) { Detail = "4 orders including the current order occurred within 10 minutes; threshold is 4." });
-
-        Assert.Null(velocity.AmountCents);
-        Assert.Null(velocity.CurrencyCode);
-        Assert.Null(velocity.MedianCents);
-        Assert.Null(velocity.TimeZoneId);
-        Assert.Null(velocity.Country);
-    }
-
-    /// <summary>
-    /// The other three rules, whose prose no alert of the demo corpus exercises.
+    /// The three rules the demo corpus raises least often, read into fields like the rest.
     /// </summary>
     [Fact]
-    public void TheRulesTheDemoCorpusNeverAlertsOnAreReadToo()
+    public void TheRulesTheDemoCorpusAlertsOnLeastAreReadToo()
     {
-        var velocity = SignalFacts.For(new(RiskRuleNames.Velocity, 30) { Detail = "4 orders including the current order occurred within 10 minutes; threshold is 4." });
-        var crossBorder = SignalFacts.For(new(RiskRuleNames.CrossBorderVelocity, 40) { Detail = "Country changed from UY to ES within 2 minutes for the same merchant and buyer." });
-        var unusualHour = SignalFacts.For(new(RiskRuleNames.UnusualHour, 10) { Detail = "Local bucket 00:00-06:00 in America/Montevideo appeared in 0 of 20 prior orders (0.0%)." });
+        var velocity = SignalFacts.For(RiskSignal.Velocity(30, 4, 10, 4));
+        var crossBorder = SignalFacts.For(RiskSignal.CrossBorderVelocity(40, "UY", "ES", 2m));
+        var unusualHour = SignalFacts.For(
+            RiskSignal.UnusualHour(10, 0, 6, "America/Montevideo", 0, 20, 0m));
 
         Assert.Equal(4, velocity.OrderCount);
         Assert.Equal(10, velocity.WindowMinutes);
@@ -171,14 +138,29 @@ public sealed class ExplanationFactsTests
     }
 
     /// <summary>
-    /// Prose that does not have the shape its rule writes is a declared failure, never a signal
-    /// half understood.
+    /// A signal that states itself as <c>e3-v1</c> prose is a declared failure, never a signal half
+    /// understood.
     /// </summary>
+    /// <remarks>
+    /// Nothing reads sentences any more. The row is the snapshot of an alert opened before the
+    /// engine changed and it is never rewritten, so the case is permanent: it is still shown on
+    /// screen exactly as it was written, and only the grounding facts a summary would be checked
+    /// against cannot be built from it. The caller turns this into an explanation that failed with
+    /// a code rather than into an unhandled exception.
+    /// </remarks>
     [Fact]
-    public void ProseThatDoesNotMatchItsRuleIsRefused()
+    public void AnE3V1SignalIsRefusedRatherThanHalfUnderstood()
     {
-        Assert.Throws<SignalDetailNotRecognizedException>(() =>
-            SignalFacts.For(new(RiskRuleNames.AmountAnomaly, 40) { Detail = "the amount looked large" }));
+        var stored = new RiskSignal(RiskRuleNames.AmountAnomaly, 40)
+        {
+            Detail = "50786 BRL cents is 3.4x the merchant median 14937 over 3 prior orders in 90 days.",
+        };
+
+        var refused = Assert.Throws<SignalDetailNotRecognizedException>(() => SignalFacts.For(stored));
+
+        Assert.Contains(RiskRuleNames.AmountAnomaly, refused.Message, StringComparison.Ordinal);
+        // The sentence itself is never quoted back: a rejection names the rule, not the text.
+        Assert.DoesNotContain("50786", refused.Message, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -190,8 +172,8 @@ public sealed class ExplanationFactsTests
         var facts = Facts();
 
         // The amount, in the units a sentence about money uses rather than in cents.
-        Assert.True(Grounded(facts, "2.011,11"), "amount in units");
-        Assert.True(Grounded(facts, "201111"), "amount in cents");
+        Assert.True(Grounded(facts, "507,86"), "amount in units");
+        Assert.True(Grounded(facts, "50786"), "amount in cents");
 
         // A percentage the provider rounded.
         Assert.True(Grounded(facts, "100"), "rounded share");
@@ -208,8 +190,9 @@ public sealed class ExplanationFactsTests
         Assert.True(Grounded(facts, "90"), "sum of the weights before the cap");
 
         // And what the engine itself wrote.
-        Assert.True(Grounded(facts, "23,2"), "ratio");
-        Assert.True(Grounded(facts, "8685"), "median");
+        Assert.True(Grounded(facts, "3,4"), "ratio");
+        Assert.True(Grounded(facts, "14937"), "median");
+        Assert.True(Grounded(facts, "149,37"), "median in units");
     }
 
     [Fact]
@@ -394,9 +377,9 @@ public sealed class ExplanationFactsTests
             RuleConfig.E3V1.Version,
             "e4-v1",
             Signals,
-            201111,
+            50786,
             "BRL",
-            "US",
+            "AR",
             null,
             OccurredAt);
     }
