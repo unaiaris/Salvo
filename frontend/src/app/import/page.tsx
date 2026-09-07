@@ -74,17 +74,26 @@ export default async function ImportPage() {
       )}
 
       {demoEnabled && (
-        <ActionSection title={t.importPage.seedTitle} description={t.importPage.seedDescription}>
+        <ActionSection
+          id="seed"
+          title={t.importPage.seedTitle}
+          description={t.importPage.seedDescription}
+        >
           <SeedConflictNotice preview={seedPreview} language={language} />
           <SeedDemoButton language={language} />
         </ActionSection>
       )}
 
-      <ActionSection title={t.importPage.fileTitle} description={t.importPage.fileDescription}>
+      <ActionSection
+        id="file"
+        title={t.importPage.fileTitle}
+        description={t.importPage.fileDescription}
+      >
         <ImportForm maxFileMib={MAX_FILE_MIB} language={language} />
       </ActionSection>
 
       <ActionSection
+        id="scoring"
         title={t.importPage.scoringTitle}
         description={t.importPage.scoringDescription}
       >
@@ -93,6 +102,7 @@ export default async function ImportPage() {
 
       {capabilities.ok && capabilities.value.externalCallbackTriggerEnabled && (
         <ActionSection
+          id="external"
           title={t.importPage.externalTitle}
           description={t.importPage.externalDescription}
         >

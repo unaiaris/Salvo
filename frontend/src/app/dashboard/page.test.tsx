@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -29,15 +29,17 @@ function respondWith({
   demoDataEnabled = true,
   dashboard = wireDashboard(),
   metrics,
+  language = "es",
 }: {
   demoDataEnabled?: boolean;
   dashboard?: unknown;
   metrics?: unknown;
+  language?: "es" | "pt";
 } = {}) {
   fetchMock.mockImplementation((url: URL) => {
     switch (url.pathname) {
       case "/api/system/capabilities":
-        return Promise.resolve(jsonResponse(wireCapabilities({ demoDataEnabled })));
+        return Promise.resolve(jsonResponse(wireCapabilities({ demoDataEnabled, language })));
       case "/api/evaluation-metrics":
         return Promise.resolve(
           metrics instanceof Response ? metrics : jsonResponse(metrics ?? wireEvaluationMetrics()),
@@ -295,6 +297,73 @@ describe("sección de calidad", () => {
     expect(sweep.tagName.toLowerCase()).toBe("summary");
     expect(sweep.closest("details")?.hasAttribute("open")).toBe(false);
     expect(screen.getByRole("rowheader", { name: /60 · elegido/ })).toBeInTheDocument();
+  });
+
+  /**
+   * La `<summary>` de arriba dice de qué es la tabla, pero al entrar en la tabla el lector deja atrás
+   * ese texto: lo único que viaja con una tabla es su `<caption>`, y ésta era la única de la consola
+   * que no tenía.
+   */
+  it("la tabla del barrido se anuncia con su propio nombre", async () => {
+    respondWith();
+    await renderDashboard();
+
+    expect(
+      screen.getByRole("table", {
+        name: /Precisión, recall, F1 y tasa de falsos positivos en cada umbral/,
+      }),
+    ).toBeInTheDocument();
+  });
+});
+
+/**
+ * El `id` del encabezado de cada panel salía del título traducido, quitándole todo lo que no fuera
+ * `[a-záéíóúñ]`. Eso ata un identificador del documento al idioma del despliegue —en portugués `ção`
+ * queda `-o`—, y dos títulos que difieran solo en esos caracteres colapsarían en el mismo `id`: a
+ * partir de ahí un `aria-labelledby` rotula una sección con el título de otra. La prueba mira los
+ * dos idiomas porque una sola pasada no distingue un `id` estable de uno que casualmente coincide.
+ */
+describe("los identificadores de los encabezados", () => {
+  const IDS = [
+    "panel-open-alerts",
+    "panel-amount-at-risk",
+    "panel-reported-fraud",
+    "panel-flag-rate",
+    "panel-top-signals",
+    "panel-denials",
+    "panel-risk-over-time",
+  ] as const;
+
+  it("no cambian con el idioma del despliegue", async () => {
+    respondWith();
+    const { container } = render(await renderableServerTree(DashboardPage()));
+
+    for (const id of IDS) {
+      expect(container.querySelector(`#${id}`), id).not.toBeNull();
+    }
+
+    cleanup();
+
+    respondWith({ language: "pt" });
+    const portuguese = render(await renderableServerTree(DashboardPage())).container;
+
+    for (const id of IDS) {
+      expect(portuguese.querySelector(`#${id}`), id).not.toBeNull();
+    }
+
+    // Y el idioma sí llegó: si no, la segunda pasada sería la primera otra vez.
+    expect(portuguese.textContent).toMatch(/Alertas abertos/);
+  });
+
+  it("cada sección queda rotulada por su propio encabezado", async () => {
+    respondWith();
+    const { container } = render(await renderableServerTree(DashboardPage()));
+
+    for (const id of IDS) {
+      const section = container.querySelector(`[aria-labelledby="${id}"]`);
+      expect(section, id).not.toBeNull();
+      expect(container.querySelectorAll(`#${id}`), id).toHaveLength(1);
+    }
   });
 });
 

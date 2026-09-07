@@ -264,6 +264,12 @@ function ThresholdSweep({
       </p>
       <div className="mt-3 overflow-x-auto">
         <table className="w-full min-w-[30rem] border-collapse text-sm">
+          {/*
+            La `<summary>` de arriba dice de qué es esta tabla, pero al entrar en la tabla el lector
+            deja atrás ese texto y anuncia «tabla, 5 columnas» y nada más. La `<caption>` es lo único
+            que viaja con la tabla, y va oculta porque en pantalla la `<summary>` ya lo dice.
+          */}
+          <caption className="sr-only">{t.dashboard.qualitySweepCaption}</caption>
           <thead>
             <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-600">
               <th scope="col" className="py-2 pr-4 font-semibold">

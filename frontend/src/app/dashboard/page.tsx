@@ -130,19 +130,27 @@ function DashboardBody({
       )}
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Panel title={t.dashboard.openAlertsTitle} hint={t.dashboard.openAlertsHint}>
+        <Panel id="open-alerts" title={t.dashboard.openAlertsTitle} hint={t.dashboard.openAlertsHint}>
           <OpenAlertsPanel openAlerts={state.openAlerts} language={language} />
         </Panel>
-        <Panel title={t.dashboard.amountAtRiskTitle} hint={t.dashboard.amountAtRiskHint}>
+        <Panel
+          id="amount-at-risk"
+          title={t.dashboard.amountAtRiskTitle}
+          hint={t.dashboard.amountAtRiskHint}
+        >
           <AmountAtRiskPanel rows={state.amountAtRisk} language={language} />
         </Panel>
-        <Panel title={t.dashboard.reportedFraudTitle} hint={t.dashboard.reportedFraudHint}>
+        <Panel
+          id="reported-fraud"
+          title={t.dashboard.reportedFraudTitle}
+          hint={t.dashboard.reportedFraudHint}
+        >
           <ReportedFraudPanel rows={state.reportedFraud} language={language} />
         </Panel>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Panel title={t.dashboard.flagRateTitle}>
+        <Panel id="flag-rate" title={t.dashboard.flagRateTitle}>
           <FlagRatePanel
             flagRate={state.flagRate}
             scoredOrders={state.scoringRun.orderCount}
@@ -150,20 +158,28 @@ function DashboardBody({
           />
         </Panel>
         <div className="lg:col-span-2">
-          <Panel title={t.dashboard.topSignalsTitle} hint={t.dashboard.topSignalsHint}>
+          <Panel
+            id="top-signals"
+            title={t.dashboard.topSignalsTitle}
+            hint={t.dashboard.topSignalsHint}
+          >
             <TopSignalsPanel signals={state.topSignals} language={language} />
           </Panel>
         </div>
       </div>
 
-      <Panel title={t.dashboard.denialsTitle} hint={t.dashboard.denialsHint}>
+      <Panel id="denials" title={t.dashboard.denialsTitle} hint={t.dashboard.denialsHint}>
         <ExternalDenialsPanel
           denials={state.externalDenialsWithoutAlert}
           language={language}
         />
       </Panel>
 
-      <Panel title={t.dashboard.riskOverTimeTitle} hint={t.dashboard.riskOverTimeHint}>
+      <Panel
+        id="risk-over-time"
+        title={t.dashboard.riskOverTimeTitle}
+        hint={t.dashboard.riskOverTimeHint}
+      >
         {state.riskOverTime.length === 0 ? (
           <p className="text-sm text-slate-600">{t.dashboard.riskOverTimeNone}</p>
         ) : (
