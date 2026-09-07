@@ -26,9 +26,16 @@ export function ActionOutcome({
 
   const failed = state.outcome === "failed";
 
+  /*
+    El rol depende de cómo salió la acción, y no es un detalle de estilo.
+
+    `alert` es asertivo: interrumpe lo que el lector esté diciendo en ese momento. Es lo correcto
+    para un fallo, que hay que oír antes de seguir, y es de más para un éxito, que solo hay que
+    saber. Un éxito va en `status`, que espera a que el lector termine la frase en curso.
+  */
   return (
     <section
-      role="alert"
+      role={failed ? "alert" : "status"}
       className={
         failed
           ? "rounded-lg border border-rose-300 bg-rose-50 p-4 text-rose-950"
