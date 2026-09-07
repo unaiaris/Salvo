@@ -127,6 +127,7 @@ public sealed class SignalFactsGoldenTests : IClassFixture<SalvoApiFactory>
         var evaluation = await handler.HandleAsync(CancellationToken.None);
         var config = RuleConfig.ForVersion(evaluation.ConfigVersion);
         var prose = ReadGolden([]).ToDictionary(entry => entry.Reference);
+        var grounded = ReadGroundingGolden(prose.Values);
 
         var compared = 0;
         foreach (var assessment in evaluation.Assessments.Where(one => one.Signals.Count > 0))
@@ -145,27 +146,38 @@ public sealed class SignalFactsGoldenTests : IClassFixture<SalvoApiFactory>
                 order.OccurredAt);
 
             var captured = prose[order.MerchantReferenceId];
-            var fromProse = ExplanationFacts.For(
-                input,
-                SignalFacts.ForAll(
-                    [.. captured.Signals.Select(signal =>
-                        new RiskSignal(signal.Rule, signal.Weight) { Detail = signal.Detail })]),
-                config);
-            var fromFields = ExplanationFacts.For(input, SignalFacts.ForAll(assessment.Signals), config);
+            var fromProse = grounded[order.MerchantReferenceId];
+            var fromFields = SignalFacts.ForAll(assessment.Signals)
+                .SelectMany(signal => signal.Numbers)
+                .SelectMany(token => token.Readings)
+                .Select(reading => reading.Value)
+                .Distinct()
+                .Order()
+                .ToArray();
 
-            var added = fromFields.Values.Except(fromProse.Values).ToHashSet();
-            var medianInUnits = captured.Signals
-                .Where(signal => signal.MedianCents is not null)
-                .SelectMany(signal => Enumerable
+            // The rest of `ExplanationFacts` — the score, the threshold, the cap, the instant — is
+            // untouched by `e3-v2`, so what is compared is the part that changed: the numbers the
+            // signals themselves contribute.
+            Assert.NotEmpty(ExplanationFacts.For(input, SignalFacts.ForAll(assessment.Signals), config).Values);
+
+            var added = fromFields.Except(fromProse).ToHashSet();
+            // The one deliberate addition: an amount in the units anybody writes it in. The engine
+            // stated cents and a sentence about money never does, so «la mediana fue 149,37 BRL» was
+            // a true figure the verifier refused. Computed here from the capture rather than taken
+            // from the code under test.
+            var amountsInUnits = captured.Signals
+                .SelectMany(signal => new[] { signal.AmountCents, signal.MedianCents })
+                .Where(cents => cents is not null)
+                .SelectMany(cents => Enumerable
                     .Range(0, NumberTokenizer.MaximumRoundedDecimals + 1)
                     .Select(decimals => Math.Round(
-                        signal.MedianCents!.Value / 100m,
+                        cents!.Value / 100m,
                         decimals,
                         MidpointRounding.AwayFromZero)))
                 .ToHashSet();
 
-            Assert.Empty(fromProse.Values.Except(fromFields.Values));
-            Assert.Empty(added.Except(medianInUnits));
+            Assert.Empty(fromProse.Except(fromFields));
+            Assert.Empty(added.Except(amountsInUnits));
             compared++;
         }
 
@@ -270,6 +282,87 @@ public sealed class SignalFactsGoldenTests : IClassFixture<SalvoApiFactory>
         return parsed ?? throw new InvalidOperationException($"The golden capture at {path} is not a JSON array.");
     }
 
+    /// <summary>
+    /// What the frozen grounding capture says is what reading the frozen prose produces.
+    /// </summary>
+    /// <remarks>
+    /// The certification of the file the previous test leans on, and the last thing the extractor is
+    /// asked to do. It is deleted in the next commit and this test goes with it; the file it signed
+    /// stays, and the comparison it makes possible keeps running for good.
+    /// </remarks>
+    [Fact]
+    public void TheGroundingCaptureIsWhatTheExtractorReadsFromTheFrozenProse()
+    {
+        var prose = ReadGolden([]);
+        var frozen = ReadGroundingGolden(prose);
+
+        foreach (var entry in prose)
+        {
+            var signals = SignalFacts.ForAll(
+                [.. entry.Signals.Select(signal =>
+                    new RiskSignal(signal.Rule, signal.Weight) { Detail = signal.Detail })]);
+
+            Assert.Equal(
+                frozen[entry.Reference],
+                signals
+                    .SelectMany(signal => signal.Numbers)
+                    .SelectMany(token => token.Readings)
+                    .Select(reading => reading.Value)
+                    .Distinct()
+                    .Order()
+                    .ToArray());
+        }
+    }
+
+    /// <summary>
+    /// The grounding facts the extractor derived from the frozen `e3-v1` prose, read from a file.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Frozen for the same reason the fields are: the extractor is deleted in the commit after this
+    /// one, and an assertion that dies with the thing it was checking leaves nothing behind. The
+    /// prose it was derived from is itself frozen in <c>signal-facts.v2.json</c>, so this file is a
+    /// pure function of a file that predates the engine change — which is what keeps it evidence and
+    /// not a snapshot of whatever the code happens to do now.
+    /// </para>
+    /// <para>
+    /// While the extractor is still here, the values are certified against it on every run: what the
+    /// file says has to be what reading that prose produces. That check goes when the extractor
+    /// goes, and the file it certified stays.
+    /// </para>
+    /// </remarks>
+    private static Dictionary<string, decimal[]> ReadGroundingGolden(IReadOnlyCollection<GoldenEntry> prose)
+    {
+        var path = Path.Combine(Path.GetDirectoryName(GoldenSourceDirectory())!, "Goldens", "grounding-facts.v2.json");
+        if (!File.Exists(path))
+        {
+            var observed = prose.ToDictionary(
+                entry => entry.Reference,
+                entry => SignalFacts
+                    .ForAll([.. entry.Signals.Select(signal =>
+                        new RiskSignal(signal.Rule, signal.Weight) { Detail = signal.Detail })])
+                    .SelectMany(signal => signal.Numbers)
+                    .SelectMany(token => token.Readings)
+                    .Select(reading => reading.Value)
+                    .Distinct()
+                    .Order()
+                    .ToArray());
+            var temporary = Path.Combine(Path.GetTempPath(), "salvo-grounding-facts.actual.json");
+            File.WriteAllText(temporary, JsonSerializer.Serialize(observed, GoldenFormat));
+            Assert.Fail(
+                $"The grounding capture is missing: {path}. It is never written by this test; what "
+                + $"the extractor reads from the frozen prose was left at {temporary}.");
+        }
+
+        var parsed = JsonSerializer.Deserialize<Dictionary<string, decimal[]>>(
+            File.ReadAllText(path),
+            GoldenFormat) ?? throw new InvalidOperationException($"The capture at {path} is not an object.");
+
+        Assert.Equal(prose.Count, parsed.Count);
+
+        return parsed;
+    }
+
     private static string WriteActual(IReadOnlyList<GoldenEntry> actual)
     {
         var path = Path.Combine(Path.GetTempPath(), "salvo-signal-facts.actual.json");
@@ -282,6 +375,8 @@ public sealed class SignalFactsGoldenTests : IClassFixture<SalvoApiFactory>
     {
         return Path.Combine(Path.GetDirectoryName(thisFile)!, "Goldens", "signal-facts.v2.json");
     }
+
+    private static string GoldenSourceDirectory([CallerFilePath] string thisFile = "") => thisFile;
 
     /// <summary>One evaluation that raised at least one signal.</summary>
     internal sealed record GoldenEntry(

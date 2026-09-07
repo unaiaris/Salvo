@@ -118,11 +118,15 @@ describe("la frase de una señal", () => {
    * formed on and it is never rewritten, so it is shown as written or not at all.
    */
   it("muestra la prosa heredada cuando la fila es e3-v1", () => {
-    const projected = projectSignal(wireLegacySignal());
+    // The sentence the engine really wrote for ORD_000011, taken from the capture rather than composed
+    // here: a hand-written example would be prose no evaluation ever carried.
+    const prose = rows.get("amount_anomaly")!.signal.detail as string;
+    const projected = projectSignal(wireLegacySignal({ detail: prose }));
 
-    expect(signalSentence(projected!)).toBe(
-      "201111 BRL cents is 23.2x the buyer median 8685 over 3 prior orders in 90 days.",
+    expect(prose).toBe(
+      "50786 BRL cents is 3.4x the merchant median 14937 over 3 prior orders in 90 days.",
     );
+    expect(signalSentence(projected!)).toBe(prose);
   });
 
   /**
