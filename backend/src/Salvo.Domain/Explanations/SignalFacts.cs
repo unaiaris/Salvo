@@ -41,11 +41,20 @@ public sealed partial record SignalFacts
     /// <summary>Every figure the engine put in this signal's prose.</summary>
     public required IReadOnlyList<NumberToken> Numbers { get; init; }
 
+    /// <summary>The amount the rule judged, in cents.</summary>
+    public long? AmountCents { get; init; }
+
+    /// <summary>The currency that amount is denominated in.</summary>
+    public string? CurrencyCode { get; init; }
+
     /// <summary>How many times the amount exceeds the median it was compared against.</summary>
     public decimal? Ratio { get; init; }
 
     /// <summary>Whose median that was.</summary>
     public AmountMedianScope? Scope { get; init; }
+
+    /// <summary>The median the amount was compared against, in cents.</summary>
+    public long? MedianCents { get; init; }
 
     /// <summary>Prior orders the median was computed over.</summary>
     public int? HistoryCount { get; init; }
@@ -75,6 +84,9 @@ public sealed partial record SignalFacts
     /// <summary>Last hour of the local bucket, exclusive.</summary>
     public int? BucketEndHour { get; init; }
 
+    /// <summary>The business time zone those hours are local to.</summary>
+    public string? TimeZoneId { get; init; }
+
     /// <summary>Prior orders that fell in the same bucket, or in the habitual country.</summary>
     public int? ObservedCount { get; init; }
 
@@ -83,6 +95,9 @@ public sealed partial record SignalFacts
 
     /// <summary>The observation as a percentage of the total.</summary>
     public decimal? SharePercent { get; init; }
+
+    /// <summary>The country of the order, when the rule judged the country itself.</summary>
+    public string? Country { get; init; }
 
     /// <summary>The country the merchant almost always sells to.</summary>
     public string? HabitualCountry { get; init; }
@@ -136,10 +151,13 @@ public sealed partial record SignalFacts
 
         return facts with
         {
+            AmountCents = Amount(match, "amount"),
+            CurrencyCode = match.Groups["currency"].Value,
             Ratio = Number(match, "ratio"),
             Scope = string.Equals(match.Groups["scope"].Value, "buyer", StringComparison.Ordinal)
                 ? AmountMedianScope.Buyer
                 : AmountMedianScope.Merchant,
+            MedianCents = Amount(match, "median"),
             HistoryCount = Count(match, "history"),
             WindowDays = Count(match, "window"),
         };
@@ -177,6 +195,7 @@ public sealed partial record SignalFacts
         {
             BucketStartHour = Count(match, "start"),
             BucketEndHour = Count(match, "end"),
+            TimeZoneId = match.Groups["zone"].Value,
             ObservedCount = Count(match, "observed"),
             TotalCount = Count(match, "total"),
             SharePercent = Number(match, "share"),
@@ -189,8 +208,11 @@ public sealed partial record SignalFacts
 
         return facts with
         {
+            AmountCents = Amount(match, "amount"),
+            CurrencyCode = match.Groups["currency"].Value,
             Ratio = Number(match, "ratio"),
             Scope = AmountMedianScope.Merchant,
+            MedianCents = Amount(match, "median"),
             HistoryCount = Count(match, "history"),
         };
     }
@@ -201,7 +223,7 @@ public sealed partial record SignalFacts
 
         return facts with
         {
-            ToCountry = match.Groups["country"].Value,
+            Country = match.Groups["country"].Value,
             HabitualCountry = match.Groups["habitual"].Value,
             ObservedCount = Count(match, "observed"),
             TotalCount = Count(match, "total"),
@@ -227,6 +249,11 @@ public sealed partial record SignalFacts
     private static int Count(Match match, string group)
     {
         return int.Parse(match.Groups[group].Value, CultureInfo.InvariantCulture);
+    }
+
+    private static long Amount(Match match, string group)
+    {
+        return long.Parse(match.Groups[group].Value, CultureInfo.InvariantCulture);
     }
 
     [GeneratedRegex(

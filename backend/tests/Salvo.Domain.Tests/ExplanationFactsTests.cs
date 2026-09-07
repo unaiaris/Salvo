@@ -96,19 +96,68 @@ public sealed class ExplanationFactsTests
         var newBuyer = SignalFacts.Parse(Signals[1]);
         var foreign = SignalFacts.Parse(Signals[2]);
 
+        Assert.Equal(201111L, amount.AmountCents);
+        Assert.Equal("BRL", amount.CurrencyCode);
         Assert.Equal(23.2m, amount.Ratio);
         Assert.Equal(AmountMedianScope.Merchant, amount.Scope);
+        Assert.Equal(8685L, amount.MedianCents);
         Assert.Equal(3, amount.HistoryCount);
         Assert.Equal(90, amount.WindowDays);
 
+        Assert.Equal(201111L, newBuyer.AmountCents);
+        Assert.Equal("BRL", newBuyer.CurrencyCode);
         Assert.Equal(23.2m, newBuyer.Ratio);
+        Assert.Equal(8685L, newBuyer.MedianCents);
         Assert.Equal(3, newBuyer.HistoryCount);
 
-        Assert.Equal("US", foreign.ToCountry);
+        Assert.Equal("US", foreign.Country);
         Assert.Equal("BR", foreign.HabitualCountry);
         Assert.Equal(3, foreign.ObservedCount);
         Assert.Equal(3, foreign.TotalCount);
         Assert.Equal(100.0m, foreign.SharePercent);
+    }
+
+    /// <summary>
+    /// The amount, the currency, the median and the time zone, which the patterns have always
+    /// captured and the extractor used to throw away.
+    /// </summary>
+    /// <remarks>
+    /// They are read here, one task before the engine emits them, for a reason that is the whole
+    /// argument of <c>E9B</c>: the golden capture certifies <c>e3-v2</c> field by field against
+    /// what this extractor read from real <c>e3-v1</c> prose. A column the extractor cannot read is
+    /// a column that would enter the fingerprint with nothing having checked it. This is work that
+    /// dies with the extractor, and it is the price of an oracle that covers the whole table.
+    /// </remarks>
+    [Fact]
+    public void TheFieldsTheExtractorUsedToDiscardAreReadToo()
+    {
+        var unusualHour = SignalFacts.Parse(new(
+            RiskRuleNames.UnusualHour,
+            10,
+            "Local bucket 00:00-06:00 in America/Montevideo appeared in 1 of 21 prior orders (4.8%)."));
+
+        Assert.Equal("America/Montevideo", unusualHour.TimeZoneId);
+
+        // A signal of every rule that names money says which money it is, so a sentence can state
+        // the median in units without the verifier calling it invented.
+        foreach (var signal in new[] { SignalFacts.Parse(Signals[0]), SignalFacts.Parse(Signals[1]) })
+        {
+            Assert.Equal(201111L, signal.AmountCents);
+            Assert.Equal("BRL", signal.CurrencyCode);
+            Assert.Equal(8685L, signal.MedianCents);
+        }
+
+        // The rules that name no money and no zone leave every one of those fields alone.
+        var velocity = SignalFacts.Parse(new(
+            RiskRuleNames.Velocity,
+            30,
+            "4 orders including the current order occurred within 10 minutes; threshold is 4."));
+
+        Assert.Null(velocity.AmountCents);
+        Assert.Null(velocity.CurrencyCode);
+        Assert.Null(velocity.MedianCents);
+        Assert.Null(velocity.TimeZoneId);
+        Assert.Null(velocity.Country);
     }
 
     /// <summary>
@@ -140,6 +189,7 @@ public sealed class ExplanationFactsTests
 
         Assert.Equal(0, unusualHour.BucketStartHour);
         Assert.Equal(6, unusualHour.BucketEndHour);
+        Assert.Equal("America/Montevideo", unusualHour.TimeZoneId);
         Assert.Equal(0, unusualHour.ObservedCount);
         Assert.Equal(20, unusualHour.TotalCount);
     }
