@@ -139,11 +139,24 @@ function Figure({
   readonly value: string;
   readonly hint?: string;
 }) {
+  /*
+    La aclaración va **dentro** del `<dd>`, no al lado.
+
+    Estaba como hermana, y una `<dl>` solo admite grupos `<dt>`/`<dd>` —envueltos en `<div>` o no—:
+    un `<p>` suelto rompe la lista, y entonces esa frase deja de pertenecer a ningún término. Quien
+    lee la lista de definiciones con un lector de pantalla escuchaba «Sin etiqueta, 44» y después
+    una frase huérfana, sin nada que dijera de cuál de las cuatro cifras hablaba.
+
+    El número queda en un `<span>` para que el `<p>` no herede su tamaño ni su peso: la aclaración
+    se sigue viendo igual que antes, en gris y pequeña.
+  */
   return (
     <div>
       <dt className="text-xs uppercase tracking-wide text-slate-600">{term}</dt>
-      <dd className="mt-1 text-lg font-semibold tabular-nums text-slate-950">{value}</dd>
-      {hint !== undefined && <p className="mt-1 text-xs leading-5 text-slate-600">{hint}</p>}
+      <dd className="mt-1">
+        <span className="text-lg font-semibold tabular-nums text-slate-950">{value}</span>
+        {hint !== undefined && <p className="mt-1 text-xs leading-5 text-slate-600">{hint}</p>}
+      </dd>
     </div>
   );
 }
