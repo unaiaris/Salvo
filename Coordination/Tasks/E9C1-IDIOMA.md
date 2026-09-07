@@ -18,8 +18,9 @@
   cada señal desde campos tipados desde esa tarea; sin eso, traducir sería reescribir prosa inglesa.
 - Tamaño, medido y no estimado: **52 archivos del frontend** contienen literales en castellano —20
   en `frontend/src/app/alerts/[id]`, 8 en `import`, 6 en `dashboard`, 5 en `lib/api`, y 17 de ellos
-  son tests—, más **42 anclas `expect_text`** en `scripts/smoke-ui.sh`, 4 `expectText` en
-  `tools/capturas/capturar.mjs`, el `<html lang="es">` de `frontend/src/app/layout.tsx` (línea 13),
+  son tests—, más **41 llamadas a `expect_text`** en `scripts/smoke-ui.sh` —la aparición 42 es la
+  definición de la función, en la línea 175—, unas 13 anclas repartidas en 3 llamadas a `expectText`
+  en `tools/capturas/capturar.mjs`, el `<html lang="es">` de `frontend/src/app/layout.tsx` (línea 13),
   y los nombres de mes y las palabras de severidad dentro de la plantilla del backend.
 
 ## Resultado esperado
@@ -64,9 +65,12 @@ en Brasil.
   - `backend/src/Salvo.Domain/Explanations/SpanishNumberFormat.cs`.
   - `frontend/src/lib/format.ts` y `frontend/src/lib/api/messages.ts`, 343 y 344 líneas.
   - `frontend/src/app/import/actions.ts`, `describeRecordError` en la línea 269.
-  - `frontend/src/app/layout.tsx`, `frontend/src/app/dashboard/page.tsx` y
-    `frontend/src/app/alerts/[id]/page.tsx`, que ya llaman a `fetchCapabilities()` del lado del
-    servidor.
+  - `frontend/src/app/layout.tsx`: el `<html lang="es">` de la línea 13. **No consulta nada hoy.**
+  - Las tres páginas que sí llaman a `fetchCapabilities()` del lado del servidor:
+    `frontend/src/app/dashboard/page.tsx`, `frontend/src/app/import/page.tsx` y
+    `frontend/src/app/alerts/[id]/page.tsx`.
+  - `frontend/src/app/page.tsx`, cuyo comentario declara que la raíz **se queda estática a
+    propósito**.
 
 **Antes de escribir cualquier afirmación, abrir el archivo que la sostiene.**
 
@@ -123,11 +127,15 @@ las que convierten la columna en comportamiento en vez de en una columna:
   estaba escrito. La fila portuguesa existiría y nadie la vería. **Ese es el defecto de `E7D` otra
   vez**, esta vez del lado de la lectura.
 
-Por el mismo camino baja hoy la versión de plantilla vigente, en
-`backend/src/Salvo.Application/Alerts/AlertProjection.cs` y
-`backend/src/Salvo.Application/Alerts/GetAlertHandler.cs`, y ahí es donde
-`WrittenByAnotherTemplate` se calcula al leer. El equivalente para el idioma se decide en la tarea,
-pero el camino se reserva entero: sub-reservar es lo que rompió `E7A` a mitad de ejecución.
+Por el mismo camino baja hoy la versión de plantilla vigente:
+`backend/src/Salvo.Application/Alerts/AlertProjection.cs`,
+`backend/src/Salvo.Application/Alerts/GetAlertHandler.cs` y
+`backend/src/Salvo.Application/Alerts/ReviewAlertHandler.cs`, que la pasa al detalle que devuelve la
+revisión en sus líneas 55, 83, 119 y 139. `WrittenByAnotherTemplate` **no** se calcula en ninguno de
+esos tres: sale de la comparación de la línea 89 de
+`backend/src/Salvo.Application/Explanations/ExplanationViews.cs`, que es donde vivirá su equivalente
+para el idioma si la tarea decide tenerlo. El camino se reserva entero: sub-reservar es lo que
+rompió `E7A` a mitad de ejecución, y es la tercera vez que este `brief-check` lo encuentra.
 
 **El décimo `ExplanationFailureCode` entra en esta misma migración.** Hoy una evaluación `e3-v1` sin
 campos falla con `PROVIDER_UNAVAILABLE`, que **es falso**: no se llama a ningún proveedor, y un
@@ -174,10 +182,22 @@ tiene su test de exactitud; entra `describeRecordError` de `frontend/src/app/imp
 es el ítem «códigos de error de fila traducidos» del checklist; y entran las seis frases de señal y
 `ruleLabel` de `frontend/src/lib/format.ts`, que nacieron en `E9B`.
 
-**El idioma llega desde el servidor**, tomado de `capabilities` en el árbol de servidor, y baja a
-los componentes. `frontend/src/app/layout.tsx` pinta `<html lang>` con él. Si las capacidades no se
-pueden leer, la consola se compone en `es`: el idioma es una preocupación de presentación y un fallo
-ahí no puede dejar la página en blanco.
+**El idioma llega desde el servidor**, tomado de `capabilities`, y baja a los componentes. Si las
+capacidades no se pueden leer, la consola se compone en `es`: el idioma es una preocupación de
+presentación y un fallo ahí no puede dejar la página en blanco.
+
+**Y acá hay un costo que se paga con los ojos abiertos.** El `<html lang>` vive en el layout raíz,
+que hoy no consulta nada, y la raíz `/` **es estática a propósito**: el comentario de
+`frontend/src/app/page.tsx` lo dice. Que el layout lea las capacidades vuelve dinámica toda la
+consola, `/` incluida, porque el layout la envuelve. La alternativa sería que el proceso de Next
+leyera `SALVO_LANGUAGE` por su cuenta, y eso rompe el origen único del punto 1 y abre justamente la
+discrepancia que ese punto existe para cerrar. **Se elige volver dinámica la raíz**, y el comentario
+de `page.tsx` se actualiza para decir por qué dejó de ser estática, en vez de quedar contradiciendo
+al código. Son cinco rutas de una consola interna: no hay historia de CDN que se pierda.
+
+**El diccionario cruza el borde del cliente como valores, nunca como objeto.** Ningún componente
+cliente recibe el diccionario entero; `frontend/src/test/boundary.test.ts` lo hace cumplir igual, y
+se escribe acá porque la forma se delega y ésta es la parte que no.
 
 #### 5. El portugués, entregado y rotulado
 
@@ -190,7 +210,7 @@ los nombres de comercio del corpus, ni los `merchantReferenceId`.
 
 #### 6. El smoke prueba el interruptor, no solo el castellano
 
-`scripts/smoke-ui.sh` tiene 42 anclas `expect_text` en castellano. La tarea **no las duplica a mano
+`scripts/smoke-ui.sh` tiene 41 llamadas a `expect_text` en castellano. La tarea **no las duplica a mano
 en dos idiomas**: la corrida principal sigue siendo en `es` y se agrega **una pasada corta en `pt`**
 sobre un puñado de pantallas, que es lo que convierte «es conmutable» en una afirmación verificada
 de punta a punta en vez de una promesa del diccionario.
@@ -214,7 +234,7 @@ sola comprobación es la que distingue esta tarea de un `find` y `replace`.
   diccionario ya puesto ese texto nace en los dos idiomas.
 - El README, el guion, las capturas y el artículo para revisores: `E9D`. Las capturas se regeneran
   allá y siguen siendo en castellano.
-- `tools/capturas/capturar.mjs`: sus 4 anclas quedan como están, en castellano, porque la corrida de
+- `tools/capturas/capturar.mjs`: sus ~13 anclas quedan como están, en castellano, porque la corrida de
   capturas es en `es`. Si el archivo tiene que cambiar, la tarea para y consulta.
 - Un tercer idioma, y cualquier mecanismo de idioma por persona o por petición.
 - Tocar el motor, el corpus, las métricas o el dashboard salvo por sus literales.
@@ -226,10 +246,12 @@ sola comprobación es la que distingue esta tarea de un `find` y `replace`.
 
 - `backend/src/Salvo.Domain/Explanations/**`
 - `backend/src/Salvo.Infrastructure/Explanations/**`
-- `backend/src/Salvo.Infrastructure/Persistence/Configurations/AlertExplanationConfiguration.cs`
-- `backend/src/Salvo.Infrastructure/Persistence/Migrations/**` (la migración nueva)
+- `backend/src/Salvo.Infrastructure/Persistence/**` — la configuración, la migración nueva, y las
+  tres costuras de consulta del punto 2: `EfExplanationStore.cs` y `EfAlertStore.cs`
 - `backend/src/Salvo.Infrastructure/DependencyInjection.cs`
 - `backend/src/Salvo.Application/Explanations/**`
+- `backend/src/Salvo.Application/Alerts/**` — `AlertProjection.cs`, `GetAlertHandler.cs` y
+  `ReviewAlertHandler.cs`, por donde baja hoy la versión de plantilla vigente
 - `backend/src/Salvo.Api/SystemEndpoints.cs` y `backend/src/Salvo.Api/Program.cs`
 - `backend/tests/**`
 
@@ -241,8 +263,12 @@ sola comprobación es la que distingue esta tarea de un `find` y `replace`.
   literal con exactamente dos. En cuanto se recaptura el esquema, `Capabilities` gana un campo y ese
   archivo **deja de compilar** hasta que lo proyecte. Es la primera lección de la Etapa 7, textual:
   la guarda descarta lo que no conoce.
-- `frontend/openapi/salvo-openapi.json` y `frontend/src/lib/api/schema.d.ts`, **solo recaptura** por
-  el campo nuevo de `capabilities` y el código de fallo nuevo.
+- `frontend/openapi/salvo-openapi.json` y `frontend/src/lib/api/schema.d.ts`, **solo recaptura**, y
+  **solo por el campo nuevo de `capabilities`**: el contrato declara `failureCode` como
+  `null | string` sin enumeración, así que el código décimo no viaja por ahí y la recaptura no lo
+  trae. La exactitud de los códigos se afirma contra la lista escrita a mano de
+  `frontend/src/app/alerts/[id]/explanation-block.test.tsx`, que hoy enumera los nueve: ése es el
+  oráculo, y hay que agregarle el décimo.
 
 **Otros**
 
@@ -367,14 +393,14 @@ y se deshace:
 - hace falta tocar `tools/capturas/**` o renombrar un test que el README nombra;
 - el idioma no puede llegar a `<html lang>` sin leer la variable desde el proceso de Next, o
   aparece un camino más barato que conserve el origen único sin volver dinámica la raíz;
-- la pasada `pt` del smoke exige duplicar las 42 anclas.
+- la pasada `pt` del smoke exige duplicar las 41 anclas.
 
 ## Entrega requerida
 
 - Resumen del resultado y archivos modificados.
 - **El glosario**, con su cantidad de entradas.
 - El resultado de la comprobación central, con las dos filas mostradas.
-- Las cinco falsaciones, con el error exacto de cada una.
+- Las siete falsaciones, con el error exacto de cada una.
 - Comandos y resultados exactos.
 - Estado: `Lista para integrar | Parcial | Bloqueada`.
 - Handoff en `Coordination/Handoffs/Claude.md`.
