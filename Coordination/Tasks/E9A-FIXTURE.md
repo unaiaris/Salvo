@@ -9,8 +9,9 @@
 - Coordinador: Unai Arismendes
 - Fecha: 2026-09-07
 - Rama/worktree: `claude/e9a-fixture`
-- Commit base: se escribe **en la rama**, después de crearla. El commit que declara la base pasa a
-  ser la base si va en `main`: lección de `E8B`.
+- Commit base: `82f9804`, el `merge-base` real de `claude/e9a-fixture` con `main`. **Esta línea se
+  commitea en la rama, no en `main`**: un commit que declara la base y va a `main` pasa a ser la
+  base y vuelve falso el campo que acaba de escribir. Es la lección de `E8B`.
 - Modelo y esfuerzo acordados: **Opus 5 · `high`**. Con una advertencia honesta sobre dónde está el
   riesgo: no en la capacidad del modelo sino en la **búsqueda aritmética**. Cada arquetipo tiene que
   caer en una celda exacta de la matriz, y eso se consigue tanteando montos, instantes y referencias
