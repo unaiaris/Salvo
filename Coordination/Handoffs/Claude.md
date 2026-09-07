@@ -3727,3 +3727,186 @@ lo editó en `a09c1e7`; esta tarea no lo tocó.
 - Posibles conflictos: `frontend/package-lock.json`, si otra tarea toca dependencias. Ninguna otra
   está asignada.
 - Verificación posterior al merge: `./scripts/check.sh` y `./scripts/smoke-ui.sh`.
+
+## `E9C2-ACCESIBILIDAD` (fase 2) — Los cinco que el coordinador aprobó
+
+### Identificación
+
+- Estado de la rama: `Lista para integrar`
+- Etapa: 9
+- Rama/worktree: `claude/e9c2-accesibilidad`
+- Commit base: `a994855`
+- Commit final: `71b62cf`, el último de código. El commit de esta entrada lo sigue.
+- Fecha: 2026-09-07
+
+### Lo primero, porque condiciona todo lo que la etapa puede decir
+
+**El recorrido con lector de pantalla fue parcial.** Se recorrieron con VoiceOver la portada (`/`)
+entera y el encabezado de la cola de alertas (`/alerts`), sin hallazgos; la tabla, el detalle de
+alerta, el dashboard y la importación quedaron sin recorrer. Ningún documento de la etapa puede
+decir «alguien recorrió la consola sin ver la pantalla», porque no es cierto. Lo que se puede decir,
+y es lo que `E9D` tiene que escribir, es esto: **la pasada automática se hizo entera; el recorrido
+con lector de pantalla se hizo sobre dos pantallas y se interrumpió.**
+
+Los cinco hallazgos que entraron **no dependían del recorrido para existir**: los midieron las
+herramientas y la lectura del código en la fase 1. El único punto que el oído habría aportado —si el
+`role="alert"` del formulario alcanza a montarse antes del árbol revalidado— no cambia el arreglo,
+porque hacerlo es correcto en los dos casos.
+
+### Qué entró
+
+Los cinco de la tabla del coordinador, en su orden de severidad. Cada uno con su prueba y con su
+falsación.
+
+| # | Sev. | Qué se hizo |
+| --- | --- | --- |
+| 2 | `alta` | El veredicto registrado se anuncia y recibe el foco. Dos mecanismos, abajo |
+| 1 | `media` | Con el score quieto, el aviso de divergencia habla de las señales y no de la flecha |
+| 3 | `baja` | `<caption class="sr-only">` en la tabla del barrido, la única de la consola que no tenía |
+| 4 | `baja` | `role="status"` cuando la acción salió bien; `alert` solo para el fallo |
+| 5 | `baja` | El `id` del encabezado sale de una clave del código y no del título traducido |
+
+### Qué quedó afuera, y por qué
+
+- **6, contraste de color, `baja`. Afuera y dicho.** No lo comprueba nada: jsdom no calcula estilos,
+  así que `axe-core` devuelve `color-contrast` como *incompleta* y la regla está apagada por su
+  nombre en `src/test/axe.ts` para que un incompleto no se lea como aprobado. El recorrido tampoco lo
+  habría cubierto —quien no ve la pantalla no lo nota— y las dos pantallas que sí se recorrieron no
+  lo miran. **Queda no verificado, y dicho.**
+- **7, la cola de alertas con un solo encabezado, `baja`. Sin acción.** Es una pantalla de una sola
+  tabla y la tabla ya tiene su `<caption>`; un `h2` puesto para llenar la lista del rotor sería un
+  encabezado que no encabeza nada.
+
+### El hallazgo 2, con el detalle que merece
+
+El problema tenía dos mitades y necesitó dos respuestas, porque son dos preguntas distintas: **qué
+pasó** y **dónde quedé**.
+
+**La región viva.** `ReviewPanel` renderiza siempre un `<p role="status">`, vacío y oculto mientras
+no haya nada que decir. Que exista **antes** es la condición entera: una región viva que se inserta
+en el mismo commit que su propio texto no dispara nada en ningún lector, así que ponerle
+`role="status"` a `RecordedVerdict` habría sido exactamente la clase de comprobación que promete algo
+que no ocurre. De paso es el mismo lugar donde ahora vive el aviso de divergencia, que antes estaba
+dentro de la sección del formulario: una sola región viva por panel, que dice lo que corresponda en
+cada momento. El efecto visible es que el aviso de divergencia pasó a estar **arriba** del encabezado
+«Emitir veredicto» en vez de debajo.
+
+**El foco.** `VerdictFocus` es un vecino que no dibuja nada y que ve la transición de `false` a
+`true`. Ver la transición es todo el punto: un componente que solo existiera dentro del veredicto no
+podría distinguir «acabo de revisar» de «entré a una alerta ya revisada», y en el segundo caso mover
+el foco sería arrebatárselo a alguien que recién llega. Por eso el panel lo renderiza en los dos
+estados, el estado anterior se recuerda en un `ref`, y la primera carga nunca dispara.
+
+**Es un vecino y no un envoltorio porque la guarda de la frontera tenía razón.** La primera versión
+envolvía el panel y recibía el bloque como `children`; `boundary.test.ts` la rechazó en el acto —
+«ReviewRegion recibe la prop no primitiva «children»»—. La frontera de esta consola admite
+primitivas y nada más, y debilitar esa guarda durante una pasada de accesibilidad habría sido cambiar
+una comprobación real por una comodidad. El componente recibe ahora dos primitivas, `recorded` y
+`targetId`, y busca el elemento en el documento; `RecordedVerdict` puso el `id` y un `tabIndex={-1}`,
+sin el cual `focus()` sobre una sección no hace nada.
+
+**Lo que sigue sin estar medido**, y conviene que `E9D` no lo confunda con medido: si el anuncio
+llega **a tiempo** y si el orden en que se oyen las dos cosas es el cómodo. Eso se contesta con el
+oído. Lo que estas pruebas fijan es que la región existe en los dos estados y que el foco aterriza en
+el bloque correcto, que es condición necesaria y no suficiente.
+
+### Las falsaciones, una por corrección
+
+Cada arreglo se deshizo, se corrió su prueba, y la prueba falló. Restaurados los cinco, todo vuelve a
+verde.
+
+| # | Qué se deshizo | Qué dijo la prueba |
+| --- | --- | --- |
+| 1 | Una sola redacción para el aviso | 4 fallas: `expected 'La evaluación del pedido cambió (100 …' not to match /100 → 100/` |
+| 2, foco | Quitar el `focus()` del efecto | `expected <body><div>…</div></body> to be <section …>…</section>` |
+| 2, región | La región viva solo cuando hay aviso | 2 fallas: `Unable to find an accessible element with the role "status"` |
+| 3 | Quitar la `<caption>` del barrido | `Unable to find an accessible element with the role "table" and name /Precisión, recall, F1…/` |
+| 4 | Volver a `role="alert"` siempre | 2 fallas, una por componente: `Unable to find an accessible element with the role "status"` |
+| 5 | Derivar el `id` del título otra vez | 3 fallas: `panel-open-alerts: expected null not to be null` y `section-seed: …` |
+
+La del hallazgo 5 merece una nota: **falla ya en castellano**, porque el `id` derivado del título
+castellano es `panel-alertas-abiertas`. La prueba recorre igual los dos idiomas, porque una sola
+pasada no distingue un `id` estable de uno que coincide por casualidad.
+
+### Los literales nuevos
+
+Tres claves, las tres en `es.ts` **y** en `pt.ts`, en un commit propio y anterior al código que las
+usa. Una clave que falte en uno es error de compilación, como estableció `E9C1`:
+
+- `alertDetail.divergenceAdvisorySignals(score)` — el aviso cuando el score no se movió.
+- `alertDetail.verdictAnnounced` — lo que dice la región viva al registrarse el veredicto.
+- `dashboard.qualitySweepCaption` — el nombre de la tabla del barrido.
+
+La prueba de divergencia comprueba la redacción en los **dos** idiomas; las de identificadores
+renderizan el dashboard y la importación en `es` y en `pt`.
+
+### Archivos modificados
+
+Ninguno fuera de los paths autorizados. No se tocó backend, contrato, migraciones, `frontend/openapi/**`,
+`docs/**` ni `README.md`.
+
+- `frontend/src/lib/i18n/es.ts` y `pt.ts`: las tres claves.
+- `frontend/src/app/alerts/[id]/divergence.ts` y `divergence.test.ts`: hallazgo 1.
+- `frontend/src/app/alerts/[id]/review-panel.tsx`: la región viva estable y el destino del foco.
+- `frontend/src/app/alerts/[id]/verdict-focus.tsx` y `verdict-focus.test.tsx`: **nuevos**.
+- `frontend/src/app/alerts/[id]/page.test.tsx`: tres pruebas del panel.
+- `frontend/src/app/alerts/[id]/review-form.tsx` y `review-form.test.tsx`: hallazgo 4.
+- `frontend/src/app/import/action-outcome.tsx` y `action-outcome.test.tsx`: **la prueba es nueva**;
+  el componente no tenía ninguna propia.
+- `frontend/src/app/dashboard/quality-section.tsx`: hallazgo 3.
+- `frontend/src/app/dashboard/panels.tsx`, `dashboard/page.tsx`, `import/action-section.tsx` e
+  `import/page.tsx`: hallazgo 5, con sus dos archivos de prueba.
+- `Coordination/Handoffs/Claude.md`: esta entrada.
+
+Cinco commits, uno por parte: las claves primero, después un hallazgo por commit salvo el 3 y el 5,
+que van juntos porque comparten los dos archivos de prueba y no se pueden partir sin partir un
+archivo.
+
+### Verificación
+
+| Comando | Resultado |
+| --- | --- |
+| `npx tsc --noEmit` | Limpio |
+| `npx eslint .` | Limpio, con las treinta y una reglas de accesibilidad en `error` |
+| `npx vitest run` | 20 archivos, **273 pruebas**; eran 254 |
+| `./scripts/check.sh` | **Verde.** 117 tests de dominio, 172 de integración, 273 de frontend, build Release y build Next.js |
+| `./scripts/smoke-ui.sh` | **Verde: 71 comprobaciones, 0 fallas**, con la pasada `pt` y el `SALVO_LANGUAGE=fr` que no arranca |
+| Falsación de las cinco correcciones | Las cinco ponen su prueba en rojo; ver la tabla de arriba |
+| `git status --porcelain` | Limpio |
+
+### Decisiones y supuestos
+
+- **La guarda de la frontera no se tocó.** Cuando `boundary.test.ts` rechazó la primera versión del
+  arreglo del foco, se cambió el arreglo y no la guarda. Un componente cliente que recibe `children`
+  recibe un objeto, y la regla dice primitivas.
+- **El hallazgo 6 no se arregló ni se disimuló.** Habría sido fácil agregar una comprobación de
+  contraste que no comprueba contraste; queda apagada por su nombre y declarada.
+- **Los `id` son claves del código, no del diccionario.** `panel-open-alerts` y `section-seed` no se
+  traducen ni se muestran; el diccionario sigue siendo solo para lo que alguien lee.
+- **El aviso de divergencia cambió de lugar en la pantalla.** Es consecuencia directa de que la
+  región viva tiene que ser una sola y tiene que preexistir. Se declara porque es lo único visible
+  que esta fase mueve, y `E9D` regenera las capturas.
+
+### Riesgos o pendientes
+
+- **Lo que el recorrido no cubrió sigue sin cubrir**, y son cuatro pantallas: la tabla de alertas, el
+  detalle, el dashboard y la importación. La afirmación de la etapa tiene que decir eso y nada más.
+- **Cero violaciones no es «la consola es accesible».** Es «ninguna regla que una máquina puede
+  decidir está rota». Sigue sin haber nada sobre orden de foco fuera del caso del veredicto, sobre si
+  un anuncio llega a tiempo, ni sobre contraste.
+- **`E9D` regenera las capturas.** El aviso de divergencia arriba del encabezado es un cambio visible.
+
+### Integración
+
+- Orden sugerido: esta rama sola. `E9D` va después de ella integrada.
+- Migraciones o pasos manuales: **ninguna**. No hay migración, ni contrato, ni recaptura de OpenAPI,
+  ni dependencias nuevas: las dos de la fase 1 ya están declaradas y no entró una tercera.
+- **Integrar por merge y no por rebase**: rebasar movería el `merge-base` y volvería falso el commit
+  base declarado arriba.
+- Posibles conflictos: `frontend/package-lock.json` si otra tarea tocara dependencias; ninguna otra
+  está asignada.
+- Verificación posterior al merge: `./scripts/check.sh` y `./scripts/smoke-ui.sh` sobre el estado
+  integrado. Para verlo a mano, `./scripts/demo.sh` y los pasos de preparación que dejó la fase 1:
+  emitir un veredicto sobre una alerta y comprobar que el bloque verde recibe el foco.
+
+Estado: **Lista para integrar**.
