@@ -254,6 +254,20 @@ Lo que salga es código de producto. Por eso la tarea **lista los hallazgos con 
 corregir**, y el coordinador decide cuáles entran. La etapa no promete cumplir un nivel de WCAG:
 promete que alguien recorrió la consola sin ver la pantalla y anotó qué no funcionó.
 
+**Dependencias aprobadas por nombre y motivo, como exige la decisión 61.** Agregado el 2026-09-07,
+después de que el `brief-check` de `E9C2` señalara que el diseño no nombraba ninguna. Las dos ya
+están en el árbol como transitivas de desarrollo y se declaran con **la versión exacta que ya está
+instalada**, así que no entra código de terceros que no estuviera corriendo:
+
+| Paquete | Versión | Motivo |
+| --- | --- | --- |
+| `eslint-plugin-jsx-a11y` | `6.10.2` | `eslint-config-next` ya lo arrastra y activa seis reglas en `warn`, que con `--max-warnings=0` ya rompen la compuerta. Pero queda **anidado** bajo `eslint-config-next/node_modules/`, así que activar más reglas por nombre exige declararlo |
+| `axe-core` | `4.13.0` | Comprueba el **árbol renderizado**, que es lo que un linter no puede ver: un linter mira el código fuente y no cómo quedan los elementos juntos |
+
+**No se aprueba ningún enlace de terceros entre `axe-core` y Vitest.** Llamar a `axe.run` sobre el
+contenedor renderizado y afirmar cero violaciones son unas diez líneas propias, y un test que
+muestra qué afirma vale más que uno que lo esconde detrás de un matcher importado.
+
 ## D8 — Un panel en el dashboard, decidido con el usuario
 
 Un falso negativo no abre alerta, y un pedido sin alerta no tiene ninguna pantalla: la opinión del

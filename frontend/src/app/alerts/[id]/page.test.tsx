@@ -142,6 +142,61 @@ describe("detalle de la alerta", () => {
   });
 
   /**
+   * La otra mitad del hallazgo del foco, y la que sí se puede afirmar sobre el árbol.
+   *
+   * Una región viva solo se anuncia si ya existía cuando su contenido cambió; una que se inserta
+   * junto con su propio texto no dispara nada en ningún lector. Por eso lo que se comprueba no es
+   * que el veredicto tenga una región, sino que **el panel tenga la misma región en los dos
+   * estados**: vacía y oculta mientras la alerta está abierta, con la frase cuando ya se revisó.
+   */
+  it("el panel trae su región viva también cuando no tiene nada que decir", async () => {
+    await renderDetail();
+
+    const live = screen.getByRole("status");
+    expect(live).toHaveTextContent("");
+    expect(live).toHaveClass("sr-only");
+  });
+
+  it("la alerta revisada anuncia el cambio en esa misma región", async () => {
+    await renderDetail({
+      status: "REPORTED_FRAUD",
+      reviewedAt: "2026-09-02T22:00:00+00:00",
+      review: {
+        id: "5f5b7f3e-0000-4000-8000-000000000005",
+        previousStatus: "OPEN",
+        newStatus: "REPORTED_FRAUD",
+        note: null,
+        explanationId: null,
+        reviewedAt: "2026-09-02T22:00:00+00:00",
+      },
+    });
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      /La alerta quedó revisada y el formulario de veredicto ya no está/i,
+    );
+  });
+
+  /** El foco necesita un destino: sin `id` y sin `tabIndex`, `focus()` sobre la sección no hace nada. */
+  it("el bloque del veredicto es enfocable por código", async () => {
+    const { container } = await renderDetail({
+      status: "CONFIRMED_SAFE",
+      reviewedAt: "2026-09-02T22:00:00+00:00",
+      review: {
+        id: "5f5b7f3e-0000-4000-8000-000000000005",
+        previousStatus: "OPEN",
+        newStatus: "CONFIRMED_SAFE",
+        note: null,
+        explanationId: null,
+        reviewedAt: "2026-09-02T22:00:00+00:00",
+      },
+    });
+
+    const verdict = container.querySelector("#recorded-verdict");
+    expect(verdict).not.toBeNull();
+    expect(verdict).toHaveAttribute("tabindex", "-1");
+  });
+
+  /**
    * The seam itself: `ReviewPanel` is where the `AlertDetail` stops, so it is the only place that
    * can read the explanation's id and hand the form a string. A page that shows a written
    * explanation and a form that records no id would be exactly the ambiguity D10 exists to remove.

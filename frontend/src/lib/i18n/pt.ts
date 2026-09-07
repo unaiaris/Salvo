@@ -239,6 +239,9 @@ export const pt: Dictionary = {
     divergenceAdvisory: (from: string, to: string) =>
       `A avaliação do pedido mudou (${from} → ${to}) sem mudar de faixa. Os sinais vigentes estão no `
       + "bloco «Avaliação vigente».",
+    divergenceAdvisorySignals: (score: string) =>
+      `Os sinais do pedido mudaram, embora o score continue em ${score} e a faixa também não tenha `
+      + "mudado. Os sinais vigentes estão no bloco «Avaliação vigente».",
     divergenceOpenedAt: (severity: string, score: string) => `${severity} com score ${score}`,
     divergenceNoCurrent: (from: string) =>
       `O alerta foi aberto em ${from}, mas o pedido já não tem avaliação vigente, então não há nada `
@@ -346,6 +349,7 @@ export const pt: Dictionary = {
     reviewBlocked: "Marque a caixa acima para poder enviar o veredito.",
     reviewSubmit: "Registrar veredito",
     reviewSubmitPending: "Registrando…",
+    verdictAnnounced: "O alerta ficou revisado e o formulário de veredito já não está.",
     verdictTitle: (status: string) => `Veredito registrado: ${status}`,
     verdictNoAudit: "O alerta está fechado, mas não há uma entrada de auditoria associada.",
     verdictTransition: (from: string, to: string, instant: string) =>
@@ -481,6 +485,8 @@ export const pt: Dictionary = {
     qualitySweepHint: (threshold: string) =>
       `Apenas os limiares onde a matriz de confusão muda. O limiar ${threshold} é o que foi `
       + "escolhido e o que foi aplicado ao holdout.",
+    qualitySweepCaption:
+      "Precisão, recall, F1 e taxa de falsos positivos em cada limiar da coorte de calibração",
     qualitySweepThreshold: "Limiar",
     qualitySweepChosen: " · escolhido",
   },

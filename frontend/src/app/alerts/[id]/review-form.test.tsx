@@ -147,6 +147,41 @@ describe("formulario de revisión", () => {
     expect(alert).toHaveTextContent(/Detalle técnico de la API: Alert was already reviewed\./);
   });
 
+  /**
+   * El mismo criterio que en `/import`: `alert` es asertivo e interrumpe lo que el lector esté
+   * diciendo. Un conflicto hay que oírlo antes de seguir; un veredicto que entró, no.
+   */
+  it("un veredicto aplicado se anuncia sin interrumpir", async () => {
+    reviewAlert.mockResolvedValue({
+      ...INITIAL_REVIEW_STATE,
+      outcome: "applied",
+      title: "Veredicto registrado",
+      body: "La alerta quedó cerrada.",
+      submittedStatus: "CONFIRMED_SAFE",
+      submissionId: 1,
+    });
+
+    render(<ReviewForm alertId="a1" explanationId="" requiresAcknowledgement={false} divergenceSummary="" language="es" />);
+
+    choose(/Confirmar segura/i);
+    submit();
+
+    expect(await screen.findByRole("status")).toHaveTextContent(/Veredicto registrado/);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("un conflicto sí interrumpe", async () => {
+    reviewAlert.mockResolvedValue(conflict({ submittedStatus: "CONFIRMED_SAFE" }));
+
+    render(<ReviewForm alertId="a1" explanationId="" requiresAcknowledgement={false} divergenceSummary="" language="es" />);
+
+    choose(/Confirmar segura/i);
+    submit();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/Otra persona ya revisó esta alerta/);
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
   it("limita la nota a 2000 caracteres en el propio campo", () => {
     render(<ReviewForm alertId="a1" explanationId="" requiresAcknowledgement={false} divergenceSummary="" language="es" />);
 

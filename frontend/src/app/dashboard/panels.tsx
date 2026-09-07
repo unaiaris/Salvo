@@ -11,16 +11,29 @@ import {
 } from "@/lib/api/contract";
 import { formatting } from "@/lib/format";
 
+/**
+ * El `id` del encabezado sale de una clave estable y no del título.
+ *
+ * Se derivaba del texto traducido, quitando todo lo que no fuera `[a-záéíóúñ]`. Eso ata un
+ * identificador del documento al idioma del despliegue: en portugués `ção` queda `-o`, así que dos
+ * títulos que difieran solo en esos caracteres colapsan en el mismo `id` y entonces un
+ * `aria-labelledby` rotula una sección con el título de otra. Hoy no hay colisión —se verificaron
+ * los siete paneles y las cuatro secciones en los dos idiomas—, pero es una propiedad que depende de
+ * las cadenas y no del código, así que se pierde el día que alguien escribe un título nuevo.
+ */
 export function Panel({
+  id,
   title,
   hint,
   children,
 }: {
+  /** Clave del panel, en el código y no en el diccionario. No se traduce ni se muestra. */
+  readonly id: string;
   readonly title: string;
   readonly hint?: string;
   readonly children: ReactNode;
 }) {
-  const headingId = `panel-${title.toLowerCase().replaceAll(/[^a-záéíóúñ]+/g, "-")}`;
+  const headingId = `panel-${id}`;
 
   return (
     <section

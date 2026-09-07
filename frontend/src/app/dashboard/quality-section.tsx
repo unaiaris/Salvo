@@ -139,11 +139,24 @@ function Figure({
   readonly value: string;
   readonly hint?: string;
 }) {
+  /*
+    La aclaración va **dentro** del `<dd>`, no al lado.
+
+    Estaba como hermana, y una `<dl>` solo admite grupos `<dt>`/`<dd>` —envueltos en `<div>` o no—:
+    un `<p>` suelto rompe la lista, y entonces esa frase deja de pertenecer a ningún término. Quien
+    lee la lista de definiciones con un lector de pantalla escuchaba «Sin etiqueta, 44» y después
+    una frase huérfana, sin nada que dijera de cuál de las cuatro cifras hablaba.
+
+    El número queda en un `<span>` para que el `<p>` no herede su tamaño ni su peso: la aclaración
+    se sigue viendo igual que antes, en gris y pequeña.
+  */
   return (
     <div>
       <dt className="text-xs uppercase tracking-wide text-slate-600">{term}</dt>
-      <dd className="mt-1 text-lg font-semibold tabular-nums text-slate-950">{value}</dd>
-      {hint !== undefined && <p className="mt-1 text-xs leading-5 text-slate-600">{hint}</p>}
+      <dd className="mt-1">
+        <span className="text-lg font-semibold tabular-nums text-slate-950">{value}</span>
+        {hint !== undefined && <p className="mt-1 text-xs leading-5 text-slate-600">{hint}</p>}
+      </dd>
     </div>
   );
 }
@@ -251,6 +264,12 @@ function ThresholdSweep({
       </p>
       <div className="mt-3 overflow-x-auto">
         <table className="w-full min-w-[30rem] border-collapse text-sm">
+          {/*
+            La `<summary>` de arriba dice de qué es esta tabla, pero al entrar en la tabla el lector
+            deja atrás ese texto y anuncia «tabla, 5 columnas» y nada más. La `<caption>` es lo único
+            que viaja con la tabla, y va oculta porque en pantalla la `<summary>` ya lo dice.
+          */}
+          <caption className="sr-only">{t.dashboard.qualitySweepCaption}</caption>
           <thead>
             <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-600">
               <th scope="col" className="py-2 pr-4 font-semibold">

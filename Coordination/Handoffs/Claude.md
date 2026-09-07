@@ -3455,3 +3455,458 @@ deshizo.
   `SALVO_LANGUAGE=pt` para el portugués: es el mismo `next start`.
 
 Estado: **Lista para integrar**.
+
+## `E9C2-ACCESIBILIDAD` (fase 1) — Lo que una máquina puede decidir, y la lista de lo que no
+
+### Identificación
+
+- Estado de la rama: `Parcial — en espera del recorrido con lector de pantalla`
+- Etapa: 9
+- Rama/worktree: `claude/e9c2-accesibilidad`
+- Commit base: `a994855`
+- Commit final: `e9645af`, el último de código. El commit de esta entrada lo sigue.
+- Fecha: 2026-09-07
+
+### Resultado
+
+La consola pasa de **seis** reglas de accesibilidad a **treinta y una**, y gana una comprobación de
+`axe-core` sobre el árbol renderizado que corre dentro de `npm run check` y por lo tanto en la
+compuerta. Entre las dos encontraron **un defecto real**, que está corregido. Todo lo demás que
+apareció está en la lista de hallazgos de más abajo, **sin corregir**, porque es lo que el
+coordinador decide después del recorrido.
+
+La base del recorrido queda preparada y sus pasos escritos, incluida una alerta con **divergencia
+dentro de la misma banda**, que era lo que el brief prefería y no estaba garantizado que se pudiera
+producir.
+
+### Las seis reglas que ya estaban activas
+
+Medidas con `npx eslint --print-config`, que es la configuración efectiva y no lo que un paquete
+declara. `eslint-config-next` registra `eslint-plugin-jsx-a11y` y activa estas seis, todas en `warn`;
+como `lint` corre con `--max-warnings=0`, **ya rompían la compuerta**:
+
+| Regla | Nivel |
+| --- | --- |
+| `jsx-a11y/alt-text` | `warn`, con opciones para `next/image` |
+| `jsx-a11y/aria-props` | `warn` |
+| `jsx-a11y/aria-proptypes` | `warn` |
+| `jsx-a11y/aria-unsupported-elements` | `warn` |
+| `jsx-a11y/role-has-required-aria-props` | `warn` |
+| `jsx-a11y/role-supports-aria-props` | `warn` |
+
+Las seis comprueban que un atributo `aria-*` esté **bien escrito**. Ninguna mira si un control se
+puede operar, si un `label` está asociado a su campo, o si un `<a>` tiene contenido. El conjunto
+recomendado del plugin son treinta y una: faltaban veinticinco, entre ellas
+`label-has-associated-control`, `anchor-is-valid`, `interactive-supports-focus`,
+`no-noninteractive-element-interactions` y `scope`.
+
+### Qué aporta cada dependencia que la otra no
+
+Las dos ya estaban en el árbol como transitivas de `eslint-config-next`, y se declaran en **la
+versión exacta que ya estaba instalada**: no entra código de terceros que no estuviera corriendo.
+`npm ls` lo confirma: una sola copia de cada una y `eslint-config-next` deduplicando contra la del
+proyecto.
+
+| Paquete | Versión | Qué aporta | Por qué había que declararlo |
+| --- | --- | --- | --- |
+| `eslint-plugin-jsx-a11y` | `6.10.2` | Mira el **código fuente**: la forma del JSX antes de renderizarse | Quedaba anidado bajo `eslint-config-next/node_modules/`, donde `eslint.config.mjs` no lo alcanza con un `import` |
+| `axe-core` | `4.13.0` | Mira el **árbol renderizado**: los elementos ya compuestos, con el texto del diccionario adentro | Estaba en la raíz, pero depender de un transitivo no declarado se rompe en una instalación limpia el día que `eslint-config-next` cambie de rango |
+
+**No entró una tercera.** El enlace entre `axe-core` y Vitest se escribe a mano en
+`src/test/axe.ts`, y son cincuenta líneas contando los comentarios. La interacción de las pruebas va
+por `fireEvent`, como ya hacía `review-form.test.tsx`, y no por `user-event`.
+
+**La división del trabajo entre las dos no es simétrica en este proyecto, y conviene saberlo.** Todo
+el texto vive en `src/lib/i18n/es.ts` y `pt.ts` y llega al JSX como expresión, así que cualquier
+regla del linter que comprueba **contenido** ve que hay una expresión y la da por buena sin poder
+leerla. Por eso `axe-core` pesa más acá que en un proyecto donde los literales están en el JSX, y
+por eso `anchor-ambiguous-text` queda apagada: su lista de palabras es inglesa y no hay un literal
+contra el que pudiera dispararse. Una regla que no puede fallar nunca promete una verificación que
+no existe.
+
+### El defecto que encontraron, y que sí está corregido
+
+**`definition-list`, impacto `serious`, en la sección de calidad del dashboard.** La aclaración de
+«Sin etiqueta» era un `<p>` **hermano** del `<dd>`, dentro de una `<dl>`. Una lista de definiciones
+solo admite grupos `<dt>`/`<dd>`, así que esa frase no pertenecía a ningún término: quien recorría
+la lista escuchaba «Sin etiqueta, 44» y después una frase suelta, sin nada que dijera de cuál de las
+cuatro cifras hablaba. Pasa adentro del `<dd>`, que es lo que describe, con el número en un `<span>`
+para que el `<p>` no herede su tamaño ni su peso. Se ve exactamente igual que antes.
+
+El otro aviso del linter **no era un defecto del marcado** y por eso no se cambió el marcado.
+`label-has-associated-control` recorre dos niveles buscando el texto del `label`, y en el formulario
+de veredicto está a tres: el `label` envuelve el radio y un `<span>` que agrupa el nombre de la
+opción y su aclaración en dos renglones. Ese marcado es el que se quiere, porque hace que el nombre
+accesible del radio sea «Confirmar segura El pedido no es fraude» —que es justo lo que hay que oír
+antes de emitir un veredicto, y lo que el paso 13 del recorrido va a comprobar—. Lo que se corrigió
+es la profundidad que la regla mira, a `3` y no más, y está falsado: sigue fallando sobre un `label`
+sin texto y sobre uno cuyo texto está a profundidad 4.
+
+### La lista de hallazgos
+
+Ninguno está corregido. Severidad: `alta` impide completar una tarea, `media` la vuelve confusa,
+`baja` es incomodidad.
+
+| # | Pantalla | Qué pasa | Severidad | Arreglo propuesto |
+| --- | --- | --- | --- | --- |
+| 1 | Detalle de alerta | El aviso de divergencia dice «La evaluación del pedido cambió (70 → 70)» cuando lo que cambió fueron las reglas y no el score. De oído es una contradicción: anuncia un cambio y repite el mismo número | `media` | Cuando los dos scores son iguales, redactar la frase sobre las señales en vez de sobre la flecha. Dos claves nuevas en los dos diccionarios |
+| 2 | Detalle de alerta | Al emitir un veredicto con éxito, el árbol pasa de `ReviewForm` a `RecordedVerdict`. **`RecordedVerdict` no tiene ninguna región viva**: ni `role="status"` ni `aria-live`. Y el botón que tenía el foco desaparece con el formulario | `alta`, **si el recorrido lo confirma** | Reservado a la fase 2. Es el paso 15 del guión y el propio guión lo llama «el más probable y el más importante» |
+| 3 | Dashboard | La tabla del barrido de umbrales, dentro del `<details>`, es la **única** tabla de la consola sin `<caption>`. Al entrar en ella se anuncia «tabla, 5 columnas» y nada más | `baja` | Una `<caption class="sr-only">` como la de la cola y la del panel de denegados, en los dos diccionarios |
+| 4 | Importación y detalle | `ActionOutcome` y `ReviewOutcome` usan `role="alert"` también cuando la acción **salió bien**. `alert` es asertivo e interrumpe lo que el lector esté diciendo; para un éxito lo convencional es `role="status"` | `baja` | Elegir el rol según `state.outcome`. Un cambio de una línea en cada uno |
+| 5 | Dashboard e importación | `Panel` y `ActionSection` derivan el `id` del encabezado **del título traducido**, con `[^a-záéíóúñ]+`. En portugués `ção` queda `-o`. Hoy no hay colisión —verificado sobre los 7 paneles y las 4 secciones en los dos idiomas—, pero dos títulos que difieran solo en esos caracteres producirían el mismo `id`, y entonces un `aria-labelledby` nombraría a una sección con el título de otra | `baja` | Derivar el `id` de una clave estable y no del texto traducido |
+| 6 | Todas | **El contraste de color no lo comprueba nada.** jsdom no calcula estilos, así que `axe-core` devuelve `color-contrast` como «incompleto»; está apagada por su nombre en `src/test/axe.ts` para que el incompleto no se lea como aprobado | `baja` | Queda para el ojo en el recorrido, o para un navegador de verdad si el coordinador lo quiere en la compuerta |
+| 7 | Cola de alertas | Es la única pantalla con un solo encabezado: un `h1` y ningún `h2`. La lista de encabezados del rotor tiene una sola entrada | `baja`, probablemente sin acción | Es una pantalla de una sola tabla, y la tabla ya tiene su `<caption>`. Se anota para que el paso 5 del recorrido no lo reporte como sorpresa |
+
+Sobre el número 2 conviene ser exacto en lo que esta tarea midió y lo que no. **Medido**:
+`RecordedVerdict` no tiene región viva, y el botón de envío vive dentro del formulario que se
+desmonta. **No medido**: si el `role="alert"` del resultado del propio formulario llega a montarse
+antes de que React aplique el árbol revalidado, porque en React 19 el resultado de la acción y la
+carga revalidada pueden llegar en la misma respuesta y confirmarse en el mismo commit. Eso se
+contesta con el oído, no leyendo el código, y es exactamente para lo que existe el recorrido.
+
+### Los pasos para dejar la base en el estado que el recorrido necesita
+
+`./scripts/demo.sh` estrena una base cada vez, así que este estado **hay que rehacerlo**. Son cuatro
+llamadas y tardan segundos. Con la demo ya en pie y su puerto de API en `5100`:
+
+```bash
+# 1. La alerta con divergencia dentro de la misma banda.
+#    Tres pedidos del mismo comprador en los diez minutos previos a ORD_000219.
+cat > /tmp/divergencia.csv <<'CSV'
+merchantId,merchantReferenceId,buyerReferenceId,occurredAt,amountCents,currencyCode,countryCode,city,channel,deviceSessionId
+MER_BR_STORE,ORD_900201,BUY_000101,2026-07-27T13:32:00.000Z,8000,BRL,BR,Belo Horizonte,WEB,DEV_000101
+MER_BR_STORE,ORD_900202,BUY_000101,2026-07-27T13:35:00.000Z,10000,BRL,BR,Belo Horizonte,WEB,DEV_000101
+MER_BR_STORE,ORD_900203,BUY_000101,2026-07-27T13:38:00.000Z,12000,BRL,BR,Belo Horizonte,WEB,DEV_000101
+CSV
+curl -sS -X POST -F "file=@/tmp/divergencia.csv" -F "format=CSV" http://127.0.0.1:5100/api/order-imports
+curl -sS -X POST http://127.0.0.1:5100/api/risk-evaluations:run
+
+# 2. La explicación ya escrita, sobre la alerta de ORD_000011.
+ID=$(curl -sS "http://127.0.0.1:5100/api/alerts?pageSize=50" \
+  | node -e 'let r="";process.stdin.on("data",c=>r+=c).on("end",()=>console.log(JSON.parse(r).items.find(i=>i.merchantReferenceId==="ORD_000011").id))')
+curl -sS -X POST "http://127.0.0.1:5100/api/alerts/$ID/explanation"
+
+# 3. El panel de denegados por el proveedor, que sin esto está vacío
+#    y deja el paso 17 sin ninguna tabla que recorrer.
+curl -sS -X POST http://127.0.0.1:5100/api/demo-data/external-evaluations:request
+curl -sS -X POST http://127.0.0.1:5100/api/demo-data/external-callbacks:deliver
+```
+
+Lo que queda montado, verificado contra la API:
+
+| Qué | Dónde | Estado |
+| --- | --- | --- |
+| Alertas abiertas | `/alerts` | 23: 11 `MEDIA`, 6 `ALTA`, 6 `CRÍTICA`. Las tres bandas |
+| Divergencia **sin cambio de banda** | alerta de `ORD_000219` | snapshot `70 amount_anomaly+new_buyer_high_value`, vigente `70 amount_anomaly+velocity`. `hasBandDivergence: false` |
+| Explicación escrita | alerta de `ORD_000011` | `READY`, plantilla `e7-v2` |
+| Denegados sin alerta local | `/dashboard` | 51 pedidos |
+
+**Por qué esa divergencia y no otra.** El aviso solo aparece si cambia el score o cambia el conjunto
+de reglas; cambiar solo una cifra dentro de una señal no alcanza. Y como las bandas son estrechas
+frente a los pesos —`MEDIA` 60-69, `ALTA` 70-89, `CRÍTICA` 90-100, con pesos de 10, 20, 30 y 40—,
+casi cualquier cambio de una sola regla cruza una banda. El único peso de 10 es `unusual_hour`, y
+ninguna alerta de banda `ALTA` lo lleva, así que el ±10 no estaba disponible.
+
+El camino que sí funciona es **intercambiar dos reglas del mismo peso**. Tres pedidos previos del
+mismo comprador apagan `new_buyer_high_value` —que exige que el comprador no tenga historia— y
+encienden `velocity` —que exige tres pedidos previos en diez minutos—: −30 y +30, el score queda en
+70 y la banda no se mueve. `amount_anomaly` sigue disparando porque pasa a alcance de comprador y
+67.328 sobre una mediana de 10.000 son 6,7 veces, muy por encima del multiplicador de 3.
+
+**La perturbación es mínima y está medida**: la corrida creó 7 evaluaciones, reusó 296, y abrió
+**cero** alertas nuevas. Ninguna otra alerta cambió su score vigente. Los tres pedidos son montos
+bajos en el país habitual del comercio, así que ninguno dispara nada por su cuenta.
+
+Los identificadores empiezan en `ORD_900201` para no chocar con el corpus, que llega a `ORD_000300`,
+ni con las muestras de `docs/muestras/`, que usan `ORD_9001xx` y `ORD_95xxxx`. El archivo **no se
+versiona**: `docs/**` está reservado a `E9D`, y de todas formas es un payload de un solo uso.
+
+**Los dos avisos que no se pueden producir sobre una base nueva** siguen sin poderse: «explicación
+desactualizada» y «escrita por otra plantilla» exigen dos versiones de plantilla vivas. El guión ya
+los declara no verificados en su paso 12.
+
+### La falsación de la compuerta, con su error exacto
+
+Le saqué el nombre accesible al botón de cargar el corpus —`{pending ? seedButtonPending : ""}` en
+`corpus-actions.tsx`— y corrí `./scripts/check.sh` entera. Se puso roja:
+
+```
+FAIL  src/test/accessibility.test.tsx > las cinco pantallas, con su marco > la importación
+AssertionError: expected '[critical] button-name\n   Buttons mu…' to be '' // Object.is equality
++ [critical] button-name
++    https://dequeuniversity.com/rules/axe/4.13/button-name?application=axeAPI
+
+Tests  3 failed | 251 passed (254)
+```
+
+Las otras dos que fallaron son de `import/page.test.tsx` y ya existían. La que importa es la
+primera: **la comprobación nueva es la que caza el botón sin nombre**, y lo hace con impacto
+`critical`. Restaurado, la compuerta vuelve a verde.
+
+Hay dos falsaciones más, de las dos decisiones que podrían haber quedado como adorno:
+
+- **La profundidad de `label-has-associated-control`.** Con `depth: 3`, un archivo con un `label`
+  vacío y otro con el texto a profundidad 4 producen los dos `A form label must have accessible
+  text`. La opción sube lo justo y no desactiva la regla.
+- **Componer cada pantalla con su cabecera y su `<main>` no es decoración.** Metí un segundo
+  `<main>` en el helper y fallaron **siete de las nueve** pruebas, con `landmark-no-duplicate-main`
+  y `landmark-unique`. Sobre un fragmento suelto esas reglas están *inaplicables*, junto con
+  `region`, `landmark-one-main`, `page-has-heading-one` y `bypass`; son justo las que contestan si
+  alguien puede saltar por regiones y encabezados en vez de recorrer la página con la flecha.
+
+### Archivos modificados
+
+- `frontend/package.json` y `frontend/package-lock.json`: las dos dependencias, declaradas en
+  versión exacta. El lockfile las mueve de anidadas a la raíz y deduplica; no cambia ninguna versión.
+- `frontend/eslint.config.mjs`: el conjunto recomendado del plugin, y la profundidad de una regla.
+- `frontend/src/test/axe.ts`: **nuevo**. El helper, escrito a mano.
+- `frontend/src/test/accessibility.test.tsx`: **nuevo**. Nueve pruebas: las cinco pantallas con su
+  marco, la cola vacía, el detalle en portugués, y los dos estados que solo existen después de
+  apretar un botón.
+- `frontend/src/app/dashboard/quality-section.tsx`: el único defecto corregido.
+- `Coordination/Handoffs/Claude.md`: esta entrada.
+
+`Coordination/Tasks/E9C2-ACCESIBILIDAD.md` aparece en el diff contra `52cbdea` porque el coordinador
+lo editó en `a09c1e7`; esta tarea no lo tocó.
+
+### Verificación
+
+| Comando | Resultado |
+| --- | --- |
+| `/brief-check Coordination/Tasks/E9C2-ACCESIBILIDAD.md` | Válido en la tercera vuelta, tras aprobar las dependencias en D7 |
+| `npx eslint --print-config` antes de tocar nada | 6 reglas activas, todas `warn` |
+| `npx eslint --print-config` después | 31 activas, en `error` |
+| `npm run check` | Verde. 18 archivos de prueba, 254 pruebas |
+| `./scripts/check.sh` | **Verde** |
+| `./scripts/smoke-ui.sh` | **Verde: 71 comprobaciones, 0 fallas** |
+| Falsación del botón sin nombre | La compuerta se pone roja con `[critical] button-name` |
+| Falsación de `depth: 3` | La regla sigue fallando con un `label` vacío y con texto a profundidad 4 |
+| Falsación del marco | Un segundo `<main>` rompe 7 de 9 pruebas |
+| `git status --porcelain` | Limpio; solo paths autorizados en el diff |
+| `npm ls eslint-plugin-jsx-a11y axe-core` | Una copia de cada una, deduplicadas |
+| Estado del recorrido | Verificado contra la API: 23 alertas, divergencia sin cambio de banda, explicación `READY`, 51 denegados |
+
+### Decisiones y supuestos
+
+- **Se toma la lista de reglas del propio plugin** (`flatConfigs.recommended.rules`) en vez de copiar
+  treinta y un nombres con sus opciones: una lista a mano deja de cubrir, en silencio, la regla que
+  agregue la próxima versión. Se extienden solo las `rules` y no el objeto entero, porque
+  `eslint-config-next` ya registró el plugin y la configuración plana prohíbe registrarlo dos veces.
+- **Las seis heredadas suben de `warn` a `error`.** Con `--max-warnings=0` el resultado de la
+  compuerta es el mismo; el nivel dice lo que se quiere decir en vez de depender de una bandera del
+  script.
+- **`control-has-associated-label` se consideró y se dejó afuera.** Viene apagada en el conjunto
+  recomendado por ruidosa, y lo que comprueba lo cubre `axe-core` sobre el árbol renderizado, que
+  además puede leer el texto del diccionario. Agregarla sería superficie sin beneficio.
+- **El helper devuelve texto y no una cuenta**, para que el diff de una prueba fallada traiga la
+  regla, su impacto, el elemento y el enlace. Un `expect(3).toBe(0)` obligaría a correr axe otra vez
+  a mano.
+- **Se comprobó que `sr-only` compila como corresponde** —`clip-path`, `position:absolute`, 1×1, sin
+  `display:none`—, porque es lo que sostiene las `<caption>` ocultas y `axe-core` en jsdom no lo ve.
+- La tarea **no** tocó backend, contrato, migraciones, ni `frontend/openapi/**`.
+
+### Riesgos o pendientes
+
+- **La parada es la forma de la tarea, no una interrupción.** Los siete hallazgos están sin
+  corregir a propósito. El número 2 en particular necesita el oído antes que el teclado.
+- **Cero violaciones no es «la consola es accesible».** Es «ninguna regla que una máquina puede
+  decidir está rota». No hay nada acá sobre orden de foco, sobre si un anuncio llega a tiempo, ni
+  sobre contraste.
+- **Las pruebas corren sobre fixtures.** Se contrastó a mano el HTML servido de las cinco pantallas
+  contra lo que las pruebas afirman —un `<main>`, un `<header>`, un `<nav aria-label>`, un `h1`, las
+  `<caption>` y el `<html lang>`— y coincide. Aun así, una fixture que se aleje del contrato haría
+  que estas pruebas midan otra cosa; el guardián de eso sigue siendo `OpenApiDriftTests`.
+- **`E9D` regenera las capturas.** El único cambio visible de esta fase es dentro del `<dd>` de la
+  sección de calidad y es imperceptible, pero la fase 2 puede no serlo.
+
+### Integración
+
+- Orden sugerido: **no integrar todavía.** La rama queda en espera del recorrido; la fase 2 se
+  despacha con la lista aprobada y se integra entera.
+- Migraciones o pasos manuales: ninguna. No hay migración ni recaptura de contrato.
+- Posibles conflictos: `frontend/package-lock.json`, si otra tarea toca dependencias. Ninguna otra
+  está asignada.
+- Verificación posterior al merge: `./scripts/check.sh` y `./scripts/smoke-ui.sh`.
+
+## `E9C2-ACCESIBILIDAD` (fase 2) — Los cinco que el coordinador aprobó
+
+### Identificación
+
+- Estado de la rama: `Lista para integrar`
+- Etapa: 9
+- Rama/worktree: `claude/e9c2-accesibilidad`
+- Commit base: `a994855`
+- Commit final: `71b62cf`, el último de código. El commit de esta entrada lo sigue.
+- Fecha: 2026-09-07
+
+### Lo primero, porque condiciona todo lo que la etapa puede decir
+
+**El recorrido con lector de pantalla fue parcial.** Se recorrieron con VoiceOver la portada (`/`)
+entera y el encabezado de la cola de alertas (`/alerts`), sin hallazgos; la tabla, el detalle de
+alerta, el dashboard y la importación quedaron sin recorrer. Ningún documento de la etapa puede
+decir «alguien recorrió la consola sin ver la pantalla», porque no es cierto. Lo que se puede decir,
+y es lo que `E9D` tiene que escribir, es esto: **la pasada automática se hizo entera; el recorrido
+con lector de pantalla se hizo sobre dos pantallas y se interrumpió.**
+
+Los cinco hallazgos que entraron **no dependían del recorrido para existir**: los midieron las
+herramientas y la lectura del código en la fase 1. El único punto que el oído habría aportado —si el
+`role="alert"` del formulario alcanza a montarse antes del árbol revalidado— no cambia el arreglo,
+porque hacerlo es correcto en los dos casos.
+
+### Qué entró
+
+Los cinco de la tabla del coordinador, en su orden de severidad. Cada uno con su prueba y con su
+falsación.
+
+| # | Sev. | Qué se hizo |
+| --- | --- | --- |
+| 2 | `alta` | El veredicto registrado se anuncia y recibe el foco. Dos mecanismos, abajo |
+| 1 | `media` | Con el score quieto, el aviso de divergencia habla de las señales y no de la flecha |
+| 3 | `baja` | `<caption class="sr-only">` en la tabla del barrido, la única de la consola que no tenía |
+| 4 | `baja` | `role="status"` cuando la acción salió bien; `alert` solo para el fallo |
+| 5 | `baja` | El `id` del encabezado sale de una clave del código y no del título traducido |
+
+### Qué quedó afuera, y por qué
+
+- **6, contraste de color, `baja`. Afuera y dicho.** No lo comprueba nada: jsdom no calcula estilos,
+  así que `axe-core` devuelve `color-contrast` como *incompleta* y la regla está apagada por su
+  nombre en `src/test/axe.ts` para que un incompleto no se lea como aprobado. El recorrido tampoco lo
+  habría cubierto —quien no ve la pantalla no lo nota— y las dos pantallas que sí se recorrieron no
+  lo miran. **Queda no verificado, y dicho.**
+- **7, la cola de alertas con un solo encabezado, `baja`. Sin acción.** Es una pantalla de una sola
+  tabla y la tabla ya tiene su `<caption>`; un `h2` puesto para llenar la lista del rotor sería un
+  encabezado que no encabeza nada.
+
+### El hallazgo 2, con el detalle que merece
+
+El problema tenía dos mitades y necesitó dos respuestas, porque son dos preguntas distintas: **qué
+pasó** y **dónde quedé**.
+
+**La región viva.** `ReviewPanel` renderiza siempre un `<p role="status">`, vacío y oculto mientras
+no haya nada que decir. Que exista **antes** es la condición entera: una región viva que se inserta
+en el mismo commit que su propio texto no dispara nada en ningún lector, así que ponerle
+`role="status"` a `RecordedVerdict` habría sido exactamente la clase de comprobación que promete algo
+que no ocurre. De paso es el mismo lugar donde ahora vive el aviso de divergencia, que antes estaba
+dentro de la sección del formulario: una sola región viva por panel, que dice lo que corresponda en
+cada momento. El efecto visible es que el aviso de divergencia pasó a estar **arriba** del encabezado
+«Emitir veredicto» en vez de debajo.
+
+**El foco.** `VerdictFocus` es un vecino que no dibuja nada y que ve la transición de `false` a
+`true`. Ver la transición es todo el punto: un componente que solo existiera dentro del veredicto no
+podría distinguir «acabo de revisar» de «entré a una alerta ya revisada», y en el segundo caso mover
+el foco sería arrebatárselo a alguien que recién llega. Por eso el panel lo renderiza en los dos
+estados, el estado anterior se recuerda en un `ref`, y la primera carga nunca dispara.
+
+**Es un vecino y no un envoltorio porque la guarda de la frontera tenía razón.** La primera versión
+envolvía el panel y recibía el bloque como `children`; `boundary.test.ts` la rechazó en el acto —
+«ReviewRegion recibe la prop no primitiva «children»»—. La frontera de esta consola admite
+primitivas y nada más, y debilitar esa guarda durante una pasada de accesibilidad habría sido cambiar
+una comprobación real por una comodidad. El componente recibe ahora dos primitivas, `recorded` y
+`targetId`, y busca el elemento en el documento; `RecordedVerdict` puso el `id` y un `tabIndex={-1}`,
+sin el cual `focus()` sobre una sección no hace nada.
+
+**Lo que sigue sin estar medido**, y conviene que `E9D` no lo confunda con medido: si el anuncio
+llega **a tiempo** y si el orden en que se oyen las dos cosas es el cómodo. Eso se contesta con el
+oído. Lo que estas pruebas fijan es que la región existe en los dos estados y que el foco aterriza en
+el bloque correcto, que es condición necesaria y no suficiente.
+
+### Las falsaciones, una por corrección
+
+Cada arreglo se deshizo, se corrió su prueba, y la prueba falló. Restaurados los cinco, todo vuelve a
+verde.
+
+| # | Qué se deshizo | Qué dijo la prueba |
+| --- | --- | --- |
+| 1 | Una sola redacción para el aviso | 4 fallas: `expected 'La evaluación del pedido cambió (100 …' not to match /100 → 100/` |
+| 2, foco | Quitar el `focus()` del efecto | `expected <body><div>…</div></body> to be <section …>…</section>` |
+| 2, región | La región viva solo cuando hay aviso | 2 fallas: `Unable to find an accessible element with the role "status"` |
+| 3 | Quitar la `<caption>` del barrido | `Unable to find an accessible element with the role "table" and name /Precisión, recall, F1…/` |
+| 4 | Volver a `role="alert"` siempre | 2 fallas, una por componente: `Unable to find an accessible element with the role "status"` |
+| 5 | Derivar el `id` del título otra vez | 3 fallas: `panel-open-alerts: expected null not to be null` y `section-seed: …` |
+
+La del hallazgo 5 merece una nota: **falla ya en castellano**, porque el `id` derivado del título
+castellano es `panel-alertas-abiertas`. La prueba recorre igual los dos idiomas, porque una sola
+pasada no distingue un `id` estable de uno que coincide por casualidad.
+
+### Los literales nuevos
+
+Tres claves, las tres en `es.ts` **y** en `pt.ts`, en un commit propio y anterior al código que las
+usa. Una clave que falte en uno es error de compilación, como estableció `E9C1`:
+
+- `alertDetail.divergenceAdvisorySignals(score)` — el aviso cuando el score no se movió.
+- `alertDetail.verdictAnnounced` — lo que dice la región viva al registrarse el veredicto.
+- `dashboard.qualitySweepCaption` — el nombre de la tabla del barrido.
+
+La prueba de divergencia comprueba la redacción en los **dos** idiomas; las de identificadores
+renderizan el dashboard y la importación en `es` y en `pt`.
+
+### Archivos modificados
+
+Ninguno fuera de los paths autorizados. No se tocó backend, contrato, migraciones, `frontend/openapi/**`,
+`docs/**` ni `README.md`.
+
+- `frontend/src/lib/i18n/es.ts` y `pt.ts`: las tres claves.
+- `frontend/src/app/alerts/[id]/divergence.ts` y `divergence.test.ts`: hallazgo 1.
+- `frontend/src/app/alerts/[id]/review-panel.tsx`: la región viva estable y el destino del foco.
+- `frontend/src/app/alerts/[id]/verdict-focus.tsx` y `verdict-focus.test.tsx`: **nuevos**.
+- `frontend/src/app/alerts/[id]/page.test.tsx`: tres pruebas del panel.
+- `frontend/src/app/alerts/[id]/review-form.tsx` y `review-form.test.tsx`: hallazgo 4.
+- `frontend/src/app/import/action-outcome.tsx` y `action-outcome.test.tsx`: **la prueba es nueva**;
+  el componente no tenía ninguna propia.
+- `frontend/src/app/dashboard/quality-section.tsx`: hallazgo 3.
+- `frontend/src/app/dashboard/panels.tsx`, `dashboard/page.tsx`, `import/action-section.tsx` e
+  `import/page.tsx`: hallazgo 5, con sus dos archivos de prueba.
+- `Coordination/Handoffs/Claude.md`: esta entrada.
+
+Cinco commits, uno por parte: las claves primero, después un hallazgo por commit salvo el 3 y el 5,
+que van juntos porque comparten los dos archivos de prueba y no se pueden partir sin partir un
+archivo.
+
+### Verificación
+
+| Comando | Resultado |
+| --- | --- |
+| `npx tsc --noEmit` | Limpio |
+| `npx eslint .` | Limpio, con las treinta y una reglas de accesibilidad en `error` |
+| `npx vitest run` | 20 archivos, **273 pruebas**; eran 254 |
+| `./scripts/check.sh` | **Verde.** 117 tests de dominio, 172 de integración, 273 de frontend, build Release y build Next.js |
+| `./scripts/smoke-ui.sh` | **Verde: 71 comprobaciones, 0 fallas**, con la pasada `pt` y el `SALVO_LANGUAGE=fr` que no arranca |
+| Falsación de las cinco correcciones | Las cinco ponen su prueba en rojo; ver la tabla de arriba |
+| `git status --porcelain` | Limpio |
+
+### Decisiones y supuestos
+
+- **La guarda de la frontera no se tocó.** Cuando `boundary.test.ts` rechazó la primera versión del
+  arreglo del foco, se cambió el arreglo y no la guarda. Un componente cliente que recibe `children`
+  recibe un objeto, y la regla dice primitivas.
+- **El hallazgo 6 no se arregló ni se disimuló.** Habría sido fácil agregar una comprobación de
+  contraste que no comprueba contraste; queda apagada por su nombre y declarada.
+- **Los `id` son claves del código, no del diccionario.** `panel-open-alerts` y `section-seed` no se
+  traducen ni se muestran; el diccionario sigue siendo solo para lo que alguien lee.
+- **El aviso de divergencia cambió de lugar en la pantalla.** Es consecuencia directa de que la
+  región viva tiene que ser una sola y tiene que preexistir. Se declara porque es lo único visible
+  que esta fase mueve, y `E9D` regenera las capturas.
+
+### Riesgos o pendientes
+
+- **Lo que el recorrido no cubrió sigue sin cubrir**, y son cuatro pantallas: la tabla de alertas, el
+  detalle, el dashboard y la importación. La afirmación de la etapa tiene que decir eso y nada más.
+- **Cero violaciones no es «la consola es accesible».** Es «ninguna regla que una máquina puede
+  decidir está rota». Sigue sin haber nada sobre orden de foco fuera del caso del veredicto, sobre si
+  un anuncio llega a tiempo, ni sobre contraste.
+- **`E9D` regenera las capturas.** El aviso de divergencia arriba del encabezado es un cambio visible.
+
+### Integración
+
+- Orden sugerido: esta rama sola. `E9D` va después de ella integrada.
+- Migraciones o pasos manuales: **ninguna**. No hay migración, ni contrato, ni recaptura de OpenAPI,
+  ni dependencias nuevas: las dos de la fase 1 ya están declaradas y no entró una tercera.
+- **Integrar por merge y no por rebase**: rebasar movería el `merge-base` y volvería falso el commit
+  base declarado arriba.
+- Posibles conflictos: `frontend/package-lock.json` si otra tarea tocara dependencias; ninguna otra
+  está asignada.
+- Verificación posterior al merge: `./scripts/check.sh` y `./scripts/smoke-ui.sh` sobre el estado
+  integrado. Para verlo a mano, `./scripts/demo.sh` y los pasos de preparación que dejó la fase 1:
+  emitir un veredicto sobre una alerta y comprobar que el bloque verde recibe el foco.
+
+Estado: **Lista para integrar**.

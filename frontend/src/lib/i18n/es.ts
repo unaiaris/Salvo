@@ -257,6 +257,9 @@ export const es = {
     divergenceAdvisory: (from: string, to: string) =>
       `La evaluación del pedido cambió (${from} → ${to}) sin cambiar de banda. Las señales vigentes `
       + "están en el bloque «Evaluación vigente».",
+    divergenceAdvisorySignals: (score: string) =>
+      `Las señales del pedido cambiaron, aunque el score sigue en ${score} y la banda tampoco se `
+      + "movió. Las señales vigentes están en el bloque «Evaluación vigente».",
     divergenceOpenedAt: (severity: string, score: string) => `${severity} con score ${score}`,
     divergenceNoCurrent: (from: string) =>
       `La alerta se abrió en ${from}, pero el pedido ya no tiene evaluación vigente, así que no hay `
@@ -364,6 +367,7 @@ export const es = {
     reviewBlocked: "Marcá la casilla de arriba para poder enviar el veredicto.",
     reviewSubmit: "Registrar veredicto",
     reviewSubmitPending: "Registrando…",
+    verdictAnnounced: "La alerta quedó revisada y el formulario de veredicto ya no está.",
     verdictTitle: (status: string) => `Veredicto registrado: ${status}`,
     verdictNoAudit: "La alerta está cerrada, pero no hay una entrada de auditoría asociada.",
     verdictTransition: (from: string, to: string, instant: string) =>
@@ -501,6 +505,8 @@ export const es = {
     qualitySweepHint: (threshold: string) =>
       `Solo los umbrales donde la matriz de confusión cambia. El umbral ${threshold} es el que se `
       + "eligió y el que se aplicó al holdout.",
+    qualitySweepCaption:
+      "Precisión, recall, F1 y tasa de falsos positivos en cada umbral de la cohorte de calibración",
     qualitySweepThreshold: "Umbral",
     qualitySweepChosen: " · elegido",
   },

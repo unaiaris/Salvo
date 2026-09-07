@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { jsonResponse, wireCapabilities, wireDashboard, wireSeedPreview } from "@/test/fixtures";
@@ -23,15 +23,17 @@ function respondWith({
   demoDataEnabled = true,
   dashboard = wireDashboard(),
   seedPreview = wireSeedPreview(),
+  language = "es",
 }: {
   demoDataEnabled?: boolean;
   dashboard?: unknown;
   seedPreview?: unknown;
+  language?: "es" | "pt";
 } = {}) {
   fetchMock.mockImplementation((url: URL) => {
     switch (url.pathname) {
       case "/api/system/capabilities":
-        return Promise.resolve(jsonResponse(wireCapabilities({ demoDataEnabled })));
+        return Promise.resolve(jsonResponse(wireCapabilities({ demoDataEnabled, language })));
       case "/api/demo-data/seed-preview":
         return Promise.resolve(jsonResponse(seedPreview));
       default:
@@ -122,6 +124,36 @@ describe("pantalla de importación", () => {
     expect(screen.getAllByText("No se pudo contactar a la API").length).toBeGreaterThan(0);
     // La importación no depende de poder leer el estado, así que el formulario sigue disponible.
     expect(screen.getByRole("button", { name: "Importar pedidos" })).toBeInTheDocument();
+  });
+});
+
+/**
+ * Mismo motivo que en el dashboard: el `id` del encabezado salía del título traducido, y en
+ * portugués `ção` colapsa a `-o`. Acá las cuatro secciones están todas en pantalla a la vez, así que
+ * una colisión rotularía una sección con el título de otra sin que nada más se rompa.
+ */
+describe("los identificadores de las secciones", () => {
+  const IDS = ["section-seed", "section-file", "section-scoring", "section-external"] as const;
+
+  it("no cambian con el idioma del despliegue", async () => {
+    respondWith();
+    const { container } = render(await renderableServerTree(ImportPage()));
+
+    for (const id of IDS) {
+      expect(container.querySelector(`#${id}`), id).not.toBeNull();
+      expect(container.querySelector(`[aria-labelledby="${id}"]`), id).not.toBeNull();
+    }
+
+    cleanup();
+
+    respondWith({ language: "pt" });
+    const portuguese = render(await renderableServerTree(ImportPage())).container;
+
+    for (const id of IDS) {
+      expect(portuguese.querySelector(`#${id}`), id).not.toBeNull();
+    }
+
+    expect(portuguese.textContent).toMatch(/Importação e scoring/);
   });
 });
 
