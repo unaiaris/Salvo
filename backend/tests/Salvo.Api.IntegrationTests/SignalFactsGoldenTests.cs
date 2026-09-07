@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Salvo.Application.Risk;
 using Salvo.Domain.Explanations;
+using Salvo.Domain.Orders;
 using Salvo.Domain.Risk;
 using Salvo.Infrastructure.Persistence;
 
@@ -91,6 +92,84 @@ public sealed class SignalFactsGoldenTests : IClassFixture<SalvoApiFactory>
                 Assert.Equal(expectedSignal with { Detail = null }, actualSignal);
             }
         }
+    }
+
+    /// <summary>
+    /// The grounding facts of every evaluation, built from fields, against the same facts built
+    /// from the sentences those fields were read out of.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The other half of the oracle. The first test says the fields agree; this one says the
+    /// <em>consequences</em> of the fields agree, over the one thing the fields are for — deciding
+    /// whether a figure in a summary was measured or invented. A field carried across correctly but
+    /// dropped from the enumeration would pass the first test and fail here.
+    /// </para>
+    /// <para>
+    /// <strong>The two sets are not equal, and the difference is the point.</strong> Every fact the
+    /// prose produced is still a fact, which is the regression this guards. What the fields add is
+    /// the median in units: the engine wrote cents and nobody writing a sentence about money does,
+    /// so «la mediana fue 86,85 BRL» used to be a true figure the verifier refused. The test
+    /// computes that addition independently and asserts the difference is exactly it — anything
+    /// else appearing or disappearing fails.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task TheFactsBuiltFromFieldsLoseNothingTheProseGrounded()
+    {
+        using var client = await factory.CreateMigratedClientAsync();
+        (await client.PostAsync("/api/demo-data/seed", null)).EnsureSuccessStatusCode();
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SalvoDbContext>();
+        var orders = await dbContext.Orders.AsNoTracking().ToDictionaryAsync(order => order.Id);
+        var handler = scope.ServiceProvider.GetRequiredService<EvaluateLocalRiskHandler>();
+        var evaluation = await handler.HandleAsync(CancellationToken.None);
+        var config = RuleConfig.ForVersion(evaluation.ConfigVersion);
+        var prose = ReadGolden([]).ToDictionary(entry => entry.Reference);
+
+        var compared = 0;
+        foreach (var assessment in evaluation.Assessments.Where(one => one.Signals.Count > 0))
+        {
+            var order = orders[assessment.OrderId];
+            var input = new ExplanationInput(
+                assessment.Score,
+                "MEDIUM",
+                evaluation.ConfigVersion,
+                "e4-v1",
+                assessment.Signals,
+                order.AmountCents,
+                order.CurrencyCode,
+                order.CountryCode,
+                order.Channel,
+                order.OccurredAt);
+
+            var captured = prose[order.MerchantReferenceId];
+            var fromProse = ExplanationFacts.For(
+                input,
+                SignalFacts.ForAll(
+                    [.. captured.Signals.Select(signal =>
+                        new RiskSignal(signal.Rule, signal.Weight) { Detail = signal.Detail })]),
+                config);
+            var fromFields = ExplanationFacts.For(input, SignalFacts.ForAll(assessment.Signals), config);
+
+            var added = fromFields.Values.Except(fromProse.Values).ToHashSet();
+            var medianInUnits = captured.Signals
+                .Where(signal => signal.MedianCents is not null)
+                .SelectMany(signal => Enumerable
+                    .Range(0, NumberTokenizer.MaximumRoundedDecimals + 1)
+                    .Select(decimals => Math.Round(
+                        signal.MedianCents!.Value / 100m,
+                        decimals,
+                        MidpointRounding.AwayFromZero)))
+                .ToHashSet();
+
+            Assert.Empty(fromProse.Values.Except(fromFields.Values));
+            Assert.Empty(added.Except(medianInUnits));
+            compared++;
+        }
+
+        Assert.Equal(prose.Count, compared);
     }
 
     /// <summary>

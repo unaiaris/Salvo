@@ -206,25 +206,21 @@ public sealed partial record SignalFacts
     }
 
     /// <summary>
-    /// A measured number, at the precision its field declares and at every shorter one, so that a
-    /// sentence rounding it further is not refused.
+    /// A measured number, at exactly the precision its field declares.
     /// </summary>
+    /// <remarks>
+    /// One reading and no coarser ones. A sentence that rounds a ratio further is already accepted,
+    /// because <see cref="ExplanationFacts.IsGrounded(NumberReading)"/> backs a reading of
+    /// <c>d</c> decimals with any fact that becomes it once written with <c>d</c> decimals. Adding
+    /// them here would put the whole part of every ratio into the set as a fact in its own right —
+    /// <c>3</c>, from a ratio of <c>3.4</c> — which is a number nobody measured.
+    /// </remarks>
     private static void Measured(List<NumberToken> numbers, decimal? value, int decimals)
     {
-        if (value is not { } present)
+        if (value is { } present)
         {
-            return;
+            numbers.Add(Token(present, decimals));
         }
-
-        var readings = new List<NumberReading>();
-        for (var written = 0; written <= decimals; written++)
-        {
-            readings.Add(new(Math.Round(present, written, MidpointRounding.AwayFromZero), written));
-        }
-
-        numbers.Add(new(
-            present.ToString(CultureInfo.InvariantCulture),
-            readings));
     }
 
     /// <summary>

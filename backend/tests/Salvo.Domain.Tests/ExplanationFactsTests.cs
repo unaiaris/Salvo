@@ -293,6 +293,99 @@ public sealed class ExplanationFactsTests
         Assert.All(observed, actual => Assert.Equal(expected, actual));
     }
 
+    /// <summary>
+    /// Every numeric field of every rule reaches the fact set, one assertion per field.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <strong>This is the test that stands in for a signal that cannot go red.</strong> The fact
+    /// set used to be filled by tokenizing the sentence the engine wrote, so it contained whatever
+    /// the engine had said, whether or not this system had a name for it. With fields it is
+    /// enumerated by hand, and a field left out of that enumeration fails silently: the
+    /// deterministic template writes only figures that reach the set by another route, so every
+    /// golden text would stay green while a real model writing a true figure started being refused
+    /// as invented. It is the stage 7 defect with the sign reversed.
+    /// </para>
+    /// <para>
+    /// The median is the case that made this worth writing. It lived only inside the prose, the
+    /// tokenizer picked it up for free, and no golden text mentions it — so losing it would have
+    /// cost nothing until the day a model wrote «la mediana fue 149,37 BRL» and was told it made
+    /// the number up.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void EveryNumericFieldOfEveryRuleIsAFact()
+    {
+        RiskSignal[] signals =
+        [
+            RiskSignal.AmountAnomaly(40, 201111, "BRL", 201111m / 8685, AmountMedianScope.Merchant, 8685, 3, 90),
+            RiskSignal.Velocity(30, 4, 10, 4),
+            RiskSignal.CrossBorderVelocity(40, "BR", "UY", 5m / 3),
+            RiskSignal.UnusualHour(10, 0, 6, "America/Montevideo", 1, 25, 4m),
+            RiskSignal.NewBuyerHighValue(30, 201111, "BRL", 8685, 3, 201111m / 8685),
+            RiskSignal.ForeignCountry(20, "AR", "BR", 3, 3, 100m),
+        ];
+        var input = Input() with { Signals = signals };
+        var facts = ExplanationFacts.For(input, SignalFacts.ForAll(signals), RuleConfig.Current);
+
+        (string Field, decimal Value)[] expected =
+        [
+            ("amount_anomaly.amountCents", 201111m),
+            ("amount_anomaly.ratio", 23.2m),
+            ("amount_anomaly.medianCents", 8685m),
+            ("amount_anomaly.historyCount", 3m),
+            ("amount_anomaly.windowDays", 90m),
+            ("velocity.orderCount", 4m),
+            ("velocity.windowMinutes", 10m),
+            ("velocity.threshold", 4m),
+            ("cross_border_velocity.elapsedMinutes", 1.67m),
+            ("unusual_hour.bucketStartHour", 0m),
+            ("unusual_hour.bucketEndHour", 6m),
+            ("unusual_hour.observedCount", 1m),
+            ("unusual_hour.totalCount", 25m),
+            ("unusual_hour.sharePercent", 4m),
+            ("new_buyer_high_value.amountCents", 201111m),
+            ("new_buyer_high_value.medianCents", 8685m),
+            ("new_buyer_high_value.historyCount", 3m),
+            ("new_buyer_high_value.ratio", 23.2m),
+            ("foreign_country.observedCount", 3m),
+            ("foreign_country.totalCount", 3m),
+            ("foreign_country.sharePercent", 100m),
+        ];
+
+        Assert.All(expected, entry =>
+            Assert.True(
+                facts.IsGrounded(new NumberReading(entry.Value, Decimals(entry.Value))),
+                $"{entry.Field} = {entry.Value} is not a fact."));
+
+        // The amounts in the units anybody writes them in, which is the reading the prose never
+        // contained: the engine stated cents and a sentence about money never does.
+        Assert.True(facts.IsGrounded(new NumberReading(2011.11m, 2)), "the amount in units");
+        Assert.True(facts.IsGrounded(new NumberReading(86.85m, 2)), "the median in units");
+        Assert.True(Grounded(facts, "86,85"), "the median as a sentence writes it");
+    }
+
+    /// <summary>
+    /// The set is not simply everything: a figure nobody measured is still refused.
+    /// </summary>
+    [Fact]
+    public void EnumeratingTheFieldsDoesNotGroundAFigureNobodyMeasured()
+    {
+        RiskSignal[] signals =
+        [
+            RiskSignal.ForeignCountry(20, "AR", "BR", 3, 3, 100m),
+        ];
+        var input = Input() with { Signals = signals };
+        var facts = ExplanationFacts.For(input, SignalFacts.ForAll(signals), RuleConfig.Current);
+
+        Assert.False(facts.IsGrounded(SmallestUngrounded(facts)));
+    }
+
+    private static int Decimals(decimal value)
+    {
+        return (decimal.GetBits(value)[3] >> 16) & 0xFF;
+    }
+
     private static ExplanationInput Input()
     {
         return new(
