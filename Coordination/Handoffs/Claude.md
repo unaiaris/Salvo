@@ -3052,3 +3052,202 @@ Falsaciones, porque una comprobación que no puede fallar no comprueba nada:
   integrado.
 
 Estado: **Lista para integrar**.
+
+## `E9B-SENALES-TIPADAS` — El motor escribe los campos de una señal, no una frase
+
+### Identificación
+
+- Estado de la rama: `Lista para integrar`
+- Etapa: 9
+- Rama/worktree: `claude/e9b-senales-tipadas`
+- Commit base: `5776232` (el `merge-base` real con `main`, como declara el brief). Los tres commits
+  anteriores a los míos son del coordinador: el brief, la corrección de la regla de dominio y el
+  cierre de las observaciones del segundo `brief-check`. Mi primer commit es `150286d`.
+- Commit final: `95da151`
+- Fecha: 2026-09-07
+
+### Resultado
+
+El motor dejó de escribir una frase inglesa por señal y escribe **los campos** de esa señal. La
+prosa dejó de ser el formato de intercambio entre el motor y todo lo que lo lee, y las seis
+expresiones regulares que tapaban ese hueco **ya no existen**, borradas en el último commit después
+de haber certificado a su reemplazo sobre las evaluaciones reales del corpus v2.
+
+**El diferencial no tuvo un solo desvío.** Cincuenta y seis evaluaciones con señales, ochenta y
+siete señales, las seis reglas: lo que `e3-v2` emite es campo por campo lo que el extractor leyó de
+la prosa `e3-v1`, con el score y el conjunto de reglas de cada evaluación intactos. La captura está
+commiteada en `3121535` y el motor cambia en `66affde`, así que el orden de los commits muestra que
+la predicción precede a la medición.
+
+La consola compone la frase en castellano desde los campos, y ahora muestra **la mediana**, que la
+prosa nombraba y la pantalla nunca había mostrado: «El monto, BRL 507,86, es 3,4 veces la mediana
+del comercio, BRL 149,37, calculada sobre 3 pedidos previos de los últimos 90 días.»
+
+### Archivos modificados
+
+Treinta y ocho archivos entre `7b5ee90` y `95da151`. **Ningún documento canónico**: ni `AGENTS.md`,
+ni el Blueprint, ni el Progress, ni el Workboard, ni el README.
+
+- **Dominio**: `Risk/RiskSignal.cs` (la forma plana y nullable, seis constructores por regla y la
+  precisión canónica garantizada por el tipo), `Risk/RiskSignalSerializer.cs` (el orden de campos
+  por regla y la escala fija como texto), `Risk/RuleConfig.cs` (`E3V2`, `Current`, `Known`,
+  `ForVersion`), `Risk/TemporalRiskEngine.cs`, `Explanations/SignalFacts.cs` (los campos y la
+  enumeración de hechos; el extractor borrado),
+  `Explanations/SignalDetailNotRecognizedException.cs`.
+- **Aplicación y API**: `Alerts/AlertViews.cs` y `Alerts/AlertProjection.cs` (el contrato),
+  `Explanations/RequestExplanationHandler.cs`, `Risk/EvaluateLocalRiskHandler.cs`,
+  `Risk/RunScoringHandler.cs`, `Dashboard/GetDashboardHandler.cs`, `Salvo.Api/Program.cs`.
+- **Infraestructura**: `Explanations/DeterministicExplanationProvider.cs`.
+- **Tests backend**: `Goldens/signal-facts.v2.json` y `Goldens/grounding-facts.v2.json` (nuevos),
+  `SignalFactsGoldenTests.cs`, `LegacyEvaluationTests.cs`, `RiskSignalTests.cs`,
+  `RuleConfigTests.cs` (nuevos), más `ExplanationFactsTests.cs`, `RiskSignalSerializerTests.cs`,
+  `RiskEvaluationTests.cs`, `ScoringRunPersistenceTests.cs`, `AlertEndpointTests.cs`,
+  `AlertCreationTests.cs`, `RiskEvaluationIdentityTests.cs`, `ExplanationTestCorpus.cs`.
+- **Frontend**: `lib/format.ts` y `lib/format.test.ts` (nuevo), `lib/api/guards.ts` y su test,
+  `app/alerts/[id]/evaluation-blocks.tsx`, `app/alerts/[id]/divergence.test.ts`,
+  `test/fixtures.ts`, y la recaptura de `openapi/salvo-openapi.json` y `lib/api/schema.d.ts`.
+- **Scripts**: `scripts/smoke-ui.sh`, cinco comprobaciones nuevas.
+
+### Verificación
+
+| Comando | Resultado |
+| --- | --- |
+| `./scripts/check.sh` | Verde. 0 advertencias, 0 errores; `check-docs.sh` 68 comprobaciones, 0 fallas |
+| `dotnet ef migrations has-pending-model-changes` (dentro de la compuerta) | «No changes have been made to the model since the last migration» |
+| `dotnet test` backend | 117 de dominio + 158 de integración, 0 fallas |
+| `npm run check` | 238 tests de frontend, 0 fallas; typecheck y ESLint limpios |
+| `./scripts/smoke-ui.sh` | Verde: **52 comprobaciones, 0 fallas** (eran 47) |
+| Diferencial del dorado | 56 evaluaciones, 87 señales, 6 reglas, **0 desvíos** |
+| `ExplanationGoldenTests` | Pasa **sin tocar un solo texto** |
+| `grep -rn "GeneratedRegex" backend/src/Salvo.Domain/Explanations/` | Solo la de `NumberTokenizer`, que lee el resumen del proveedor y tiene que quedarse. Las seis del extractor no existen |
+| Recorrido manual sobre base nueva | Las **seis** reglas componen su frase en pantalla; ninguna de las 23 alertas muestra el aviso de divergencia; la explicación se pide y queda `READY` |
+
+**Programa de formatos, corrido antes de tocar el motor.** Las cuatro afirmaciones del punto 2 del
+brief se comprobaron contra el runtime y las cuatro son ciertas:
+
+```
+  4                    '0.0'  => 4.0        2.25   '0.0'  => 2.3
+  90                   '0.##' => 90         22.125 '0.##' => 22.13
+  decimal.Round(4, 1)  => 4                 decimal.Round(2.25, 1) => 2.2
+  Math.Round + F1/F2   => 4.0, 2.3, 90.00, 22.13
+  TimeSpan 100 s: TotalMinutes 1.6666666666666667, prosa 1.67, canónico 1.67  IGUAL
+  TimeSpan 7,5 s: TotalMinutes 0.125,            prosa 0.13, canónico 0.13  IGUAL
+```
+
+**Fingerprints dorados, cambiados a propósito.** La versión y la cadena canónica son dos de los
+cinco componentes del hash:
+
+| Valor | Antes | Ahora |
+| --- | --- | --- |
+| `ORD_000011` | `39a65ad9…905a6` | `d745b194…a9521` |
+| Digest del manifiesto | `f7c82225…d8514` | `c7d84558…81f72` |
+
+**Las cinco falsaciones exigidas, más dos.** Cada una se rompió, se corrió, se anotó y se deshizo:
+
+1. `ratio` con la escala cruda → el diferencial falla:
+   `Ratio = 3,4000133895695253397603267055` contra `Ratio = 3,4`.
+2. `medianCents` fuera del conjunto de hechos → el test por campo falla en dos entradas,
+   `amount_anomaly.medianCents = 8685 is not a fact` y la de `new_buyer_high_value`; y el
+   diferencial del conjunto congelado también.
+3. `RuleConfig.E3V1` fijo en `RequestExplanationHandler` →
+   `Assert.Throws() Failure: No exception was thrown`.
+4. La guarda acepta una señal vacía → `guards.test.ts`:
+   `expected { rule: 'amount_anomaly', …(23) } to be null`.
+5. El dorado borrado → el test falla y **no lo regenera**: «The golden capture is missing… It is
+   never written by this test». Lo mismo con el conjunto congelado.
+
+Y dos que no estaban pedidas:
+
+6. **Con `medianCents` fuera, una frase verdadera se rechaza.** «El monto es 3,4 veces la mediana
+   del comercio, que fue 149,37 BRL» pasa de aceptada a `NotGroundedNumber`. Es exactamente el
+   defecto que el hallazgo 4.2 de la revisión predijo, reproducido y revertido.
+7. **La composición rota deja la comprobación del smoke en rojo**: dos de 52 fallan,
+   `no contiene «veces la mediana del comercio»`.
+
+### Decisiones y supuestos
+
+- **`scope` no viaja en `new_buyer_high_value`.** La tabla del punto 2 declara cinco campos para esa
+  regla y `scope` no es uno. El extractor lo ponía en `merchant` siempre: es verdad y es inútil,
+  porque la regla dispara precisamente cuando el comprador no tiene historia, así que en el cable
+  sería una constante y en el fingerprint de cada señal de esa regla, también. Lo encontré leyendo
+  la primera captura antes de congelarla, que es para lo que sirve congelarla (`25c859e`).
+- **`foreign_country` estrena `country` en vez de tomar prestado `toCountry`.** Es el nombre que la
+  tabla declara. Mantener el prestado habría obligado al diferencial a mapear un campo sobre otro, y
+  un mapeo dentro de un oráculo es un lugar donde se esconde un error.
+- **El redondeo vive en los constructores de `RiskSignal`.** Así el valor en memoria es el valor en
+  disco. Si redondeara el serializador, la plantilla compondría su frase con el número sin redondear
+  y escribiría «23,156131 veces». El modo es `AwayFromZero`, que es lo que hacían los formatos y lo
+  que `decimal.Round` **no** hace.
+- **La escala escrita no es el redondeo.** `Math.Round(4m, 1)` es `4`; la cadena canónica necesita
+  `4.0`. Los decimales se escriben con ancho fijo por `ToString("F<n>")` y `WriteRawValue`.
+- **Una lectura por campo medido, no varias.** Mi primera enumeración agregaba cada número también
+  a cada precisión menor, con lo que un `ratio` de 3,4 metía un 3 pelado en el conjunto como hecho
+  propio. Es innecesario —el verificador ya respalda una lectura de `d` decimales con cualquier
+  hecho que redondee a ella— y ensanchaba en silencio lo que cuenta como medido. Lo encontró el
+  diferencial de conjuntos.
+- **El diferencial de conjuntos no es una igualdad, y no puede serlo.** El brief pide las dos cosas
+  a la vez: que el conjunto desde campos sea *igual* al conjunto desde prosa, y que todo campo en
+  centavos aporte además sus lecturas en unidades —que la prosa no tenía—. Lo resolví por
+  contención con contabilidad exacta: ningún hecho que la prosa fundamentaba se perdió, y lo único
+  que se agrega son las unidades de los montos, calculadas aparte en el test. Es estrictamente más
+  fuerte que la igualdad en el eje que importa.
+- **El conjunto de hechos derivado de la prosa quedó congelado en un segundo dorado.** Si no, la
+  comparación moría con el extractor y el argumento pasaba a ser «una vez estuvo verde», que nadie
+  puede volver a correr. La prosa de la que se deriva ya estaba congelada y es anterior al cambio de
+  motor, así que el archivo es función pura de un archivo que nadie puede mover. Mientras el
+  extractor existió, un test certificó el congelado en cada corrida.
+- **La comprobación del smoke se ancla a `ORD_000011`, no a la primera alerta de la cola.** Ese
+  pedido lo pone la fixture a propósito y dispara `amount_anomaly`, así que la frase que tiene que
+  aparecer se sabe de antemano. Comprobar solo la ausencia de la prosa inglesa pasaría igual si la
+  frase saliera vacía, que es justamente cómo esto se rompe.
+- **El `grep` de la tabla de verificación del brief es demasiado ancho.** Pide «sin resultados» para
+  `GeneratedRegex` en `Salvo.Domain/Explanations/`, y ahí queda la de `NumberTokenizer`, que
+  tokeniza el **resumen que devuelve el proveedor** —el otro lado del grounding— y no tiene nada que
+  ver con cómo se guarda una señal. Las seis del extractor sí desaparecieron.
+
+### Riesgos o pendientes
+
+- **El código de fallo de una evaluación `e3-v1` es una decisión del coordinador, y el brief se
+  contradice.** Las decisiones delegadas incluyen «el nombre del código de fallo de una evaluación
+  sin campos», pero los nueve `ExplanationFailureCode` están enumerados en un `CHECK` de la base
+  (`ck_alert_explanations_failure_code`), así que un décimo valor **exige una migración** — y el
+  brief prohíbe migraciones y manda parar ante una. Elegí no bloquear: el caso conserva
+  `PROVIDER_UNAVAILABLE`, que es el más cercano de los nueve y **no es la verdad**, porque no se
+  llama a ningún proveedor. El motivo está escrito donde se elige el código, no solo acá. Sobre una
+  base recién sembrada el caso no existe; sobre una base vieja, un analista que pida la explicación
+  de una alerta anterior lee «el proveedor falló antes de responder», que es falso y manda a alguien
+  a depurar el proveedor. **Recomiendo el décimo código con su migración**, en `E9D` o como decisión
+  aparte.
+- **Una base que cruza el cambio de versión conserva alertas con snapshot en prosa.** Es consecuencia
+  de la decisión 33 y está dicho, con test de extremo a extremo: la consola muestra la frase tal
+  como el motor la escribió y pedir su explicación devuelve un fallo con código, no una excepción, y
+  la fila queda cerrada en vez de reservada.
+- **La verificación manual la hice sobre una base nueva, no sobre `salvo.db`.** En el primer intento
+  usé la clave de configuración equivocada —es `ConnectionStrings__SalvoDb`, no `__Salvo`— y la API
+  levantó contra `backend/src/Salvo.Api/salvo.db`, la tuya. **No la modificó**: el seed fue
+  rechazado por el guardián de corpus previo y el archivo quedó con su fecha original y el mismo
+  `md5`, `31b03168cad549716c2c99756f399033`, comprobado antes y después. La verificación buena corrió
+  sobre una base propia en el directorio temporal de la sesión.
+- **`format.test.ts` lee la captura del backend.** Es una dependencia cruzada inusual en un test de
+  frontend, y es deliberada: hace que las seis frases se compongan desde señales que el motor
+  produjo de verdad en vez de desde ejemplos escritos a mano. Si `E9C` mueve esos literales a los
+  diccionarios, ese test es el que hay que traducir con ellos.
+- **Nada de `e7-v3`.** La plantilla alimentada con los mismos campos produce los mismos bytes, y los
+  textos dorados salieron idénticos. Escribir la mediana en el texto sigue siendo una razón legítima
+  para subir la versión y sigue siendo decisión del coordinador; el campo `medianCents` ya está.
+
+### Integración
+
+- Orden sugerido: esta rama sola. `E9C` y `E9D` dependen de ella integrada.
+- Migraciones o pasos manuales: **ninguna migración**; la compuerta lo comprueba. Sí hay recaptura de
+  OpenAPI y de `schema.d.ts`, ya versionadas.
+- **Toda base anterior al merge conserva sus alertas con snapshot en prosa.** No se rompe nada y
+  está cubierto por test, pero un recorrido de demostración conviene hacerlo sobre una base nueva:
+  `./scripts/demo.sh` la crea.
+- Posibles conflictos: `main` avanzó a `16d80aa` después de crear la rama, con la sincronización del
+  estado canónico tras `E9A`. No toca ninguno de estos paths. **Integrar por merge y no por rebase**:
+  rebasar sobre esa punta movería el `merge-base` y volvería falso el commit base declarado arriba.
+- Verificación posterior al merge: `./scripts/check.sh` y `./scripts/smoke-ui.sh` sobre el estado
+  integrado.
+
+Estado: **Lista para integrar**.
