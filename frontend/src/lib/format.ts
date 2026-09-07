@@ -9,6 +9,8 @@
  * available without extra data.
  */
 
+import type { AlertSignal } from "@/lib/api/contract";
+
 const LOCALE = "es-UY";
 export const BUSINESS_TIME_ZONE = "America/Montevideo";
 
@@ -94,6 +96,97 @@ const RULE_LABELS: Readonly<Record<string, string>> = {
 /** The rule name in the analyst's language; an unmapped rule shows its own identifier. */
 export function ruleLabel(rule: string): string {
   return RULE_LABELS[rule] ?? rule;
+}
+
+/**
+ * What a signal says, in words, composed from the fields the engine measured.
+ *
+ * `e3-v2` states what each rule found — an amount, a median, a count, a ratio — and leaves the
+ * sentence to whoever is reading. That is why this lives here beside `ruleLabel`, which is where
+ * the console already keeps its vocabulary of rules, and why the words are Spanish literals rather
+ * than dictionary keys: `E9C` moves this whole surface into the two dictionaries at once, and
+ * naming the keys twice would be doing that work twice.
+ *
+ * A signal stored by `e3-v1` carries no fields and its own English sentence instead. It is returned
+ * as it stands: the snapshot of an alert opened under that version is never rewritten, so it is
+ * either shown as written or not shown at all.
+ */
+export function signalSentence(signal: AlertSignal): string {
+  const composed = compose(signal);
+
+  return composed ?? signal.detail ?? "";
+}
+
+function compose(signal: AlertSignal): string | null {
+  switch (signal.rule) {
+    case "amount_anomaly":
+      return absent(signal.amountCents, signal.currencyCode, signal.ratio, signal.medianCents, signal.historyCount, signal.windowDays)
+        ? null
+        : `El monto, ${formatAmount(signal.amountCents!, signal.currencyCode!)}, es ${measured(signal.ratio!, 1)} `
+          + `veces la mediana ${signal.scope === "buyer" ? "del comprador" : "del comercio"}, `
+          + `${formatAmount(signal.medianCents!, signal.currencyCode!)}, calculada sobre `
+          + `${formatCount(signal.historyCount!)} pedidos previos de los últimos `
+          + `${formatCount(signal.windowDays!)} días.`;
+
+    case "velocity":
+      return absent(signal.orderCount, signal.windowMinutes, signal.threshold)
+        ? null
+        : `Hubo ${formatCount(signal.orderCount!)} pedidos del mismo comprador dentro de `
+          + `${formatCount(signal.windowMinutes!)} minutos; el umbral es ${formatCount(signal.threshold!)}.`;
+
+    case "cross_border_velocity":
+      return absent(signal.fromCountry, signal.toCountry, signal.elapsedMinutes)
+        ? null
+        : `El país cambió de ${signal.fromCountry} a ${signal.toCountry} en `
+          + `${measured(signal.elapsedMinutes!, 2)} minutos, con el mismo comercio y el mismo comprador.`;
+
+    case "unusual_hour":
+      return absent(signal.bucketStartHour, signal.bucketEndHour, signal.observedCount, signal.totalCount, signal.sharePercent)
+        ? null
+        : `La franja de ${clock(signal.bucketStartHour!)} a ${clock(signal.bucketEndHour!)}, hora del `
+          + `comercio, aparece en ${formatCount(signal.observedCount!)} de `
+          + `${formatCount(signal.totalCount!)} pedidos previos del comercio: un `
+          + `${measured(signal.sharePercent!, 1)} %.`;
+
+    case "new_buyer_high_value":
+      return absent(signal.amountCents, signal.currencyCode, signal.medianCents, signal.historyCount, signal.ratio)
+        ? null
+        : "El comprador no tenía pedidos previos con este comercio, y el monto, "
+          + `${formatAmount(signal.amountCents!, signal.currencyCode!)}, es ${measured(signal.ratio!, 1)} `
+          + `veces la mediana del comercio, ${formatAmount(signal.medianCents!, signal.currencyCode!)}, `
+          + `sobre ${formatCount(signal.historyCount!)} pedidos previos.`;
+
+    case "foreign_country":
+      return absent(signal.country, signal.habitualCountry, signal.observedCount, signal.totalCount, signal.sharePercent)
+        ? null
+        : `El país del pedido, ${signal.country}, difiere del habitual del comercio, `
+          + `${signal.habitualCountry}, observado en ${formatCount(signal.observedCount!)} de `
+          + `${formatCount(signal.totalCount!)} pedidos previos: un ${measured(signal.sharePercent!, 1)} %.`;
+
+    default:
+      return null;
+  }
+}
+
+/** Whether any field the sentence needs is missing, which is what an `e3-v1` signal looks like. */
+function absent(...fields: readonly (number | string | null)[]): boolean {
+  return fields.some((field) => field === null);
+}
+
+/**
+ * A measured number with at most as many decimals as its field carries, and with none when every
+ * one of them would be a zero. «4 veces» rather than «4,0 veces»: the trailing zero claims a
+ * measurement to the tenth that the ratio does not have.
+ */
+function measured(value: number, decimals: number): string {
+  return new Intl.NumberFormat(LOCALE, {
+    maximumFractionDigits: decimals,
+  }).format(value);
+}
+
+/** An hour of the day as a clock reads it. */
+function clock(hour: number): string {
+  return `${hour < 10 ? "0" : ""}${String(hour)}:00`;
 }
 
 /**
