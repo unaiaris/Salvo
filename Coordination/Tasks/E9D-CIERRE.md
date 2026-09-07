@@ -4,7 +4,7 @@
 
 - Work ID: `E9D-CIERRE`
 - Etapa: 9
-- Tipo: `documentación y verificación`
+- Tipo: `implementación`
 - Propietario: `Claude`
 - Coordinador: Unai Arismendes
 - Fecha: 2026-09-07
@@ -36,6 +36,8 @@ que el repositorio dice.
 - `Coordination/Tasks/E9-DISENO.md` (**v2**), decisión **D10** entera: el inventario del repaso.
 - `Coordination/Handoffs/Claude.md`, las entradas de **`E8A`, `E9A`, `E9B`, `E9C1` y las dos fases de
   `E9C2`**. Ahí están las cifras reales y la deuda que cada una declaró.
+- `DesignAgent/Salvo-Blueprint.md`, **§11 «Etapa 9»** (línea 729), que es la sección que gobierna el
+  cierre, y la bitácora de decisiones.
 - `DesignAgent/Salvo-Progress.md`, checklist «Etapa 9»: el último ítem es el que esta tarea cierra.
 - `Coordination/Workboard.md`, la sección de lecciones: varias son material del README.
 - `README.md`, el bloque entre `<!-- corpus:inicio -->` y `<!-- corpus:fin -->` (líneas 392 a 422).
@@ -62,12 +64,27 @@ Lo que hoy es falso y hay que reemplazar, verificado línea por línea:
 | «18 alertas: 13 media, 0 alta, 5 crítica» | Hay **23** alertas y la banda `ALTA` existe por primera vez |
 | «precisión 1,00, recall 1,00 y F1 1,00» | **F1 holdout 0,632** y 0,688 en calibración. Es el corazón de la etapa |
 | «`foreign_country` en 34, `amount_anomaly` en 18, `new_buyer_high_value` en 5» | Las **seis** reglas disparan |
-| «3 comercios, uno por moneda: UYU, BRL y USD» | El corpus vive en el corredor UTC−3: UY, BR y AR |
+| «3 comercios, uno por moneda: UYU, BRL y USD» | **Esto sigue siendo cierto y no se toca.** Lo que falta es **el país de cada comercio**: el corpus vive en el corredor UTC−3 —UY, BR y AR— y `MER_US_MARKET` factura en USD con 90 de sus 100 pedidos desde Argentina |
 | «del 2026-05-01 al 2026-08-28» | Verificar, no asumir |
 
 Lo mismo en `docs/guion-demo.md`, cuyas líneas 177 y 178 repiten «18 alertas abiertas» y «F1 1,00»,
 y en `docs/muestras/README.md`, donde el `16,7 %` de `unusual_hour` **se recalcula sobre el corpus
 v2** en vez de arrastrarse: fue falso una vez y no se hereda de memoria.
+
+**Y hay prosa invalidada que ningún `grep` de cifras alcanza, porque son frases.** Es la parte que
+más fácil se pasa por alto y la que peor queda, porque un párrafo entero que describe otro proyecto
+se lee como descuido y no como desactualización:
+
+| Dónde | Qué afirma, y por qué ya es falso |
+| --- | --- |
+| `README.md` 373–379 | «El corpus alcanza tres de las seis reglas», «un solo arquetipo de fraude», «la banda alta, 70–89, tampoco aparece». Las **seis** reglas disparan, hay **siete** arquetipos y la banda `ALTA` tiene seis alertas |
+| `README.md` 381–384 | «Los detalles de las señales están en inglés» y «cuando el motor los emita directamente, el extractor se borra». **El motor ya los emite y el extractor ya no existe**: se borró en `E9B` |
+| `docs/guion-demo.md` 170–172 y 183–186 | «Las métricas dan perfectas» y «tres de las seis reglas nunca abren una alerta, y la banda alta no se alcanza». **Están fuera del bloque marcado**, así que regenerar el bloque no las toca |
+| `docs/capturas/README.md` 24 | «con scores de solo 60 y 90». El v2 llega a 70 y 80 |
+
+El inventario que `E8A` entregó es explícitamente **de cifras fuera del README** y no lista esta
+prosa. Buscar «lo que quedó viejo» con `grep` de números no la encuentra: hay que leer las secciones
+«Límites declarados» del README y las de límites del guion, enteras.
 
 **Y la afirmación que hace honesta a toda la tabla: la tasa base es del 9,3 % y es de construcción.**
 Veintiocho fraudes en trescientos pedidos no es una medición de nada; es un parámetro que se eligió
@@ -130,18 +147,29 @@ información que le sirve a cualquiera que clone y empuje este repositorio.
 
 #### 6. El artículo para revisores
 
-Se actualiza contra el estado final: las cifras nuevas, la explicación verificada, el idioma en la
-identidad de la fila, la accesibilidad con su alcance real, y **la geografía que corrigió el amigo
-del coordinador: Koin opera en Brasil y México como países principales, con presencia en algunos
-otros de LATAM, y no en Uruguay ni en Estados Unidos.** El artículo **no vive en el repositorio**: la
-tarea entrega su texto en el handoff y el coordinador lo publica.
+**Se escribe de cero.** El artículo vive fuera del repositorio, publicado por el coordinador, y la
+tarea **no puede leerlo**: no está en el árbol, ni en los handoffs, ni en `_local/`. Intentar
+«actualizarlo» sería editar a ciegas un texto que no se tiene. Lo que hay que producir es un texto
+nuevo, escrito contra el estado final del repositorio, que el coordinador publica reemplazando el
+anterior.
+
+Qué tiene que decir: las cifras nuevas, la explicación verificada, el idioma en la identidad de la
+fila, la accesibilidad con su alcance real —automática entera, recorrido humano parcial—, y **la
+geografía que corrigió el amigo del coordinador: Koin opera en Brasil y México como países
+principales, con presencia en algunos otros de LATAM, y no en Uruguay ni en Estados Unidos.**
+
+Va en el handoff, en un bloque que se pueda copiar entero.
 
 #### 7. La compuerta y la bitácora
 
 `scripts/check-docs.sh` tiene que seguir verde: cada ruta y cada nombre de test que el README cita
-debe existir. Y las decisiones nuevas de la etapa —la del idioma por despliegue, la del umbral como
-política y no como ajuste, la contrapositiva de la 58, la de las dependencias de accesibilidad— van a
-la bitácora del Blueprint si todavía no están.
+debe existir.
+
+Sobre la bitácora: **las decisiones 62 a 68 ya existen** y cubren el umbral como política, la
+contrapositiva de la 58 y el idioma por despliegue. **La única que puede faltar es la de las
+dependencias de accesibilidad**, y hay que mirar antes si hace falta: la decisión 61 ya establece que
+una dependencia se aprueba en el diseño de su etapa, y D7 lo hizo. Si con eso alcanza, **no se
+agrega una entrada duplicada** y se dice por qué.
 
 ### Fuera
 
@@ -156,12 +184,15 @@ la bitácora del Blueprint si todavía no están.
 
 - `README.md`
 - `docs/**`, incluidas las seis capturas
-- `scripts/capturas.sh`, `scripts/demo.sh` y `tools/capturas/**`
+- `scripts/capturas.sh`, `scripts/demo.sh` y `tools/**` —no solo `tools/capturas/**`: si la tarea
+  decide mover `glosario.mjs`, su destino cae ahí—
 - `DesignAgent/Salvo-Getting-Started.md` y `DesignAgent/Salvo-Blueprint.md`, este último **solo** la
   bitácora de decisiones
 - `Coordination/Handoffs/Claude.md`
 - `frontend/src/lib/i18n/es.ts` y `pt.ts`, **solo** si un documento cita un literal que ya no existe
-- `frontend/src/lib/i18n/glosario.mjs`, solo si la tarea decide moverlo
+- `frontend/src/lib/i18n/glosario.mjs`, solo si la tarea decide moverlo, y
+  `frontend/src/lib/i18n/glosario-pt.md`, cuya línea 9 **cita la ruta del script** y quedaría
+  mintiendo si el script se mueve sin tocarla
 
 **No** entran: `backend/**`, el resto de `frontend/src/**`, `Coordination/Workboard.md` y
 `DesignAgent/Salvo-Progress.md` —los dos últimos los cierra el coordinador después del merge—.
@@ -190,11 +221,17 @@ Ninguno: es la última tarea de la etapa.
 - [ ] **La tasa base está declarada como de construcción**, y el README dice que con los errores
       puestos a mano F1 es un parámetro del diseño.
 - [ ] El `16,7 %` de `unusual_hour` **recalculado** sobre el corpus v2, no arrastrado.
+- [ ] **La prosa invalidada, reescrita**: las cuatro entradas de la tabla del punto 1. Un `grep` de
+      cifras no las encuentra, así que se leen enteras las secciones de límites del README y del
+      guion.
+- [ ] Ninguna afirmación **verdadera** fue reemplazada: las monedas siguen siendo una por comercio, y
+      lo que se agrega es el país.
 - [ ] Las seis capturas regeneradas, con sus anclas actualizadas donde el texto cambió.
 - [ ] Las nueve deudas del punto 3, escritas con su motivo.
 - [ ] Las siete bases `.db` listadas con fecha y contenido. **Ninguna borrada.**
 - [ ] `Salvo-Getting-Started.md` con la línea de `http.postBuffer`.
-- [ ] El texto del artículo para revisores en el handoff, con la geografía corregida.
+- [ ] El texto del artículo para revisores en el handoff, **escrito de cero**, en un bloque
+      copiable, con la geografía corregida.
 - [ ] `./scripts/check-docs.sh` verde, y `/gate` y `./scripts/smoke-ui.sh` verdes.
 
 ## Verificación y evidencia
@@ -205,6 +242,8 @@ Ninguno: es la última tarea de la etapa.
 | Corrida sobre base nueva | Las cifras del bloque salen de ahí, con fecha |
 | `grep -rn "1,00" README.md docs/` | Sin F1 en 1,00 |
 | `grep -rn "18 alertas\|18 fraudes" README.md docs/` | Sin resultados |
+| «tres de las seis reglas» y «el extractor se borra» | Sin resultados en README ni en `docs/` |
+| Lectura completa de «Límites declarados» y de los límites del guion | Ninguna frase describe el corpus v1 |
 | Recálculo de `unusual_hour` sobre el v2 | La cifra publicada coincide |
 | `./scripts/capturas.sh` | Seis capturas, con sus aserciones pasando |
 | Lista de bases `.db` | Siete, con fecha y contenido, ninguna borrada |
@@ -234,6 +273,7 @@ sobre sí mismo.
 - una captura no se puede sacar porque la consola cambió de forma y no solo de texto;
 - `check-docs.sh` se pone rojo por un test que hay que renombrar;
 - alguna deuda del punto 3 resulta ser un defecto que no se puede dejar dicho;
+- una afirmación que el brief marca como falsa resulta ser cierta contra el árbol;
 - hace falta tocar `backend/**` o el resto de `frontend/src/**`.
 
 ## Entrega requerida
