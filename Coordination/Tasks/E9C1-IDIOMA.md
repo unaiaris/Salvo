@@ -45,7 +45,8 @@ en Brasil.
   repetir con otra cara: un arreglo que no alcanza a lo ya guardado no está terminado, y acá lo ya
   guardado son las filas de explicación.
 - `Coordination/Handoffs/Claude.md`, entrada de **`E9B`**, sección «Riesgos o pendientes»: el
-  décimo código de fallo que esta tarea implementa, y por qué el noveno miente.
+  décimo código de fallo que esta tarea implementa, y por qué el que se usa hoy
+  —`PROVIDER_UNAVAILABLE`, el **primero** de la enumeración— miente.
 - `DesignAgent/Salvo-Blueprint.md`: §5.3, §6 y las decisiones **33**, **57** y **58**.
 - `DesignAgent/Salvo-Progress.md`, checklist «Etapa 9», el ítem «Idioma del despliegue».
 - Código, abierto antes de escribir nada:
@@ -109,13 +110,37 @@ Esta es la parte que no es cosmética, y hay **dos** índices que tocar, no uno:
 La columna es `NOT NULL` con un `CHECK` que la limita a los idiomas conocidos, y las filas
 existentes migran a `es`, que es el idioma en el que fueron escritas.
 
+**Y el índice no alcanza: hay tres costuras de consulta que tienen que filtrar por idioma**, y son
+las que convierten la columna en comportamiento en vez de en una columna:
+
+- `FindAsync` en `backend/src/Salvo.Infrastructure/Persistence/EfExplanationStore.cs` (línea 73)
+  busca por los cuatro campos de la identidad. Es la que decide si hay que escribir una fila nueva.
+- `ReserveAsync`, en el mismo archivo (línea 89), es la que la escribe y la que choca contra el
+  índice parcial.
+- **`GetExplanationsAsync` en `backend/src/Salvo.Infrastructure/Persistence/EfAlertStore.cs`
+  (línea 268) es la lectura que la consola usa**, y es la más fácil de olvidar: si no filtra por
+  idioma, un despliegue en portugués abre una alerta y le muestra el párrafo castellano que ya
+  estaba escrito. La fila portuguesa existiría y nadie la vería. **Ese es el defecto de `E7D` otra
+  vez**, esta vez del lado de la lectura.
+
+Por el mismo camino baja hoy la versión de plantilla vigente, en
+`backend/src/Salvo.Application/Alerts/AlertProjection.cs` y
+`backend/src/Salvo.Application/Alerts/GetAlertHandler.cs`, y ahí es donde
+`WrittenByAnotherTemplate` se calcula al leer. El equivalente para el idioma se decide en la tarea,
+pero el camino se reserva entero: sub-reservar es lo que rompió `E7A` a mitad de ejecución.
+
 **El décimo `ExplanationFailureCode` entra en esta misma migración.** Hoy una evaluación `e3-v1` sin
 campos falla con `PROVIDER_UNAVAILABLE`, que **es falso**: no se llama a ningún proveedor, y un
 analista que lea «el proveedor falló antes de responder» sale a depurar un proveedor que nunca se
 invocó. Los nueve códigos están enumerados en `ck_alert_explanations_failure_code`, así que un
 décimo exige tocar el `CHECK` — y ya que hay una migración, va en ella. El código nuevo necesita su
-nombre de cable, su entrada en `frontend/src/lib/api/messages.ts` con su test de exactitud (decisión 57), y su rótulo en
-los dos idiomas.
+nombre de cable y su rótulo en los dos idiomas. **Ese rótulo va a
+`EXPLANATION_FAILURE_LABELS`, en `frontend/src/lib/format.ts` (líneas 303 a 315), donde están los
+nueve — no a `messages.ts`.** La decisión 57 gobierna `CONSOLE_CODES`, que es el catálogo de lo que
+los endpoints emiten **como problema** y cuyo test lo afirma con `toEqual`; un código de fallo de
+explicación es el valor de un campo dentro de un `200` y nunca fue de ese catálogo. Los nueve
+rótulos existentes son además nueve literales en castellano dentro de `format.ts`, así que entran al
+diccionario como todo lo demás.
 
 **La versión de plantilla no sube.** El idioma no es una versión de plantilla: `e7-v2` en castellano
 y `e7-v2` en portugués son dos filas que se distinguen por la columna nueva. Subir la versión
@@ -210,9 +235,12 @@ sola comprobación es la que distingue esta tarea de un `find` y `replace`.
 
 **Frontend**
 
-- `frontend/src/**` — es la tarea que toca los 52 archivos, y reservar menos sería mentir. Con dos
-  excepciones que **no** entran salvo por sus literales: `frontend/src/lib/api/guards.ts` y
-  `frontend/src/lib/api/schema.d.ts`, que son el borde del contrato.
+- `frontend/src/**` — es la tarea que toca los 52 archivos, y reservar menos sería mentir.
+  **`frontend/src/lib/api/guards.ts` entra de lleno, no «solo por sus literales»**: el idioma viaja
+  en `capabilities`, y `projectCapabilities` (línea 782) proyecta campo por campo y devuelve un
+  literal con exactamente dos. En cuanto se recaptura el esquema, `Capabilities` gana un campo y ese
+  archivo **deja de compilar** hasta que lo proyecte. Es la primera lección de la Etapa 7, textual:
+  la guarda descarta lo que no conoce.
 - `frontend/openapi/salvo-openapi.json` y `frontend/src/lib/api/schema.d.ts`, **solo recaptura** por
   el campo nuevo de `capabilities` y el código de fallo nuevo.
 
@@ -220,7 +248,12 @@ sola comprobación es la que distingue esta tarea de un `find` y `replace`.
 
 - `.env.example`
 - `scripts/smoke-ui.sh`
-- `DesignAgent/Salvo-Blueprint.md`, **solo** las tres entradas del punto 7
+- `DesignAgent/Salvo-Blueprint.md`: las tres entradas del punto 7, **más §7 y §9**, que esta tarea
+  desfasa y que por lo tanto se corrigen acá y no en `E9D`. §7 declara la identidad de
+  `AlertExplanation` con cuatro campos y la unicidad parcial sobre dos, y las dos pasan a llevar el
+  idioma; el bloque dotenv de §9 conserva `BUSINESS_TIMEZONE`, no tiene `SALVO_LANGUAGE`, y dice que
+  «la Etapa 9 la saca o la conecta». `check-docs.sh` solo lee el README, así que la compuerta **no**
+  detecta este desfase: lo detecta quien lo lea
 - `Coordination/Handoffs/Claude.md`
 
 Todo comportamiento modificado lleva su test, como exige `AGENTS.md`.
@@ -258,6 +291,14 @@ está reservado por `E9D`. Si hay que renombrar uno, la tarea para y consulta.
 - [ ] **La comprobación central**: con una explicación ya escrita en castellano, cambiar a `pt` y
       pedir la explicación de la misma alerta escribe una fila nueva, y la castellana queda intacta.
 - [ ] Dos reservas `PENDING` en idiomas distintos sobre la misma evaluación **no violan el índice**.
+- [ ] **La lectura que la consola usa filtra por idioma**: un despliegue en portugués no muestra el
+      párrafo castellano de una alerta ya explicada.
+- [ ] `projectCapabilities` proyecta el campo nuevo, y una respuesta sin ese campo se descarta.
+- [ ] `describeRecordError` sale en los dos idiomas, con su test — es el ítem «códigos de error de
+      fila traducidos» del checklist.
+- [ ] El rótulo del código nuevo está en `EXPLANATION_FAILURE_LABELS` de `frontend/src/lib/format.ts`
+      y **no** en `CONSOLE_CODES`.
+- [ ] §7 y §9 del Blueprint dicen lo que el código hace.
 - [ ] `ExplanationGoldenTests` pasa **sin tocar un solo texto**.
 - [ ] Una clave que falta en un idioma es **error de compilación**, no un texto en el otro idioma ni
       una clave cruda en pantalla.
@@ -281,6 +322,9 @@ está reservado por `E9D`. Si hay que renombrar uno, la tarea para y consulta.
 | Sin variable | Todo en castellano, como hoy |
 | Explicación en `es`, cambio a `pt`, misma alerta | Fila nueva; la castellana intacta |
 | Dos `PENDING` en idiomas distintos | Sin violación de índice |
+| Alerta explicada en `es`, despliegue en `pt` | La consola muestra el párrafo portugués |
+| `projectCapabilities` sin el campo nuevo | La respuesta se descarta |
+| `describeRecordError` en los dos idiomas | Con su test |
 | `ExplanationGoldenTests` | Textos castellanos idénticos |
 | Clave faltante en `pt` | Error de compilación |
 | Evaluación `e3-v1` sin campos | El código nuevo, no `PROVIDER_UNAVAILABLE` |
@@ -301,6 +345,10 @@ y se deshace:
    ningún test se pone rojo. Anotar exactamente eso: que el modo de falla es invisible.
 4. `SALVO_LANGUAGE=fr` → la API no arranca.
 5. Dejar `PROVIDER_UNAVAILABLE` en la evaluación `e3-v1` → el test del código nuevo falla.
+6. Sacar el filtro por idioma de `GetExplanationsAsync` → la fila portuguesa se escribe y la consola
+   sigue mostrando la castellana. **La fila correcta existe y nadie la ve**: es el modo de falla más
+   caro de la tarea, porque todo lo demás está verde.
+7. Dejar `projectCapabilities` sin tocar tras la recaptura → no compila.
 
 ## Decisiones delegadas
 
@@ -317,7 +365,8 @@ y se deshace:
 - la migración obliga a reescribir alguna fila que no sea poner `es` en la columna nueva;
 - hace falta una dependencia de i18n;
 - hace falta tocar `tools/capturas/**` o renombrar un test que el README nombra;
-- el idioma no puede llegar a `<html lang>` sin leer la variable desde el proceso de Next;
+- el idioma no puede llegar a `<html lang>` sin leer la variable desde el proceso de Next, o
+  aparece un camino más barato que conserve el origen único sin volver dinámica la raíz;
 - la pasada `pt` del smoke exige duplicar las 42 anclas.
 
 ## Entrega requerida
