@@ -316,7 +316,10 @@ expect_text "/dashboard" "Pedidos y denegados por semana"
 expect_text "/dashboard" "Calidad del criterio"
 expect_text "/dashboard" "no la calidad del criterio de detección"
 # La suma de las tres monedas del corpus demo. Es una cifra sin unidad y no puede estar en pantalla.
-expect_no_text "/dashboard" "3.942.246"
+expect_no_text "/dashboard" "3.731.104"
+# El panel de la Etapa 9: existe siempre, y sin evaluaciones externas dice por qué está vacío.
+expect_text "/dashboard" "Denegados por el proveedor sin alerta local"
+expect_text "/dashboard" "nadie pidió todavía la evaluación externa"
 
 # ------------------------------------------------------------------- 1b. con evaluación externa
 #
@@ -339,6 +342,12 @@ curl -sS -X POST --max-time 120 -H 'Content-Type: application/json' -d '{}' \
 expect_text "/alerts/${alert_id}" "por el proveedor"
 expect_text "/alerts/${alert_id}" "no se compara con el score local"
 expect_no_text "/alerts/${alert_id}" "Solicitar evaluación externa"
+
+# Y el panel del dashboard, que es la única pantalla donde aparece un pedido sin alerta. Los tres
+# arquetipos de fraude que el motor no puede ver llevan referencias que el proveedor deniega, así
+# que tienen que estar acá: `ORD_000275` es el fraude amigo y `ORD_000277` la cuenta tomada.
+expect_text "/dashboard" "ORD_000275"
+expect_text "/dashboard" "ORD_000277"
 
 # El callback autenticado falla cerrado: esta API arranca sin secreto configurado, así que no entra
 # ninguna petición, con cabecera o sin ella. Se comprueba contra la API y no contra la consola,

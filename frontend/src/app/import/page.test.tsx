@@ -1,7 +1,7 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { jsonResponse, wireCapabilities, wireDashboard } from "@/test/fixtures";
+import { jsonResponse, wireCapabilities, wireDashboard, wireSeedPreview } from "@/test/fixtures";
 import { renderableServerTree } from "@/test/server-tree";
 import ImportPage from "./page";
 
@@ -22,17 +22,22 @@ afterEach(() => {
 function respondWith({
   demoDataEnabled = true,
   dashboard = wireDashboard(),
+  seedPreview = wireSeedPreview(),
 }: {
   demoDataEnabled?: boolean;
   dashboard?: unknown;
+  seedPreview?: unknown;
 } = {}) {
-  fetchMock.mockImplementation((url: URL) =>
-    Promise.resolve(
-      url.pathname === "/api/system/capabilities"
-        ? jsonResponse(wireCapabilities({ demoDataEnabled }))
-        : jsonResponse(dashboard),
-    ),
-  );
+  fetchMock.mockImplementation((url: URL) => {
+    switch (url.pathname) {
+      case "/api/system/capabilities":
+        return Promise.resolve(jsonResponse(wireCapabilities({ demoDataEnabled })));
+      case "/api/demo-data/seed-preview":
+        return Promise.resolve(jsonResponse(seedPreview));
+      default:
+        return Promise.resolve(jsonResponse(dashboard));
+    }
+  });
 }
 
 async function renderImport() {
@@ -117,5 +122,40 @@ describe("pantalla de importación", () => {
     expect(screen.getAllByText("No se pudo contactar a la API").length).toBeGreaterThan(0);
     // La importación no depende de poder leer el estado, así que el formulario sigue disponible.
     expect(screen.getByRole("button", { name: "Importar pedidos" })).toBeInTheDocument();
+  });
+});
+
+describe("el ensayo del corpus, antes del clic", () => {
+  it("no dice nada cuando la base puede tomar el corpus", async () => {
+    respondWith();
+    await renderImport();
+
+    expect(screen.queryByText(/versión anterior del corpus/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cargar corpus de demostración" })).toBeInTheDocument();
+  });
+
+  it("avisa que la base tiene la versión anterior, y dice que hace falta una base nueva", async () => {
+    respondWith({ seedPreview: wireSeedPreview({ conflict: "PREVIOUS_CORPUS", ordersToInsert: 0 }) });
+    await renderImport();
+
+    const notice = screen.getByRole("status", { name: /versión anterior del corpus/i });
+    expect(within(notice).getByText(/exige una base nueva/i)).toBeInTheDocument();
+    // Y dice lo que le pasa a la base que ya está, porque es la pregunta siguiente.
+    expect(within(notice).getByText(/no se toca ni se pierde/i)).toBeInTheDocument();
+  });
+
+  it("distingue el otro conflicto: pedidos importados con las mismas referencias", async () => {
+    respondWith({ seedPreview: wireSeedPreview({ conflict: "IMPORTED_ORDERS" }) });
+    await renderImport();
+
+    expect(screen.getByRole("status", { name: /pedidos importados/i })).toBeInTheDocument();
+    expect(screen.queryByText(/versión anterior del corpus/i)).not.toBeInTheDocument();
+  });
+
+  it("no pide el ensayo cuando la instancia no se declara de demostración", async () => {
+    respondWith({ demoDataEnabled: false });
+    await renderImport();
+
+    expect(requestedPaths()).not.toContain("/api/demo-data/seed-preview");
   });
 });

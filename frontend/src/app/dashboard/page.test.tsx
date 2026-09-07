@@ -107,7 +107,9 @@ describe("dashboard operativo", () => {
     await renderDashboard();
 
     const panel = screen.getByRole("region", { name: /Fraude reportado/ });
-    expect(within(panel).getByText("2 pedidos")).toBeInTheDocument();
+    expect(
+      within(panel).getByText((_, element) => element?.textContent === "2 pedidos"),
+    ).toBeInTheDocument();
     expect(within(panel).getByText(/UYU/)).toBeInTheDocument();
   });
 
@@ -295,3 +297,52 @@ describe("sección de calidad", () => {
     expect(screen.getByRole("rowheader", { name: /60 · elegido/ })).toBeInTheDocument();
   });
 });
+
+describe("panel de denegados por el proveedor sin alerta local", () => {
+  it("muestra el conteo y los pedidos, con el score local al lado del veredicto externo", async () => {
+    respondWith();
+    await renderDashboard();
+
+    const panel = screen.getByRole("region", { name: /Denegados por el proveedor sin alerta local/ });
+    const rows = within(panel).getAllByRole("row");
+
+    // Encabezado más las dos filas de la fixture.
+    expect(rows).toHaveLength(3);
+    expect(within(panel).getByRole("rowheader", { name: "ORD_000275" })).toBeInTheDocument();
+    expect(
+      within(panel).getByText((_, element) => element?.textContent === "2 pedidos"),
+    ).toBeInTheDocument();
+    // El score local viaja con cada fila: sin él la fila dice que hay desacuerdo y no cuál.
+    expect(within(rows[1]!).getByText("0")).toBeInTheDocument();
+    // Y un pedido que la corrida vigente no cubre se dice con palabras, no con un cero.
+    expect(within(panel).getByText("sin puntuar")).toBeInTheDocument();
+  });
+
+  it("explica el panel vacío en vez de desaparecer", async () => {
+    respondWith({
+      dashboard: wireDashboard({
+        externalDenialsWithoutAlert: { total: 0, listed: 0, items: [] },
+      }),
+    });
+    await renderDashboard();
+
+    const panel = screen.getByRole("region", { name: /Denegados por el proveedor sin alerta local/ });
+    expect(within(panel).getByText(/nadie pidió todavía la evaluación externa/i)).toBeInTheDocument();
+    expect(within(panel).queryByRole("table")).not.toBeInTheDocument();
+  });
+
+  it("dice cuántos lista cuando no los lista todos", async () => {
+    respondWith({ dashboard: wireDashboard({ externalDenialsWithoutAlert: capped() }) });
+    await renderDashboard();
+
+    const panel = screen.getByRole("region", { name: /Denegados por el proveedor sin alerta local/ });
+    expect(within(panel).getByText(/se listan los 2 más recientes/i)).toBeInTheDocument();
+  });
+});
+
+/** El mismo panel con el total por encima de lo que lista. */
+function capped(): unknown {
+  const full = wireDashboard().externalDenialsWithoutAlert as { items: unknown[] };
+
+  return { total: 51, listed: 2, items: full.items };
+}
