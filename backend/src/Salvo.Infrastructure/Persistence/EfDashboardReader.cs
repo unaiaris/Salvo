@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Salvo.Application.Dashboard;
 using Salvo.Domain.Alerts;
+using Salvo.Domain.External;
 using Salvo.Domain.Risk;
 
 namespace Salvo.Infrastructure.Persistence;
@@ -95,5 +96,54 @@ public sealed class EfDashboardReader(SalvoDbContext dbContext) : IDashboardRead
                           order.OccurredAt,
                           evaluation.Status == RiskEvaluationStatus.Denied))
             .ToListAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Orders a provider denied that never produced an alert, newest first.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// "No alert" means no alert row at all, not "no open alert": an order whose alert an analyst
+    /// already judged was surfaced, and this panel is about the ones that never were.
+    /// </para>
+    /// <para>
+    /// The distinct projection matters because an order can hold more than one external evaluation
+    /// over its life — a failed attempt is retried as a new row — and the panel counts orders.
+    /// </para>
+    /// </remarks>
+    public async Task<ExternalDenialPage> GetExternalDenialsWithoutAlertAsync(
+        Guid? runId,
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        var denied = from evaluation in dbContext.ExternalEvaluations.AsNoTracking()
+                     where evaluation.Status == ExternalEvaluationStatus.Denied
+                     join order in dbContext.Orders.AsNoTracking()
+                         on evaluation.OrderId equals order.Id
+                     where !dbContext.Alerts.Any(alert => alert.OrderId == order.Id)
+                     select order;
+        var orders = denied.Distinct();
+
+        var total = await orders.CountAsync(cancellationToken);
+        var page = await orders
+            .OrderByDescending(order => order.OccurredAt)
+            .ThenBy(order => order.MerchantReferenceId)
+            .Take(limit)
+            .Select(order => new ExternalDenialRow(
+                order.MerchantReferenceId,
+                order.OccurredAt,
+                order.AmountCents,
+                order.CurrencyCode,
+                order.CountryCode,
+                runId == null
+                    ? null
+                    : (from link in dbContext.RunEvaluations
+                       where link.RunId == runId && link.OrderId == order.Id
+                       join evaluation in dbContext.RiskEvaluations
+                           on link.EvaluationId equals evaluation.Id
+                       select evaluation.Score).FirstOrDefault()))
+            .ToListAsync(cancellationToken);
+
+        return new(total, page);
     }
 }

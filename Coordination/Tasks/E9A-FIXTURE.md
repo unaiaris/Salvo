@@ -9,8 +9,9 @@
 - Coordinador: Unai Arismendes
 - Fecha: 2026-09-07
 - Rama/worktree: `claude/e9a-fixture`
-- Commit base: se escribe **en la rama**, después de crearla. El commit que declara la base pasa a
-  ser la base si va en `main`: lección de `E8B`.
+- Commit base: `82f9804`, el `merge-base` real de `claude/e9a-fixture` con `main`. **Esta línea se
+  commitea en la rama, no en `main`**: un commit que declara la base y va a `main` pasa a ser la
+  base y vuelve falso el campo que acaba de escribir. Es la lección de `E8B`.
 - Modelo y esfuerzo acordados: **Opus 5 · `high`**. Con una advertencia honesta sobre dónde está el
   riesgo: no en la capacidad del modelo sino en la **búsqueda aritmética**. Cada arquetipo tiene que
   caer en una celda exacta de la matriz, y eso se consigue tanteando montos, instantes y referencias
@@ -34,6 +35,8 @@ de que el argumento del efecto de red se vea en pantalla y no solo en el README.
   hallazgos **2, 3, 6, 9 y 10**.
 - `DesignAgent/Salvo-Blueprint.md`: §4.1 —`countryCode` es el país de la sesión—, §4.2, §7 —qué
   significa `isFraudLabel`—, §11 y las decisiones 23, 26, 37 y 63.
+- `DesignAgent/Salvo-Progress.md`, checklist «Etapa 9 — Corpus, idiomas y cierre»: los cuatro
+  primeros ítems son los que esta tarea cierra.
 - `Coordination/Handoffs/Claude.md`, entrada de `E8A`: **el inventario de cifras del corpus** que
   esta tarea invalida.
 - Código: `TemporalRiskEngine`, `RiskMetricsEvaluator`, `SeedDemoOrdersHandler`,
@@ -51,6 +54,9 @@ de que el argumento del efecto de red se vea en pantalla y no solo en el README.
 - **Los mismos tres `merchantId` y las mismas 300 referencias** `ORD_000001`–`ORD_000300`. No es
   cosmético: la referencia es `merchantId:merchantReferenceId`, así que renombrar un comercio anula
   el guardián de conflicto y deja convivir dos corpus contradictorios.
+- **Trescientos pedidos y trescientas etiquetas**, como manda la decisión 19. Lo que cambia es el
+  reparto: los 18 fraudes y 282 legítimos del §4.1 son del corpus v1, y la **decisión 65** los
+  declara propios de esa versión.
 - **Países en el corredor UTC−3** —Uruguay, Brasil, Argentina—. Fuera de él las franjas horarias
   dejan de coincidir con `BusinessTimeZone` y la explicación diría «franja de 18:00 a 24:00, hora
   del comercio» sobre un comercio que cerró a las 18.
@@ -122,15 +128,37 @@ como decisión 63: el umbral es una política de negocio, no el resultado del ba
 
 ### Paths autorizados
 
+**Backend**
+
 - `backend/src/Salvo.Infrastructure/Seed/**`
-- `backend/src/Salvo.Application/Orders/Seed/**`
-- `backend/src/Salvo.Application/Dashboard/**` y `backend/src/Salvo.Api/**`
+- `backend/src/Salvo.Infrastructure/Persistence/EfDashboardReader.cs`, la única implementación de
+  `IDashboardReader`, donde vive la consulta del panel
+- `backend/src/Salvo.Application/Orders/Seed/**` y `backend/src/Salvo.Application/Dashboard/**`
+- `backend/src/Salvo.Api/**`
 - `backend/tests/**`
-- `frontend/src/app/dashboard/**`, `frontend/src/app/alerts/[id]/divergence.ts`,
-  `frontend/src/lib/api/messages.ts` y `format.ts`, `frontend/src/test/fixtures.ts`
+
+**Frontend** — el punto 4 pide que la consola avise antes del clic, el 5 un panel y el 6 un aviso
+corregido; nada de eso cabe en `dashboard/**` solo:
+
+- `frontend/src/app/dashboard/**`
+- `frontend/src/app/import/**`, incluidos `page.tsx`, `corpus-actions.tsx`, `actions.ts` y sus tests
+- `frontend/src/app/alerts/[id]/divergence.ts` y `divergence.test.ts`
+- `frontend/src/lib/api/guards.ts` y `guards.test.ts` — la guarda **descarta lo que no conoce**, así
+  que ni el panel ni el resultado del ensayo llegan a pantalla sin tocarla
+- `frontend/src/lib/api/contract.ts` y `console.ts`, donde viven los tipos de cable y el fetch
+- `frontend/src/lib/api/messages.ts` y `messages.test.ts` — `CONSOLE_CODES` es una lista escrita a
+  mano y el código nuevo no entra sin editarla
+- `frontend/src/lib/format.ts` (**no** `lib/api/format.ts`, que no existe)
+- `frontend/src/test/fixtures.ts`
 - `frontend/openapi/salvo-openapi.json` y `frontend/src/lib/api/schema.d.ts`, solo recaptura
+
+**Otros**
+
 - `scripts/smoke-ui.sh`, solo si una comprobación fija una cifra del corpus
 - `Coordination/Handoffs/Claude.md`
+
+Todo comportamiento modificado lleva su test, como exige `AGENTS.md`: eso incluye `divergence.ts`,
+la guarda y el panel.
 
 ### Paths reservados por otros trabajos
 

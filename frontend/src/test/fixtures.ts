@@ -53,12 +53,15 @@ export function wireAlertDetail(overrides: WirePayload = {}): WirePayload {
       severity: "CRITICAL",
       signals: [wireSignal(), wireSignal({ rule: "velocity", weight: 25, detail: "4 pedidos en 1 h." })],
     },
+    // The same evaluation as the snapshot, so it carries the same signals. It used to carry a
+    // shorter list under the same identifier, which no API response can produce: an evaluation is
+    // identified by a fingerprint over its own score and signals.
     currentEvaluation: {
       evaluationId: "3f3b7f3e-0000-4000-8000-000000000003",
       score: 100,
       severity: "CRITICAL",
       isFlagged: true,
-      signals: [wireSignal()],
+      signals: [wireSignal(), wireSignal({ rule: "velocity", weight: 25, detail: "4 pedidos en 1 h." })],
       evaluatedAt: "2026-08-31T10:02:00+00:00",
     },
     currentRun: { ...RUN },
@@ -219,6 +222,41 @@ export function wireDashboard(overrides: WirePayload = {}): WirePayload {
       { rule: "amount_anomaly", alertCount: 18 },
       { rule: "foreign_country", alertCount: 18 },
     ],
+    externalDenialsWithoutAlert: {
+      total: 2,
+      listed: 2,
+      items: [
+        {
+          merchantReferenceId: "ORD_000275",
+          occurredAt: "2026-08-18T22:47:00+00:00",
+          amountCents: 283_204,
+          currencyCode: "UYU",
+          countryCode: "UY",
+          localRiskScore: 0,
+        },
+        {
+          merchantReferenceId: "ORD_000079",
+          occurredAt: "2026-05-30T19:26:00+00:00",
+          amountCents: 274,
+          currencyCode: "USD",
+          countryCode: "AR",
+          localRiskScore: null,
+        },
+      ],
+    },
+    ...overrides,
+  };
+}
+
+/** What loading the demo corpus would do. No conflict unless a test asks for one. */
+export function wireSeedPreview(overrides: WirePayload = {}): WirePayload {
+  return {
+    datasetVersion: "2",
+    totalOrders: 300,
+    ordersToInsert: 300,
+    duplicateOrders: 0,
+    labelsToInsert: 300,
+    conflict: null,
     ...overrides,
   };
 }

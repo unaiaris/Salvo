@@ -147,7 +147,7 @@ public sealed class ExplanationGroundingTests
         await AlertTestCorpus.RunScoringAsync(client);
 
         var alerts = await AlertTestCorpus.ListAlertsAsync(client, "?status=OPEN&pageSize=200");
-        Assert.Equal(18, alerts.TotalCount);
+        Assert.Equal(23, alerts.TotalCount);
 
         foreach (var alert in alerts.Items)
         {

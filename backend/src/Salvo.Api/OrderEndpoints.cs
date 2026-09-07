@@ -34,8 +34,24 @@ public static class OrderEndpoints
             endpoints.MapPost("/api/demo-data/seed", SeedDemoOrdersAsync)
                 .WithName("SeedDemoOrders")
                 .WithTags("Demo data")
+                .WithDescription(
+                    "Loads the demo corpus. Idempotent: an order that is already there with the "
+                    + "same facts is left alone. It refuses without writing anything when the "
+                    + "database holds orders with these merchant references and different facts, "
+                    + "and says which of the two causes it is.")
                 .Produces<SeedDemoOrdersResult>(StatusCodes.Status200OK)
                 .ProducesProblem(StatusCodes.Status409Conflict);
+
+            endpoints.MapGet("/api/demo-data/seed-preview", PreviewDemoSeedAsync)
+                .WithName("GetDemoSeedPreview")
+                .WithTags("Demo data")
+                .WithDescription(
+                    "What loading the demo corpus would do, without doing it. The console reads it "
+                    + "when the import screen opens so that a database holding the previous corpus "
+                    + "is announced before the button is pressed rather than discovered by "
+                    + "pressing it. It runs the very same comparison the load runs, and writes "
+                    + "nothing.")
+                .Produces<DemoSeedPreviewResult>(StatusCodes.Status200OK);
         }
 
         return endpoints;
@@ -148,13 +164,25 @@ public static class OrderEndpoints
         {
             return TypedResults.Ok(await handler.HandleAsync(cancellationToken));
         }
-        catch (DemoSeedConflictException)
+        catch (DemoSeedConflictException exception)
         {
+            // Two codes rather than one. "The corpus you have is the previous version of this
+            // corpus" and "somebody imported orders that collide" lead to different next steps,
+            // and the earlier single code said neither.
             return CreateProblem(
                 StatusCodes.Status409Conflict,
-                "DEMO_DATA_CONFLICT",
-                "The demo dataset conflicts with existing immutable order data.");
+                exception.Reason == DemoSeedConflictReason.PreviousCorpus
+                    ? "DEMO_DATA_PREVIOUS_CORPUS"
+                    : "DEMO_DATA_CONFLICT",
+                exception.Message);
         }
+    }
+
+    private static async Task<IResult> PreviewDemoSeedAsync(
+        SeedDemoOrdersHandler handler,
+        CancellationToken cancellationToken)
+    {
+        return TypedResults.Ok(await handler.PreviewAsync(cancellationToken));
     }
 
     private static bool TryParseFormat(string? value, out OrderImportFormat format)

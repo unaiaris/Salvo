@@ -123,7 +123,7 @@ public sealed partial class ExplanationIsolationTests
         // Without this the test would also pass against a run in which nothing was explained, which
         // is the one case where changing nothing proves nothing.
         Assert.Equal(alerts.Count, written);
-        Assert.Equal(18, written);
+        Assert.Equal(23, written);
 
         Assert.Equal(dashboardBefore, await client.GetStringAsync("/api/dashboard"));
         Assert.Equal(feedBefore, await client.GetStringAsync("/api/alerts?sort=SCORE_DESC"));
@@ -157,7 +157,7 @@ public sealed partial class ExplanationIsolationTests
         // Non-vacuous on both sides: the labels really were there and really were inverted, and
         // there really are summaries to compare.
         Assert.Equal(300, changed);
-        Assert.Equal(18, expected.Count);
+        Assert.Equal(23, expected.Count);
         Assert.Equal(expected, observed);
     }
 

@@ -51,6 +51,29 @@ public sealed record DashboardRiskBucketView(DateOnly WeekStart, int OrderCount,
 /// <param name="AlertCount">Open alerts whose frozen snapshot carries this rule.</param>
 public sealed record DashboardSignalView(string Rule, int AlertCount);
 
+/// <param name="LocalRiskScore">
+/// What the current run scored the order, or <see langword="null"/> when the run does not cover it.
+/// </param>
+public sealed record DashboardExternalDenialView(
+    string MerchantReferenceId,
+    DateTimeOffset OccurredAt,
+    long AmountCents,
+    string CurrencyCode,
+    string CountryCode,
+    int? LocalRiskScore);
+
+/// <summary>
+/// Orders an external provider denied and the local rules never alerted on.
+/// </summary>
+/// <remarks>
+/// The count is over every such order; <paramref name="Items"/> is capped, because a dashboard
+/// panel is not a listing screen and an unbounded array is not a contract anybody should depend on.
+/// </remarks>
+public sealed record DashboardExternalDenialsView(
+    int Total,
+    int Listed,
+    IReadOnlyList<DashboardExternalDenialView> Items);
+
 /// <summary>
 /// The operational dashboard. Every field is derived from the deterministic evaluations of the
 /// current run and from the verdicts of the analyst; none of them reads
@@ -70,4 +93,5 @@ public sealed record DashboardResult(
     IReadOnlyList<DashboardReportedFraudView> ReportedFraud,
     decimal? FlagRate,
     IReadOnlyList<DashboardRiskBucketView> RiskOverTime,
-    IReadOnlyList<DashboardSignalView> TopSignals);
+    IReadOnlyList<DashboardSignalView> TopSignals,
+    DashboardExternalDenialsView ExternalDenialsWithoutAlert);

@@ -117,6 +117,8 @@ export type DashboardAmountAtRisk = ApiView<Schemas["DashboardAmountAtRiskView"]
 export type DashboardReportedFraud = ApiView<Schemas["DashboardReportedFraudView"]>;
 export type DashboardRiskBucket = ApiView<Schemas["DashboardRiskBucketView"]>;
 export type DashboardSignal = ApiView<Schemas["DashboardSignalView"]>;
+export type DashboardExternalDenial = ApiView<Schemas["DashboardExternalDenialView"]>;
+export type DashboardExternalDenials = ApiView<Schemas["DashboardExternalDenialsView"]>;
 export type Dashboard = ApiView<Schemas["DashboardResult"]>;
 
 export type ConfusionMatrix = ApiView<Schemas["ConfusionMatrixView"]>;
@@ -128,6 +130,18 @@ export type ImportRecordError = ApiView<Schemas["ImportRecordError"]>;
 export type ImportResult = ApiView<Schemas["ImportOrdersResult"]>;
 export type ScoringRunSummary = ApiView<Schemas["ScoringRunSummary"]>;
 export type SeedResult = ApiView<Schemas["SeedDemoOrdersResult"]>;
+export type SeedPreview = ApiView<Schemas["DemoSeedPreviewResult"]>;
+
+/**
+ * Why loading the demo corpus would be refused.
+ *
+ * The console reads it before the button is pressed, so that a database holding the previous
+ * version of the corpus is announced rather than discovered.
+ */
+export const SEED_CONFLICT = {
+  previousCorpus: "PREVIOUS_CORPUS",
+  importedOrders: "IMPORTED_ORDERS",
+} as const;
 
 /**
  * The severity bands the dashboard always shows, in the order it shows them.

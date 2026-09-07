@@ -1,3 +1,6 @@
+using System.Buffers;
+using System.Text;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Salvo.Application.External;
@@ -14,11 +17,20 @@ public sealed class ExternalEvaluationIsolationTests
     /// nothing about the local one.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// The same shape as the differential test of the dashboard, and for the same reason: a
     /// reflection test over types could not see a join added inside an EF store. This one creates
     /// external evaluations in all four states and demands the same bytes back from the three
     /// surfaces that describe the local criterion — the dashboard, the feed ordered by score, and
     /// the quality metrics. Connect any of them to <c>external_evaluations</c> and it fails.
+    /// </para>
+    /// <para>
+    /// One panel of the dashboard is exempt, and it is exempt by name: «denied by the provider
+    /// without a local alert» exists precisely to report external verdicts, so it is compared
+    /// separately and has to move. Excluding it by name rather than loosening the comparison is
+    /// what keeps the assertion able to fail: any other field that started depending on the
+    /// provider would still show up as different bytes.
+    /// </para>
     /// </remarks>
     [Fact]
     public async Task ExternalEvaluationsChangeNothingAboutTheLocalCriterion()
@@ -49,9 +61,14 @@ public sealed class ExternalEvaluationIsolationTests
             ],
             states.Order());
 
-        Assert.Equal(dashboardBefore, dashboardAfter);
+        Assert.Equal(WithoutExternalPanel(dashboardBefore), WithoutExternalPanel(dashboardAfter));
         Assert.Equal(feedBefore, feedAfter);
         Assert.Equal(metricsBefore, metricsAfter);
+
+        // And the one panel that is meant to move did move. Without this the exclusion above would
+        // be a way of not looking.
+        Assert.Equal(0, ExternalPanelTotal(dashboardBefore));
+        Assert.Equal(1, ExternalPanelTotal(dashboardAfter));
     }
 
     /// <summary>
@@ -93,9 +110,49 @@ public sealed class ExternalEvaluationIsolationTests
                 .ToListAsync());
         }
 
-        Assert.Equal(dashboardBefore, await client.GetStringAsync("/api/dashboard"));
+        var dashboardAfter = await client.GetStringAsync("/api/dashboard");
+
+        Assert.Equal(WithoutExternalPanel(dashboardBefore), WithoutExternalPanel(dashboardAfter));
         Assert.Equal(feedBefore, await client.GetStringAsync("/api/alerts?sort=SCORE_DESC"));
         Assert.Equal(metricsBefore, await client.GetStringAsync("/api/evaluation-metrics"));
+
+        // The callbacks settle the pending band into verdicts, so the panel grows: nine of the
+        // twenty-one pending evaluations come back denied.
+        Assert.True(ExternalPanelTotal(dashboardAfter) > ExternalPanelTotal(dashboardBefore));
+    }
+
+    /// <summary>
+    /// The dashboard without the one panel that reports external verdicts.
+    /// </summary>
+    private static string WithoutExternalPanel(string dashboard)
+    {
+        using var document = JsonDocument.Parse(dashboard);
+        var buffer = new ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
+            writer.WriteStartObject();
+            foreach (var property in document.RootElement.EnumerateObject())
+            {
+                if (!property.NameEquals("externalDenialsWithoutAlert"))
+                {
+                    property.WriteTo(writer);
+                }
+            }
+
+            writer.WriteEndObject();
+        }
+
+        return Encoding.UTF8.GetString(buffer.WrittenSpan);
+    }
+
+    private static int ExternalPanelTotal(string dashboard)
+    {
+        using var document = JsonDocument.Parse(dashboard);
+
+        return document.RootElement
+            .GetProperty("externalDenialsWithoutAlert")
+            .GetProperty("total")
+            .GetInt32();
     }
 
     /// <summary>

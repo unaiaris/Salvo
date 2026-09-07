@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { FailureNotice } from "@/components/failure-notice";
+import type { ApiResult } from "@/lib/api/failures";
+import type { SeedPreview } from "@/lib/api/contract";
 import { Provenance } from "@/components/provenance";
-import { fetchCapabilities, fetchDashboard } from "@/lib/api/console";
-import { IMPORT_MAX_FILE_BYTES } from "@/lib/api/contract";
+import { fetchCapabilities, fetchDashboard, fetchSeedPreview } from "@/lib/api/console";
+import { IMPORT_MAX_FILE_BYTES, SEED_CONFLICT } from "@/lib/api/contract";
 import { formatCount } from "@/lib/format";
 import { ActionSection } from "./action-section";
 import {
@@ -34,6 +36,11 @@ const MAX_FILE_MIB = IMPORT_MAX_FILE_BYTES / (1024 * 1024);
  */
 export default async function ImportPage() {
   const [capabilities, dashboard] = await Promise.all([fetchCapabilities(), fetchDashboard()]);
+  // Asked for only where the route exists, like the quality metrics of the dashboard. It says
+  // what loading the corpus would do, so a database that cannot take it is announced here rather
+  // than discovered by pressing the button.
+  const demoEnabled = capabilities.ok && capabilities.value.demoDataEnabled;
+  const seedPreview = demoEnabled ? await fetchSeedPreview() : null;
 
   return (
     <div className="flex flex-col gap-8">
@@ -59,15 +66,17 @@ export default async function ImportPage() {
         <FailureNotice failure={dashboard.failure} />
       )}
 
-      {capabilities.ok && capabilities.value.demoDataEnabled && (
+      {demoEnabled && (
         <ActionSection
           title="Corpus de demostración"
           description={
             "Trescientos pedidos sintéticos con sus etiquetas de fraude, pensados para poder medir "
-            + "el criterio. La carga es idempotente: repetirla no duplica nada. Esta sección existe "
-            + "solo porque esta instancia se declara de demostración."
+            + "el criterio: incluye fraude que las reglas locales no pueden ver y pedidos legítimos "
+            + "que sí marcan. La carga es idempotente: repetirla no duplica nada. Esta sección "
+            + "existe solo porque esta instancia se declara de demostración."
           }
         >
+          <SeedConflictNotice preview={seedPreview} />
           <SeedDemoButton />
         </ActionSection>
       )}
@@ -112,6 +121,47 @@ export default async function ImportPage() {
         </ActionSection>
       )}
     </div>
+  );
+}
+
+/**
+ * What loading the corpus would run into, said before the button is pressed.
+ *
+ * The two causes need different words. An earlier version of this same corpus cannot coexist with
+ * the current one — an order is immutable and both versions use the same merchant references — so
+ * the answer is a new database. Imported orders that happen to collide are somebody's file, and the
+ * answer is to leave the corpus alone.
+ *
+ * A preview that failed renders nothing: it is a courtesy, and the load itself still refuses with
+ * its own message. Announcing "we could not check" would be noise on a screen that has none.
+ */
+function SeedConflictNotice({ preview }: { readonly preview: ApiResult<SeedPreview> | null }) {
+  if (preview === null || !preview.ok || preview.value.conflict === null) {
+    return null;
+  }
+
+  const previous = preview.value.conflict === SEED_CONFLICT.previousCorpus;
+
+  return (
+    <section
+      role="status"
+      aria-labelledby="seed-conflict-title"
+      className="rounded-md border-l-4 border-amber-500 bg-amber-50 p-4 text-sm leading-6 text-amber-950"
+    >
+      <h3 id="seed-conflict-title" className="font-semibold">
+        {previous
+          ? "Esta base tiene una versión anterior del corpus de demostración"
+          : "Esta base tiene pedidos importados con las mismas referencias"}
+      </h3>
+      <p className="mt-1">
+        {previous
+          ? `Cargar la versión ${preview.value.datasetVersion} exige una base nueva: un pedido es `
+            + "inmutable, así que las dos versiones no pueden convivir bajo las mismas referencias "
+            + "de comercio. La base actual no se toca ni se pierde: deja de ser la de demostración."
+          : "Los pedidos que ya están usan las mismas referencias que la fixture y tienen otros "
+            + "datos. La carga se cancela entera antes que pisar ninguno."}
+      </p>
+    </section>
   );
 }
 

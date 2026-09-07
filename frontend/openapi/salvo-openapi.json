@@ -171,6 +171,7 @@
         "tags": [
           "Demo data"
         ],
+        "description": "Loads the demo corpus. Idempotent: an order that is already there with the same facts is left alone. It refuses without writing anything when the database holds orders with these merchant references and different facts, and says which of the two causes it is.",
         "operationId": "SeedDemoOrders",
         "responses": {
           "200": {
@@ -189,6 +190,27 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/demo-data/seed-preview": {
+      "get": {
+        "tags": [
+          "Demo data"
+        ],
+        "description": "What loading the demo corpus would do, without doing it. The console reads it when the import screen opens so that a database holding the previous corpus is announced before the button is pressed rather than discovered by pressing it. It runs the very same comparison the load runs, and writes nothing.",
+        "operationId": "GetDemoSeedPreview",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoSeedPreviewResult"
                 }
               }
             }
@@ -1743,6 +1765,81 @@
           }
         }
       },
+      "DashboardExternalDenialsView": {
+        "required": [
+          "total",
+          "listed",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "listed": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardExternalDenialView"
+            }
+          }
+        }
+      },
+      "DashboardExternalDenialView": {
+        "required": [
+          "merchantReferenceId",
+          "occurredAt",
+          "amountCents",
+          "currencyCode",
+          "countryCode",
+          "localRiskScore"
+        ],
+        "type": "object",
+        "properties": {
+          "merchantReferenceId": {
+            "type": "string"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "amountCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "currencyCode": {
+            "type": "string"
+          },
+          "countryCode": {
+            "type": "string"
+          },
+          "localRiskScore": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "DashboardOpenAlertsView": {
         "required": [
           "total",
@@ -1804,7 +1901,8 @@
           "reportedFraud",
           "flagRate",
           "riskOverTime",
-          "topSignals"
+          "topSignals",
+          "externalDenialsWithoutAlert"
         ],
         "type": "object",
         "properties": {
@@ -1861,6 +1959,9 @@
             "items": {
               "$ref": "#/components/schemas/DashboardSignalView"
             }
+          },
+          "externalDenialsWithoutAlert": {
+            "$ref": "#/components/schemas/DashboardExternalDenialsView"
           }
         }
       },
@@ -1976,6 +2077,60 @@
               "string"
             ],
             "format": "uuid"
+          }
+        }
+      },
+      "DemoSeedPreviewResult": {
+        "required": [
+          "datasetVersion",
+          "totalOrders",
+          "ordersToInsert",
+          "duplicateOrders",
+          "labelsToInsert",
+          "conflict"
+        ],
+        "type": "object",
+        "properties": {
+          "datasetVersion": {
+            "type": "string"
+          },
+          "totalOrders": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "ordersToInsert": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "duplicateOrders": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "labelsToInsert": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "conflict": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

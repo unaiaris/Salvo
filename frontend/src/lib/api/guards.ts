@@ -23,6 +23,8 @@ import type {
   DashboardRiskBucket,
   DashboardScoringRun,
   DashboardSeverityCount,
+  DashboardExternalDenial,
+  DashboardExternalDenials,
   DashboardSignal,
   EvaluationMetrics,
   ExplanationOutcome,
@@ -33,6 +35,7 @@ import type {
   OrderList,
   ScoringRun,
   ScoringRunSummary,
+  SeedPreview,
   SeedResult,
   ThresholdMetrics,
 } from "./contract";
@@ -974,6 +977,82 @@ function projectDashboardSignal(value: unknown): DashboardSignal | null {
   return { rule, alertCount };
 }
 
+function projectExternalDenial(value: unknown): DashboardExternalDenial | null {
+  const raw = asRecord(value);
+  if (raw === null) {
+    return null;
+  }
+
+  const merchantReferenceId = text(raw.merchantReferenceId);
+  const occurredAt = text(raw.occurredAt);
+  const amountCents = integer(raw.amountCents);
+  const currencyCode = text(raw.currencyCode);
+  const countryCode = text(raw.countryCode);
+  const localRiskScore = nullableInteger(raw.localRiskScore);
+
+  if (
+    merchantReferenceId === null ||
+    occurredAt === null ||
+    amountCents === null ||
+    currencyCode === null ||
+    countryCode === null ||
+    localRiskScore === undefined
+  ) {
+    return null;
+  }
+
+  return { merchantReferenceId, occurredAt, amountCents, currencyCode, countryCode, localRiskScore };
+}
+
+function projectExternalDenials(value: unknown): DashboardExternalDenials | null {
+  const raw = asRecord(value);
+  if (raw === null) {
+    return null;
+  }
+
+  const total = integer(raw.total);
+  const listed = integer(raw.listed);
+  const items = projectList(raw.items, projectExternalDenial);
+
+  if (total === null || listed === null || items === null) {
+    return null;
+  }
+
+  return { total, listed, items };
+}
+
+/**
+ * What loading the demo corpus would do, projected the same way as everything else: the conflict
+ * arrives as a code, and a code this build does not know is projected through unchanged so that the
+ * console can say "something is in the way" instead of pretending nothing is.
+ */
+export function projectSeedPreview(value: unknown): SeedPreview | null {
+  const raw = asRecord(value);
+  if (raw === null) {
+    return null;
+  }
+
+  const datasetVersion = text(raw.datasetVersion);
+  const totalOrders = integer(raw.totalOrders);
+  const ordersToInsert = integer(raw.ordersToInsert);
+  const duplicateOrders = integer(raw.duplicateOrders);
+  const labelsToInsert = integer(raw.labelsToInsert);
+  const conflict = nullableText(raw.conflict);
+
+  if (
+    datasetVersion === null ||
+    totalOrders === null ||
+    ordersToInsert === null ||
+    duplicateOrders === null ||
+    labelsToInsert === null ||
+    conflict === undefined
+  ) {
+    return null;
+  }
+
+  return { datasetVersion, totalOrders, ordersToInsert, duplicateOrders, labelsToInsert, conflict };
+}
+
 export function projectDashboard(value: unknown): Dashboard | null {
   const raw = asRecord(value);
   if (raw === null) {
@@ -988,6 +1067,7 @@ export function projectDashboard(value: unknown): Dashboard | null {
   const flagRate = nullableDecimal(raw.flagRate);
   const riskOverTime = projectList(raw.riskOverTime, projectRiskBucket);
   const topSignals = projectList(raw.topSignals, projectDashboardSignal);
+  const externalDenialsWithoutAlert = projectExternalDenials(raw.externalDenialsWithoutAlert);
 
   if (
     scoringRun === undefined ||
@@ -997,7 +1077,8 @@ export function projectDashboard(value: unknown): Dashboard | null {
     reportedFraud === null ||
     flagRate === undefined ||
     riskOverTime === null ||
-    topSignals === null
+    topSignals === null ||
+    externalDenialsWithoutAlert === null
   ) {
     return null;
   }
@@ -1011,6 +1092,7 @@ export function projectDashboard(value: unknown): Dashboard | null {
     flagRate,
     riskOverTime,
     topSignals,
+    externalDenialsWithoutAlert,
   };
 }
 

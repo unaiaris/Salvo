@@ -2726,3 +2726,329 @@ Falsaciones, porque el valor de una comprobación es que pueda fallar:
   ninguno de estos paths.
 - Verificación posterior al merge: `./scripts/check.sh` y `./scripts/smoke-ui.sh` sobre el estado
   integrado. `./scripts/capturas.sh` no hace falta repetirlo: las imágenes ya están versionadas.
+
+## `E9A-FIXTURE` — El corpus que no recupera sus propias etiquetas
+
+### Identificación
+
+- Work ID: `E9A-FIXTURE`
+- Etapa: 9
+- Rama: `claude/e9a-fixture`
+- Commit base: `82f9804`
+- Modelo y esfuerzo: Opus 5 · `high`
+- Estado: **en curso**
+
+### La tabla de arquetipos esperada, escrita antes de construir la fixture
+
+Esto se escribe **primero y en su propio commit**, y ese orden es la falsación de la tarea: predecir
+la celda de la matriz de cada arquetipo y después medirla es una comprobación; medir primero y
+llamarlo predicción no comprueba nada. Cuando el motor real corra sobre el corpus, cada fila de esta
+tabla tiene que coincidir, y toda diferencia se explica en la entrega.
+
+De dónde sale cada score. Los seis pesos son `amount_anomaly` 40, `velocity` 30,
+`cross_border_velocity` 40, `unusual_hour` 10, `new_buyer_high_value` 30 y `foreign_country` 20; el
+umbral de alerta es 60 y el tope 100. Las claves importan tanto como los umbrales: `amount_anomaly`
+compara contra la mediana **del comprador** cuando tiene tres pedidos previos en noventa días y
+contra la del comercio cuando no; `velocity` y `cross_border_velocity` cuentan por
+**(comercio, comprador)**; `unusual_hour` y `foreign_country` describen el hábito **del comercio**;
+y `new_buyer_high_value` exige que el comprador no tenga **ningún** pedido previo, así que nunca
+convive con las dos reglas de ráfaga.
+
+Los tres falsos negativos son invisibles cada uno por una razón distinta, y esa es la propiedad que
+los vuelve didácticos:
+
+- **`FN1`, fraude amigo.** Un comprador con historia compra lo de siempre, lo recibe, y desconoce el
+  cargo. No hay nada que ver en la transacción porque es una compra legítima hasta el contracargo.
+  Lo vería el historial de disputas de ese comprador en la red de un proveedor.
+- **`FN2`, cuenta tomada, vista en el dispositivo.** Comprador con historia, `deviceSessionId`
+  nuevo, el doble de su mediana, tres pedidos separados por veinte minutos. Las dos reglas por
+  comprador piden 3× y cuatro pedidos en diez minutos; país y hora miran al comercio. **El
+  dispositivo está en el archivo desde la Etapa 2 y el motor no lo lee**, y eso es exactamente lo
+  que enseña.
+- **`FN3`, prueba de tarjetas.** Cinco compradores nuevos, un mismo dispositivo, montos mínimos,
+  minutos entre uno y otro. `velocity` cuenta por comprador y cada comprador tiene cero previos;
+  `new_buyer_high_value` pide monto alto. La regla existe y está atada a la entidad equivocada.
+
+Los cuatro falsos positivos son el costo del criterio, y dos de ellos existen para que `velocity`,
+`unusual_hour` y `amount_anomaly` en clave comprador **decidan algo por primera vez**:
+
+- **`FP1`, el salto de país en dos horas.** No es «un cliente que viaja»: `foreign_country` vale 20
+  y sola no llega al umbral. Es un comprador que hace dos compras en noventa minutos desde dos redes
+  distintas —roaming, VPN o proxy—, y la segunda dispara `cross_border_velocity` más
+  `foreign_country`.
+- **`FP2`, la primera compra grande.** Un cliente nuevo comprando algo caro: el costo declarado de
+  toda regla «nuevo y caro».
+- **`FP3`, el revendedor de madrugada.** Cuatro compras alrededor de la medianoche; la cuarta cruza
+  a la franja que el comercio casi no tiene y dispara las tres reglas a la vez.
+- **`FP4`, el regalo desde afuera.** Un cliente habitual de viaje compra un regalo caro: dispara
+  exactamente las mismas dos reglas que un `TP` de 60, y el motor no puede distinguirlos. Ese es el
+  punto.
+
+Las filas marcadas `acompañante` no son arquetipos sino los pedidos que un arquetipo necesita para
+existir: la compra chica de prueba que precede a la grande, el pedido de casa noventa minutos antes
+del salto de país, y las tres compras previas del revendedor.
+
+| Referencia | Arquetipo | Comercio | Comprador | Monto | Instante local | País | Dispositivo | Etiqueta | Reglas previstas | Score | Celda | Cohorte |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `ORD_000011` | TP | `MER_BR_STORE` | `BUY_000011` | 50786 BRL | 2026-05-05 02:15 | AR | `DEV_000011` | fraude | monto, nuevo, país | 90 | TP | calibración |
+| `ORD_000027` | TP | `MER_UY_STORE` | `BUY_000001` | 635251 UYU | 2026-05-11 12:33 | AR | `DEV_000001` | fraude | monto, país | 60 | TP | calibración |
+| `ORD_000043` | TP | `MER_UY_STORE` | `BUY_000039` | 660785 UYU | 2026-05-17 18:26 | UY | `DEV_000039` | fraude | monto, nuevo | 70 | TP | calibración |
+| `ORD_000059` | TP | `MER_US_MARKET` | `BUY_000044` | 33337 USD | 2026-05-24 05:50 | BR | `DEV_000044` | fraude | monto, nuevo, país | 90 | TP | calibración |
+| `ORD_000064` | FP2 | `MER_US_MARKET` | `BUY_000048` | 28832 USD | 2026-05-26 11:05 | AR | `DEV_000048` | legítimo | monto, nuevo | 70 | FP | calibración |
+| `ORD_000075` | FN3 | `MER_US_MARKET` | `BUY_000052` | 270 USD | 2026-05-30 16:14 | AR | `DEV_900001` | fraude | — | 0 | FN | calibración |
+| `ORD_000076` | FN3 | `MER_US_MARKET` | `BUY_000053` | 271 USD | 2026-05-30 16:17 | AR | `DEV_900001` | fraude | — | 0 | FN | calibración |
+| `ORD_000077` | FN3 | `MER_US_MARKET` | `BUY_000054` | 272 USD | 2026-05-30 16:20 | AR | `DEV_900001` | fraude | — | 0 | FN | calibración |
+| `ORD_000078` | FN3 | `MER_US_MARKET` | `BUY_000055` | 273 USD | 2026-05-30 16:23 | AR | `DEV_900001` | fraude | — | 0 | FN | calibración |
+| `ORD_000079` | FN3 | `MER_US_MARKET` | `BUY_000056` | 274 USD | 2026-05-30 16:26 | AR | `DEV_900001` | fraude | — | 0 | FN | calibración |
+| `ORD_000091` | TP | `MER_BR_STORE` | `BUY_000002` | 59857 BRL | 2026-06-06 09:12 | AR | `DEV_000002` | fraude | monto, país | 60 | TP | calibración |
+| `ORD_000107` | TP | `MER_BR_STORE` | `BUY_000066` | 72719 BRL | 2026-06-12 15:40 | AR | `DEV_000066` | fraude | monto, nuevo, país | 90 | TP | calibración |
+| `ORD_000111` | acompañante | `MER_BR_STORE` | `BUY_000005` | 21681 BRL | 2026-06-14 11:52 | BR | `DEV_000005` | legítimo | — | 0 | TN | calibración |
+| `ORD_000112` | FP1 | `MER_BR_STORE` | `BUY_000005` | 21897 BRL | 2026-06-14 13:22 | UY | `DEV_000005` | legítimo | cruce, país | 60 | FP | calibración |
+| `ORD_000123` | TP | `MER_BR_STORE` | `BUY_000008` | 91426 BRL | 2026-06-18 22:18 | AR | `DEV_000008` | fraude | monto, país | 60 | TP | calibración |
+| `ORD_000138` | acompañante | `MER_BR_STORE` | `BUY_000012` | 11627 BRL | 2026-06-25 10:20 | AR | `DEV_000012` | fraude | país | 20 | FN | calibración |
+| `ORD_000139` | TP | `MER_BR_STORE` | `BUY_000012` | 43661 BRL | 2026-06-25 11:05 | BR | `DEV_000012` | fraude | monto, cruce | 80 | TP | calibración |
+| `ORD_000155` | TP | `MER_BR_STORE` | `BUY_000082` | 55006 BRL | 2026-07-01 19:47 | AR | `DEV_000082` | fraude | monto, nuevo, país | 90 | TP | calibración |
+| `ORD_000157` | acompañante | `MER_UY_STORE` | `BUY_000004` | 75902 UYU | 2026-07-02 23:52 | AR | `DEV_000004` | legítimo | país | 20 | TN | calibración |
+| `ORD_000158` | acompañante | `MER_UY_STORE` | `BUY_000004` | 63736 UYU | 2026-07-02 23:55 | AR | `DEV_000004` | legítimo | país | 20 | TN | calibración |
+| `ORD_000159` | acompañante | `MER_UY_STORE` | `BUY_000004` | 77967 UYU | 2026-07-02 23:58 | AR | `DEV_000004` | legítimo | país | 20 | TN | calibración |
+| `ORD_000160` | FP3 | `MER_UY_STORE` | `BUY_000004` | 94881 UYU | 2026-07-03 00:01 | AR | `DEV_000004` | legítimo | ráfaga, hora, país | 60 | FP | calibración |
+| `ORD_000171` | TP | `MER_BR_STORE` | `BUY_000018` | 69256 BRL | 2026-07-08 08:30 | AR | `DEV_000018` | fraude | monto, país | 60 | TP | calibración |
+| `ORD_000186` | acompañante | `MER_US_MARKET` | `BUY_000003` | 12435 USD | 2026-07-14 12:37 | BR | `DEV_000003` | fraude | país | 20 | FN | calibración |
+| `ORD_000187` | TP | `MER_US_MARKET` | `BUY_000003` | 42279 USD | 2026-07-14 13:22 | AR | `DEV_000003` | fraude | monto, cruce | 80 | TP | calibración |
+| `ORD_000203` | TP | `MER_BR_STORE` | `BUY_000021` | 78207 BRL | 2026-07-20 20:55 | AR | `DEV_000021` | fraude | monto, país | 60 | TP | holdout |
+| `ORD_000219` | TP | `MER_BR_STORE` | `BUY_000101` | 67328 BRL | 2026-07-27 10:41 | BR | `DEV_000101` | fraude | monto, nuevo | 70 | TP | holdout |
+| `ORD_000231` | acompañante | `MER_US_MARKET` | `BUY_000009` | 8832 USD | 2026-08-01 11:52 | AR | `DEV_000009` | legítimo | — | 0 | TN | holdout |
+| `ORD_000232` | FP1 | `MER_US_MARKET` | `BUY_000009` | 8157 USD | 2026-08-01 13:22 | UY | `DEV_000009` | legítimo | cruce, país | 60 | FP | holdout |
+| `ORD_000235` | TP | `MER_BR_STORE` | `BUY_000108` | 63896 BRL | 2026-08-02 17:09 | AR | `DEV_000108` | fraude | monto, nuevo, país | 90 | TP | holdout |
+| `ORD_000241` | acompañante | `MER_UY_STORE` | `BUY_000016` | 54170 UYU | 2026-08-04 23:52 | AR | `DEV_000016` | legítimo | país | 20 | TN | holdout |
+| `ORD_000242` | acompañante | `MER_UY_STORE` | `BUY_000016` | 84240 UYU | 2026-08-04 23:55 | AR | `DEV_000016` | legítimo | país | 20 | TN | holdout |
+| `ORD_000243` | acompañante | `MER_UY_STORE` | `BUY_000016` | 90759 UYU | 2026-08-04 23:58 | AR | `DEV_000016` | legítimo | país | 20 | TN | holdout |
+| `ORD_000244` | FP3 | `MER_UY_STORE` | `BUY_000016` | 80438 UYU | 2026-08-05 00:01 | AR | `DEV_000016` | legítimo | ráfaga, hora, país | 60 | FP | holdout |
+| `ORD_000251` | TP | `MER_BR_STORE` | `BUY_000026` | 82573 BRL | 2026-08-09 02:15 | AR | `DEV_000026` | fraude | monto, país | 60 | TP | holdout |
+| `ORD_000258` | FP4 | `MER_US_MARKET` | `BUY_000034` | 17129 USD | 2026-08-11 22:18 | BR | `DEV_000034` | legítimo | monto, país | 60 | FP | holdout |
+| `ORD_000267` | TP | `MER_UY_STORE` | `BUY_000118` | 605514 UYU | 2026-08-15 12:33 | UY | `DEV_000118` | fraude | monto, nuevo | 70 | TP | holdout |
+| `ORD_000275` | FN1 | `MER_UY_STORE` | `BUY_000007` | 283204 UYU | 2026-08-18 19:47 | UY | `DEV_000007` | fraude | — | 0 | FN | holdout |
+| `ORD_000277` | FN2 | `MER_BR_STORE` | `BUY_000024` | 30804 BRL | 2026-08-19 13:22 | BR | `DEV_900002` | fraude | — | 0 | FN | holdout |
+| `ORD_000278` | FN2 | `MER_BR_STORE` | `BUY_000024` | 31506 BRL | 2026-08-19 13:42 | BR | `DEV_900002` | fraude | — | 0 | FN | holdout |
+| `ORD_000279` | FN2 | `MER_BR_STORE` | `BUY_000024` | 32698 BRL | 2026-08-19 14:02 | BR | `DEV_900002` | fraude | — | 0 | FN | holdout |
+| `ORD_000283` | TP | `MER_UY_STORE` | `BUY_000124` | 767889 UYU | 2026-08-21 18:26 | AR | `DEV_000124` | fraude | monto, nuevo, país | 90 | TP | holdout |
+
+Y las cifras agregadas que se predicen junto con ella, sobre las mismas 300 referencias
+`ORD_000001`–`ORD_000300` y los mismos tres comercios:
+
+| Magnitud | Predicción |
+| --- | --- |
+| Pedidos y etiquetas | 300 y 300, con 28 fraudes y 272 legítimos |
+| Cohortes | 300 instantes distintos: 200 de calibración y 100 de holdout |
+| Matriz total | TP 17, FP 6, FN 11, TN 266 |
+| Matriz de calibración | TP 11, FP 3, FN 7, TN 179 |
+| Matriz de holdout | TP 6, FP 3, FN 4, TN 87 |
+| Holdout | precisión 6/9, recall 6/10, F1 0,632 |
+| Umbral que elige el barrido | 60 |
+| Reglas que disparan | `foreign_country` 50, `amount_anomaly` 19, `new_buyer_high_value` 10, `cross_border_velocity` 4, `velocity` 2, `unusual_hour` 2 |
+| Bandas de alerta | 11 media, 6 alta, 6 crítica |
+| Denegados por el proveedor sin alerta local | 43, de los cuales 10 son fraude |
+
+Dos predicciones que conviene declarar porque son incómodas y deliberadas. La primera: `velocity` y
+`unusual_hour` disparan **dos veces cada una y siempre sobre pedidos legítimos**. No es que no se
+haya podido construir un fraude que las active; es que el fraude que las activaría —la ráfaga de
+prueba de tarjetas— usa un comprador distinto por pedido, y `velocity` cuenta por comprador. El
+corpus dice que esas dos reglas, con estos datos, solo producen falsos positivos, y esa afirmación
+vale más que un fraude fabricado para que la regla acierte. La segunda: la única banda `ALTA` de la
+cohorte de calibración la abre un pedido **legítimo**, `ORD_000064`.
+
+### La tabla obtenida, y en qué difiere de la predicha
+
+El motor .NET corrió sobre el corpus construido y **las cuarenta y dos filas cayeron en la celda
+que la tabla de arriba predijo: cero desvíos**. La comparación no se hizo solo sobre el score: se
+compararon ocho campos por pedido —comercio, comprador, monto, país, score, reglas, pesos y el
+texto de cada señal— sobre los 300, y de esas 2.400 comprobaciones **una sola** difirió, que es la
+única diferencia real de esta entrega:
+
+| Pedido | Predicho | Obtenido | Por qué |
+| --- | --- | --- | --- |
+| `ORD_000233` | «…observado en 73 de 80 pedidos previos (91,2 %)» | «…(91,3 %)» | 73/80 es 91,25 y cae justo en la mitad. Mi transcripción del motor en Python redondea al par y .NET redondea alejándose del cero. El motor real tiene razón; el que estaba mal era mi modelo |
+
+Las cifras agregadas coincidieron con la predicción salvo una, y conviene decir cuál y por qué:
+
+| Magnitud | Predicho | Obtenido |
+| --- | --- | --- |
+| Pedidos, etiquetas, fraudes | 300 · 300 · 28 | igual |
+| Cohortes | 200 y 100 | igual |
+| Matriz total | TP 17 · FP 6 · FN 11 · TN 266 | igual |
+| Matriz de calibración | TP 11 · FP 3 · FN 7 · TN 179 | igual |
+| Matriz de holdout | TP 6 · FP 3 · FN 4 · TN 87 | igual |
+| Umbral que elige el barrido | 60 | igual |
+| Reglas que disparan | 50 · 19 · 10 · 4 · 2 · 2 | igual |
+| Bandas de alerta | 11 media · 6 alta · 6 crítica | igual |
+| Denegados por el proveedor sin alerta local | 43, con 10 de fraude | **43 tras pedir la evaluación externa, 51 después de entregar los callbacks**; los de fraude son 10 en los dos casos |
+
+La última fila es una predicción incompleta, no un error del corpus: conté solo las denegaciones
+síncronas, que son las de la banda 75–89. Los callbacks resuelven después la banda pendiente y nueve
+de esos veintiún pedidos vuelven denegados, ninguno de ellos con alerta. Los diez fraudes no se
+mueven porque ningún fraude sin alerta cae en la banda pendiente. El test del panel fija 43, que es
+el estado en el que la consola lo muestra durante el recorrido.
+
+### La matriz, con sus conteos y su `n`
+
+Publicada así y no como una razón con dos decimales: con cien pedidos de holdout, **cada falso
+negativo mueve el recall diez puntos**, y dos decimales sugieren una precisión que ese tamaño no
+tiene.
+
+| Cohorte | `n` | TP | FP | FN | TN | Precisión | Recall |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Calibración | 200 | 11 | 3 | 7 | 179 | 11/14 | 11/18 |
+| Holdout | 100 | 6 | 3 | 4 | 87 | 6/9 | 6/10 |
+
+**El umbral que eligió el barrido es 60**, el mismo que el producto usa. No hubo discrepancia que
+explicar, y la decisión 63 sigue en pie por si la hubiera en el futuro. El F1 del holdout es 0,632 y
+el de la calibración 0,688: el corpus dejó de recuperar sus propias etiquetas.
+
+### Cómo se construyó el corpus, para que se pueda rehacer
+
+La fixture es el artefacto; no se versiona ningún generador, igual que en la v1. Lo que hay que
+saber para reconstruirla está acá.
+
+- **Tres comercios y trescientas referencias, las mismas.** `MER_UY_STORE` en pesos uruguayos,
+  `MER_BR_STORE` en reales y `MER_US_MARKET` en dólares, cien pedidos cada uno. El identificador
+  `MER_US_MARKET` **no cambió y no podía cambiar**: es la mitad de la clave de conflicto, y
+  renombrarlo dejaría convivir dos corpus contradictorios. Lo que sí cambió es dónde opera: su país
+  habitual pasó a ser Argentina, porque el corredor UTC−3 es lo que hace que «hora del comercio»
+  signifique lo mismo para los tres. Un comercio que factura en dólares en Argentina es lo
+  ordinario, pero el nombre quedó heredado y conviene decirlo antes que un revisor lo pregunte.
+- **Ciento veinte días, del 2026-05-01 al 2026-08-28**, con trescientos instantes distintos. La v1
+  tenía los pedidos separados por exactamente 9,6 horas —mínimo, mediana y máximo iguales—, así que
+  en hora local solo existían cinco horarios. Acá hay quince horarios locales por cada ciclo de seis
+  días.
+- **La trampa que costó una corrida entera.** El patrón que reparte los comercios tiene trece
+  posiciones y cada ciclo de seis días aporta exactamente trece ranuras fuera de la franja nocturna.
+  Con las dos periodicidades alineadas, **cada comercio quedaba clavado en las mismas cinco horas
+  del día**, alguna de sus franjas quedaba vacía y `unusual_hour` disparaba en diecisiete
+  evaluaciones que nadie había pedido. La rotación del patrón por ciclo lo arregla, y la regla
+  vuelve a estar disponible solo para los pedidos que la buscan.
+- **Los montos legítimos se mueven en una banda estrecha alrededor del nivel de gasto de cada
+  comprador**, para que ninguna anomalía sea accidental: todas las diecinueve de `amount_anomaly`
+  son deliberadas, y el informe lo comprueba listando los pedidos no arquetipo con señales
+  inesperadas, que son cero.
+- **Cada arquetipo se lleva una cuenta distinta.** La primera versión elegía siempre al comprador
+  con más historia y terminaba con un solo comprador que era el revendedor legítimo, la víctima del
+  fraude amigo y el titular de la cuenta tomada — y sus propios montos altos le subían la mediana
+  hasta volver absurdo el arquetipo siguiente: la «compra del doble de lo habitual» de la cuenta
+  tomada salía a 1.285 reales contra una mediana del comercio de 170.
+- **`velocity` y `unusual_hour` disparan dos veces cada una, y siempre sobre pedidos legítimos.**
+  Es deliberado y es la mitad de lo que enseña el corpus: el fraude que activaría a `velocity` —la
+  ráfaga de prueba de tarjetas— usa un comprador distinto por pedido, y la regla cuenta por
+  comprador. La regla existe, funciona, y está atada a la entidad equivocada.
+- **La única alerta de banda alta de la cohorte de calibración la abre un pedido legítimo**,
+  `ORD_000064`: un cliente nuevo comprando algo caro.
+
+### Archivos modificados
+
+| Archivo | Qué cambió |
+| --- | --- |
+| `backend/src/Salvo.Infrastructure/Seed/Fixtures/demo-orders.v2.json` | El corpus nuevo |
+| `backend/src/Salvo.Infrastructure/Salvo.Infrastructure.csproj` | El recurso embebido apunta a la v2 |
+| `backend/src/Salvo.Infrastructure/Seed/EmbeddedDemoOrderSource.cs` | El nombre del recurso sale de la versión declarada |
+| `backend/src/Salvo.Application/Orders/Seed/DemoDatasetShape.cs` | Nuevo: la forma que este build espera |
+| `backend/src/Salvo.Application/Orders/Seed/DemoSeedConflictException.cs` | Gana la causa del conflicto |
+| `backend/src/Salvo.Application/Orders/Seed/DemoSeedWireNames.cs` | Nuevo: la ortografía de esa causa en el cable |
+| `backend/src/Salvo.Application/Orders/Seed/SeedDemoOrdersHandler.cs` | Un solo plan que el seed aplica y el ensayo informa |
+| `backend/src/Salvo.Application/Orders/Seed/SeedDemoOrdersResult.cs` | Gana el resultado del ensayo |
+| `backend/src/Salvo.Api/OrderEndpoints.cs` | `GET /api/demo-data/seed-preview` y los dos códigos de conflicto |
+| `backend/src/Salvo.Application/Dashboard/*` y `Persistence/EfDashboardReader.cs` | El panel de denegados sin alerta |
+| `backend/src/Salvo.Infrastructure/External/MockAntifraudProvider.cs` | **Fuera de la reserva**: una palabra de un comentario que nombraba el archivo v1 |
+| `frontend/openapi/salvo-openapi.json`, `src/lib/api/schema.d.ts` | Recaptura del contrato |
+| `frontend/src/lib/api/{contract,guards,console,messages}.ts` y sus tests | El panel, el ensayo y el código nuevo |
+| `frontend/src/app/dashboard/{page,panels,page.test}.tsx` | El panel en pantalla |
+| `frontend/src/app/import/{page.tsx,page.test.tsx}` | El aviso antes del clic |
+| `frontend/src/app/alerts/[id]/divergence.ts` y su test | El aviso compara la evaluación, no su identificador |
+| `frontend/src/test/fixtures.ts` | El panel, el ensayo, y una evaluación vigente que ahora es coherente |
+| `backend/tests/**` | Quince tests movidos al corpus nuevo y siete nuevos |
+| `scripts/smoke-ui.sh` | Cuatro comprobaciones y la suma de monedas |
+
+### Verificación
+
+| Comprobación | Resultado |
+| --- | --- |
+| Los siete arquetipos contra el motor real | 42 filas, 0 desvíos |
+| Los 300 pedidos, ocho campos cada uno | 1 diferencia, de redondeo, en mi modelo y no en el motor |
+| `./scripts/check.sh` | Verde. 68 comprobaciones de documentación, 94 + 154 tests .NET, 223 de frontend, los dos builds de producción |
+| `./scripts/smoke-ui.sh` | Verde: 47 comprobaciones, 0 fallas, sobre bases nuevas |
+| `dotnet ef migrations has-pending-model-changes` | Sin cambios: el panel es una lectura |
+| Seed sobre base vacía | 300 pedidos, 300 etiquetas, 28 fraudes; repetirlo inserta cero |
+| Seed sobre una base con la versión anterior | `409 DEMO_DATA_PREVIOUS_CORPUS`, nada escrito, y la consola lo dice al abrir `/import` |
+| Seed sobre pedidos importados que chocan | `409 DEMO_DATA_CONFLICT`, que es el código que ya existía |
+| Panel del dashboard | 43 pedidos, entre ellos `ORD_000275`, `ORD_000277` y `ORD_000075`: los tres arquetipos que el motor no ve |
+
+Falsaciones, porque una comprobación que no puede fallar no comprueba nada:
+
+- **El panel deja de excluir los pedidos con alerta** → cae
+  `TheExternalDenialsPanelShowsTheFraudTheRulesNeverFlagged`.
+- **El panel lee la etiqueta de fraude** → cae `TheDashboardIsIndependentOfGroundTruth`, que ahora
+  pide las evaluaciones externas primero para que el panel tenga filas de las que ser independiente.
+  Sin ese cambio, la aserción más fuerte de la suite pasaba sobre un campo vacío.
+- **La causa del conflicto deja de mirar la etiqueta** → cae
+  `AnEarlierVersionOfTheCorpusIsNamedAsSuchAndNothingIsWritten`.
+- **El aviso de divergencia vuelve a comparar identificadores** → cae «no avisa cuando la evaluación
+  vigente es otra fila con el mismo score y las mismas reglas», que es exactamente el escenario que
+  `E9B` va a producir.
+
+### Decisiones y supuestos
+
+- **El fingerprint dorado se mudó de `ORD_000001` a `ORD_000011`.** El anterior puntúa cero sin
+  señales, y un fingerprint sobre una evaluación vacía depende del identificador del pedido y de la
+  versión de las reglas y de nada que diga el corpus: **sobrevivió intacto al reemplazo completo de
+  la fixture**. El digest del manifiesto de las 300 filas es lo que de verdad sostiene el corpus.
+- **La aserción de zona horaria se volvió su propio test.** Vivía pegada al dorado decimal y decía
+  «4 de mayo, no 5 de mayo»; con el corpus nuevo ese pedido dejó de cruzar la medianoche y la
+  aserción habría pasado por la razón equivocada. Ahora usa `ORD_000123`, que está guardado a las
+  01:18 UTC del 19 de junio y ocurrió a las 22:18 del 18 en hora del comercio.
+- **El segundo dorado ganó cobertura sin pedirlo**: `ORD_000171` compara ahora contra la mediana
+  **del comprador**, así que la pareja de textos dorados fija por fin las dos frases que la
+  plantilla puede escribir sobre el alcance de la mediana. Los dos anteriores usaban la del
+  comercio.
+- **El panel lista hasta cien pedidos y hoy lista los 43.** Un tope apretado escondería justamente
+  lo que el panel existe para mostrar; el tope está para que el contrato siga siendo un arreglo
+  acotado. El total se informa siempre completo.
+- **El aviso de divergencia compara score, reglas y pesos, y no el texto de cada señal.** El texto
+  es cómo está escrita la evaluación, no qué decidió, y `E9B` lo va a reescribir entero: comparar la
+  prosa devolvería el aviso falso en cada alerta el día del cambio de versión.
+- **El ensayo del seed es un `GET`.** La pantalla lo lee al abrirse y no escribe nada; un `POST` con
+  bandera para una lectura de página habría sido peor.
+- **`e7-v2` no subió de versión.** La plantilla no cambió ni una palabra: lo que cambió es el corpus
+  sobre el que escribe. La decisión 64 lo dice al revés y vale igual.
+
+### Riesgos o pendientes
+
+- **`backend/src/Salvo.Infrastructure/Seed/Fixtures/demo-orders.v1.json` quedó en el repositorio y
+  ya no lo carga nadie.** No lo borré: `rm` está denegado y es regla del proyecto. Conviene que lo
+  borres vos, o que el coordinador decida conservarlo.
+- **Documentos con cifras del corpus, todos fuera de la reserva de esta tarea y para `E9D`:** el
+  bloque marcado del README, el bloque del guion de demo, `docs/muestras/README.md` —que además
+  nombra `demo-orders.v1.json` y repite el `13,8 %` que ya se corrigió en otros cuatro documentos—,
+  el §4.1 del Blueprint y las notas del Workboard.
+- **Las seis capturas envejecieron.** Muestran 18 alertas y ninguna banda alta. `capturas.sh` sigue
+  funcionando sin tocarlo: `ORD_000011` sigue siendo el pedido de la demo, sigue siendo crítico,
+  sigue identificando exactamente una alerta y el proveedor lo sigue aprobando. Regenerarlas es de
+  `E9D`.
+- **`docs/muestras/import-con-errores.csv` sigue valiendo entero**: su fila 6 choca contra
+  `MER_BR_STORE / ORD_000011`, que existe en el corpus nuevo con otros datos.
+- **Cuatro bases `.db` en `backend/src/Salvo.Api/`** —`salvo.db`, `salvo.design.db` y dos
+  `salvo-demo-*`—, todas ignoradas por Git. La primera tiene el corpus v1 y a partir de ahora no
+  puede tomar el nuevo: la consola te lo va a decir al abrir `/import`. Se borran desde tu terminal.
+- **`velocity` y `unusual_hour` disparan dos veces cada una.** Es deliberado y está argumentado más
+  arriba, pero es la clase de cifra que un revisor va a preguntar.
+
+### Integración
+
+- Orden sugerido: esta rama sola. `E9B` depende de ella integrada.
+- Migraciones o pasos manuales: **ninguna migración**. Sí hay recaptura de OpenAPI, ya versionada.
+- **La base de demostración de quien integre deja de servir.** Es el efecto declarado de la etapa:
+  hay que crear una nueva, y `./scripts/demo.sh` la crea.
+- Posibles conflictos: `main` está un commit adelante de esta rama, de coordinación
+  —`AGENTS.md`, la decisión 65 y el §4.4 del Blueprint—, y no toca ninguno de estos paths. La rama
+  no se rebasó a propósito: rebasar movería el `merge-base` que el brief declara.
+- Verificación posterior al merge: `./scripts/check.sh` y `./scripts/smoke-ui.sh` sobre el estado
+  integrado.
+
+Estado: **Lista para integrar**.
