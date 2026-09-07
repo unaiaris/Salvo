@@ -150,7 +150,8 @@ cambia alcance o arquitectura, actualizar primero su bitácora y después los do
 - El baseline de un pedido usa únicamente historia anterior; nunca el presente o futuro.
 - `isFraudLabel` solo se usa para evaluación, nunca como feature.
 - Pesos, ventanas, mínimos y umbral viven en un `RuleConfig` central e inmutable.
-- Cada señal incluye un `detail` legible.
+- Toda señal se lee sin intérprete: `e3-v1` por su `detail` en prosa, `e3-v2` por sus campos
+  con nombre. Un test compone la frase de cada regla desde la fila almacenada.
 - Repetir seed, scoring, creación de alertas o callback no duplica efectos.
 - Una revisión actualiza entidades relacionadas en una transacción de DB.
 - No cambiar automáticamente pedidos ya revisados durante un re-scoring normal.

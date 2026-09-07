@@ -32,6 +32,9 @@ verificar de verdad: sobre el corpus v1 solo tres de las seis reglas disparaban.
 - `Coordination/Tasks/E9-revision-adversarial.md`, hallazgos **4 y 5**. El 4 enumera los cuatro
   lugares donde «el extractor se borra y todo lo demás queda intacto» es falso; el 5 es el que
   invirtió el orden de la etapa.
+- `DesignAgent/Salvo-Progress.md`, checklist «Etapa 9 — Corpus, idiomas y cierre», el ítem
+  «Señales estructuradas (`e3-v2`), con `detail` conservado como campo heredado» (línea 276): es el
+  único que esta tarea cierra.
 - `Coordination/Handoffs/Claude.md`, entradas de `E7A`, `E7D` y `E9A`. La de `E7A` es la lección de
   la recaptura del contrato; la de `E7D` es «un arreglo que no alcanza a lo ya guardado no está
   terminado», que en esta tarea vuelve a aparecer con otra cara.
@@ -58,6 +61,18 @@ verificar de verdad: sobre el corpus v1 solo tres de las seis reglas disparaban.
 
 **Antes de escribir cualquier afirmación, abrir el archivo que la sostiene.**
 
+## Una regla de dominio que el coordinador corrigió antes de despachar
+
+`AGENTS.md` decía «Cada señal incluye un `detail` legible», y el Blueprint lo repetía en §4.2 y lo
+daba por hecho en §4.7. Esta tarea la contradice de frente, así que la regla se corrigió **antes**
+de despachar y no durante la ejecución: **toda señal se lee sin intérprete —antes por su `detail`,
+ahora por sus campos con nombre—**, y `ExplanationFacts` se construye desde los campos de cada
+señal, no desde los números de su prosa.
+
+La corrección viene con dientes, y son parte de esta tarea: **un test compone la frase de cada una
+de las seis reglas desde la fila almacenada**, sin nada más que la fila. Una regla que dice
+«legible» y no tiene test es una intención; ésta se puede romper.
+
 ## Alcance
 
 ### Dentro
@@ -67,6 +82,16 @@ verificar de verdad: sobre el corpus v1 solo tres de las seis reglas disparaban.
 `SignalFacts` existe exactamente para leer la prosa que el motor escribe. Con el corpus v2 sembrado
 y el motor **quieto** en `e3-v1`, la base tiene evaluaciones reales de las seis reglas, y eso lo
 vuelve el único oráculo capaz de certificar el cambio de motor sin frases inventadas en un test.
+
+**El extractor se extiende antes de capturar, y esto va primero de todo.** Los seis patrones ya
+capturan grupos que `SignalFacts` descarta: `amount`, `currency` y `median` en `amount_anomaly` y en
+`new_buyer_high_value`, y `zone` en `unusual_hour`. Tal como está, el dorado **no podría certificar**
+`amountCents`, `currencyCode`, `medianCents` ni `timeZoneId` —cuatro columnas de la tabla del punto
+2, y `medianCents` es justamente la que el punto 5 necesita—: el oráculo cubriría un subconjunto y
+las cuatro columnas nuevas entrarían al fingerprint sin que nada las haya verificado nunca. Así que
+**en un commit anterior al de la captura**, `SignalFacts` gana esos cuatro campos leyéndolos de los
+grupos que ya existen, con su test. Es trabajo que muere con el extractor, y es el precio de que el
+oráculo cubra la tabla entera.
 
 La captura dorada:
 
@@ -120,16 +145,34 @@ Por eso se declara acá y no se descubre en el dorado:
 | | `observedCount`, `totalCount` | entero | — |
 | | `sharePercent` | decimal | **1**, fija |
 
-Las escalas son **exactamente las que la prosa ya fijaba** —`{ratio:0.0}`, `{share:0.0}`,
-`{elapsed:0.##}`— y eso no es casualidad ni pereza: hace que `e3-v2` sea un cambio de
-**representación y nada más**, y por lo tanto que la igualdad del punto 1 sea exacta y que los
-textos dorados de `ExplanationGoldenTests` salgan **byte por byte idénticos**. Guardar la precisión
-cruda sería «más información» y a cambio dejaría la identidad de cada evaluación dependiendo de la
-escala de una división. No se hace.
+Hay que separar dos cosas que es fácil confundir, y confundirlas rompe el dorado:
 
-«Escala fija» quiere decir escrita siempre con esa cantidad de decimales: `4.0`, no `4`; `90.00`, no
-`90`. La escala del `decimal` que se serializa se fija con `decimal.Round(valor, n)` y el
-serializador no la recorta.
+**El redondeo se hereda de la prosa, modo incluido.** `ratio` y `sharePercent` a un decimal,
+`elapsedMinutes` a dos, que es lo que `{ratio:0.0}`, `{share:0.0}` y `{elapsed:0.##}` ya hacían. El
+**modo** se declara y es `MidpointRounding.AwayFromZero`: el formato `0.0` de .NET lleva `2.25` a
+`2.3`, mientras que `decimal.Round(2.25m, 1)` sin modo —que usa `ToEven`— lo lleva a `2.2`. Copiar
+la escala y olvidar el modo haría diferir el dorado exactamente en los empates, que son los casos
+que nadie mira. Esto es lo que vuelve a `e3-v2` un cambio de **representación y nada más**, y por
+lo tanto lo que hace que la igualdad del punto 1 sea exacta y que los textos dorados de
+`ExplanationGoldenTests` salgan **byte por byte idénticos**.
+
+**La escala del texto canónico no se hereda de nada: es una declaración nueva.** Dos creencias
+cómodas y falsas, las dos verificadas contra el runtime:
+
+- `{elapsed:0.##}` **no** fija dos decimales. `#` omite los ceros finales, así que el motor viene
+  escribiendo `90`, no `90.00`.
+- `decimal.Round(4m, 1)` devuelve `4`, no `4.0`. `decimal.Round` redondea; no fija escala.
+
+Por eso la cadena canónica **escribe cada decimal con su cantidad de decimales fija, como texto**:
+el valor se calcula con `Math.Round(valor, n, MidpointRounding.AwayFromZero)` y se serializa con
+`ToString("F<n>", CultureInfo.InvariantCulture)` a través de `Utf8JsonWriter.WriteRawValue`, de modo
+que `4.0` se escriba `4.0` y `90.00` se escriba `90.00`. Guardar la precisión cruda sería «más
+información» y a cambio dejaría la identidad de cada evaluación colgando de la escala que arrastre
+la división que produjo el número. Esa escala fija mueve el fingerprint, que se mueve igual.
+
+**Antes de escribir una línea del motor, la tarea verifica los tres formatos con un programa
+mínimo** y pega la salida en la entrega. Estas tres afirmaciones ya fueron falsas una vez en este
+mismo brief; no se heredan de memoria.
 
 **El orden de los campos en la cadena canónica se declara y no se cambia nunca**: `rule`, `weight`,
 después los campos de la tabla en el orden en que están escritos ahí, omitiendo los nulos, y
@@ -207,15 +250,15 @@ Entonces:
 (`backend/src/Salvo.Application/Alerts/AlertViews.cs`, línea 5), lo proyecta
 `backend/src/Salvo.Application/Alerts/AlertProjection.cs` (línea 210), lo exige `projectSignal` en
 `frontend/src/lib/api/guards.ts` (línea 193) —**la guarda descarta lo que
-no conoce**, así que un campo nuevo no llega a pantalla sin editarla— y lo pintan
-`frontend/src/app/alerts/[id]/evaluation-blocks.tsx` y `frontend/src/app/dashboard/panels.tsx`. Es la lección de `E7A`, otra vez, y el hueco por el que esa
+no conoce**, así que un campo nuevo no llega a pantalla sin editarla— y lo pinta
+`frontend/src/app/alerts/[id]/evaluation-blocks.tsx`. El panel del dashboard **no** entra:
+`DashboardSignalView` es `(Rule, AlertCount)` y nunca llevó `detail`. Es la lección de `E7A`, otra vez, y el hueco por el que esa
 tarea se rompió a mitad de camino.
 
 Entra todo el camino:
 
 - `AlertSignalView` (`backend/src/Salvo.Application/Alerts/AlertViews.cs`) con los campos nuevos y
-  `detail` opcional; lo mismo para
-  `DashboardSignalView` si el panel del dashboard lo necesita.
+  `detail` opcional. `DashboardSignalView` no se toca.
 - Recaptura de `frontend/openapi/salvo-openapi.json` y `frontend/src/lib/api/schema.d.ts`, con
   `OpenApiDriftTests` verde.
 - `frontend/src/lib/api/guards.ts` y `frontend/src/lib/api/guards.test.ts`: una señal sin campos
@@ -223,7 +266,9 @@ Entra todo el camino:
   `e3-v1` con `detail` y sin campos pasa; una `e3-v2` con campos y sin `detail` pasa.
 - `frontend/src/test/fixtures.ts` y `frontend/src/test/boundary.test.ts`.
 - `frontend/src/lib/format.ts`: la composición en castellano de la frase de cada regla, junto a
-  `ruleLabel`, que es donde ya vive el vocabulario de reglas de la consola. **En castellano y sin
+  `ruleLabel`, que es donde ya vive el vocabulario de reglas de la consola. **`format.ts` no tiene
+  hoy ningún test propio**, así que la tarea crea `frontend/src/lib/format.test.ts`; ahí vive el
+  test de legibilidad de las seis reglas que pide la corrección de la regla de dominio. **En castellano y sin
   diccionario**: `E9C` extrae estos literales a los dos diccionarios, y adelantarlo acá sería
   hacer dos veces el mismo trabajo.
 - `frontend/src/app/alerts/[id]/divergence.ts`: ya compara score y señales sin mirar `detail` —lo arregló `E9A` justamente
@@ -275,9 +320,8 @@ es dejar seis expresiones regulares de una prosa que ya nadie escribe, pudriénd
   `backend/src/Salvo.Application/Alerts/AlertProjection.cs`
 - `backend/src/Salvo.Application/Risk/EvaluateLocalRiskHandler.cs` y
   `backend/src/Salvo.Application/Risk/RunScoringHandler.cs`
-- `backend/src/Salvo.Application/Dashboard/GetDashboardHandler.cs` y
-  `backend/src/Salvo.Application/Dashboard/DashboardViews.cs`, solo por
-  la resolución de `RuleConfig` y por `DashboardSignalView` si hace falta
+- `backend/src/Salvo.Application/Dashboard/GetDashboardHandler.cs`, **solo** por la resolución de
+  `RuleConfig` de su línea 172
 - `backend/src/Salvo.Infrastructure/Explanations/**`
 - `backend/src/Salvo.Api/Program.cs` y `backend/src/Salvo.Api/AlertEndpoints.cs`
 - `backend/tests/**`, incluido el directorio nuevo
@@ -289,13 +333,11 @@ es dejar seis expresiones regulares de una prosa que ya nadie escribe, pudriénd
 - `frontend/src/app/alerts/[id]/divergence.ts` y
   `frontend/src/app/alerts/[id]/divergence.test.ts`
 - `frontend/src/app/alerts/[id]/page.test.tsx`
-- `frontend/src/app/dashboard/panels.tsx` y sus tests, solo si `DashboardSignalView`
-  (`backend/src/Salvo.Application/Dashboard/DashboardViews.cs`) cambia
 - `frontend/src/lib/api/guards.ts` y `frontend/src/lib/api/guards.test.ts`
 - `frontend/src/lib/api/contract.ts`
 - `frontend/src/lib/api/messages.ts` y `frontend/src/lib/api/messages.test.ts`, si aparece un código
   de fila nuevo (decisión 57)
-- `frontend/src/lib/format.ts` y su test
+- `frontend/src/lib/format.ts` y `frontend/src/lib/format.test.ts`, que la tarea crea
 - `frontend/src/test/fixtures.ts` y `frontend/src/test/boundary.test.ts`
 - `frontend/openapi/salvo-openapi.json` y `frontend/src/lib/api/schema.d.ts`, **solo recaptura**
 
@@ -313,6 +355,10 @@ Todo comportamiento modificado lleva su test, como exige `AGENTS.md`.
   `.env.example`: `E9C`.
 - `README.md`, `docs/**`, `scripts/capturas.sh`, `scripts/demo.sh` y `docs/guion-demo.md`: `E9D`.
 
+`AGENTS.md` y `DesignAgent/Salvo-Blueprint.md` ya fueron corregidos por el coordinador en el commit
+anterior de esta misma rama. **No se vuelven a tocar**: si algo más de esos dos documentos
+contradice la tarea, se para y se consulta.
+
 **Cuidado con la compuerta**: `scripts/check-docs.sh` verifica que cada test que el README nombra
 exista. El README cita `ExplanationIsolationTests.NoTextTheEngineDidNotWriteReachesTheProvider`,
 `ExplanationIsolationTests.InvertingEveryLabelChangesNoSummary`,
@@ -329,14 +375,24 @@ hay que renombrar uno, la tarea para y consulta.
 - Levantar la API para recapturar el OpenAPI: autorizado.
 - Crear bases nuevas con `scripts/demo.sh`: autorizado. **No borrar ninguna.**
 - Escrituras externas: ninguna. No `git push`, no PR.
+- **Acciones destructivas: ninguna.** El borrado del extractor es borrado de código dentro de
+  archivos que quedan. Si absorber `SignalFacts` en `RiskSignal` dejara un archivo entero vacío, la
+  tarea lo deja escrito en la entrega y el borrado lo hace el coordinador: `rm` está denegado y es
+  regla del usuario.
 - Commits locales: autorizados, y se pide commitear por partes, **con el dorado en un commit
   anterior al del cambio de motor y el borrado del extractor en el último**.
 
 ## Criterios de aceptación
 
 - [ ] `/brief-check Coordination/Tasks/E9B-SENALES-TIPADAS.md` sin faltantes antes de empezar.
-- [ ] El dorado `signal-facts.v2.json` existe en un commit **anterior** al que toca el motor, y
-      cubre las **seis** reglas.
+- [ ] El extractor lee `amountCents`, `currencyCode`, `medianCents` y `timeZoneId` en un commit
+      **anterior** al de la captura, con su test.
+- [ ] El dorado `signal-facts.v2.json` existe en un commit **anterior** al que toca el motor, cubre
+      las **seis** reglas y **todas** las columnas de la tabla del punto 2.
+- [ ] La salida del programa que verifica los tres formatos está en la entrega, y coincide con lo
+      que el punto 2 afirma.
+- [ ] Un test compone la frase de las seis reglas desde la fila almacenada, sin nada más que la
+      fila.
 - [ ] El test permanente afirma la igualdad campo a campo sobre las 300 evaluaciones, y el score y
       el conjunto de reglas de cada una no cambiaron.
 - [ ] `ExplanationGoldenTests` pasa **sin tocar los textos**.
@@ -360,7 +416,9 @@ hay que renombrar uno, la tarea para y consulta.
 | Comando/comprobación | Resultado esperado |
 | --- | --- |
 | `/brief-check Coordination/Tasks/E9B-SENALES-TIPADAS.md` | Brief válido |
-| `git log --oneline` del dorado y del motor | El dorado precede |
+| `git log --oneline` del extractor, del dorado y del motor | En ese orden |
+| Programa mínimo sobre `0.0`, `0.##`, `decimal.Round` y `F1` | Coincide con el punto 2 |
+| Frase de las seis reglas compuesta desde la fila | Legible, sin intérprete |
 | Diferencial campo a campo, 300 evaluaciones | Cero desvíos |
 | `ExplanationGoldenTests` | Textos idénticos |
 | Test por campo sobre `ExplanationFacts` | Todos presentes |
@@ -401,12 +459,15 @@ deshace:
 - hace falta una migración;
 - hace falta renombrar un test que el README nombra;
 - el diferencial del dorado difiere en más de un campo y la explicación no es evidente;
-- aparece un motivo para subir a `e7-v3` distinto de escribir la mediana.
+- aparece un motivo para subir a `e7-v3` distinto de escribir la mediana;
+- los tres formatos no se comportan como dice el punto 2;
+- algo más de `AGENTS.md` o del Blueprint contradice la tarea.
 
 ## Entrega requerida
 
 - Resumen del resultado y archivos modificados.
 - El diferencial del dorado: cuántas evaluaciones, cuántos campos, cuántos desvíos.
+- La salida del programa que verifica los tres formatos.
 - La lista de fingerprints dorados que cambiaron, con el valor viejo y el nuevo.
 - Las cinco falsaciones, con el error exacto de cada una.
 - Comandos y resultados exactos.

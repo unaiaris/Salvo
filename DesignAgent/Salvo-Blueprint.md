@@ -182,7 +182,10 @@ Contrato detallado aprobado para E2:
   - `unusual_hour` usando una zona horaria de negocio explícita;
   - `new_buyer_high_value`;
   - `foreign_country`.
-- Cada señal tiene `{ rule, weight, detail }` y `detail` es legible para una persona.
+- Toda señal se lee sin intérprete. `e3-v1` escribe `{ rule, weight, detail }` con `detail` en
+  prosa; `e3-v2` escribe `{ rule, weight, ...campos con nombre }` y la consola compone la frase.
+  `detail` queda como campo heredado y opcional, porque el snapshot de una alerta no se
+  reescribe nunca (decisión 33).
 - Pesos, ventanas, mínimos y umbral viven en un `RuleConfig` central e inmutable.
 - Reejecutar scoring produce el mismo resultado y no altera pedidos ya revisados sin una operación
   explícita de recalibración.
@@ -299,8 +302,9 @@ Tabla de transiciones:
   - **reglas**: todo nombre de regla mencionado pertenece a las señales de la evaluación;
   - **cifras**: todo número del texto está respaldado por un hecho del conjunto `ExplanationFacts`,
     construido en el dominio a partir de la evaluación y del pedido. Ese conjunto incluye el score,
-    el umbral, el tope, el peso de cada señal y su suma, la cantidad de señales, todos los números
-    de cada `detail`, el monto en centavos **y** en unidades, y el instante del pedido en UTC **y**
+    el umbral, el tope, el peso de cada señal y su suma, la cantidad de señales, el valor de cada
+    campo numérico de cada señal —y todos los números de su `detail` mientras la señal sea
+    `e3-v1`—, el monto en centavos **y** en unidades, y el instante del pedido en UTC **y**
     en la zona horaria de negocio. Un token con `d` decimales está fundamentado si algún hecho `F`
     cumple `N == F` o `round(F, d) == N`. Las cifras escritas en letras no se validan, y se declara
     que no se validan;
