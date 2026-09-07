@@ -2726,3 +2726,133 @@ Falsaciones, porque el valor de una comprobación es que pueda fallar:
   ninguno de estos paths.
 - Verificación posterior al merge: `./scripts/check.sh` y `./scripts/smoke-ui.sh` sobre el estado
   integrado. `./scripts/capturas.sh` no hace falta repetirlo: las imágenes ya están versionadas.
+
+## `E9A-FIXTURE` — El corpus que no recupera sus propias etiquetas
+
+### Identificación
+
+- Work ID: `E9A-FIXTURE`
+- Etapa: 9
+- Rama: `claude/e9a-fixture`
+- Commit base: `82f9804`
+- Modelo y esfuerzo: Opus 5 · `high`
+- Estado: **en curso**
+
+### La tabla de arquetipos esperada, escrita antes de construir la fixture
+
+Esto se escribe **primero y en su propio commit**, y ese orden es la falsación de la tarea: predecir
+la celda de la matriz de cada arquetipo y después medirla es una comprobación; medir primero y
+llamarlo predicción no comprueba nada. Cuando el motor real corra sobre el corpus, cada fila de esta
+tabla tiene que coincidir, y toda diferencia se explica en la entrega.
+
+De dónde sale cada score. Los seis pesos son `amount_anomaly` 40, `velocity` 30,
+`cross_border_velocity` 40, `unusual_hour` 10, `new_buyer_high_value` 30 y `foreign_country` 20; el
+umbral de alerta es 60 y el tope 100. Las claves importan tanto como los umbrales: `amount_anomaly`
+compara contra la mediana **del comprador** cuando tiene tres pedidos previos en noventa días y
+contra la del comercio cuando no; `velocity` y `cross_border_velocity` cuentan por
+**(comercio, comprador)**; `unusual_hour` y `foreign_country` describen el hábito **del comercio**;
+y `new_buyer_high_value` exige que el comprador no tenga **ningún** pedido previo, así que nunca
+convive con las dos reglas de ráfaga.
+
+Los tres falsos negativos son invisibles cada uno por una razón distinta, y esa es la propiedad que
+los vuelve didácticos:
+
+- **`FN1`, fraude amigo.** Un comprador con historia compra lo de siempre, lo recibe, y desconoce el
+  cargo. No hay nada que ver en la transacción porque es una compra legítima hasta el contracargo.
+  Lo vería el historial de disputas de ese comprador en la red de un proveedor.
+- **`FN2`, cuenta tomada, vista en el dispositivo.** Comprador con historia, `deviceSessionId`
+  nuevo, el doble de su mediana, tres pedidos separados por veinte minutos. Las dos reglas por
+  comprador piden 3× y cuatro pedidos en diez minutos; país y hora miran al comercio. **El
+  dispositivo está en el archivo desde la Etapa 2 y el motor no lo lee**, y eso es exactamente lo
+  que enseña.
+- **`FN3`, prueba de tarjetas.** Cinco compradores nuevos, un mismo dispositivo, montos mínimos,
+  minutos entre uno y otro. `velocity` cuenta por comprador y cada comprador tiene cero previos;
+  `new_buyer_high_value` pide monto alto. La regla existe y está atada a la entidad equivocada.
+
+Los cuatro falsos positivos son el costo del criterio, y dos de ellos existen para que `velocity`,
+`unusual_hour` y `amount_anomaly` en clave comprador **decidan algo por primera vez**:
+
+- **`FP1`, el salto de país en dos horas.** No es «un cliente que viaja»: `foreign_country` vale 20
+  y sola no llega al umbral. Es un comprador que hace dos compras en noventa minutos desde dos redes
+  distintas —roaming, VPN o proxy—, y la segunda dispara `cross_border_velocity` más
+  `foreign_country`.
+- **`FP2`, la primera compra grande.** Un cliente nuevo comprando algo caro: el costo declarado de
+  toda regla «nuevo y caro».
+- **`FP3`, el revendedor de madrugada.** Cuatro compras alrededor de la medianoche; la cuarta cruza
+  a la franja que el comercio casi no tiene y dispara las tres reglas a la vez.
+- **`FP4`, el regalo desde afuera.** Un cliente habitual de viaje compra un regalo caro: dispara
+  exactamente las mismas dos reglas que un `TP` de 60, y el motor no puede distinguirlos. Ese es el
+  punto.
+
+Las filas marcadas `acompañante` no son arquetipos sino los pedidos que un arquetipo necesita para
+existir: la compra chica de prueba que precede a la grande, el pedido de casa noventa minutos antes
+del salto de país, y las tres compras previas del revendedor.
+
+| Referencia | Arquetipo | Comercio | Comprador | Monto | Instante local | País | Dispositivo | Etiqueta | Reglas previstas | Score | Celda | Cohorte |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `ORD_000011` | TP | `MER_BR_STORE` | `BUY_000011` | 50786 BRL | 2026-05-05 02:15 | AR | `DEV_000011` | fraude | monto, nuevo, país | 90 | TP | calibración |
+| `ORD_000027` | TP | `MER_UY_STORE` | `BUY_000001` | 635251 UYU | 2026-05-11 12:33 | AR | `DEV_000001` | fraude | monto, país | 60 | TP | calibración |
+| `ORD_000043` | TP | `MER_UY_STORE` | `BUY_000039` | 660785 UYU | 2026-05-17 18:26 | UY | `DEV_000039` | fraude | monto, nuevo | 70 | TP | calibración |
+| `ORD_000059` | TP | `MER_US_MARKET` | `BUY_000044` | 33337 USD | 2026-05-24 05:50 | BR | `DEV_000044` | fraude | monto, nuevo, país | 90 | TP | calibración |
+| `ORD_000064` | FP2 | `MER_US_MARKET` | `BUY_000048` | 28832 USD | 2026-05-26 11:05 | AR | `DEV_000048` | legítimo | monto, nuevo | 70 | FP | calibración |
+| `ORD_000075` | FN3 | `MER_US_MARKET` | `BUY_000052` | 270 USD | 2026-05-30 16:14 | AR | `DEV_900001` | fraude | — | 0 | FN | calibración |
+| `ORD_000076` | FN3 | `MER_US_MARKET` | `BUY_000053` | 271 USD | 2026-05-30 16:17 | AR | `DEV_900001` | fraude | — | 0 | FN | calibración |
+| `ORD_000077` | FN3 | `MER_US_MARKET` | `BUY_000054` | 272 USD | 2026-05-30 16:20 | AR | `DEV_900001` | fraude | — | 0 | FN | calibración |
+| `ORD_000078` | FN3 | `MER_US_MARKET` | `BUY_000055` | 273 USD | 2026-05-30 16:23 | AR | `DEV_900001` | fraude | — | 0 | FN | calibración |
+| `ORD_000079` | FN3 | `MER_US_MARKET` | `BUY_000056` | 274 USD | 2026-05-30 16:26 | AR | `DEV_900001` | fraude | — | 0 | FN | calibración |
+| `ORD_000091` | TP | `MER_BR_STORE` | `BUY_000002` | 59857 BRL | 2026-06-06 09:12 | AR | `DEV_000002` | fraude | monto, país | 60 | TP | calibración |
+| `ORD_000107` | TP | `MER_BR_STORE` | `BUY_000066` | 72719 BRL | 2026-06-12 15:40 | AR | `DEV_000066` | fraude | monto, nuevo, país | 90 | TP | calibración |
+| `ORD_000111` | acompañante | `MER_BR_STORE` | `BUY_000005` | 21681 BRL | 2026-06-14 11:52 | BR | `DEV_000005` | legítimo | — | 0 | TN | calibración |
+| `ORD_000112` | FP1 | `MER_BR_STORE` | `BUY_000005` | 21897 BRL | 2026-06-14 13:22 | UY | `DEV_000005` | legítimo | cruce, país | 60 | FP | calibración |
+| `ORD_000123` | TP | `MER_BR_STORE` | `BUY_000008` | 91426 BRL | 2026-06-18 22:18 | AR | `DEV_000008` | fraude | monto, país | 60 | TP | calibración |
+| `ORD_000138` | acompañante | `MER_BR_STORE` | `BUY_000012` | 11627 BRL | 2026-06-25 10:20 | AR | `DEV_000012` | fraude | país | 20 | FN | calibración |
+| `ORD_000139` | TP | `MER_BR_STORE` | `BUY_000012` | 43661 BRL | 2026-06-25 11:05 | BR | `DEV_000012` | fraude | monto, cruce | 80 | TP | calibración |
+| `ORD_000155` | TP | `MER_BR_STORE` | `BUY_000082` | 55006 BRL | 2026-07-01 19:47 | AR | `DEV_000082` | fraude | monto, nuevo, país | 90 | TP | calibración |
+| `ORD_000157` | acompañante | `MER_UY_STORE` | `BUY_000004` | 75902 UYU | 2026-07-02 23:52 | AR | `DEV_000004` | legítimo | país | 20 | TN | calibración |
+| `ORD_000158` | acompañante | `MER_UY_STORE` | `BUY_000004` | 63736 UYU | 2026-07-02 23:55 | AR | `DEV_000004` | legítimo | país | 20 | TN | calibración |
+| `ORD_000159` | acompañante | `MER_UY_STORE` | `BUY_000004` | 77967 UYU | 2026-07-02 23:58 | AR | `DEV_000004` | legítimo | país | 20 | TN | calibración |
+| `ORD_000160` | FP3 | `MER_UY_STORE` | `BUY_000004` | 94881 UYU | 2026-07-03 00:01 | AR | `DEV_000004` | legítimo | ráfaga, hora, país | 60 | FP | calibración |
+| `ORD_000171` | TP | `MER_BR_STORE` | `BUY_000018` | 69256 BRL | 2026-07-08 08:30 | AR | `DEV_000018` | fraude | monto, país | 60 | TP | calibración |
+| `ORD_000186` | acompañante | `MER_US_MARKET` | `BUY_000003` | 12435 USD | 2026-07-14 12:37 | BR | `DEV_000003` | fraude | país | 20 | FN | calibración |
+| `ORD_000187` | TP | `MER_US_MARKET` | `BUY_000003` | 42279 USD | 2026-07-14 13:22 | AR | `DEV_000003` | fraude | monto, cruce | 80 | TP | calibración |
+| `ORD_000203` | TP | `MER_BR_STORE` | `BUY_000021` | 78207 BRL | 2026-07-20 20:55 | AR | `DEV_000021` | fraude | monto, país | 60 | TP | holdout |
+| `ORD_000219` | TP | `MER_BR_STORE` | `BUY_000101` | 67328 BRL | 2026-07-27 10:41 | BR | `DEV_000101` | fraude | monto, nuevo | 70 | TP | holdout |
+| `ORD_000231` | acompañante | `MER_US_MARKET` | `BUY_000009` | 8832 USD | 2026-08-01 11:52 | AR | `DEV_000009` | legítimo | — | 0 | TN | holdout |
+| `ORD_000232` | FP1 | `MER_US_MARKET` | `BUY_000009` | 8157 USD | 2026-08-01 13:22 | UY | `DEV_000009` | legítimo | cruce, país | 60 | FP | holdout |
+| `ORD_000235` | TP | `MER_BR_STORE` | `BUY_000108` | 63896 BRL | 2026-08-02 17:09 | AR | `DEV_000108` | fraude | monto, nuevo, país | 90 | TP | holdout |
+| `ORD_000241` | acompañante | `MER_UY_STORE` | `BUY_000016` | 54170 UYU | 2026-08-04 23:52 | AR | `DEV_000016` | legítimo | país | 20 | TN | holdout |
+| `ORD_000242` | acompañante | `MER_UY_STORE` | `BUY_000016` | 84240 UYU | 2026-08-04 23:55 | AR | `DEV_000016` | legítimo | país | 20 | TN | holdout |
+| `ORD_000243` | acompañante | `MER_UY_STORE` | `BUY_000016` | 90759 UYU | 2026-08-04 23:58 | AR | `DEV_000016` | legítimo | país | 20 | TN | holdout |
+| `ORD_000244` | FP3 | `MER_UY_STORE` | `BUY_000016` | 80438 UYU | 2026-08-05 00:01 | AR | `DEV_000016` | legítimo | ráfaga, hora, país | 60 | FP | holdout |
+| `ORD_000251` | TP | `MER_BR_STORE` | `BUY_000026` | 82573 BRL | 2026-08-09 02:15 | AR | `DEV_000026` | fraude | monto, país | 60 | TP | holdout |
+| `ORD_000258` | FP4 | `MER_US_MARKET` | `BUY_000034` | 17129 USD | 2026-08-11 22:18 | BR | `DEV_000034` | legítimo | monto, país | 60 | FP | holdout |
+| `ORD_000267` | TP | `MER_UY_STORE` | `BUY_000118` | 605514 UYU | 2026-08-15 12:33 | UY | `DEV_000118` | fraude | monto, nuevo | 70 | TP | holdout |
+| `ORD_000275` | FN1 | `MER_UY_STORE` | `BUY_000007` | 283204 UYU | 2026-08-18 19:47 | UY | `DEV_000007` | fraude | — | 0 | FN | holdout |
+| `ORD_000277` | FN2 | `MER_BR_STORE` | `BUY_000024` | 30804 BRL | 2026-08-19 13:22 | BR | `DEV_900002` | fraude | — | 0 | FN | holdout |
+| `ORD_000278` | FN2 | `MER_BR_STORE` | `BUY_000024` | 31506 BRL | 2026-08-19 13:42 | BR | `DEV_900002` | fraude | — | 0 | FN | holdout |
+| `ORD_000279` | FN2 | `MER_BR_STORE` | `BUY_000024` | 32698 BRL | 2026-08-19 14:02 | BR | `DEV_900002` | fraude | — | 0 | FN | holdout |
+| `ORD_000283` | TP | `MER_UY_STORE` | `BUY_000124` | 767889 UYU | 2026-08-21 18:26 | AR | `DEV_000124` | fraude | monto, nuevo, país | 90 | TP | holdout |
+
+Y las cifras agregadas que se predicen junto con ella, sobre las mismas 300 referencias
+`ORD_000001`–`ORD_000300` y los mismos tres comercios:
+
+| Magnitud | Predicción |
+| --- | --- |
+| Pedidos y etiquetas | 300 y 300, con 28 fraudes y 272 legítimos |
+| Cohortes | 300 instantes distintos: 200 de calibración y 100 de holdout |
+| Matriz total | TP 17, FP 6, FN 11, TN 266 |
+| Matriz de calibración | TP 11, FP 3, FN 7, TN 179 |
+| Matriz de holdout | TP 6, FP 3, FN 4, TN 87 |
+| Holdout | precisión 6/9, recall 6/10, F1 0,632 |
+| Umbral que elige el barrido | 60 |
+| Reglas que disparan | `foreign_country` 50, `amount_anomaly` 19, `new_buyer_high_value` 10, `cross_border_velocity` 4, `velocity` 2, `unusual_hour` 2 |
+| Bandas de alerta | 11 media, 6 alta, 6 crítica |
+| Denegados por el proveedor sin alerta local | 43, de los cuales 10 son fraude |
+
+Dos predicciones que conviene declarar porque son incómodas y deliberadas. La primera: `velocity` y
+`unusual_hour` disparan **dos veces cada una y siempre sobre pedidos legítimos**. No es que no se
+haya podido construir un fraude que las active; es que el fraude que las activaría —la ráfaga de
+prueba de tarjetas— usa un comprador distinto por pedido, y `velocity` cuenta por comprador. El
+corpus dice que esas dos reglas, con estos datos, solo producen falsos positivos, y esa afirmación
+vale más que un fraude fabricado para que la regla acierte. La segunda: la única banda `ALTA` de la
+cohorte de calibración la abre un pedido **legítimo**, `ORD_000064`.
