@@ -126,10 +126,39 @@ La fase 1 entrega, con sus pasos escritos en el handoff para que el coordinador 
 - El coordinador corre el recorrido con VoiceOver, suma sus hallazgos a la lista, decide cuáles
   entran, y despacha la fase 2 con esa decisión escrita.
 
+## Decisión del coordinador tras la parada — 2026-09-07
+
+**El recorrido con lector de pantalla se hizo parcial y se interrumpió.** Se recorrieron con
+VoiceOver la portada (`/`) entera y el encabezado de la cola de alertas (`/alerts`), y **no
+aparecieron hallazgos**: la navegación se anuncia como grupo, los enlaces dicen su destino, el aviso
+«Datos sintéticos · sin autenticación · uso local» se lee, el rotor muestra el encabezado esperado, y
+el conteo de alertas llega después del título. La tabla, el detalle de alerta, el dashboard y la
+importación **quedaron sin recorrer**.
+
+Eso cambia lo que la etapa puede afirmar, y la afirmación se ajusta en vez de estirarse: **la pasada
+automática se hizo entera; el recorrido con lector de pantalla se hizo sobre dos pantallas y se
+interrumpió.** Va escrito así en el handoff y en `E9D`. Ningún documento va a decir «alguien recorrió
+la consola sin ver la pantalla», porque no es cierto.
+
+La fase 2 se despacha igual, porque **los siete hallazgos ya estaban medidos** por las herramientas
+y ninguno dependía del recorrido para existir. Lo que el recorrido habría aportado sobre el número 2
+—si el `role="alert"` del formulario alcanza a montarse antes del árbol revalidado— no cambia el
+arreglo: hacerlo es correcto en los dos casos.
+
+| # | Severidad | Decisión |
+| --- | --- | --- |
+| 2 | `alta` | **Entra.** La parte estructural está medida: `RecordedVerdict` no tiene región viva y el botón con foco se desmonta con el formulario |
+| 1 | `media` | **Entra.** «La evaluación del pedido cambió (70 → 70)» es una contradicción de redacción |
+| 3 | `baja` | **Entra.** La tabla del barrido es la única sin `<caption>` |
+| 4 | `baja` | **Entra.** `role="status"` cuando la acción salió bien, `alert` solo para el fallo |
+| 5 | `baja` | **Entra.** El `id` del encabezado se deriva de una clave estable y no del título traducido |
+| 6 | `baja` | **Afuera y dicho.** El contraste no lo comprueba nada, y el recorrido tampoco lo habría cubierto |
+| 7 | `baja` | **Sin acción.** Una pantalla de una sola tabla no necesita un segundo encabezado |
+
 ### Fase 2 — Lo que el recorrido encontró
 
-Se despacha **después** de la parada, con la lista aprobada en la mano. Entra únicamente lo que el
-coordinador eligió. Cada corrección lleva su test, y **todo literal nuevo nace en los dos
+Se despacha **después** de la parada, con la lista aprobada en la mano: **los cinco de la tabla de
+arriba, en ese orden de severidad**. Entra únicamente eso; el 6 y el 7 no se tocan. Cada corrección lleva su test, y **todo literal nuevo nace en los dos
 diccionarios**: una clave que falte en uno es error de compilación, como estableció `E9C1`.
 
 Lo que el recorrido casi seguro va a tocar, dicho para que la fase 1 no lo corrija por adelantado y
@@ -199,8 +228,10 @@ reservado. Si hay que renombrar uno, la tarea para y consulta.
 
 ### De la fase 2
 
-- [ ] Entró exactamente lo que el coordinador eligió, y lo que quedó afuera está dicho con su
-      severidad.
+- [ ] Entraron exactamente los hallazgos 1, 2, 3, 4 y 5. El 6 y el 7 no se tocaron, y quedan
+      dichos con su severidad.
+- [ ] El handoff dice que el recorrido con lector de pantalla fue **parcial**, y sobre qué
+      pantallas: ninguna afirmación de la etapa dice más que eso.
 - [ ] Cada corrección lleva su test.
 - [ ] Todo literal nuevo está en los **dos** diccionarios.
 - [ ] La consola sigue funcionando en los dos idiomas: la pasada `pt` del smoke sigue verde.
