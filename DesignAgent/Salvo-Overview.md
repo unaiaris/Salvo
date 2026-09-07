@@ -73,8 +73,7 @@ externas.
 
 ## Próximo paso
 
-Ejecutar `E9C2-ACCESIBILIDAD`: comprobaciones automáticas de accesibilidad, y un recorrido con
-lector de pantalla que produce una lista de hallazgos con severidad **antes** de corregir nada. El
-recorrido lo hace una persona, no un linter, y por eso la tarea se detiene en el medio para que el
-coordinador decida qué entra. Después `E9D`, el repaso final. Ninguna integración autoriza
-automáticamente la tarea siguiente.
+Ejecutar `E9D-CIERRE`, la última tarea del MVP: regenerar las seis capturas y el guion sobre el
+corpus actual, poner al día todas las cifras que los documentos afirman, actualizar el artículo para
+revisores, y dejar escrita la deuda que la etapa decidió no pagar. Después de eso el núcleo local
+está cerrado y lo que sigue es post-MVP: Koin sandbox, autenticación, observabilidad y despliegue.
