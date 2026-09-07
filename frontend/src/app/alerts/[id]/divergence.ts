@@ -28,12 +28,24 @@ export function describeDivergence(detail: AlertDetail, language: Language): Div
     return { kind: "none" };
   }
 
+  /*
+    Dos redacciones, porque la evaluación puede moverse sin que el score se mueva.
+
+    `hasMoved` avisa también cuando cambian las reglas o sus pesos y el total queda igual —cambiar
+    una regla de 30 por otra de 30 es el caso de manual—, y con una sola frase eso salía como «La
+    evaluación del pedido cambió (70 → 70)»: de oído, un aviso de cambio que repite el mismo número
+    es una contradicción, y quien no ve la pantalla no tiene forma de resolverla. Cuando el score
+    coincide, la frase habla de las señales, que es lo que efectivamente cambió.
+  */
   return {
     kind: "advisory",
-    summary: t.alertDetail.divergenceAdvisory(
-      String(snapshot.score),
-      String(currentEvaluation.score),
-    ),
+    summary:
+      snapshot.score === currentEvaluation.score
+        ? t.alertDetail.divergenceAdvisorySignals(String(snapshot.score))
+        : t.alertDetail.divergenceAdvisory(
+            String(snapshot.score),
+            String(currentEvaluation.score),
+          ),
   };
 }
 

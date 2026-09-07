@@ -201,6 +201,12 @@ describe("divergencia y versiones del motor", () => {
     );
 
     expect(notice.kind).toBe("advisory");
+    if (notice.kind === "advisory") {
+      // 100 → 100 no se anuncia como un cambio de score, porque no lo es.
+      expect(notice.summary).not.toMatch(/100 → 100/);
+      expect(notice.summary).toMatch(/Las señales del pedido cambiaron/i);
+      expect(notice.summary).toMatch(/el score sigue en 100/i);
+    }
   });
 
   it("sí avisa cuando una regla dejó de dispararse", () => {
@@ -219,5 +225,108 @@ describe("divergencia y versiones del motor", () => {
     );
 
     expect(notice.kind).toBe("advisory");
+    if (notice.kind === "advisory") {
+      expect(notice.summary).not.toMatch(/100 → 100/);
+    }
+  });
+
+  /**
+   * La contradicción que el aviso tenía, escrita como prueba.
+   *
+   * `hasMoved` avisa cuando cambian las reglas aunque el total no se mueva —intercambiar dos reglas
+   * del mismo peso es el caso de manual—, y con una sola redacción eso salía como «La evaluación del
+   * pedido cambió (70 → 70)». En pantalla se disimula; leído en voz alta es un aviso de cambio que
+   * repite el mismo número, y quien no ve la pantalla no tiene con qué resolverlo.
+   */
+  it("con el score quieto, la frase habla de las señales y no de la flecha", () => {
+    const notice = describeDivergence(
+      detailFrom({
+        snapshot: {
+          evaluationId: "3f3b7f3e-0000-4000-8000-000000000003",
+          score: 70,
+          severity: "HIGH",
+          signals: [wireSignal({ rule: "new_buyer_high_value", weight: 30 })],
+        },
+        currentEvaluation: {
+          evaluationId: "9f9b7f3e-0000-4000-8000-000000000009",
+          score: 70,
+          severity: "HIGH",
+          isFlagged: true,
+          signals: [wireSignal({ rule: "velocity", weight: 30 })],
+          evaluatedAt: "2026-09-06T10:02:00+00:00",
+        },
+        divergence: {
+          hasBandDivergence: false,
+          snapshotScore: 70,
+          snapshotSeverity: "HIGH",
+          currentScore: 70,
+          currentSeverity: "HIGH",
+        },
+      }),
+      "es",
+    );
+
+    expect(notice.kind).toBe("advisory");
+    if (notice.kind === "advisory") {
+      expect(notice.summary).not.toMatch(/→/);
+      expect(notice.summary).toMatch(/Las señales del pedido cambiaron/i);
+      expect(notice.summary).toMatch(/Evaluación vigente/);
+    }
+  });
+
+  it("con el score movido sigue diciendo los dos números", () => {
+    const notice = describeDivergence(
+      detailFrom({
+        snapshot: {
+          evaluationId: "3f3b7f3e-0000-4000-8000-000000000003",
+          score: 70,
+          severity: "HIGH",
+          signals: [wireSignal({ weight: 30 })],
+        },
+        currentEvaluation: {
+          evaluationId: "9f9b7f3e-0000-4000-8000-000000000009",
+          score: 80,
+          severity: "HIGH",
+          isFlagged: true,
+          signals: [wireSignal({ weight: 40 })],
+          evaluatedAt: "2026-09-06T10:02:00+00:00",
+        },
+        divergence: {
+          hasBandDivergence: false,
+          snapshotScore: 70,
+          snapshotSeverity: "HIGH",
+          currentScore: 80,
+          currentSeverity: "HIGH",
+        },
+      }),
+      "es",
+    );
+
+    expect(notice.kind).toBe("advisory");
+    if (notice.kind === "advisory") {
+      expect(notice.summary).toMatch(/70 → 80/);
+    }
+  });
+
+  it("la redacción del score quieto también existe en portugués", () => {
+    const notice = describeDivergence(
+      detailFrom({
+        currentEvaluation: {
+          evaluationId: "9f9b7f3e-0000-4000-8000-000000000009",
+          score: 100,
+          severity: "CRITICAL",
+          isFlagged: true,
+          signals: [wireSignal({ weight: 40 })],
+          evaluatedAt: "2026-09-06T10:02:00+00:00",
+        },
+      }),
+      "pt",
+    );
+
+    expect(notice.kind).toBe("advisory");
+    if (notice.kind === "advisory") {
+      expect(notice.summary).toMatch(/Os sinais do pedido mudaram/i);
+      expect(notice.summary).not.toMatch(/→/);
+    }
   });
 });
