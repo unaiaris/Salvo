@@ -10,10 +10,66 @@ public sealed class SeedDemoOrdersHandler(IDemoOrderSource source, IOrderDataSto
 {
     private static readonly Guid DemoNamespace = new("df09948d-8323-4d13-b2fd-7665b18a2a3e");
 
+    /// <summary>
+    /// Loads the demo corpus, or refuses without writing anything.
+    /// </summary>
+    /// <exception cref="DemoSeedConflictException">
+    /// The database already holds orders with these merchant references and different facts.
+    /// </exception>
     public async Task<SeedDemoOrdersResult> HandleAsync(CancellationToken cancellationToken)
     {
+        var plan = await PlanAsync(cancellationToken);
+
+        if (plan.Conflict is { } reason)
+        {
+            throw new DemoSeedConflictException(reason, Describe(reason));
+        }
+
+        if (plan.OrdersToInsert.Count > 0 || plan.LabelsToInsert.Count > 0)
+        {
+            await store.AddSeedDataAsync(plan.OrdersToInsert, plan.LabelsToInsert, cancellationToken);
+        }
+
+        return new(
+            plan.Shape.Version,
+            plan.Shape.OrderCount,
+            plan.OrdersToInsert.Count,
+            plan.DuplicateOrders,
+            plan.Shape.OrderCount,
+            plan.LabelsToInsert.Count,
+            plan.Shape.FraudLabelCount);
+    }
+
+    /// <summary>
+    /// The same comparison, reported instead of applied. Nothing is written on this path.
+    /// </summary>
+    public async Task<DemoSeedPreviewResult> PreviewAsync(CancellationToken cancellationToken)
+    {
+        var plan = await PlanAsync(cancellationToken);
+
+        return new(
+            plan.Shape.Version,
+            plan.Shape.OrderCount,
+            plan.OrdersToInsert.Count,
+            plan.DuplicateOrders,
+            plan.LabelsToInsert.Count,
+            plan.Conflict is { } reason ? DemoSeedWireNames.ToWire(reason) : null);
+    }
+
+    /// <summary>
+    /// Reads the fixture, compares it against what is stored, and decides what would happen.
+    /// </summary>
+    /// <remarks>
+    /// The conflict is discovered here, before any write, which is what makes refusing free: the
+    /// corpus is never half loaded. Classifying it is not a heuristic either — only this handler
+    /// writes ground-truth labels, so a colliding order that has one came from an earlier version
+    /// of this corpus.
+    /// </remarks>
+    private async Task<SeedPlan> PlanAsync(CancellationToken cancellationToken)
+    {
+        var shape = DemoDatasetShape.Current;
         var document = await source.LoadAsync(cancellationToken);
-        ValidateDocumentShape(document);
+        ValidateDocumentShape(document, shape);
 
         if (!DateTimeOffset.TryParse(
                 document.CreatedAt,
@@ -27,9 +83,18 @@ public sealed class SeedDemoOrdersHandler(IDemoOrderSource source, IOrderDataSto
         var candidates = document.Orders.Select(record => CreateCandidate(record, createdAt)).ToArray();
         var references = candidates.Select(candidate => candidate.Order.Reference).ToArray();
         var existingOrders = await store.GetOrdersByReferencesAsync(references, cancellationToken);
+
+        // Labels of the orders that are already there, keyed by their stored identifier: a seeded
+        // order keeps the deterministic identifier of its reference, an imported one does not, and
+        // either way the label is what distinguishes them.
+        var existingLabels = await store.GetLabelsByOrderIdsAsync(
+            existingOrders.Values.Select(order => order.Id).ToArray(),
+            cancellationToken);
+
         var ordersToInsert = new List<Order>();
         var effectiveOrders = new List<EffectiveSeedOrder>(candidates.Length);
         var duplicateOrders = 0;
+        DemoSeedConflictReason? conflict = null;
 
         foreach (var candidate in candidates)
         {
@@ -42,63 +107,82 @@ public sealed class SeedDemoOrdersHandler(IDemoOrderSource source, IOrderDataSto
 
             if (!existing.HasSameBusinessFactsAs(candidate.Order))
             {
-                throw new DemoSeedConflictException(
-                    "The demo dataset conflicts with an existing merchant order reference.");
+                conflict = Escalate(conflict, existingLabels.ContainsKey(existing.Id));
+                continue;
             }
 
             duplicateOrders++;
             effectiveOrders.Add(new(existing, candidate.IsFraudLabel));
         }
 
-        var orderIds = effectiveOrders.Select(item => item.Order.Id).ToArray();
-        var existingLabels = await store.GetLabelsByOrderIdsAsync(orderIds, cancellationToken);
         var labelsToInsert = new List<OrderEvaluationLabel>();
+        var storedLabels = await store.GetLabelsByOrderIdsAsync(
+            effectiveOrders.Select(item => item.Order.Id).ToArray(),
+            cancellationToken);
 
         foreach (var item in effectiveOrders)
         {
-            if (!existingLabels.TryGetValue(item.Order.Id, out var existingLabel))
+            if (!storedLabels.TryGetValue(item.Order.Id, out var storedLabel))
             {
                 labelsToInsert.Add(new(item.Order.Id, item.IsFraudLabel, createdAt));
                 continue;
             }
 
-            if (existingLabel.IsFraudLabel != item.IsFraudLabel)
+            if (storedLabel.IsFraudLabel != item.IsFraudLabel)
             {
-                throw new DemoSeedConflictException(
-                    "The demo dataset conflicts with an existing evaluation label.");
+                // The facts match and the ground truth does not, which only an earlier version of
+                // this corpus can produce.
+                conflict = DemoSeedConflictReason.PreviousCorpus;
             }
         }
 
-        if (ordersToInsert.Count > 0 || labelsToInsert.Count > 0)
-        {
-            await store.AddSeedDataAsync(ordersToInsert, labelsToInsert, cancellationToken);
-        }
-
-        return new(
-            document.Version,
-            document.Orders.Count,
-            ordersToInsert.Count,
-            duplicateOrders,
-            document.Orders.Count,
-            labelsToInsert.Count,
-            document.Orders.Count(order => order.IsFraudLabel));
+        return new(shape, ordersToInsert, labelsToInsert, duplicateOrders, conflict);
     }
 
-    private static void ValidateDocumentShape(DemoOrderDocument document)
+    /// <summary>
+    /// One labelled collision is enough to name the cause, and it wins over an unlabelled one: a
+    /// database can hold the previous corpus <em>and</em> a manual import at the same time, and the
+    /// sentence that helps is the one about the corpus.
+    /// </summary>
+    private static DemoSeedConflictReason Escalate(DemoSeedConflictReason? current, bool labelled)
     {
-        if (!string.Equals(document.Version, "1", StringComparison.Ordinal))
+        if (labelled || current == DemoSeedConflictReason.PreviousCorpus)
         {
-            throw new InvalidOperationException("The demo fixture version is not supported.");
+            return DemoSeedConflictReason.PreviousCorpus;
         }
 
-        if (document.Orders.Count != 300)
+        return DemoSeedConflictReason.ImportedOrders;
+    }
+
+    private static string Describe(DemoSeedConflictReason reason)
+    {
+        return reason == DemoSeedConflictReason.PreviousCorpus
+            ? "This database holds a previous version of the demo corpus. Loading version "
+              + $"{DemoDatasetShape.Current.Version} needs a new database: an order is immutable, so "
+              + "the two versions cannot coexist under the same merchant references."
+            : "The demo dataset conflicts with imported orders that use the same merchant "
+              + "references.";
+    }
+
+    private static void ValidateDocumentShape(DemoOrderDocument document, DemoDatasetShape shape)
+    {
+        if (!string.Equals(document.Version, shape.Version, StringComparison.Ordinal))
         {
-            throw new InvalidOperationException("The demo fixture must contain exactly 300 orders.");
+            throw new InvalidOperationException(
+                $"The demo fixture declares version '{document.Version}' and this build ships "
+                + $"'{shape.Version}'.");
         }
 
-        if (document.Orders.Count(order => order.IsFraudLabel) != 18)
+        if (document.Orders.Count != shape.OrderCount)
         {
-            throw new InvalidOperationException("The demo fixture must contain exactly 18 fraud labels.");
+            throw new InvalidOperationException(
+                $"The demo fixture must contain exactly {shape.OrderCount.ToString(CultureInfo.InvariantCulture)} orders.");
+        }
+
+        if (document.Orders.Count(order => order.IsFraudLabel) != shape.FraudLabelCount)
+        {
+            throw new InvalidOperationException(
+                $"The demo fixture must contain exactly {shape.FraudLabelCount.ToString(CultureInfo.InvariantCulture)} fraud labels.");
         }
     }
 
@@ -159,4 +243,11 @@ public sealed class SeedDemoOrdersHandler(IDemoOrderSource source, IOrderDataSto
     private sealed record SeedCandidate(Order Order, bool IsFraudLabel);
 
     private sealed record EffectiveSeedOrder(Order Order, bool IsFraudLabel);
+
+    private sealed record SeedPlan(
+        DemoDatasetShape Shape,
+        IReadOnlyList<Order> OrdersToInsert,
+        IReadOnlyList<OrderEvaluationLabel> LabelsToInsert,
+        int DuplicateOrders,
+        DemoSeedConflictReason? Conflict);
 }

@@ -6,8 +6,12 @@ namespace Salvo.Infrastructure.Seed;
 
 public sealed class EmbeddedDemoOrderSource : IDemoOrderSource
 {
-    private const string ResourceName =
-        "Salvo.Infrastructure.Seed.Fixtures.demo-orders.v1.json";
+    /// <summary>
+    /// The file name carries the dataset version, so replacing the corpus is one edit in
+    /// <see cref="DemoDatasetShape.Current"/> and the resource cannot drift from the expectation.
+    /// </summary>
+    private static readonly string ResourceName =
+        $"Salvo.Infrastructure.Seed.Fixtures.demo-orders.v{DemoDatasetShape.Current.Version}.json";
 
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
@@ -20,7 +24,7 @@ public sealed class EmbeddedDemoOrderSource : IDemoOrderSource
     {
         var assembly = typeof(EmbeddedDemoOrderSource).Assembly;
         await using var stream = assembly.GetManifestResourceStream(ResourceName)
-            ?? throw new InvalidOperationException("The embedded demo fixture is missing.");
+            ?? throw new InvalidOperationException($"The embedded demo fixture '{ResourceName}' is missing.");
         var document = await JsonSerializer.DeserializeAsync<DemoOrderDocument>(
             stream,
             SerializerOptions,
