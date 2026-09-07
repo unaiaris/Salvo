@@ -79,11 +79,16 @@ public sealed class SignalFactsGoldenTests : IClassFixture<SalvoApiFactory>
 
             foreach (var (expectedSignal, actualSignal) in expectedEntry.Signals.Zip(actualEntry.Signals))
             {
+                // The engine writes no prose any more, and the capture keeps the sentence each set
+                // of fields was read from. Everything else is compared.
+                Assert.NotNull(expectedSignal.Detail);
+                Assert.Null(actualSignal.Detail);
+
                 // Record equality, so every field of the table is compared and a field added later
                 // cannot slip through unchecked. Decimals compare by value: 4.0 and 4 are the same
                 // number, and the scale of the canonical string is asserted where the string is
                 // built, not here.
-                Assert.Equal(expectedSignal, actualSignal);
+                Assert.Equal(expectedSignal with { Detail = null }, actualSignal);
             }
         }
     }
@@ -105,7 +110,10 @@ public sealed class SignalFactsGoldenTests : IClassFixture<SalvoApiFactory>
         var handler = scope.ServiceProvider.GetRequiredService<EvaluateLocalRiskHandler>();
         var evaluation = await handler.HandleAsync(CancellationToken.None);
 
-        Assert.Equal("e3-v1", evaluation.ConfigVersion);
+        // The capture in the file was taken under `e3-v1`, from prose. This runs under `e3-v2`,
+        // from fields. That the two agree is the whole point, and it stops meaning anything the day
+        // this line stops saying which version produced the numbers being compared.
+        Assert.Equal("e3-v2", evaluation.ConfigVersion);
 
         return evaluation.Assessments
             .Where(assessment => assessment.Signals.Count > 0)
@@ -121,17 +129,19 @@ public sealed class SignalFactsGoldenTests : IClassFixture<SalvoApiFactory>
     /// One signal, as the fields it means.
     /// </summary>
     /// <remarks>
-    /// While the engine writes prose this goes through the extractor, which is the point of the
-    /// capture. When the engine emits the fields itself, this reads them directly and the file it is
-    /// compared against does not move.
+    /// It reads the fields the engine hands over. Until <c>e3-v2</c> it went through the extractor,
+    /// which is what the capture recorded; the file has not moved since, so this is the comparison
+    /// the whole task turns on.
     /// </remarks>
     private static GoldenSignal Project(RiskSignal signal)
     {
-        var facts = SignalFacts.Parse(signal);
+        var facts = SignalFacts.For(signal);
 
         return new(
             facts.Rule,
             facts.Weight,
+            // The prose is what the fields were read out of, and the engine writes none any more.
+            // The capture keeps it as the record of where the numbers came from.
             signal.Detail,
             facts.AmountCents,
             facts.CurrencyCode,

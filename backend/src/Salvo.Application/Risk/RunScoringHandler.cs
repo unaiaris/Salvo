@@ -24,7 +24,7 @@ public sealed class RunScoringHandler(
     {
         var startedAt = timeProvider.GetUtcNow();
         var orders = await orderReader.GetAllChronologicallyAsync(cancellationToken);
-        var config = RuleConfig.E3V1;
+        var config = RuleConfig.Current;
         var assessments = TemporalRiskEngine.Score(orders, config);
 
         var runId = idGenerator.Create();

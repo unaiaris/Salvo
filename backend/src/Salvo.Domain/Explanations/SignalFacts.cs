@@ -4,32 +4,25 @@ using Salvo.Domain.Risk;
 
 namespace Salvo.Domain.Explanations;
 
-/// <summary>Whose median an amount was compared against.</summary>
-public enum AmountMedianScope
-{
-    Buyer = 1,
-    Merchant = 2,
-}
-
 /// <summary>
 /// One signal of an evaluation, read into typed fields.
 /// </summary>
 /// <remarks>
 /// <para>
-/// <strong>This type is the seed of <c>e3-v2</c>, and the extractor below is the part that is meant
-/// to die.</strong> The engine currently states each signal as an English sentence and the
-/// fingerprint hashes that sentence, so the numbers a Spanish summary needs live inside prose. The
-/// Workboard already carries the stage 9 candidate where the engine emits these fields directly and
-/// the interface composes the text. When that happens, <see cref="Parse"/> is deleted and
-/// <see cref="SignalFacts"/> is built from what the engine hands over. Everything downstream — the
-/// template that writes the summary and <see cref="ExplanationFacts"/> that grounds it — keeps
-/// working untouched, which is the reason for putting the seam here rather than scattering regular
-/// expressions through a provider.
+/// <strong>The engine writes these fields now, and this type mostly copies them.</strong> That was
+/// the point of putting the seam here in stage 7: the template that writes the summary and
+/// <see cref="ExplanationFacts"/> that grounds it did not have to change when the engine stopped
+/// writing sentences. What is left of the extractor reads an <c>e3-v1</c> row, and an <c>e3-v1</c>
+/// row is the snapshot of every alert opened before this version — never rewritten, by decision 33.
 /// </para>
 /// <para>
-/// <see cref="Numbers"/> is what the grounding facts consume, and it comes from the one tokenizer
-/// rather than from the typed fields. A number the engine wrote is a number a correct sentence may
-/// repeat, whether or not this type gave it a name.
+/// <see cref="Numbers"/> is what the grounding facts consume, and with fields it is
+/// <strong>enumerated by hand</strong> rather than tokenized. That enumeration is load-bearing and
+/// its absence would be silent: the deterministic template writes only figures that reach the fact
+/// set by another route, so every golden text would stay green while a real model writing a true
+/// figure — the median, say — started being refused as invented. It is the stage 7 defect with the
+/// sign reversed, and the test that walks every numeric field of every rule is what stands in its
+/// way.
 /// </para>
 /// </remarks>
 public sealed partial record SignalFacts
@@ -110,46 +103,177 @@ public sealed partial record SignalFacts
     public string? HabitualCountry { get; init; }
 
     /// <summary>
-    /// Reads a signal into typed fields.
+    /// Reads one signal, whichever version wrote it.
     /// </summary>
     /// <exception cref="SignalDetailNotRecognizedException">
-    /// The prose does not have the shape its rule writes.
+    /// The signal is <c>e3-v1</c> prose that does not have the shape its rule writes.
     /// </exception>
-    public static SignalFacts Parse(RiskSignal signal)
+    public static SignalFacts For(RiskSignal signal)
     {
         ArgumentNullException.ThrowIfNull(signal);
 
-        var numbers = NumberTokenizer.Extract(signal.Detail);
+        return signal.Detail is { } prose ? Parse(signal, prose) : FromFields(signal);
+    }
+
+    public static IReadOnlyList<SignalFacts> ForAll(IReadOnlyList<RiskSignal> signals)
+    {
+        ArgumentNullException.ThrowIfNull(signals);
+
+        var read = new SignalFacts[signals.Count];
+        for (var index = 0; index < signals.Count; index++)
+        {
+            read[index] = For(signals[index]);
+        }
+
+        return read;
+    }
+
+    /// <summary>
+    /// An <c>e3-v2</c> signal, which already is its fields.
+    /// </summary>
+    private static SignalFacts FromFields(RiskSignal signal)
+    {
+        return new()
+        {
+            Rule = signal.Rule,
+            Weight = signal.Weight,
+            Numbers = NumbersOf(signal),
+            AmountCents = signal.AmountCents,
+            CurrencyCode = signal.CurrencyCode,
+            Ratio = signal.Ratio,
+            Scope = signal.Scope,
+            MedianCents = signal.MedianCents,
+            HistoryCount = signal.HistoryCount,
+            WindowDays = signal.WindowDays,
+            OrderCount = signal.OrderCount,
+            WindowMinutes = signal.WindowMinutes,
+            Threshold = signal.Threshold,
+            FromCountry = signal.FromCountry,
+            ToCountry = signal.ToCountry,
+            ElapsedMinutes = signal.ElapsedMinutes,
+            BucketStartHour = signal.BucketStartHour,
+            BucketEndHour = signal.BucketEndHour,
+            TimeZoneId = signal.TimeZoneId,
+            ObservedCount = signal.ObservedCount,
+            TotalCount = signal.TotalCount,
+            SharePercent = signal.SharePercent,
+            Country = signal.Country,
+            HabitualCountry = signal.HabitualCountry,
+        };
+    }
+
+    /// <summary>
+    /// Every figure this signal states, enumerated field by field.
+    /// </summary>
+    /// <remarks>
+    /// <strong>Every numeric field of the table belongs here, and a field left out fails silently.</strong>
+    /// A figure that is not in this list is a figure the grounding check will call invented the day a
+    /// provider that is not the template writes it. The amounts contribute their reading in units as
+    /// well as in cents, because nobody writing a sentence about money states the cents: without it
+    /// «la mediana fue 86,85 BRL» is a true figure that gets refused.
+    /// </remarks>
+    private static List<NumberToken> NumbersOf(RiskSignal signal)
+    {
+        var numbers = new List<NumberToken>();
+
+        Money(numbers, signal.AmountCents);
+        Money(numbers, signal.MedianCents);
+
+        Whole(numbers, signal.HistoryCount);
+        Whole(numbers, signal.WindowDays);
+        Whole(numbers, signal.OrderCount);
+        Whole(numbers, signal.WindowMinutes);
+        Whole(numbers, signal.Threshold);
+        Whole(numbers, signal.BucketStartHour);
+        Whole(numbers, signal.BucketEndHour);
+        Whole(numbers, signal.ObservedCount);
+        Whole(numbers, signal.TotalCount);
+
+        Measured(numbers, signal.Ratio, RiskSignal.RatioDecimals);
+        Measured(numbers, signal.ElapsedMinutes, RiskSignal.ElapsedMinutesDecimals);
+        Measured(numbers, signal.SharePercent, RiskSignal.SharePercentDecimals);
+
+        return numbers;
+    }
+
+    /// <summary>A count, which reads one way only.</summary>
+    private static void Whole(List<NumberToken> numbers, int? value)
+    {
+        if (value is { } present)
+        {
+            numbers.Add(Token(present, 0));
+        }
+    }
+
+    /// <summary>
+    /// A measured number, at the precision its field declares and at every shorter one, so that a
+    /// sentence rounding it further is not refused.
+    /// </summary>
+    private static void Measured(List<NumberToken> numbers, decimal? value, int decimals)
+    {
+        if (value is not { } present)
+        {
+            return;
+        }
+
+        var readings = new List<NumberReading>();
+        for (var written = 0; written <= decimals; written++)
+        {
+            readings.Add(new(Math.Round(present, written, MidpointRounding.AwayFromZero), written));
+        }
+
+        numbers.Add(new(
+            present.ToString(CultureInfo.InvariantCulture),
+            readings));
+    }
+
+    /// <summary>
+    /// An amount, in the cents it is stored as and in the units anybody writes it in.
+    /// </summary>
+    private static void Money(List<NumberToken> numbers, long? cents)
+    {
+        if (cents is not { } present)
+        {
+            return;
+        }
+
+        var readings = new List<NumberReading> { new(present, 0) };
+        var units = present / 100m;
+        for (var written = 0; written <= NumberTokenizer.MaximumRoundedDecimals; written++)
+        {
+            readings.Add(new(Math.Round(units, written, MidpointRounding.AwayFromZero), written));
+        }
+
+        numbers.Add(new(present.ToString(CultureInfo.InvariantCulture), readings));
+    }
+
+    private static NumberToken Token(decimal value, int decimals)
+    {
+        return new(value.ToString(CultureInfo.InvariantCulture), [new(value, decimals)]);
+    }
+
+    /// <summary>
+    /// Reads an <c>e3-v1</c> signal, whose fields live inside the sentence the engine wrote.
+    /// </summary>
+    private static SignalFacts Parse(RiskSignal signal, string prose)
+    {
         var facts = new SignalFacts
         {
             Rule = signal.Rule,
             Weight = signal.Weight,
-            Numbers = numbers,
+            Numbers = NumberTokenizer.Extract(prose),
         };
 
         return signal.Rule switch
         {
-            RiskRuleNames.AmountAnomaly => ReadAmountAnomaly(facts, signal.Detail),
-            RiskRuleNames.Velocity => ReadVelocity(facts, signal.Detail),
-            RiskRuleNames.CrossBorderVelocity => ReadCrossBorderVelocity(facts, signal.Detail),
-            RiskRuleNames.UnusualHour => ReadUnusualHour(facts, signal.Detail),
-            RiskRuleNames.NewBuyerHighValue => ReadNewBuyerHighValue(facts, signal.Detail),
-            RiskRuleNames.ForeignCountry => ReadForeignCountry(facts, signal.Detail),
+            RiskRuleNames.AmountAnomaly => ReadAmountAnomaly(facts, prose),
+            RiskRuleNames.Velocity => ReadVelocity(facts, prose),
+            RiskRuleNames.CrossBorderVelocity => ReadCrossBorderVelocity(facts, prose),
+            RiskRuleNames.UnusualHour => ReadUnusualHour(facts, prose),
+            RiskRuleNames.NewBuyerHighValue => ReadNewBuyerHighValue(facts, prose),
+            RiskRuleNames.ForeignCountry => ReadForeignCountry(facts, prose),
             _ => throw SignalDetailNotRecognizedException.ForRule(signal.Rule),
         };
-    }
-
-    public static IReadOnlyList<SignalFacts> ParseAll(IReadOnlyList<RiskSignal> signals)
-    {
-        ArgumentNullException.ThrowIfNull(signals);
-
-        var parsed = new SignalFacts[signals.Count];
-        for (var index = 0; index < signals.Count; index++)
-        {
-            parsed[index] = Parse(signals[index]);
-        }
-
-        return parsed;
     }
 
     private static SignalFacts ReadAmountAnomaly(SignalFacts facts, string detail)

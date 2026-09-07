@@ -57,8 +57,8 @@ public sealed class DeterministicExplanationProvider : IExplanationProvider
         ArgumentNullException.ThrowIfNull(input);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var config = RuleConfig.E3V1;
-        var signals = SignalFacts.ParseAll(input.Signals);
+        var config = RuleConfig.ForVersion(input.RuleConfigVersion);
+        var signals = SignalFacts.ForAll(input.Signals);
         var builder = new StringBuilder();
 
         Open(builder, input, signals, config);

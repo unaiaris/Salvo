@@ -33,7 +33,7 @@ public sealed class RiskEvaluationTests : IClassFixture<SalvoApiFactory>
         var first = await handler.HandleAsync(CancellationToken.None);
         var second = await handler.HandleAsync(CancellationToken.None);
 
-        Assert.Equal("e3-v1", first.ConfigVersion);
+        Assert.Equal("e3-v2", first.ConfigVersion);
         Assert.Equal(300, first.Assessments.Count);
         Assert.Equal(
             new Dictionary<int, int>
@@ -63,11 +63,17 @@ public sealed class RiskEvaluationTests : IClassFixture<SalvoApiFactory>
         Assert.NotNull(first.HoldoutMetrics.F1);
         Assert.True(first.HoldoutMetrics.F1 < 1m);
         Assert.Equal(3m / 90m, first.HoldoutMetrics.FalsePositiveRate);
-        Assert.All(first.Assessments.SelectMany(assessment => assessment.Signals), signal =>
+        // Over the canonical string rather than over one field of it. `e3-v1` put everything a
+        // signal said inside `detail`, so reading that field was reading the whole signal; `e3-v2`
+        // spreads it over named fields, and an assertion still aimed at `detail` would pass on
+        // three hundred evaluations by looking at nothing at all.
+        Assert.All(first.Assessments, assessment =>
         {
-            Assert.DoesNotContain("BUY_", signal.Detail, StringComparison.Ordinal);
-            Assert.DoesNotContain("DEV_", signal.Detail, StringComparison.Ordinal);
-            Assert.DoesNotContain("FraudLabel", signal.Detail, StringComparison.OrdinalIgnoreCase);
+            var canonical = RiskSignalSerializer.Serialize(assessment.Signals);
+            Assert.DoesNotContain("BUY_", canonical, StringComparison.Ordinal);
+            Assert.DoesNotContain("DEV_", canonical, StringComparison.Ordinal);
+            Assert.DoesNotContain("ORD_", canonical, StringComparison.Ordinal);
+            Assert.DoesNotContain("FraudLabel", canonical, StringComparison.OrdinalIgnoreCase);
         });
         Assert.Equal(
             first.Assessments.Select(Projection),

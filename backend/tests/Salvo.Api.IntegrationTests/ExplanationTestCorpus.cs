@@ -106,7 +106,7 @@ internal static class ExplanationTestCorpus
         {
             var facts = ExplanationFacts.For(
                 input,
-                SignalFacts.ParseAll(input.Signals),
+                SignalFacts.ForAll(input.Signals),
                 RuleConfig.E3V1);
 
             return new(

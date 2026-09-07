@@ -171,13 +171,17 @@ public sealed class RequestExplanationHandler(
         ExplanationTarget target,
         CancellationToken cancellationToken)
     {
-        var config = RuleConfig.E3V1;
+        // The configuration of the row being explained, never the current one. The thresholds
+        // of the two live versions are equal today, which is exactly why choosing wrong here would
+        // stay invisible until the day they are not: a paragraph that is correct about the wrong
+        // evaluation.
+        var config = RuleConfig.ForVersion(target.RuleConfigVersion);
         var input = ExplanationInputFactory.For(target);
 
         ExplanationFacts facts;
         try
         {
-            facts = ExplanationFacts.For(input, SignalFacts.ParseAll(input.Signals), config);
+            facts = ExplanationFacts.For(input, SignalFacts.ForAll(input.Signals), config);
         }
         catch (SignalDetailNotRecognizedException exception)
         {

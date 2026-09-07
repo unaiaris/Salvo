@@ -18,19 +18,10 @@ public sealed class ExplanationFactsTests
     /// <summary>The three signals of <c>ORD_000011</c>, score 90, in canonical order.</summary>
     private static readonly RiskSignal[] Signals =
     [
-        new(
-            RiskRuleNames.AmountAnomaly,
-            40,
-            "201111 BRL cents is 23.2x the merchant median 8685 over 3 prior orders in 90 days."),
-        new(
-            RiskRuleNames.NewBuyerHighValue,
-            30,
-            "The buyer has no prior merchant orders and 201111 BRL cents is 23.2x the merchant "
-            + "median 8685 over 3 prior orders."),
-        new(
-            RiskRuleNames.ForeignCountry,
-            20,
-            "US differs from habitual BR, observed in 3 of 3 prior merchant orders (100.0%)."),
+        new(RiskRuleNames.AmountAnomaly, 40) { Detail = "201111 BRL cents is 23.2x the merchant median 8685 over 3 prior orders in 90 days." },
+        new(RiskRuleNames.NewBuyerHighValue, 30) { Detail = "The buyer has no prior merchant orders and 201111 BRL cents is 23.2x the merchant "
+            + "median 8685 over 3 prior orders." },
+        new(RiskRuleNames.ForeignCountry, 20) { Detail = "US differs from habitual BR, observed in 3 of 3 prior merchant orders (100.0%)." },
     ];
 
     /// <summary>
@@ -92,9 +83,9 @@ public sealed class ExplanationFactsTests
     [Fact]
     public void EverySignalTheEngineWritesIsReadIntoTypedFields()
     {
-        var amount = SignalFacts.Parse(Signals[0]);
-        var newBuyer = SignalFacts.Parse(Signals[1]);
-        var foreign = SignalFacts.Parse(Signals[2]);
+        var amount = SignalFacts.For(Signals[0]);
+        var newBuyer = SignalFacts.For(Signals[1]);
+        var foreign = SignalFacts.For(Signals[2]);
 
         Assert.Equal(201111L, amount.AmountCents);
         Assert.Equal("BRL", amount.CurrencyCode);
@@ -131,16 +122,13 @@ public sealed class ExplanationFactsTests
     [Fact]
     public void TheFieldsTheExtractorUsedToDiscardAreReadToo()
     {
-        var unusualHour = SignalFacts.Parse(new(
-            RiskRuleNames.UnusualHour,
-            10,
-            "Local bucket 00:00-06:00 in America/Montevideo appeared in 1 of 21 prior orders (4.8%)."));
+        var unusualHour = SignalFacts.For(new(RiskRuleNames.UnusualHour, 10) { Detail = "Local bucket 00:00-06:00 in America/Montevideo appeared in 1 of 21 prior orders (4.8%)." });
 
         Assert.Equal("America/Montevideo", unusualHour.TimeZoneId);
 
         // A signal of every rule that names money says which money it is, so a sentence can state
         // the median in units without the verifier calling it invented.
-        foreach (var signal in new[] { SignalFacts.Parse(Signals[0]), SignalFacts.Parse(Signals[1]) })
+        foreach (var signal in new[] { SignalFacts.For(Signals[0]), SignalFacts.For(Signals[1]) })
         {
             Assert.Equal(201111L, signal.AmountCents);
             Assert.Equal("BRL", signal.CurrencyCode);
@@ -148,10 +136,7 @@ public sealed class ExplanationFactsTests
         }
 
         // The rules that name no money and no zone leave every one of those fields alone.
-        var velocity = SignalFacts.Parse(new(
-            RiskRuleNames.Velocity,
-            30,
-            "4 orders including the current order occurred within 10 minutes; threshold is 4."));
+        var velocity = SignalFacts.For(new(RiskRuleNames.Velocity, 30) { Detail = "4 orders including the current order occurred within 10 minutes; threshold is 4." });
 
         Assert.Null(velocity.AmountCents);
         Assert.Null(velocity.CurrencyCode);
@@ -166,18 +151,9 @@ public sealed class ExplanationFactsTests
     [Fact]
     public void TheRulesTheDemoCorpusNeverAlertsOnAreReadToo()
     {
-        var velocity = SignalFacts.Parse(new(
-            RiskRuleNames.Velocity,
-            30,
-            "4 orders including the current order occurred within 10 minutes; threshold is 4."));
-        var crossBorder = SignalFacts.Parse(new(
-            RiskRuleNames.CrossBorderVelocity,
-            40,
-            "Country changed from UY to ES within 2 minutes for the same merchant and buyer."));
-        var unusualHour = SignalFacts.Parse(new(
-            RiskRuleNames.UnusualHour,
-            10,
-            "Local bucket 00:00-06:00 in America/Montevideo appeared in 0 of 20 prior orders (0.0%)."));
+        var velocity = SignalFacts.For(new(RiskRuleNames.Velocity, 30) { Detail = "4 orders including the current order occurred within 10 minutes; threshold is 4." });
+        var crossBorder = SignalFacts.For(new(RiskRuleNames.CrossBorderVelocity, 40) { Detail = "Country changed from UY to ES within 2 minutes for the same merchant and buyer." });
+        var unusualHour = SignalFacts.For(new(RiskRuleNames.UnusualHour, 10) { Detail = "Local bucket 00:00-06:00 in America/Montevideo appeared in 0 of 20 prior orders (0.0%)." });
 
         Assert.Equal(4, velocity.OrderCount);
         Assert.Equal(10, velocity.WindowMinutes);
@@ -202,7 +178,7 @@ public sealed class ExplanationFactsTests
     public void ProseThatDoesNotMatchItsRuleIsRefused()
     {
         Assert.Throws<SignalDetailNotRecognizedException>(() =>
-            SignalFacts.Parse(new(RiskRuleNames.AmountAnomaly, 40, "the amount looked large")));
+            SignalFacts.For(new(RiskRuleNames.AmountAnomaly, 40) { Detail = "the amount looked large" }));
     }
 
     /// <summary>
@@ -336,7 +312,7 @@ public sealed class ExplanationFactsTests
     {
         var input = Input();
 
-        return ExplanationFacts.For(input, SignalFacts.ParseAll(input.Signals), RuleConfig.E3V1);
+        return ExplanationFacts.For(input, SignalFacts.ForAll(input.Signals), RuleConfig.E3V1);
     }
 
     private static bool Grounded(ExplanationFacts facts, string token)

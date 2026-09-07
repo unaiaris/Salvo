@@ -126,7 +126,16 @@ public sealed class AlertEndpointTests
         Assert.Equal("HIGH", detail.Severity);
         Assert.Equal(70, detail.Snapshot.Score);
         Assert.Equal(70, detail.Snapshot.Signals.Sum(signal => signal.Weight));
-        Assert.All(detail.Snapshot.Signals, signal => Assert.NotEmpty(signal.Detail));
+        // Every signal is readable without an interpreter: `e3-v2` states its fields and writes
+        // no prose at all, and the amount the rule judged is the amount of the order above.
+        Assert.All(detail.Snapshot.Signals, signal => Assert.Null(signal.Detail));
+        var anomaly = Assert.Single(
+            detail.Snapshot.Signals,
+            signal => signal.Rule == "amount_anomaly");
+        Assert.Equal(300, anomaly.AmountCents);
+        Assert.Equal("UYU", anomaly.CurrencyCode);
+        Assert.NotNull(anomaly.Ratio);
+        Assert.NotNull(anomaly.MedianCents);
         Assert.Equal(detail.Snapshot.EvaluationId, detail.CurrentEvaluation?.EvaluationId);
         Assert.Null(detail.Review);
     }

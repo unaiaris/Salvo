@@ -16,8 +16,13 @@ public sealed class Program
         // The alert policy is a total function over the alertable score range only as long as its
         // lowest band starts exactly at the flag threshold. Checking it here makes a future rule
         // configuration that lowers the threshold fail at startup instead of leaving flagged orders
-        // without a severity band.
-        AlertPolicy.E4V1.Validate(RuleConfig.E3V1);
+        // without a severity band. Every known configuration is checked, not the current one: a
+        // stored evaluation is read under the version that wrote it, so a band gap in a version
+        // still on disk is just as unserviceable as one in the version being written.
+        foreach (var ruleConfig in RuleConfig.Known)
+        {
+            AlertPolicy.E4V1.Validate(ruleConfig);
+        }
 
         var builder = WebApplication.CreateBuilder(args);
 

@@ -169,7 +169,9 @@ public sealed class GetDashboardHandler(IDashboardReader reader)
             return [];
         }
 
-        var zone = RuleConfig.E3V1.BusinessTimeZone;
+        // The week a run happened in, not a property of any stored row: the business zone is the
+        // same in every known configuration, so the current one is the honest thing to ask.
+        var zone = RuleConfig.Current.BusinessTimeZone;
         var buckets = new Dictionary<DateOnly, (int Orders, int Flagged)>();
         foreach (var evaluation in evaluations)
         {

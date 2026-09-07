@@ -467,7 +467,42 @@ export interface components {
             rule: string;
             /** Format: int32 */
             weight: number | string;
-            detail: string;
+            /** Format: int64 */
+            amountCents: null | number | string;
+            currencyCode: null | string;
+            /** Format: double */
+            ratio: null | number | string;
+            scope: null | string;
+            /** Format: int64 */
+            medianCents: null | number | string;
+            /** Format: int32 */
+            historyCount: null | number | string;
+            /** Format: int32 */
+            windowDays: null | number | string;
+            /** Format: int32 */
+            orderCount: null | number | string;
+            /** Format: int32 */
+            windowMinutes: null | number | string;
+            /** Format: int32 */
+            threshold: null | number | string;
+            fromCountry: null | string;
+            toCountry: null | string;
+            /** Format: double */
+            elapsedMinutes: null | number | string;
+            /** Format: int32 */
+            bucketStartHour: null | number | string;
+            /** Format: int32 */
+            bucketEndHour: null | number | string;
+            timeZoneId: null | string;
+            /** Format: int32 */
+            observedCount: null | number | string;
+            /** Format: int32 */
+            totalCount: null | number | string;
+            /** Format: double */
+            sharePercent: null | number | string;
+            country: null | string;
+            habitualCountry: null | string;
+            detail: null | string;
         };
         AlertSnapshotView: {
             /** Format: uuid */
