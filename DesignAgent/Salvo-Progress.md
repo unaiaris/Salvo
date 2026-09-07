@@ -12,12 +12,12 @@
 | Estado del proyecto | Etapa 8 completada y verificada; Etapa 9 en ejecución |
 | Etapa completada | Etapa 8 — El argumento del proyecto (`E8A` y `E8B` integradas) |
 | Próxima etapa | Etapa 9 — Corpus, idiomas y cierre. Es la última |
-| Estado de la próxima etapa | Diseño v2 aprobado; `E9A-FIXTURE` por despachar |
+| Estado de la próxima etapa | En ejecución. `E9A-FIXTURE` verificada (merge `41343c1`); `E9B-SENALES-TIPADAS` despachada |
 | Bloqueo actual | Ninguno |
 | Dependencias externas | Ninguna para el núcleo local |
 | Anthropic | Previsto para después del núcleo; decisión aparte, preparada por D11 |
 | Koin sandbox | Post-MVP; sujeto a onboarding y credenciales |
-| Coordinación Codex–Claude | `E9A-FIXTURE` por asignar; tres tareas más en la etapa |
+| Coordinación Codex–Claude | `E9B-SENALES-TIPADAS` asignada a Opus 5 · `high`; `E9C` y `E9D` propuestas |
 
 **Este bloque se actualiza en cada cierre de etapa y en cada alta de tarea.** Quedó desfasado
 durante toda la Etapa 7 porque los cierres actualizaron el registro de actividad y los checklists
@@ -47,8 +47,8 @@ Solo puede existir una etapa `En curso` a la vez.
 | 5 | UI y dashboard | Completada | Recorrido completo y estados vacíos/error | Merges `5f48db0`, `278e100` y `8198fd5`; 129 tests .NET y 153 de frontend; `check.sh` y `smoke-ui.sh` verdes sobre `main` (21 comprobaciones, 0 fallas) |
 | 6 | Proveedor antifraude mock | Completada | Callbacks duplicados sin efectos repetidos y pendientes que finalizan | Merges `bca2c46` y `a412693`; 196 tests .NET y 172 de frontend; compuerta y smoke verdes (29 comprobaciones) |
 | 7 | Explicabilidad | Completada | Funciona sin red; el texto verificado sobre la salida no cambia ninguna superficie de decisión | Merges `82f2487`, `ac11015`, `0d117dd` y `b4aac6b`; compuerta y smoke verdes sobre `main` |
-| 8 | El argumento del proyecto | En ejecución | README, diagramas, capturas y guion de demo; cada afirmación contrastada contra el código | Diseño v2 aprobado (`a7e3b97`); briefs `E8A` y `E8B` despachados (`95d5db3`) |
-| 9 | Corpus, idiomas y cierre | Pendiente | Seis reglas y tres bandas alcanzables; F1 deja de valer 1,00 | Pendiente |
+| 8 | El argumento del proyecto | Completada | README, diagramas, capturas y guion de demo; cada afirmación contrastada contra el código | Merges `1243d54` y `6ae7750`; `check-docs.sh` incorporado a la compuerta; seis capturas revisadas una por una |
+| 9 | Corpus, idiomas y cierre | En ejecución | Seis reglas y tres bandas alcanzables; F1 deja de valer 1,00 | `E9A-FIXTURE` integrada (merge `41343c1`): F1 holdout 0,632 y calibración 0,688, las seis reglas disparando y las tres bandas presentes. `E9B` despachada |
 | Post-MVP | Koin sandbox, auth, observabilidad, deploy | Pendiente | Aprobación independiente por capacidad | Pendiente |
 
 ## Etapa 1 — Resultado verificado

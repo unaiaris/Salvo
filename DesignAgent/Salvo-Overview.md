@@ -67,12 +67,14 @@ externas.
 | Kit Claude y coordinación paralela | Preparados |
 | Etapas 1 a 7 | Integradas y verificadas en `main` |
 | Etapa 8 — El argumento del proyecto | En ejecución: diseño v2 aprobado y tareas despachadas |
-| Etapa 9 — Corpus, idiomas y cierre | Pendiente |
+| Etapa 9 — Corpus, idiomas y cierre | En ejecución |
 | Anthropic | Decisión aparte. Hoy `AI_PROVIDER=anthropic` se niega a arrancar |
 | Koin sandbox | Opcional, sujeto a onboarding |
 
 ## Próximo paso
 
-Ejecutar las dos tareas de la Etapa 8: `E8A-README-DIAGRAMAS`, que reescribe el README con sus
-diagramas y deja la verificación de documentación como script, y `E8B-DEMO-CAPTURAS`, que depende de
-la anterior integrada. Ninguna integración autoriza automáticamente la etapa siguiente.
+Ejecutar `E9B-SENALES-TIPADAS`: el motor pasa a escribir los campos de cada señal en vez de una
+frase inglesa, y el extractor de expresiones regulares que hoy lee esa prosa se borra después de
+certificar a su reemplazo sobre las evaluaciones del corpus v2. Después quedan `E9C`, el portugués y
+la accesibilidad, y `E9D`, el repaso final. Ninguna integración autoriza automáticamente la tarea
+siguiente.
