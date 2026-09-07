@@ -1,0 +1,1236 @@
+[
+  {
+    "reference": "ORD_000011",
+    "score": 90,
+    "signals": [
+      {
+        "rule": "amount_anomaly",
+        "weight": 40,
+        "detail": "50786 BRL cents is 3.4x the merchant median 14937 over 3 prior orders in 90 days.",
+        "amountCents": 50786,
+        "currencyCode": "BRL",
+        "ratio": 3.4,
+        "scope": "merchant",
+        "medianCents": 14937,
+        "historyCount": 3,
+        "windowDays": 90
+      },
+      {
+        "rule": "new_buyer_high_value",
+        "weight": 30,
+        "detail": "The buyer has no prior merchant orders and 50786 BRL cents is 3.4x the merchant median 14937 over 3 prior orders.",
+        "amountCents": 50786,
+        "currencyCode": "BRL",
+        "ratio": 3.4,
+        "medianCents": 14937,
+        "historyCount": 3
+      },
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual BR, observed in 3 of 3 prior merchant orders (100.0%).",
+        "observedCount": 3,
+        "totalCount": 3,
+        "sharePercent": 100.0,
+        "country": "AR",
+        "habitualCountry": "BR"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000018",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual BR, observed in 4 of 5 prior merchant orders (80.0%).",
+        "observedCount": 4,
+        "totalCount": 5,
+        "sharePercent": 80.0,
+        "country": "AR",
+        "habitualCountry": "BR"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000023",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "BR differs from habitual UY, observed in 8 of 8 prior merchant orders (100.0%).",
+        "observedCount": 8,
+        "totalCount": 8,
+        "sharePercent": 100.0,
+        "country": "BR",
+        "habitualCountry": "UY"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000027",
+    "score": 60,
+    "signals": [
+      {
+        "rule": "amount_anomaly",
+        "weight": 40,
+        "detail": "635251 UYU cents is 3.2x the merchant median 198516 over 9 prior orders in 90 days.",
+        "amountCents": 635251,
+        "currencyCode": "UYU",
+        "ratio": 3.2,
+        "scope": "merchant",
+        "medianCents": 198516,
+        "historyCount": 9,
+        "windowDays": 90
+      },
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual UY, observed in 8 of 9 prior merchant orders (88.9%).",
+        "observedCount": 8,
+        "totalCount": 9,
+        "sharePercent": 88.9,
+        "country": "AR",
+        "habitualCountry": "UY"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000034",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual BR, observed in 8 of 10 prior merchant orders (80.0%).",
+        "observedCount": 8,
+        "totalCount": 10,
+        "sharePercent": 80.0,
+        "country": "AR",
+        "habitualCountry": "BR"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000039",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual UY, observed in 11 of 13 prior merchant orders (84.6%).",
+        "observedCount": 11,
+        "totalCount": 13,
+        "sharePercent": 84.6,
+        "country": "AR",
+        "habitualCountry": "UY"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000043",
+    "score": 70,
+    "signals": [
+      {
+        "rule": "amount_anomaly",
+        "weight": 40,
+        "detail": "660785 UYU cents is 3.3x the merchant median 200238 over 14 prior orders in 90 days.",
+        "amountCents": 660785,
+        "currencyCode": "UYU",
+        "ratio": 3.3,
+        "scope": "merchant",
+        "medianCents": 200238,
+        "historyCount": 14,
+        "windowDays": 90
+      },
+      {
+        "rule": "new_buyer_high_value",
+        "weight": 30,
+        "detail": "The buyer has no prior merchant orders and 660785 UYU cents is 3.3x the merchant median 200238 over 14 prior orders.",
+        "amountCents": 660785,
+        "currencyCode": "UYU",
+        "ratio": 3.3,
+        "medianCents": 200238,
+        "historyCount": 14
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000046",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual BR, observed in 12 of 15 prior merchant orders (80.0%).",
+        "observedCount": 12,
+        "totalCount": 15,
+        "sharePercent": 80.0,
+        "country": "AR",
+        "habitualCountry": "BR"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000053",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual BR, observed in 13 of 17 prior merchant orders (76.5%).",
+        "observedCount": 13,
+        "totalCount": 17,
+        "sharePercent": 76.5,
+        "country": "AR",
+        "habitualCountry": "BR"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000057",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual BR, observed in 14 of 19 prior merchant orders (73.7%).",
+        "observedCount": 14,
+        "totalCount": 19,
+        "sharePercent": 73.7,
+        "country": "AR",
+        "habitualCountry": "BR"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000059",
+    "score": 90,
+    "signals": [
+      {
+        "rule": "amount_anomaly",
+        "weight": 40,
+        "detail": "33337 USD cents is 3.7x the merchant median 9010 over 19 prior orders in 90 days.",
+        "amountCents": 33337,
+        "currencyCode": "USD",
+        "ratio": 3.7,
+        "scope": "merchant",
+        "medianCents": 9010,
+        "historyCount": 19,
+        "windowDays": 90
+      },
+      {
+        "rule": "new_buyer_high_value",
+        "weight": 30,
+        "detail": "The buyer has no prior merchant orders and 33337 USD cents is 3.7x the merchant median 9010 over 19 prior orders.",
+        "amountCents": 33337,
+        "currencyCode": "USD",
+        "ratio": 3.7,
+        "medianCents": 9010,
+        "historyCount": 19
+      },
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "BR differs from habitual AR, observed in 19 of 19 prior merchant orders (100.0%).",
+        "observedCount": 19,
+        "totalCount": 19,
+        "sharePercent": 100.0,
+        "country": "BR",
+        "habitualCountry": "AR"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000064",
+    "score": 70,
+    "signals": [
+      {
+        "rule": "amount_anomaly",
+        "weight": 40,
+        "detail": "28832 USD cents is 3.2x the merchant median 9010 over 21 prior orders in 90 days.",
+        "amountCents": 28832,
+        "currencyCode": "USD",
+        "ratio": 3.2,
+        "scope": "merchant",
+        "medianCents": 9010,
+        "historyCount": 21,
+        "windowDays": 90
+      },
+      {
+        "rule": "new_buyer_high_value",
+        "weight": 30,
+        "detail": "The buyer has no prior merchant orders and 28832 USD cents is 3.2x the merchant median 9010 over 21 prior orders.",
+        "amountCents": 28832,
+        "currencyCode": "USD",
+        "ratio": 3.2,
+        "medianCents": 9010,
+        "historyCount": 21
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000072",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual UY, observed in 20 of 23 prior merchant orders (87.0%).",
+        "observedCount": 20,
+        "totalCount": 23,
+        "sharePercent": 87.0,
+        "country": "AR",
+        "habitualCountry": "UY"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000091",
+    "score": 60,
+    "signals": [
+      {
+        "rule": "amount_anomaly",
+        "weight": 40,
+        "detail": "59857 BRL cents is 3.5x the merchant median 17102 over 29 prior orders in 90 days.",
+        "amountCents": 59857,
+        "currencyCode": "BRL",
+        "ratio": 3.5,
+        "scope": "merchant",
+        "medianCents": 17102,
+        "historyCount": 29,
+        "windowDays": 90
+      },
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual BR, observed in 23 of 29 prior merchant orders (79.3%).",
+        "observedCount": 23,
+        "totalCount": 29,
+        "sharePercent": 79.3,
+        "country": "AR",
+        "habitualCountry": "BR"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000098",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "UY differs from habitual BR, observed in 24 of 31 prior merchant orders (77.4%).",
+        "observedCount": 24,
+        "totalCount": 31,
+        "sharePercent": 77.4,
+        "country": "UY",
+        "habitualCountry": "BR"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000104",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "UY differs from habitual AR, observed in 36 of 37 prior merchant orders (97.3%).",
+        "observedCount": 36,
+        "totalCount": 37,
+        "sharePercent": 97.3,
+        "country": "UY",
+        "habitualCountry": "AR"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000107",
+    "score": 90,
+    "signals": [
+      {
+        "rule": "amount_anomaly",
+        "weight": 40,
+        "detail": "72719 BRL cents is 4.2x the merchant median 17314 over 34 prior orders in 90 days.",
+        "amountCents": 72719,
+        "currencyCode": "BRL",
+        "ratio": 4.2,
+        "scope": "merchant",
+        "medianCents": 17314,
+        "historyCount": 34,
+        "windowDays": 90
+      },
+      {
+        "rule": "new_buyer_high_value",
+        "weight": 30,
+        "detail": "The buyer has no prior merchant orders and 72719 BRL cents is 4.2x the merchant median 17314 over 34 prior orders.",
+        "amountCents": 72719,
+        "currencyCode": "BRL",
+        "ratio": 4.2,
+        "medianCents": 17314,
+        "historyCount": 34
+      },
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual BR, observed in 26 of 34 prior merchant orders (76.5%).",
+        "observedCount": 26,
+        "totalCount": 34,
+        "sharePercent": 76.5,
+        "country": "AR",
+        "habitualCountry": "BR"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000112",
+    "score": 60,
+    "signals": [
+      {
+        "rule": "cross_border_velocity",
+        "weight": 40,
+        "detail": "Country changed from BR to UY within 90 minutes for the same merchant and buyer.",
+        "fromCountry": "BR",
+        "toCountry": "UY",
+        "elapsedMinutes": 90
+      },
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "UY differs from habitual BR, observed in 28 of 37 prior merchant orders (75.7%).",
+        "observedCount": 28,
+        "totalCount": 37,
+        "sharePercent": 75.7,
+        "country": "UY",
+        "habitualCountry": "BR"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000113",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual UY, observed in 31 of 35 prior merchant orders (88.6%).",
+        "observedCount": 31,
+        "totalCount": 35,
+        "sharePercent": 88.6,
+        "country": "AR",
+        "habitualCountry": "UY"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000118",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "UY differs from habitual BR, observed in 30 of 40 prior merchant orders (75.0%).",
+        "observedCount": 30,
+        "totalCount": 40,
+        "sharePercent": 75.0,
+        "country": "UY",
+        "habitualCountry": "BR"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000123",
+    "score": 60,
+    "signals": [
+      {
+        "rule": "amount_anomaly",
+        "weight": 40,
+        "detail": "91426 BRL cents is 4.1x the buyer median 22299 over 3 prior orders in 90 days.",
+        "amountCents": 91426,
+        "currencyCode": "BRL",
+        "ratio": 4.1,
+        "scope": "buyer",
+        "medianCents": 22299,
+        "historyCount": 3,
+        "windowDays": 90
+      },
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual BR, observed in 30 of 41 prior merchant orders (73.2%).",
+        "observedCount": 30,
+        "totalCount": 41,
+        "sharePercent": 73.2,
+        "country": "AR",
+        "habitualCountry": "BR"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000135",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "UY differs from habitual BR, observed in 33 of 45 prior merchant orders (73.3%).",
+        "observedCount": 33,
+        "totalCount": 45,
+        "sharePercent": 73.3,
+        "country": "UY",
+        "habitualCountry": "BR"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000138",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual BR, observed in 34 of 47 prior merchant orders (72.3%).",
+        "observedCount": 34,
+        "totalCount": 47,
+        "sharePercent": 72.3,
+        "country": "AR",
+        "habitualCountry": "BR"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000139",
+    "score": 80,
+    "signals": [
+      {
+        "rule": "amount_anomaly",
+        "weight": 40,
+        "detail": "43661 BRL cents is 3.6x the buyer median 12128 over 4 prior orders in 90 days.",
+        "amountCents": 43661,
+        "currencyCode": "BRL",
+        "ratio": 3.6,
+        "scope": "buyer",
+        "medianCents": 12128,
+        "historyCount": 4,
+        "windowDays": 90
+      },
+      {
+        "rule": "cross_border_velocity",
+        "weight": 40,
+        "detail": "Country changed from AR to BR within 45 minutes for the same merchant and buyer.",
+        "fromCountry": "AR",
+        "toCountry": "BR",
+        "elapsedMinutes": 45
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000150",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "BR differs from habitual UY, observed in 40 of 45 prior merchant orders (88.9%).",
+        "observedCount": 40,
+        "totalCount": 45,
+        "sharePercent": 88.9,
+        "country": "BR",
+        "habitualCountry": "UY"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000155",
+    "score": 90,
+    "signals": [
+      {
+        "rule": "amount_anomaly",
+        "weight": 40,
+        "detail": "55006 BRL cents is 3.1x the merchant median 17744 over 53 prior orders in 90 days.",
+        "amountCents": 55006,
+        "currencyCode": "BRL",
+        "ratio": 3.1,
+        "scope": "merchant",
+        "medianCents": 17744,
+        "historyCount": 53,
+        "windowDays": 90
+      },
+      {
+        "rule": "new_buyer_high_value",
+        "weight": 30,
+        "detail": "The buyer has no prior merchant orders and 55006 BRL cents is 3.1x the merchant median 17744 over 53 prior orders.",
+        "amountCents": 55006,
+        "currencyCode": "BRL",
+        "ratio": 3.1,
+        "medianCents": 17744,
+        "historyCount": 53
+      },
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual BR, observed in 39 of 53 prior merchant orders (73.6%).",
+        "observedCount": 39,
+        "totalCount": 53,
+        "sharePercent": 73.6,
+        "country": "AR",
+        "habitualCountry": "BR"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000157",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual UY, observed in 42 of 48 prior merchant orders (87.5%).",
+        "observedCount": 42,
+        "totalCount": 48,
+        "sharePercent": 87.5,
+        "country": "AR",
+        "habitualCountry": "UY"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000158",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual UY, observed in 42 of 49 prior merchant orders (85.7%).",
+        "observedCount": 42,
+        "totalCount": 49,
+        "sharePercent": 85.7,
+        "country": "AR",
+        "habitualCountry": "UY"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000159",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual UY, observed in 42 of 50 prior merchant orders (84.0%).",
+        "observedCount": 42,
+        "totalCount": 50,
+        "sharePercent": 84.0,
+        "country": "AR",
+        "habitualCountry": "UY"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000160",
+    "score": 60,
+    "signals": [
+      {
+        "rule": "velocity",
+        "weight": 30,
+        "detail": "4 orders including the current order occurred within 10 minutes; threshold is 4.",
+        "orderCount": 4,
+        "windowMinutes": 10,
+        "threshold": 4
+      },
+      {
+        "rule": "unusual_hour",
+        "weight": 10,
+        "detail": "Local bucket 00:00-06:00 in America/Montevideo appeared in 0 of 25 prior orders (0.0%).",
+        "bucketStartHour": 0,
+        "bucketEndHour": 6,
+        "timeZoneId": "America/Montevideo",
+        "observedCount": 0,
+        "totalCount": 25,
+        "sharePercent": 0.0
+      },
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual UY, observed in 42 of 51 prior merchant orders (82.4%).",
+        "observedCount": 42,
+        "totalCount": 51,
+        "sharePercent": 82.4,
+        "country": "AR",
+        "habitualCountry": "UY"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000171",
+    "score": 60,
+    "signals": [
+      {
+        "rule": "amount_anomaly",
+        "weight": 40,
+        "detail": "69256 BRL cents is 4.0x the buyer median 17314 over 4 prior orders in 90 days.",
+        "amountCents": 69256,
+        "currencyCode": "BRL",
+        "ratio": 4.0,
+        "scope": "buyer",
+        "medianCents": 17314,
+        "historyCount": 4,
+        "windowDays": 90
+      },
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual BR, observed in 42 of 57 prior merchant orders (73.7%).",
+        "observedCount": 42,
+        "totalCount": 57,
+        "sharePercent": 73.7,
+        "country": "AR",
+        "habitualCountry": "BR"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000172",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "BR differs from habitual AR, observed in 56 of 58 prior merchant orders (96.6%).",
+        "observedCount": 56,
+        "totalCount": 58,
+        "sharePercent": 96.6,
+        "country": "BR",
+        "habitualCountry": "AR"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000182",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "UY differs from habitual AR, observed in 58 of 61 prior merchant orders (95.1%).",
+        "observedCount": 58,
+        "totalCount": 61,
+        "sharePercent": 95.1,
+        "country": "UY",
+        "habitualCountry": "AR"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000183",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual UY, observed in 48 of 58 prior merchant orders (82.8%).",
+        "observedCount": 48,
+        "totalCount": 58,
+        "sharePercent": 82.8,
+        "country": "AR",
+        "habitualCountry": "UY"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000186",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "BR differs from habitual AR, observed in 59 of 63 prior merchant orders (93.7%).",
+        "observedCount": 59,
+        "totalCount": 63,
+        "sharePercent": 93.7,
+        "country": "BR",
+        "habitualCountry": "AR"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000187",
+    "score": 80,
+    "signals": [
+      {
+        "rule": "amount_anomaly",
+        "weight": 40,
+        "detail": "42279 USD cents is 3.4x the buyer median 12435 over 5 prior orders in 90 days.",
+        "amountCents": 42279,
+        "currencyCode": "USD",
+        "ratio": 3.4,
+        "scope": "buyer",
+        "medianCents": 12435,
+        "historyCount": 5,
+        "windowDays": 90
+      },
+      {
+        "rule": "cross_border_velocity",
+        "weight": 40,
+        "detail": "Country changed from BR to AR within 45 minutes for the same merchant and buyer.",
+        "fromCountry": "BR",
+        "toCountry": "AR",
+        "elapsedMinutes": 45
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000195",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual UY, observed in 50 of 61 prior merchant orders (82.0%).",
+        "observedCount": 50,
+        "totalCount": 61,
+        "sharePercent": 82.0,
+        "country": "AR",
+        "habitualCountry": "UY"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000198",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "UY differs from habitual AR, observed in 63 of 68 prior merchant orders (92.6%).",
+        "observedCount": 63,
+        "totalCount": 68,
+        "sharePercent": 92.6,
+        "country": "UY",
+        "habitualCountry": "AR"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000203",
+    "score": 60,
+    "signals": [
+      {
+        "rule": "amount_anomaly",
+        "weight": 40,
+        "detail": "78207 BRL cents is 3.9x the buyer median 20053 over 4 prior orders in 90 days.",
+        "amountCents": 78207,
+        "currencyCode": "BRL",
+        "ratio": 3.9,
+        "scope": "buyer",
+        "medianCents": 20053,
+        "historyCount": 4,
+        "windowDays": 90
+      },
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual BR, observed in 51 of 67 prior merchant orders (76.1%).",
+        "observedCount": 51,
+        "totalCount": 67,
+        "sharePercent": 76.1,
+        "country": "AR",
+        "habitualCountry": "BR"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000210",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual UY, observed in 54 of 66 prior merchant orders (81.8%).",
+        "observedCount": 54,
+        "totalCount": 66,
+        "sharePercent": 81.8,
+        "country": "AR",
+        "habitualCountry": "UY"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000219",
+    "score": 70,
+    "signals": [
+      {
+        "rule": "amount_anomaly",
+        "weight": 40,
+        "detail": "67328 BRL cents is 3.8x the merchant median 17718 over 72 prior orders in 90 days.",
+        "amountCents": 67328,
+        "currencyCode": "BRL",
+        "ratio": 3.8,
+        "scope": "merchant",
+        "medianCents": 17718,
+        "historyCount": 72,
+        "windowDays": 90
+      },
+      {
+        "rule": "new_buyer_high_value",
+        "weight": 30,
+        "detail": "The buyer has no prior merchant orders and 67328 BRL cents is 3.8x the merchant median 17718 over 72 prior orders.",
+        "amountCents": 67328,
+        "currencyCode": "BRL",
+        "ratio": 3.8,
+        "medianCents": 17718,
+        "historyCount": 72
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000232",
+    "score": 60,
+    "signals": [
+      {
+        "rule": "cross_border_velocity",
+        "weight": 40,
+        "detail": "Country changed from AR to UY within 90 minutes for the same merchant and buyer.",
+        "fromCountry": "AR",
+        "toCountry": "UY",
+        "elapsedMinutes": 90
+      },
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "UY differs from habitual AR, observed in 73 of 79 prior merchant orders (92.4%).",
+        "observedCount": 73,
+        "totalCount": 79,
+        "sharePercent": 92.4,
+        "country": "UY",
+        "habitualCountry": "AR"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000233",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "BR differs from habitual AR, observed in 73 of 80 prior merchant orders (91.3%).",
+        "observedCount": 73,
+        "totalCount": 80,
+        "sharePercent": 91.3,
+        "country": "BR",
+        "habitualCountry": "AR"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000235",
+    "score": 90,
+    "signals": [
+      {
+        "rule": "amount_anomaly",
+        "weight": 40,
+        "detail": "63896 BRL cents is 3.6x the merchant median 17749 over 73 prior orders in 90 days.",
+        "amountCents": 63896,
+        "currencyCode": "BRL",
+        "ratio": 3.6,
+        "scope": "merchant",
+        "medianCents": 17749,
+        "historyCount": 73,
+        "windowDays": 90
+      },
+      {
+        "rule": "new_buyer_high_value",
+        "weight": 30,
+        "detail": "The buyer has no prior merchant orders and 63896 BRL cents is 3.6x the merchant median 17749 over 73 prior orders.",
+        "amountCents": 63896,
+        "currencyCode": "BRL",
+        "ratio": 3.6,
+        "medianCents": 17749,
+        "historyCount": 73
+      },
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual BR, observed in 56 of 73 prior merchant orders (76.7%).",
+        "observedCount": 56,
+        "totalCount": 73,
+        "sharePercent": 76.7,
+        "country": "AR",
+        "habitualCountry": "BR"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000241",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual UY, observed in 58 of 71 prior merchant orders (81.7%).",
+        "observedCount": 58,
+        "totalCount": 71,
+        "sharePercent": 81.7,
+        "country": "AR",
+        "habitualCountry": "UY"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000242",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual UY, observed in 58 of 72 prior merchant orders (80.6%).",
+        "observedCount": 58,
+        "totalCount": 72,
+        "sharePercent": 80.6,
+        "country": "AR",
+        "habitualCountry": "UY"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000243",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual UY, observed in 58 of 73 prior merchant orders (79.5%).",
+        "observedCount": 58,
+        "totalCount": 73,
+        "sharePercent": 79.5,
+        "country": "AR",
+        "habitualCountry": "UY"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000244",
+    "score": 60,
+    "signals": [
+      {
+        "rule": "velocity",
+        "weight": 30,
+        "detail": "4 orders including the current order occurred within 10 minutes; threshold is 4.",
+        "orderCount": 4,
+        "windowMinutes": 10,
+        "threshold": 4
+      },
+      {
+        "rule": "unusual_hour",
+        "weight": 10,
+        "detail": "Local bucket 00:00-06:00 in America/Montevideo appeared in 0 of 26 prior orders (0.0%).",
+        "bucketStartHour": 0,
+        "bucketEndHour": 6,
+        "timeZoneId": "America/Montevideo",
+        "observedCount": 0,
+        "totalCount": 26,
+        "sharePercent": 0.0
+      },
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual UY, observed in 58 of 74 prior merchant orders (78.4%).",
+        "observedCount": 58,
+        "totalCount": 74,
+        "sharePercent": 78.4,
+        "country": "AR",
+        "habitualCountry": "UY"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000251",
+    "score": 60,
+    "signals": [
+      {
+        "rule": "amount_anomaly",
+        "weight": 40,
+        "detail": "82573 BRL cents is 3.3x the buyer median 25022 over 5 prior orders in 90 days.",
+        "amountCents": 82573,
+        "currencyCode": "BRL",
+        "ratio": 3.3,
+        "scope": "buyer",
+        "medianCents": 25022,
+        "historyCount": 5,
+        "windowDays": 90
+      },
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual BR, observed in 57 of 73 prior merchant orders (78.1%).",
+        "observedCount": 57,
+        "totalCount": 73,
+        "sharePercent": 78.1,
+        "country": "AR",
+        "habitualCountry": "BR"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000258",
+    "score": 60,
+    "signals": [
+      {
+        "rule": "amount_anomaly",
+        "weight": 40,
+        "detail": "17129 USD cents is 3.4x the buyer median 5038 over 5 prior orders in 90 days.",
+        "amountCents": 17129,
+        "currencyCode": "USD",
+        "ratio": 3.4,
+        "scope": "buyer",
+        "medianCents": 5038,
+        "historyCount": 5,
+        "windowDays": 90
+      },
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "BR differs from habitual AR, observed in 70 of 78 prior merchant orders (89.7%).",
+        "observedCount": 70,
+        "totalCount": 78,
+        "sharePercent": 89.7,
+        "country": "BR",
+        "habitualCountry": "AR"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000267",
+    "score": 70,
+    "signals": [
+      {
+        "rule": "amount_anomaly",
+        "weight": 40,
+        "detail": "605514 UYU cents is 3.5x the merchant median 173004 over 73 prior orders in 90 days.",
+        "amountCents": 605514,
+        "currencyCode": "UYU",
+        "ratio": 3.5,
+        "scope": "merchant",
+        "medianCents": 173004,
+        "historyCount": 73,
+        "windowDays": 90
+      },
+      {
+        "rule": "new_buyer_high_value",
+        "weight": 30,
+        "detail": "The buyer has no prior merchant orders and 605514 UYU cents is 3.5x the merchant median 173004 over 73 prior orders.",
+        "amountCents": 605514,
+        "currencyCode": "UYU",
+        "ratio": 3.5,
+        "medianCents": 173004,
+        "historyCount": 73
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000272",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "BR differs from habitual UY, observed in 59 of 73 prior merchant orders (80.8%).",
+        "observedCount": 59,
+        "totalCount": 73,
+        "sharePercent": 80.8,
+        "country": "BR",
+        "habitualCountry": "UY"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000283",
+    "score": 90,
+    "signals": [
+      {
+        "rule": "amount_anomaly",
+        "weight": 40,
+        "detail": "767889 UYU cents is 4.5x the merchant median 170642 over 72 prior orders in 90 days.",
+        "amountCents": 767889,
+        "currencyCode": "UYU",
+        "ratio": 4.5,
+        "scope": "merchant",
+        "medianCents": 170642,
+        "historyCount": 72,
+        "windowDays": 90
+      },
+      {
+        "rule": "new_buyer_high_value",
+        "weight": 30,
+        "detail": "The buyer has no prior merchant orders and 767889 UYU cents is 4.5x the merchant median 170642 over 72 prior orders.",
+        "amountCents": 767889,
+        "currencyCode": "UYU",
+        "ratio": 4.5,
+        "medianCents": 170642,
+        "historyCount": 72
+      },
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual UY, observed in 57 of 72 prior merchant orders (79.2%).",
+        "observedCount": 57,
+        "totalCount": 72,
+        "sharePercent": 79.2,
+        "country": "AR",
+        "habitualCountry": "UY"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000287",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "UY differs from habitual AR, observed in 70 of 78 prior merchant orders (89.7%).",
+        "observedCount": 70,
+        "totalCount": 78,
+        "sharePercent": 89.7,
+        "country": "UY",
+        "habitualCountry": "AR"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000295",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual UY, observed in 57 of 73 prior merchant orders (78.1%).",
+        "observedCount": 57,
+        "totalCount": 73,
+        "sharePercent": 78.1,
+        "country": "AR",
+        "habitualCountry": "UY"
+      }
+    ]
+  },
+  {
+    "reference": "ORD_000296",
+    "score": 20,
+    "signals": [
+      {
+        "rule": "foreign_country",
+        "weight": 20,
+        "detail": "AR differs from habitual BR, observed in 63 of 76 prior merchant orders (82.9%).",
+        "observedCount": 63,
+        "totalCount": 76,
+        "sharePercent": 82.9,
+        "country": "AR",
+        "habitualCountry": "BR"
+      }
+    ]
+  }
+]
