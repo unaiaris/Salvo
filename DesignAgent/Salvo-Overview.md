@@ -73,7 +73,8 @@ externas.
 
 ## Próximo paso
 
-Ejecutar `E9C-PORTUGUES-ACCESIBILIDAD`: el idioma pasa a ser del despliegue y entra en la identidad
-de la explicación, la consola entera se traduce, y un recorrido con lector de pantalla produce una
-lista de hallazgos con severidad antes de corregir nada. Después queda `E9D`, el repaso final.
-Ninguna integración autoriza automáticamente la tarea siguiente.
+Ejecutar `E9C1-IDIOMA`: el idioma pasa a ser del despliegue, entra en la identidad de la explicación
+con su migración, y la consola entera se compone desde diccionario. El castellano es el valor por
+defecto y el de la demostración; el portugués existe para que el interruptor esté probado y no solo
+declarado. Después `E9C2-ACCESIBILIDAD` y `E9D`, el repaso final. Ninguna integración autoriza
+automáticamente la tarea siguiente.

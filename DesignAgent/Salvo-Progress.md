@@ -12,12 +12,12 @@
 | Estado del proyecto | Etapa 8 completada y verificada; Etapa 9 en ejecución |
 | Etapa completada | Etapa 8 — El argumento del proyecto (`E8A` y `E8B` integradas) |
 | Próxima etapa | Etapa 9 — Corpus, idiomas y cierre. Es la última |
-| Estado de la próxima etapa | En ejecución. `E9A` y `E9B` verificadas (merges `41343c1` y `4f7daf9`); `E9C-PORTUGUES-ACCESIBILIDAD` despachada |
+| Estado de la próxima etapa | En ejecución. `E9A` y `E9B` verificadas (merges `41343c1` y `4f7daf9`); `E9C1-IDIOMA` despachada |
 | Bloqueo actual | Ninguno |
 | Dependencias externas | Ninguna para el núcleo local |
 | Anthropic | Previsto para después del núcleo; decisión aparte, preparada por D11 |
 | Koin sandbox | Post-MVP; sujeto a onboarding y credenciales |
-| Coordinación Codex–Claude | `E9C-PORTUGUES-ACCESIBILIDAD` asignada a Opus 5 · `high`; `E9D` propuesta |
+| Coordinación Codex–Claude | `E9C1-IDIOMA` asignada a Opus 5 · `high`; `E9C2` y `E9D` propuestas |
 
 **Este bloque se actualiza en cada cierre de etapa y en cada alta de tarea.** Quedó desfasado
 durante toda la Etapa 7 porque los cierres actualizaron el registro de actividad y los checklists
@@ -48,7 +48,7 @@ Solo puede existir una etapa `En curso` a la vez.
 | 6 | Proveedor antifraude mock | Completada | Callbacks duplicados sin efectos repetidos y pendientes que finalizan | Merges `bca2c46` y `a412693`; 196 tests .NET y 172 de frontend; compuerta y smoke verdes (29 comprobaciones) |
 | 7 | Explicabilidad | Completada | Funciona sin red; el texto verificado sobre la salida no cambia ninguna superficie de decisión | Merges `82f2487`, `ac11015`, `0d117dd` y `b4aac6b`; compuerta y smoke verdes sobre `main` |
 | 8 | El argumento del proyecto | Completada | README, diagramas, capturas y guion de demo; cada afirmación contrastada contra el código | Merges `1243d54` y `6ae7750`; `check-docs.sh` incorporado a la compuerta; seis capturas revisadas una por una |
-| 9 | Corpus, idiomas y cierre | En ejecución | Seis reglas y tres bandas alcanzables; F1 deja de valer 1,00 | Merges `41343c1` y `4f7daf9`. F1 holdout 0,632 y calibración 0,688; las seis reglas disparan y las tres bandas existen; el motor escribe campos y el extractor de prosa ya no existe. `E9C` despachada |
+| 9 | Corpus, idiomas y cierre | En ejecución | Seis reglas y tres bandas alcanzables; F1 deja de valer 1,00 | Merges `41343c1` y `4f7daf9`. F1 holdout 0,632 y calibración 0,688; las seis reglas disparan y las tres bandas existen; el motor escribe campos y el extractor de prosa ya no existe. `E9C1-IDIOMA` despachada; la etapa pasa de cuatro tareas a cinco |
 | Post-MVP | Koin sandbox, auth, observabilidad, deploy | Pendiente | Aprobación independiente por capacidad | Pendiente |
 
 ## Etapa 1 — Resultado verificado
@@ -278,8 +278,11 @@ tercera. (Sección histórica de la Etapa 4: las Etapas 5, 6 y 7 se completaron 
       evaluaciones, 87 señales, las seis reglas, y la captura commiteada antes que el motor. Los
       textos dorados salieron idénticos sin tocar `ExplanationGoldenTests`, que es la prueba de que
       fue un cambio de representación y nada más.
-- [ ] Portugués: `SALVO_LANGUAGE` del despliegue, y el idioma en la identidad de la explicación.
-- [ ] Pasada de accesibilidad con lector de pantalla real.
+- [ ] Idioma del despliegue: `SALVO_LANGUAGE`, el idioma en la identidad de la explicación, y la
+      consola compuesta desde diccionario. **`es` es el valor por defecto y el de la demostración**;
+      el portugués existe para que el interruptor esté probado y para el revisor brasileño.
+- [ ] Pasada de accesibilidad: comprobaciones automáticas, y un recorrido con VoiceOver que produce
+      una lista de hallazgos con severidad **antes** de corregir nada.
 - [ ] Códigos de error de fila traducidos (`describeRecordError`).
 - [ ] Repaso final: todos los documentos y el artículo para revisores, con las cifras nuevas.
 

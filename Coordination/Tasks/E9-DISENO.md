@@ -322,6 +322,13 @@ En este orden, y el orden es obligatorio:
    el diferencial con el extractor como oráculo. **El borrado del extractor es el último commit.**
 3. **`E9C-PORTUGUES-ACCESIBILIDAD`** — `SALVO_LANGUAGE`, el idioma en la identidad de la
    explicación, los dos diccionarios, y el recorrido con lector de pantalla.
+   **Partida en dos el 2026-09-07, después de medir la superficie**: `E9C1-IDIOMA` y
+   `E9C2-ACCESIBILIDAD`. Son 52 archivos de frontend con literales, una migración, la plantilla del
+   backend y 42 anclas del smoke por un lado; y por el otro un trabajo de criterio que produce una
+   lista antes que código y que necesita un paso manual del coordinador en el medio. Juntas, el
+   riesgo concreto era que la accesibilidad se hiciera apurada al final de una tarea agotada.
+   `E9C1` va primero: la accesibilidad crea texto nuevo, y con el diccionario ya puesto ese texto
+   nace en los dos idiomas en vez de nacer en castellano y traducirse después.
 4. **`E9D-CIERRE`** — el repaso final, las capturas y el guion con el pedido nuevo, el artículo, y
    las decisiones nuevas en la bitácora.
 

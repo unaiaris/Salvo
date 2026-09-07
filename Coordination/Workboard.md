@@ -1,7 +1,7 @@
 # Salvo — Workboard Codex–Claude
 
 > Estado: Etapa 9 en ejecución, la última. `E9A-FIXTURE` y `E9B-SENALES-TIPADAS` verificadas
-> (merges `41343c1` y `4f7daf9`); `E9C-PORTUGUES-ACCESIBILIDAD` despachada
+> (merges `41343c1` y `4f7daf9`); `E9C1-IDIOMA` despachada
 > Última actualización: 2026-09-07
 > Responsable: coordinador de la etapa
 
@@ -19,7 +19,8 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 | --- | --- | --- | --- | --- |
 | `E9A-FIXTURE` | `Verificada` (merge `41343c1`) | `Claude` | Opus 5 · `high` | `backend/src/Salvo.Infrastructure/Seed/**`, `Salvo.Application/Orders/Seed/**`, el endpoint del seed, el panel del dashboard en backend y frontend, `frontend/src/app/alerts/[id]/divergence.ts`, `messages.ts`, `backend/tests/**` y las fixtures del frontend. **La reserva completa vive en el brief; esta fila la resume.** |
 | `E9B-SENALES-TIPADAS` | `Verificada` (merge `4f7daf9`) | `Claude` | Opus 5 · `high` | `Salvo.Domain/Risk/**` y `Explanations/**`, `Application/Explanations/**`, `AlertViews.cs` y `AlertProjection.cs`, `Salvo.Infrastructure/Explanations/**`, `backend/tests/**`, el borde del frontend —`guards.ts`, `contract.ts`, `fixtures.ts`, `boundary.test.ts`, `format.ts`— y la recaptura del contrato. **La reserva completa vive en el brief; esta fila la resume.** |
-| `E9C-PORTUGUES-ACCESIBILIDAD` | `Asignada` | `Claude` | Opus 5 · `high` | `SALVO_LANGUAGE`, dos diccionarios, migración de idioma, recorrido con lector de pantalla, **y el décimo `ExplanationFailureCode`** para la evaluación `e3-v1` sin campos, que hoy miente con `PROVIDER_UNAVAILABLE` y entra en la misma migración. **La reserva completa vive en el brief; esta fila la resume.** |
+| `E9C1-IDIOMA` | `Asignada` | `Claude` | Opus 5 · `high` | `SALVO_LANGUAGE`, el idioma en la identidad de la explicación con su migración, dos diccionarios en el frontend, la plantilla del backend, `messages.ts`, `describeRecordError`, `format.ts`, `<html lang>`, las anclas del smoke, **y el décimo `ExplanationFailureCode`** en la misma migración. **La reserva completa vive en el brief; esta fila la resume.** |
+| `E9C2-ACCESIBILIDAD` | `Propuesta` | `Claude` | por acordar | Linter y comprobaciones automáticas de accesibilidad, la lista de hallazgos con severidad **antes** de corregir, y las correcciones que el coordinador elija tras el recorrido con VoiceOver |
 | `E9D-CIERRE` | `Propuesta` | `Claude` | por acordar | Repaso final de documentos, capturas y artículo |
 
 **El orden es obligatorio y está argumentado en el diseño v2**: la fixture primero y el motor
