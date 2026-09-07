@@ -255,6 +255,31 @@ curl -sS -X POST --max-time 60 -H 'Content-Type: application/json' -d '{}' \
       });
     ' || fail "el proveedor no aprobó ORD_000011: sin eso no hay divergencia de criterio que fotografiar."
 
+# El panel de denegados por el proveedor sin alerta local, que es la única pantalla donde aparece un
+# pedido que las reglas nunca marcaron. Sin esta llamada el panel sale vacío en la toma 4, diciendo
+# que nadie pidió todavía la evaluación externa, y la captura del dashboard se queda justamente sin
+# el argumento que ese panel existe para sostener: hay fraude que el proveedor ve y el motor no.
+#
+# Va **después** del pedido individual a propósito: este endpoint solo pregunta por los pedidos que
+# nunca se le consultaron a este proveedor, así que ORD_000011 queda intacto con su APPROVED y la
+# toma 6 sigue teniendo su divergencia. No se entregan los callbacks: con las evaluaciones síncronas
+# el panel ya tiene contenido, y dejar 21 pendientes es el estado más honesto para fotografiar.
+curl -sS -X POST --max-time 600 "${api_base}/api/demo-data/external-evaluations:request" \
+  | node -e '
+      let raw = "";
+      process.stdin.on("data", (chunk) => (raw += chunk)).on("end", () => {
+        const summary = JSON.parse(raw);
+        if (summary.settled < 1) {
+          process.stderr.write(`ninguna evaluación externa del corpus se asentó.\n`);
+          process.exit(1);
+        }
+        process.stdout.write(
+          `Evaluación externa del corpus: ${String(summary.settled)} asentadas, `
+          + `${String(summary.stillPending)} pendientes.\n`,
+        );
+      });
+    ' || fail "falló la evaluación externa del corpus: sin ella el panel de denegados sale vacío."
+
 # ---------------------------------------------------------------------------- las capturas
 
 step "Fotografiando"
