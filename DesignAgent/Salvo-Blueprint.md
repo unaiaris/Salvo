@@ -134,7 +134,10 @@ Analista de riesgo u operaciones de un comercio electrónico ficticio.
   - `currencyCode` ISO 4217;
   - `merchantId` y `merchantReferenceId` forman una referencia comercial estable y única;
   - `buyerReferenceId` pseudónimo;
-  - `countryCode` ISO 3166-1 alpha-2;
+  - `countryCode` ISO 3166-1 alpha-2. Es **el país de la sesión desde la que se compró**, no el de
+    facturación: por eso un mismo comprador puede cambiar de país entre dos pedidos en dos horas,
+    que es lo que `cross_border_velocity` mira, y por eso el roaming, una VPN o un proxy corporativo
+    lo mueven sin que nadie viaje;
   - `city`, `channel` y `deviceSessionId` opcionales.
 - El parser acumula errores por fila y continúa.
 - Una biblioteca mantenida de .NET resuelve quoting, BOM y delimitadores; la API valida los DTOs
@@ -427,6 +430,12 @@ preasignan como columnas nullable en E2; se incorporan cuando existan sus casos 
 - `isFraudLabel`
 - `createdAt`
 
+`isFraudLabel` significa **el pedido terminó en contracargo por fraude, o fue confirmado como
+fraude**. La definición decide casos reales: un fraude amigo —el comprador compra, recibe y desconoce
+el cargo— es fraude aunque en el momento de la compra fuera indistinguible de una compra legítima, y
+una compra disputada por error no lo es. Es además lo único que un comercio real llega a saber
+(decisión 37).
+
 La etiqueta es ground truth exclusivo de demo/evaluación. No forma parte de `Order`, no aparece en
 los contratos públicos CSV/JSON y solo el seed interno puede escribirla. El motor de scoring no la
 recibe como feature.
@@ -563,6 +572,11 @@ SALVO_CALLBACK_SHARED_SECRET=""
 `SALVO_CALLBACK_SHARED_SECRET` es la variable que el endpoint de callback lee de verdad. Sin ella
 configurada, ese endpoint responde `401` a toda petición: falla cerrado.
 
+`BUSINESS_TIMEZONE` es **del despliegue, no del comercio**: una zona por comercio sería una columna
+que el contrato de importación no tiene. Por eso el corpus de demostración vive en el corredor
+UTC−3, donde las franjas coinciden. Hoy la variable **no la lee nadie** —el huso es una constante de
+`RuleConfig`—: la Etapa 9 la saca de `.env.example` o la conecta.
+
 ### IA posterior
 
 ```dotenv
@@ -689,14 +703,26 @@ afirmación de hecho del README contrastada contra el código**.
 - Fixture enriquecida: comercios en mercados plausibles, varios arquetipos de fraude que cubran las
   seis reglas y las tres bandas, y **falsos negativos y falsos positivos deliberados**, para que las
   métricas midan el criterio y no el pipeline. Decidido con el usuario el 2026-09-06.
-- Señales estructuradas: el motor emite campos tipados en vez de prosa, sube a `e3-v2` e invalida
-  los fingerprints a propósito; la UI compone el texto y el portugués pasa a ser un diccionario más.
+- El corpus lleva **siete arquetipos**: tres falsos negativos invisibles cada uno por una razón
+  distinta —fraude amigo, cuenta tomada vista en el dispositivo, prueba de tarjetas— y cuatro falsos
+  positivos que hacen decidir por primera vez a `velocity`, `unusual_hour` y `amount_anomaly` en
+  clave comprador.
+- El dashboard gana un panel de **denegados por el proveedor sin alerta local**: sin él, un pedido
+  sin alerta no tiene pantalla y el argumento del efecto de red no se puede ver.
+- Señales estructuradas: el motor emite campos tipados, sube a `e3-v2` e invalida los fingerprints a
+  propósito. `detail` se conserva como campo heredado, porque el snapshot de una alerta no se
+  reescribe nunca.
+- El idioma es **del despliegue** (`SALVO_LANGUAGE`) y entra en la identidad de la explicación.
 - Pasada de accesibilidad con lector de pantalla real, y traducción de los códigos de error de fila
   que hoy caen al inglés.
 - Repaso final y actualización de todos los documentos con las cifras del corpus nuevo.
 
-Verificación: las seis reglas y las tres bandas alcanzables desde la fixture; F1 deja de valer 1,00;
-compuertas verdes y documentos coherentes con los datos.
+Orden obligatorio: **la fixture primero y el motor después**, porque el corpus actual dispara tres
+de las seis reglas y el extractor de `SignalFacts` es el único oráculo capaz de certificar los
+campos tipados de las otras tres.
+
+Verificación: las seis reglas y las tres bandas alcanzables desde la fixture; la matriz de confusión
+publicada con sus conteos y su `n`; compuertas verdes y documentos coherentes con los datos.
 
 ### Post-MVP — Koin sandbox, auth, observabilidad y deploy
 
@@ -780,6 +806,9 @@ completo el MVP local.
 | 59 | Un documento que cita datos del corpus los concentra en un bloque marcado, y no escribe cantidades de tests | La Etapa 9 invalida toda cifra del corpus de una sola pasada; y una cantidad de tests es cierta el día que se escribe y falsa la semana siguiente | 2026-09-06 |
 | 60 | Las afirmaciones de un documento público se comprueban por script, no por revisión | `scripts/check-docs.sh` verifica que cada ruta citada exista y que cada test nombrado exista. La deriva se detecta, no se promete: es el patrón de `OpenApiDriftTests` aplicado a la prosa | 2026-09-06 |
 | 61 | Una dependencia nueva se aprueba por nombre y motivo en el diseño de su etapa | El precedente es `openapi-typescript` en la Etapa 5; Playwright se aprobó así en la 8, en un paquete propio y fuera de la compuerta | 2026-09-06 |
+| 62 | El idioma de la consola es del despliegue y entra en la identidad de la explicación; por persona es post-MVP | Sin autenticación no hay a quién preguntarle; y si el idioma no está en la identidad de la fila, un despliegue que lo cambia encuentra la explicación en el idioma anterior y nunca escribe la nueva | 2026-09-07 |
+| 63 | El umbral de alerta es una política de negocio, no el resultado del barrido | El barrido maximiza F1 sobre una cohorte; si sugiere otro umbral, el producto no lo adopta: lo muestra y explica la diferencia | 2026-09-07 |
+| 64 | Una versión de plantilla **no** sube si el texto no cambia | Es la contrapositiva de la 58. Dos versiones con texto idéntico hacen que la consola ofrezca redactar de nuevo para producir el mismo párrafo | 2026-09-07 |
 
 ## 14. Mapa de documentación
 

@@ -63,7 +63,7 @@ conflicto, sería un pedido nuevo y legítimo.
 
 Con el corpus demo, `unusual_hour` **no puede dispararse**. Exige que la franja de seis horas del
 pedido aparezca en el 10 % o menos de los pedidos previos del comercio, y la franja más rara de los
-tres comercios del corpus está en 13,8 %. Es una limitación de la fixture, no de la regla, y la
+tres comercios del corpus está en 16,7 %. Es una limitación de la fixture, no de la regla, y la
 Etapa 9 la corrige.
 
 Este archivo crea un comercio nuevo, `MER_UY_PHARMA`, con veinte pedidos de rutina —todos entre las

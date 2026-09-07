@@ -1,7 +1,7 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: Etapa 8 en ejecución. `E8A-README-DIAGRAMAS` asignada; `E8B-DEMO-CAPTURAS` en cola
-> Última actualización: 2026-09-06
+> Estado: Etapa 9 en ejecución, la última. `E9A-FIXTURE` por despachar
+> Última actualización: 2026-09-07
 > Responsable: coordinador de la etapa
 
 ## Estados
@@ -16,11 +16,18 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 
 | Work ID | Estado | Propietario | Modelo y esfuerzo | Paths reservados |
 | --- | --- | --- | --- | --- |
-| `E8A-README-DIAGRAMAS` | `Verificada` (merge `1243d54`) | `Claude` | Opus 5 · `high` | `README.md`; `scripts/check-docs.sh` y `scripts/check.sh` solo para invocarlo; `Salvo-Overview.md`, `Salvo-MOC.md`, `Salvo-Getting-Started.md` y `Salvo-Portability.md`; `Coordination/Handoffs/Claude.md`; y el texto de tres comentarios en `quality-section.tsx`, `console-header.tsx` y `SignalFacts.cs`. **La reserva completa vive en el brief; esta fila la resume.** |
-| `E8B-DEMO-CAPTURAS` | `Verificada` (merge `6ae7750`) | `Claude` | Opus 5 · `high` | `docs/**`; `tools/capturas/**`; `scripts/demo.sh` y `scripts/capturas.sh`; `README.md` solo en las secciones de capturas, guion y comandos; `Coordination/Handoffs/Claude.md`. **La reserva completa vive en el brief; esta fila la resume.** |
+| `E9A-FIXTURE` | `Asignada` | `Claude` | Opus 5 · `high` | `backend/src/Salvo.Infrastructure/Seed/**`, `Salvo.Application/Orders/Seed/**`, el endpoint del seed, el panel del dashboard en backend y frontend, `frontend/src/app/alerts/[id]/divergence.ts`, `messages.ts`, `backend/tests/**` y las fixtures del frontend. **La reserva completa vive en el brief; esta fila la resume.** |
+| `E9B-SENALES-TIPADAS` | `En cola` | `Claude` | por acordar | `e3-v2`, contrato recapturado, el extractor como oráculo |
+| `E9C-PORTUGUES-ACCESIBILIDAD` | `En cola` | `Claude` | por acordar | `SALVO_LANGUAGE`, dos diccionarios, migración de idioma, recorrido con lector de pantalla |
+| `E9D-CIERRE` | `En cola` | `Claude` | por acordar | Repaso final de documentos, capturas y artículo |
 
-`E8B` depende de `E8A` integrada. Ninguna de las dos toca código de producción: solo el texto de
-tres comentarios, autorizado como corrección de arrastre en `E8A`.
+**El orden es obligatorio y está argumentado en el diseño v2**: la fixture primero y el motor
+después, porque el corpus actual dispara tres de las seis reglas y el extractor de `SignalFacts` es
+el único oráculo capaz de certificar los campos tipados de las otras tres.
+
+Los briefs de `E9B`, `E9C` y `E9D` se escriben cuando llega su turno, con el handoff de la tarea
+anterior a la vista: el de `E9B` depende de cómo quede el corpus, y el de `E9D` de lo que las tres
+anteriores rompan.
 
 ## Cola próxima
 
@@ -99,7 +106,9 @@ Candidatas registradas para la Etapa 9, acordadas con el usuario:
   `unusual_hour` sí funcionan, y la banda `ALTA` también, pero el corpus no las alcanza. En
   particular `unusual_hour` es **estructuralmente inalcanzable** con esta fixture: exige una franja
   de seis horas con ≤10% de los pedidos del comercio en treinta días, y la franja más rara de los
-  tres comercios está en 13,8%. Una fixture enriquecida debería cubrir las seis reglas y las tres
+  tres comercios está en 16,7 % —cuatro de veinticuatro, con la ventana de treinta días y el mínimo
+  de veinte que usa el motor—. Y hay un segundo motivo: veinte de los cien pedidos de cada comercio
+  no llegan a ese mínimo y la regla ni siquiera evalúa. Una fixture enriquecida debería cubrir las seis reglas y las tres
   bandas.
 - Pasada de accesibilidad con lector de pantalla real.
 - Traducir los códigos de error de fila que hoy caen al inglés (`describeRecordError`).

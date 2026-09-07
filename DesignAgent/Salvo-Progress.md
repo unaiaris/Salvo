@@ -9,15 +9,15 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado del proyecto | Etapa 7 — Explicabilidad, completada y verificada |
-| Etapa completada | Etapa 7 — Explicabilidad (`E7A`, `E7B`, `E7C` y `E7D` integradas) |
-| Próxima etapa | Etapa 8 — El argumento del proyecto |
-| Estado de la próxima etapa | Alcance acordado: README, diagramas, capturas y guion de demo |
+| Estado del proyecto | Etapa 8 completada y verificada; Etapa 9 en ejecución |
+| Etapa completada | Etapa 8 — El argumento del proyecto (`E8A` y `E8B` integradas) |
+| Próxima etapa | Etapa 9 — Corpus, idiomas y cierre. Es la última |
+| Estado de la próxima etapa | Diseño v2 aprobado; `E9A-FIXTURE` por despachar |
 | Bloqueo actual | Ninguno |
 | Dependencias externas | Ninguna para el núcleo local |
 | Anthropic | Previsto para después del núcleo; decisión aparte, preparada por D11 |
 | Koin sandbox | Post-MVP; sujeto a onboarding y credenciales |
-| Coordinación Codex–Claude | `E8A-README-DIAGRAMAS` asignada; `E8B-DEMO-CAPTURAS` en cola |
+| Coordinación Codex–Claude | `E9A-FIXTURE` por asignar; tres tareas más en la etapa |
 
 **Este bloque se actualiza en cada cierre de etapa y en cada alta de tarea.** Quedó desfasado
 durante toda la Etapa 7 porque los cierres actualizaron el registro de actividad y los checklists
@@ -261,7 +261,15 @@ tercera. (Sección histórica de la Etapa 4: las Etapas 5, 6 y 7 se completaron 
 
 ### Etapa 9 — Corpus, idiomas y cierre
 
-- [ ] Fixture enriquecida, con falsos negativos y positivos deliberados.
+- [ ] Fixture enriquecida con **siete arquetipos**: tres falsos negativos invisibles cada uno por
+      una razón distinta, y cuatro falsos positivos que hacen decidir a las reglas que hoy no
+      deciden. La celda de la matriz de cada uno se escribe en el brief antes de correr el motor.
+- [ ] El seed versionado, con un ensayo que avise **antes del clic** que la base tiene el corpus
+      anterior.
+- [ ] Panel de denegados por el proveedor sin alerta local: sin él, un falso negativo no tiene
+      pantalla.
+- [ ] La matriz de confusión publicada con sus conteos y su `n`, y la discrepancia del barrido
+      explicada si aparece.
 - [ ] Las seis reglas y las tres bandas alcanzables desde el corpus.
 - [ ] Comercios en mercados plausibles.
 - [ ] Señales estructuradas (`e3-v2`) y portugués.
@@ -372,6 +380,9 @@ tercera. (Sección histórica de la Etapa 4: las Etapas 5, 6 y 7 se completaron 
 | 2026-09-06 | 8 | Integración de `E8A-README-DIAGRAMAS` | Merge `1243d54` + `check.sh` —que ahora incluye `check-docs.sh`— y `smoke-ui.sh` verdes sobre `main` | Completada |
 | 2026-09-06 | 8 | `E8B-DEMO-CAPTURAS` | Seis commits. Playwright en `tools/capturas/` con lockfile propio: `frontend/package-lock.json` intacto. La aserción previa a cada disparo detuvo la primera corrida en la toma 5 —la pantalla traduce el código de error y no lo muestra— y `check-docs.sh` cazó un nombre de test inventado en el guion | Lista para integrar |
 | 2026-09-06 | 8 | Integración de `E8B-DEMO-CAPTURAS` | Merge `6ae7750` + compuerta y smoke verdes. Las seis capturas revisadas una por una por el coordinador: salen de una base nueva —18 alertas, sin banda `ALTA`— y la de importación de un envío real del formulario | Completada |
+| 2026-09-07 | Preparación E9 | Diseño v1 de la Etapa 9 | Once decisiones y seis preguntas abiertas | Superado por la v2 |
+| 2026-09-07 | Preparación E9 | Revisión adversarial con Fable 5.1 · `xhigh` | 11 hallazgos, 5 altos, más una primera parte sobre criterio de dominio. Corrigió el arquetipo central —una cuenta tomada que se envía a la víctima no monetiza nada— e invirtió el orden de la etapa: el corpus actual dispara tres de las seis reglas, así que el extractor de `SignalFacts` es el único oráculo capaz de certificar los campos tipados | Completada |
+| 2026-09-07 | Preparación E9 | Diseño v2 y estado canónico | Decisiones 62–64; §4.1, §7, §9 y §11 del Blueprint; el `13,8 %` corregido a `16,7 %` en cuatro documentos | Aprobada |
 
 ## Protocolo de actualización
 
