@@ -15,6 +15,17 @@ namespace Salvo.Application.Dashboard;
 /// </remarks>
 public sealed class GetDashboardHandler(IDashboardReader reader)
 {
+    /// <summary>
+    /// How many denied-without-alert orders the panel lists.
+    /// </summary>
+    /// <remarks>
+    /// Generous on purpose. The panel exists so that orders nobody ever looked at become visible,
+    /// and a cap tight enough to hide them would defeat the reason it was added; the bound is here
+    /// so the contract stays a bounded array rather than "however many there are". The total is
+    /// always reported in full, capped or not.
+    /// </remarks>
+    public const int ExternalDenialListLimit = 100;
+
     public async Task<DashboardResult> HandleAsync(CancellationToken cancellationToken)
     {
         var openAlerts = await reader.GetOpenAlertsAsync(cancellationToken);
@@ -24,7 +35,8 @@ public sealed class GetDashboardHandler(IDashboardReader reader)
         if (run is null)
         {
             // Without a run nothing is current: there are no evaluations to summarize, and every
-            // order is waiting to be scored.
+            // order is waiting to be scored. A provider can still have denied orders, and with no
+            // run behind them none of them carries a local score.
             return new(
                 null,
                 await reader.CountOrdersPendingScoringAsync(null, cancellationToken),
@@ -33,11 +45,19 @@ public sealed class GetDashboardHandler(IDashboardReader reader)
                 ToReportedFraud(reportedFraud),
                 null,
                 [],
-                ToTopSignals(openAlerts));
+                ToTopSignals(openAlerts),
+                ToExternalDenials(await reader.GetExternalDenialsWithoutAlertAsync(
+                    null,
+                    ExternalDenialListLimit,
+                    cancellationToken)));
         }
 
         var evaluations = await reader.GetCurrentEvaluationsAsync(run.Id, cancellationToken);
         var pending = await reader.CountOrdersPendingScoringAsync(run.Id, cancellationToken);
+        var denials = await reader.GetExternalDenialsWithoutAlertAsync(
+            run.Id,
+            ExternalDenialListLimit,
+            cancellationToken);
 
         return new(
             new(run.Sequence, run.CompletedAt, run.OrderCount),
@@ -47,7 +67,31 @@ public sealed class GetDashboardHandler(IDashboardReader reader)
             ToReportedFraud(reportedFraud),
             ToFlagRate(evaluations),
             ToRiskOverTime(evaluations),
-            ToTopSignals(openAlerts));
+            ToTopSignals(openAlerts),
+            ToExternalDenials(denials));
+    }
+
+    /// <summary>
+    /// The orders a provider denied and nobody ever looked at.
+    /// </summary>
+    /// <remarks>
+    /// It reads no ground-truth label, exactly like every other figure here. What makes the panel
+    /// worth its space is that it is the only place in the console where an order without an alert
+    /// appears at all.
+    /// </remarks>
+    private static DashboardExternalDenialsView ToExternalDenials(ExternalDenialPage page)
+    {
+        var items = page.Items
+            .Select(row => new DashboardExternalDenialView(
+                row.MerchantReferenceId,
+                row.OccurredAt,
+                row.AmountCents,
+                row.CurrencyCode,
+                row.CountryCode,
+                row.LocalRiskScore))
+            .ToArray();
+
+        return new(page.Total, items.Length, items);
     }
 
     /// <summary>

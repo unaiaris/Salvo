@@ -5,9 +5,10 @@ import {
   type DashboardAmountAtRisk,
   type DashboardOpenAlerts,
   type DashboardReportedFraud,
+  type DashboardExternalDenials,
   type DashboardSignal,
 } from "@/lib/api/contract";
-import { formatAmount, formatCount, formatPercent, ruleLabel } from "@/lib/format";
+import { formatAmount, formatCount, formatDate, formatPercent, ruleLabel } from "@/lib/format";
 
 export function Panel({
   title,
@@ -188,5 +189,77 @@ export function TopSignalsPanel({ signals }: { readonly signals: readonly Dashbo
         </li>
       ))}
     </ul>
+  );
+}
+
+/**
+ * Orders an external provider denied that never opened a local alert.
+ *
+ * This is the only place in the console where an order without an alert can be seen at all. The
+ * provider's opinion otherwise lives inside the detail of an alert, and an order the rules never
+ * flagged has no detail to open — so before this panel existed, "there is fraud the local engine
+ * cannot see and a provider can" was a claim the product made in prose and could not show.
+ *
+ * It is a reading and nothing else: no verdict, no action, no state. Judging one of these orders
+ * would mean opening an alert on it, and nothing here does that.
+ */
+export function ExternalDenialsPanel({
+  denials,
+}: {
+  readonly denials: DashboardExternalDenials;
+}) {
+  if (denials.total === 0) {
+    return (
+      <p className="text-sm text-slate-600">
+        Ningún pedido denegado por el proveedor quedó fuera de la cola. O nadie pidió todavía la
+        evaluación externa, o el proveedor y el motor local coincidieron en todo.
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-sm text-slate-700">
+        <span className="text-2xl font-semibold tabular-nums text-slate-950">
+          {formatCount(denials.total)}
+        </span>{" "}
+        {denials.total === 1 ? "pedido" : "pedidos"}
+        {denials.listed < denials.total
+          && ` · se listan los ${formatCount(denials.listed)} más recientes`}
+      </p>
+      <div className="max-h-80 overflow-y-auto overflow-x-auto rounded-md border border-slate-200">
+        <table className="w-full min-w-[34rem] border-collapse text-left text-xs">
+          <caption className="sr-only">
+            Pedidos denegados por el proveedor externo que no abrieron ninguna alerta local
+          </caption>
+          <thead className="sticky top-0 bg-slate-50 text-slate-600">
+            <tr>
+              <th scope="col" className="px-3 py-2 font-medium">Pedido</th>
+              <th scope="col" className="px-3 py-2 font-medium">Fecha</th>
+              <th scope="col" className="px-3 py-2 text-right font-medium">Monto</th>
+              <th scope="col" className="px-3 py-2 font-medium">País</th>
+              <th scope="col" className="px-3 py-2 text-right font-medium">Score local</th>
+            </tr>
+          </thead>
+          <tbody>
+            {denials.items.map((item) => (
+              <tr key={item.merchantReferenceId} className="border-t border-slate-100">
+                <th scope="row" className="px-3 py-2 font-normal text-slate-900">
+                  {item.merchantReferenceId}
+                </th>
+                <td className="px-3 py-2 text-slate-700">{formatDate(item.occurredAt)}</td>
+                <td className="px-3 py-2 text-right tabular-nums text-slate-700">
+                  {formatAmount(item.amountCents, item.currencyCode)}
+                </td>
+                <td className="px-3 py-2 text-slate-700">{item.countryCode}</td>
+                <td className="px-3 py-2 text-right tabular-nums text-slate-700">
+                  {item.localRiskScore === null ? "sin puntuar" : formatCount(item.localRiskScore)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }

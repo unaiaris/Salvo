@@ -83,8 +83,14 @@ const BY_CODE: Readonly<Record<string, FailureMessage>> = {
   },
   DEMO_DATA_CONFLICT: {
     title: "El corpus de demostración choca con pedidos que ya existen",
-    body: "La base tiene pedidos con las mismas referencias que la fixture pero con datos distintos. Un pedido es inmutable, así que la carga se cancela entera antes que pisar nada.",
+    body: "La base tiene pedidos importados con las mismas referencias que la fixture pero con datos distintos. Un pedido es inmutable, así que la carga se cancela entera antes que pisar nada.",
     recovery: "Usá una base vacía para cargar la demo, o seguí con los pedidos que ya están importados.",
+    isFormError: false,
+  },
+  DEMO_DATA_PREVIOUS_CORPUS: {
+    title: "Esta base tiene una versión anterior del corpus de demostración",
+    body: "Las dos versiones usan las mismas referencias de comercio y un pedido es inmutable, así que no pueden convivir. No se escribió nada: la base quedó como estaba.",
+    recovery: "Cargá el corpus en una base nueva. La base actual no se pierde; deja de ser la de demostración.",
     isFormError: false,
   },
   FILE_REQUIRED: {

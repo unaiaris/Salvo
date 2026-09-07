@@ -7,6 +7,7 @@ import type {
   ImportFormat,
   ImportResult,
   ScoringRunSummary,
+  SeedPreview,
   SeedResult,
 } from "./contract";
 import { type ApiResult, fail, succeed } from "./failures";
@@ -16,6 +17,7 @@ import {
   projectEvaluationMetrics,
   projectImportResult,
   projectScoringRunSummary,
+  projectSeedPreview,
   projectSeedResult,
 } from "./guards";
 import { requestJson } from "./server-client";
@@ -85,6 +87,18 @@ export async function importOrders(
   });
 
   return project(result, projectImportResult);
+}
+
+/**
+ * What loading the demo corpus would do, asked before anybody presses the button.
+ *
+ * A database that already holds the previous version of the corpus cannot take the current one:
+ * an order is immutable and the two versions share their merchant references, so the load refuses.
+ * Reading this when the screen opens is what turns that refusal into a sentence the analyst reads
+ * beforehand instead of an error she causes.
+ */
+export async function fetchSeedPreview(): Promise<ApiResult<SeedPreview>> {
+  return project(await requestJson({ path: "/api/demo-data/seed-preview" }), projectSeedPreview);
 }
 
 export async function seedDemoOrders(): Promise<ApiResult<SeedResult>> {

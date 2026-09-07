@@ -18,7 +18,7 @@ namespace Salvo.Infrastructure.External;
 /// writes the fixture decides the distribution.
 /// </para>
 /// <para>
-/// On <c>demo-orders.v1.json</c>, whose references run from <c>ORD_000001</c> to <c>ORD_000300</c>,
+/// On <c>demo-orders.v2.json</c>, whose references run from <c>ORD_000001</c> to <c>ORD_000300</c>,
 /// every remainder appears exactly three times, so the bands produce 225 approved, 45 denied, 21
 /// pending and 9 in error. A test pins those four numbers.
 /// </para>

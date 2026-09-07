@@ -11,6 +11,7 @@ import {
 } from "./empty-states";
 import {
   AmountAtRiskPanel,
+  ExternalDenialsPanel,
   FlagRatePanel,
   OpenAlertsPanel,
   Panel,
@@ -137,6 +138,13 @@ function DashboardBody({ state }: { readonly state: Dashboard }) {
           </Panel>
         </div>
       </div>
+
+      <Panel
+        title="Denegados por el proveedor sin alerta local"
+        hint="Pedidos que el proveedor externo denegó y que el motor local nunca marcó. Es la única pantalla donde aparece un pedido sin alerta."
+      >
+        <ExternalDenialsPanel denials={state.externalDenialsWithoutAlert} />
+      </Panel>
 
       <Panel
         title="Riesgo en el tiempo"

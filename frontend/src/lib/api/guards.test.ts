@@ -11,6 +11,7 @@ import {
   wireImportResult,
   wireOrder,
   wireScoringRunSummary,
+  wireSeedPreview,
   wireSeedResult,
   wireSignal,
 } from "@/test/fixtures";
@@ -24,6 +25,7 @@ import {
   projectImportResult,
   projectOrder,
   projectScoringRunSummary,
+  projectSeedPreview,
   projectSeedResult,
   projectSignal,
 } from "./guards";
@@ -175,6 +177,7 @@ describe("guardas del dashboard, las métricas y la importación", () => {
       "flagRate",
       "riskOverTime",
       "topSignals",
+      "externalDenialsWithoutAlert",
     ]);
   });
 
@@ -397,5 +400,50 @@ describe("la guarda de la explicación mira el estado antes que el texto", () =>
     );
 
     expect(projected?.review?.explanationId).toBe("6f6b7f3e-0000-4000-8000-000000000006");
+  });
+});
+
+describe("guardas del panel de denegados y del ensayo del seed", () => {
+  it("proyecta el panel y admite un pedido que la corrida vigente no cubre", () => {
+    const projected = projectDashboard(wireDashboard());
+
+    expect(projected?.externalDenialsWithoutAlert.total).toBe(2);
+    expect(projected?.externalDenialsWithoutAlert.items[0]?.merchantReferenceId).toBe("ORD_000275");
+    // `null` es un valor del contrato, no un dato ilegible: el pedido existe y la corrida vigente
+    // no lo puntuó.
+    expect(projected?.externalDenialsWithoutAlert.items[1]?.localRiskScore).toBeNull();
+  });
+
+  it("rechaza el dashboard entero si el panel no respeta el contrato", () => {
+    expect(
+      projectDashboard(
+        wireDashboard({
+          externalDenialsWithoutAlert: { total: 2, listed: 2, items: [{ merchantReferenceId: 7 }] },
+        }),
+      ),
+    ).toBeNull();
+    expect(projectDashboard(wireDashboard({ externalDenialsWithoutAlert: null }))).toBeNull();
+  });
+
+  it("proyecta el ensayo del seed y distingue sin conflicto de conflicto ilegible", () => {
+    expect(projectSeedPreview(wireSeedPreview())?.conflict).toBeNull();
+    expect(projectSeedPreview(wireSeedPreview({ conflict: "PREVIOUS_CORPUS" }))?.conflict).toBe(
+      "PREVIOUS_CORPUS",
+    );
+    expect(projectSeedPreview(wireSeedPreview({ conflict: 3 }))).toBeNull();
+    expect(projectSeedPreview(wireSeedPreview({ datasetVersion: undefined }))).toBeNull();
+  });
+
+  it("no deja pasar campos que el contrato no declara", () => {
+    const projected = projectSeedPreview(wireSeedPreview({ secreto: "no debería cruzar" }));
+
+    expect(Object.keys(projected ?? {})).toEqual([
+      "datasetVersion",
+      "totalOrders",
+      "ordersToInsert",
+      "duplicateOrders",
+      "labelsToInsert",
+      "conflict",
+    ]);
   });
 });

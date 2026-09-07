@@ -77,7 +77,25 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @description Loads the demo corpus. Idempotent: an order that is already there with the same facts is left alone. It refuses without writing anything when the database holds orders with these merchant references and different facts, and says which of the two causes it is. */
         post: operations["SeedDemoOrders"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/demo-data/seed-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description What loading the demo corpus would do, without doing it. The console reads it when the import screen opens so that a database holding the previous corpus is announced before the button is pressed rather than discovered by pressing it. It runs the very same comparison the load runs, and writes nothing. */
+        get: operations["GetDemoSeedPreview"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -504,6 +522,24 @@ export interface components {
             /** Format: int32 */
             alertCount: number | string;
         };
+        DashboardExternalDenialsView: {
+            /** Format: int32 */
+            total: number | string;
+            /** Format: int32 */
+            listed: number | string;
+            items: components["schemas"]["DashboardExternalDenialView"][];
+        };
+        DashboardExternalDenialView: {
+            merchantReferenceId: string;
+            /** Format: date-time */
+            occurredAt: string;
+            /** Format: int64 */
+            amountCents: number | string;
+            currencyCode: string;
+            countryCode: string;
+            /** Format: int32 */
+            localRiskScore: null | number | string;
+        };
         DashboardOpenAlertsView: {
             /** Format: int32 */
             total: number | string;
@@ -527,6 +563,7 @@ export interface components {
             flagRate: null | number | string;
             riskOverTime: components["schemas"]["DashboardRiskBucketView"][];
             topSignals: components["schemas"]["DashboardSignalView"][];
+            externalDenialsWithoutAlert: components["schemas"]["DashboardExternalDenialsView"];
         };
         DashboardRiskBucketView: {
             /** Format: date */
@@ -557,6 +594,18 @@ export interface components {
         DeliverExternalCallbacksRequest: {
             /** Format: uuid */
             externalEvaluationId: null | string;
+        };
+        DemoSeedPreviewResult: {
+            datasetVersion: string;
+            /** Format: int32 */
+            totalOrders: number | string;
+            /** Format: int32 */
+            ordersToInsert: number | string;
+            /** Format: int32 */
+            duplicateOrders: number | string;
+            /** Format: int32 */
+            labelsToInsert: number | string;
+            conflict: null | string;
         };
         EvaluationMetricsResult: {
             /** Format: int64 */
@@ -946,6 +995,26 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetDemoSeedPreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoSeedPreviewResult"];
                 };
             };
         };
