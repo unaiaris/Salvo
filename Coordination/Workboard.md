@@ -1,7 +1,7 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: Etapa 9 en ejecución, la última. `E9A-FIXTURE` y `E9B-SENALES-TIPADAS` verificadas
-> (merges `41343c1` y `4f7daf9`); `E9C1-IDIOMA` despachada
+> Estado: Etapa 9 en ejecución, la última. `E9A`, `E9B` y `E9C1` verificadas (merges `41343c1`,
+> `4f7daf9` y `0d65f9a`); `E9C2-ACCESIBILIDAD` despachada
 > Última actualización: 2026-09-07
 > Responsable: coordinador de la etapa
 
@@ -19,8 +19,8 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 | --- | --- | --- | --- | --- |
 | `E9A-FIXTURE` | `Verificada` (merge `41343c1`) | `Claude` | Opus 5 · `high` | `backend/src/Salvo.Infrastructure/Seed/**`, `Salvo.Application/Orders/Seed/**`, el endpoint del seed, el panel del dashboard en backend y frontend, `frontend/src/app/alerts/[id]/divergence.ts`, `messages.ts`, `backend/tests/**` y las fixtures del frontend. **La reserva completa vive en el brief; esta fila la resume.** |
 | `E9B-SENALES-TIPADAS` | `Verificada` (merge `4f7daf9`) | `Claude` | Opus 5 · `high` | `Salvo.Domain/Risk/**` y `Explanations/**`, `Application/Explanations/**`, `AlertViews.cs` y `AlertProjection.cs`, `Salvo.Infrastructure/Explanations/**`, `backend/tests/**`, el borde del frontend —`guards.ts`, `contract.ts`, `fixtures.ts`, `boundary.test.ts`, `format.ts`— y la recaptura del contrato. **La reserva completa vive en el brief; esta fila la resume.** |
-| `E9C1-IDIOMA` | `Asignada` | `Claude` | Opus 5 · `high` | `SALVO_LANGUAGE`, el idioma en la identidad de la explicación con su migración, dos diccionarios en el frontend, la plantilla del backend, `messages.ts`, `describeRecordError`, `format.ts`, `<html lang>`, las anclas del smoke, **y el décimo `ExplanationFailureCode`** en la misma migración. **La reserva completa vive en el brief; esta fila la resume.** |
-| `E9C2-ACCESIBILIDAD` | `Propuesta` | `Claude` | por acordar | Linter y comprobaciones automáticas de accesibilidad, la lista de hallazgos con severidad **antes** de corregir, y las correcciones que el coordinador elija tras el recorrido con VoiceOver |
+| `E9C1-IDIOMA` | `Verificada` (merge `0d65f9a`) | `Claude` | Opus 5 · `high` | `SALVO_LANGUAGE`, el idioma en la identidad de la explicación con su migración, dos diccionarios en el frontend, la plantilla del backend, `messages.ts`, `describeRecordError`, `format.ts`, `<html lang>`, las anclas del smoke, **y el décimo `ExplanationFailureCode`** en la misma migración. **La reserva completa vive en el brief; esta fila la resume.** |
+| `E9C2-ACCESIBILIDAD` | `Asignada` | `Claude` | Opus 5 · `high` | Linter y comprobaciones automáticas de accesibilidad, la lista de hallazgos con severidad **antes** de corregir, y las correcciones que el coordinador elija tras el recorrido con VoiceOver |
 | `E9D-CIERRE` | `Propuesta` | `Claude` | por acordar | Repaso final de documentos, capturas y artículo |
 
 **El orden es obligatorio y está argumentado en el diseño v2**: la fixture primero y el motor
@@ -85,6 +85,18 @@ Notas para los briefs de la Etapa 8:
   seis checks anteriores dejaron pasar en briefs con la misma forma — el mismo que rompió `E7A` a
   mitad de ejecución. Hasta acá el check corría con lo que la sesión tuviera puesto, y a veces eso
   significaba que el mismo modelo escribía el plan y lo validaba.
+- **Sub-reservar el camino de consulta, tres veces seguidas.** `E7A`, `E9A` y `E9C1`: siempre el
+  mismo patrón, reservar el lugar donde el dato **se define** y olvidar los lugares donde **se
+  consulta**. En `E9C1` faltaban las tres costuras del almacén y `Application/Alerts/**`, y la peor
+  era la lectura del detalle: sin filtrar, la fila nueva se escribe y la consola sigue mostrando la
+  vieja, con todo lo demás en verde. Regla: cuando una tarea agrega un campo a la identidad de una
+  entidad, la reserva incluye la configuración, la escritura y **todas** las lecturas, y las
+  lecturas se buscan con `grep` del nombre de un campo vecino, no de memoria.
+- **Un script de edición que escribe al final descarta todo si falla a mitad, y en silencio.** Pasó
+  entre la primera y la segunda vuelta del `brief-check` de `E9C1`: una aserción falló, el archivo
+  nunca se escribió, y yo reporté como aplicadas correcciones que no existían. Regla: verificar que
+  todos los anclajes existen **antes** de mutar nada, y confirmar el resultado leyendo el archivo
+  después, en vez de confiar en que el script dijo «ok».
 - **Congelar una captura antes de mirarla es lo que deja ver lo que está mal en ella.** El
   extractor de `E9B` ponía `scope = merchant` en `new_buyer_high_value` **siempre**, y esa regla
   dispara justamente cuando el comprador no tiene historia: era una constante disfrazada de
