@@ -1,13 +1,24 @@
 import { render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { CONSOLE_LANGUAGES } from "@/lib/api/contract";
+import { isKnownFailureCode } from "@/lib/api/messages";
+import { formatting } from "@/lib/format";
+import { messagesFor } from "@/lib/i18n/dictionary";
 import { jsonResponse, wireAlertDetail, wireCapabilities, wireExplanation } from "@/test/fixtures";
 import { renderableServerTree } from "@/test/server-tree";
 import AlertDetailPage from "./page";
 
 const ALERT_ID = "2f2b7f3e-0000-4000-8000-000000000002";
 
-/** Every value of `ExplanationFailureCode`, read off `ExplanationWireNames.cs`. */
+/**
+ * Every value of `ExplanationFailureCode`, read off `ExplanationWireNames.cs`.
+ *
+ * The list is here rather than derived from the contract because the contract does not carry it:
+ * `failureCode` is declared `null | string`, so the OpenAPI capture would not notice a tenth value
+ * appearing. This is the oracle, and it has to be updated by hand when the enumeration grows —
+ * which is what `LEGACY_SIGNAL_FORMAT` did in `E9C1`.
+ */
 const FAILURE_CODES = [
   "PROVIDER_UNAVAILABLE",
   "PROVIDER_TIMEOUT",
@@ -18,6 +29,7 @@ const FAILURE_CODES = [
   "TOO_LONG",
   "CANCELLED",
   "ATTEMPT_LIMIT_REACHED",
+  "LEGACY_SIGNAL_FORMAT",
 ] as const;
 
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -215,6 +227,47 @@ describe("bloque de explicación", () => {
       expect(block().textContent, code).not.toContain(code);
       unmount();
     }
+  });
+
+  /**
+   * El catálogo de rótulos de fallo es exactamente la enumeración del dominio, en los dos idiomas.
+   *
+   * Va acá y no en `messages.ts`: un `failureCode` es el valor de un campo dentro de un `200` y no
+   * el rechazo de una petición, así que nunca fue del catálogo que la decisión 57 gobierna. Este
+   * test es lo que impide que la distinción se vuelva una intención — un código que entrara a
+   * `CONSOLE_CODES` rompería la aserción de exactitud de aquel, y uno que faltara acá se mostraría
+   * crudo.
+   */
+  it("cada código de fallo tiene su rótulo en los dos idiomas, y ninguno de más", () => {
+    for (const language of CONSOLE_LANGUAGES) {
+      const labels = messagesFor(language).explanationFailure;
+
+      expect(Object.keys(labels).sort(), language).toEqual([...FAILURE_CODES].sort());
+
+      for (const code of FAILURE_CODES) {
+        expect(formatting(language).explanationFailureLabel(code), `${language} ${code}`)
+          .not.toBe(code);
+      }
+    }
+
+    // Y ninguno de ellos es un código de problema: son cosas distintas y se rotulan aparte.
+    for (const code of FAILURE_CODES) {
+      expect(isKnownFailureCode(code), code).toBe(false);
+    }
+  });
+
+  /**
+   * El décimo, dicho por su nombre. Es el único que describe a este sistema y no a un proveedor, y
+   * existe porque el más cercano de los nueve era mentira: `PROVIDER_UNAVAILABLE` manda a depurar
+   * un proveedor al que no se le pidió nada.
+   */
+  it("el código de una evaluación sin campos no culpa al proveedor", async () => {
+    await renderDetail({
+      explanation: failedExplanation({ failureCode: "LEGACY_SIGNAL_FORMAT" }),
+    });
+
+    expect(block()).toHaveTextContent(/formato anterior del motor/i);
+    expect(block()).not.toHaveTextContent(/el proveedor falló antes de responder/i);
   });
 
   /**

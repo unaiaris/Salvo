@@ -7,6 +7,7 @@ import {
   wireScoringRunSummary,
   wireSeedResult,
   mockConsoleFetch,
+  wireCapabilities,
 } from "@/test/fixtures";
 import { INITIAL_ACTION_STATE } from "./action-state";
 import {
@@ -57,6 +58,37 @@ describe("importación de un archivo", () => {
     expect(state.recordErrors[1]).toBe(
       "Registro 11 · La referencia ya existe con otros datos: "
       + "The merchant reference already exists with different data.",
+    );
+  });
+
+  /**
+   * El ítem «códigos de error de fila traducidos» del checklist de la Etapa 9.
+   *
+   * Hasta acá el código se rotulaba en castellano y el `message` de la API caía crudo al inglés. El
+   * rótulo ahora sale del diccionario del despliegue; el `message` sigue en inglés **a propósito**
+   * y eso es lo que se afirma. Es la única parte de la frase que la consola no escribe: nombra el
+   * valor que se rechazó, y es el detalle técnico y no la explicación.
+   */
+  it("traduce el código de cada registro rechazado al idioma del despliegue", async () => {
+    // Sin `mockConsoleFetch`, que contesta la ruta de capacidades por su cuenta y en castellano:
+    // acá lo que se prueba es justamente qué responde esa ruta.
+    fetchMock.mockImplementation((url: URL) =>
+      Promise.resolve(
+        url.pathname === "/api/system/capabilities"
+          ? jsonResponse(wireCapabilities({ language: "pt" }))
+          : jsonResponse(wireImportResult()),
+      ),
+    );
+
+    const state = await importOrderFile(INITIAL_ACTION_STATE, formWith(CSV_FILE));
+
+    expect(state.recordErrors[0]).toContain("Registro 4, linha 5");
+    expect(state.recordErrors[0]).toContain("O valor está fora da faixa admitida");
+    expect(state.recordErrors[0]).not.toContain("El valor está fuera del rango admitido");
+
+    // Y el mensaje de la API queda como vino: es lo que dice qué valor se rechazó.
+    expect(state.recordErrors[1]).toContain(
+      "The merchant reference already exists with different data.",
     );
   });
 
