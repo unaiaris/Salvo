@@ -71,7 +71,7 @@ flowchart TD
     A["Importar CSV o JSON<br/>validación por registro, escritura atómica por archivo"] --> B
     B["Ejecutar la corrida de scoring<br/>acción explícita: importar no procesa"] --> C
     C["Baseline por pedido<br/>solo historia estrictamente anterior"] --> D
-    D["Seis reglas puras emiten señales con su detalle<br/>score = suma de pesos, tope 100"] --> E
+    D["Seis reglas puras emiten señales con sus campos medidos<br/>score = suma de pesos, tope 100"] --> E
     E["Evaluación local append-only<br/>identidad = fingerprint del contenido"] --> F
     F["La corrida referencia una evaluación por pedido<br/>eso, y solo eso, define qué está vigente"] --> G
     G{"¿score mayor o igual a 60?"}
@@ -282,11 +282,17 @@ Tres cosas que este dibujo dice y conviene leer despacio:
   adaptador futuro pasaría porque alguien se acordó. Acá no hay ningún camino a la base que la
   esquive: `backend/src/Salvo.Application/Explanations/RequestExplanationHandler.cs` la llama, y un
   test de mutación quita la llamada y observa cómo un rechazo se convierte en un texto guardado.
+- **Los hechos se construyen en el dominio, no leyendo prosa.** Cada regla guarda su medición como
+  campos con nombre, y `backend/src/Salvo.Domain/Explanations/ExplanationFacts.cs` arma con ellos,
+  con el pedido y con la configuración el conjunto de cifras que una frase correcta puede contener.
+  Incluye las que no están en ningún campo porque son otra manera de escribir la misma verdad: el
+  monto en unidades y no en centavos, con separador de miles, el porcentaje redondeado, el instante
+  en hora del comercio. Quitar cualquiera de esas entradas devuelve un rechazo de texto correcto.
 - **El tokenizador es uno solo y está declarado**,
-  `backend/src/Salvo.Domain/Explanations/NumberTokenizer.cs`. Corre sobre los dos lados: sobre el
-  `detail` en inglés que escribe el motor, para construir los hechos, y sobre el resumen en español
-  que devuelve el proveedor, para leer qué afirmó. Dos tokenizadores discreparían, y la discrepancia
-  aparecería como rechazo de texto correcto.
+  `backend/src/Salvo.Domain/Explanations/NumberTokenizer.cs`. Corre sobre el resumen que devuelve el
+  proveedor, para leer qué afirmó, y fija además con cuántos decimales puede escribirse un hecho sin
+  dejar de respaldarlo. Que la tolerancia de redondeo sea una sola es el punto: dos criterios
+  discreparían, y la discrepancia aparecería como rechazo de texto correcto.
 - **Al input de un modelo no entra ningún texto que no escriba el motor.** Quedan fuera los campos
   importados, los identificadores y las notas escritas por personas. Un identificador normalizado a
   mayúsculas no es seguro por tener formato estricto: admite una instrucción legible en su alfabeto.
@@ -321,9 +327,10 @@ ESLint, Vitest y el build de producción del frontend.
 `scripts/smoke-ui.sh` es lo único que verifica el recorrido de verdad, y por eso no está dentro de la
 compuerta: levanta la API y `next start` en puertos propios, sobre bases temporales, y le pide las
 rutas a un servidor HTTP real. Cubre cinco rutas —`/`, `/import`, `/alerts`, el detalle de una alerta
-y `/dashboard`— en seis escenarios: con datos, con la evaluación externa pedida y entregada, con la
-explicación escrita, con una explicación de una plantilla anterior, con la base vacía y con la API
-apagada. No toca la base de desarrollo y no borra nada.
+y `/dashboard`— en ocho escenarios: con datos, con la evaluación externa pedida y entregada, con la
+explicación escrita, con una explicación de una plantilla anterior, con el despliegue en portugués,
+con un idioma que este build no habla y por eso no arranca, con la base vacía y con la API apagada.
+No toca la base de desarrollo y no borra nada.
 
 ```bash
 ./scripts/check-docs.sh
