@@ -14,6 +14,9 @@
   pasa a ser la base y vuelve falso el campo que acaba de escribir. Es la lección de `E8B`.
 - Modelo y esfuerzo acordados: **Opus 5 · `high`**.
 - Dependencias: `E9A-FIXTURE` integrada (merge `41343c1`). `E9C` y `E9D` dependen de esta.
+- Integración: **por merge, nunca por rebase**. `main` avanzó a `16d80aa` después de crear la rama;
+  rebasar sobre esa punta movería el `merge-base` y volvería falso el commit base declarado arriba.
+  Es la lección de `E8B`, y esta rama es el caso donde se aplica.
 
 ## Resultado esperado
 
@@ -83,7 +86,7 @@ de las seis reglas desde la fila almacenada**, sin nada más que la fila. Una re
 y el motor **quieto** en `e3-v1`, la base tiene evaluaciones reales de las seis reglas, y eso lo
 vuelve el único oráculo capaz de certificar el cambio de motor sin frases inventadas en un test.
 
-**El extractor se extiende antes de capturar, y esto va primero de todo.** Los seis patrones ya
+**El extractor se extiende antes de capturar, y esto va primero de todo.** Tres de los seis patrones ya
 capturan grupos que `SignalFacts` descarta: `amount`, `currency` y `median` en `amount_anomaly` y en
 `new_buyer_high_value`, y `zone` en `unusual_hour`. Tal como está, el dorado **no podría certificar**
 `amountCents`, `currencyCode`, `medianCents` ni `timeZoneId` —cuatro columnas de la tabla del punto
@@ -170,9 +173,21 @@ que `4.0` se escriba `4.0` y `90.00` se escriba `90.00`. Guardar la precisión c
 información» y a cambio dejaría la identidad de cada evaluación colgando de la escala que arrastre
 la división que produjo el número. Esa escala fija mueve el fingerprint, que se mueve igual.
 
-**Antes de escribir una línea del motor, la tarea verifica los tres formatos con un programa
-mínimo** y pega la salida en la entrega. Estas tres afirmaciones ya fueron falsas una vez en este
-mismo brief; no se heredan de memoria.
+**Antes de escribir una línea del motor, la tarea verifica los formatos con un programa mínimo** y
+pega la salida en la entrega: `0.0`, `0.##`, `decimal.Round` sin modo, y `Math.Round` con
+`AwayFromZero` seguido de `F1` y `F2`. Estas afirmaciones ya fueron falsas una vez en este mismo
+brief; no se heredan de memoria.
+
+**`elapsedMinutes` es el único campo que el corpus no puede certificar, y por eso lleva prueba
+aparte.** Nace como `double` —el motor formatea `elapsed.TotalMinutes`, no un `decimal`—, así que
+`e3-v2` tiene que convertir antes de redondear, y esa conversión no la cubre el dorado: **los 300
+instantes de `demo-orders.v2.json` son minutos enteros**, sin segundos, de modo que
+`elapsed.TotalMinutes` siempre da un entero y `{elapsed:0.##}` nunca escribió un decimal sobre este
+corpus. `ratio` y `sharePercent` sí tienen decimales reales en el corpus y quedan cubiertos por el
+diferencial; éste no. Entonces el campo lleva **su propia prueba unitaria sobre `TimeSpan`**, fuera
+del corpus, con al menos un valor de fracción periódica —100 segundos son `1.6666...` minutos— y un
+empate en el tercer decimal, comparando el camino nuevo contra lo que `{0.##}` escribe sobre el
+mismo `double`.
 
 **El orden de los campos en la cadena canónica se declara y no se cambia nunca**: `rule`, `weight`,
 después los campos de la tabla en el orden en que están escritos ahí, omitiendo los nulos, y
@@ -389,8 +404,10 @@ hay que renombrar uno, la tarea para y consulta.
       **anterior** al de la captura, con su test.
 - [ ] El dorado `signal-facts.v2.json` existe en un commit **anterior** al que toca el motor, cubre
       las **seis** reglas y **todas** las columnas de la tabla del punto 2.
-- [ ] La salida del programa que verifica los tres formatos está en la entrega, y coincide con lo
-      que el punto 2 afirma.
+- [ ] La salida del programa que verifica los formatos está en la entrega, y coincide con lo que el
+      punto 2 afirma.
+- [ ] `elapsedMinutes` tiene prueba unitaria sobre `TimeSpan` fuera del corpus, con una fracción
+      periódica y un empate.
 - [ ] Un test compone la frase de las seis reglas desde la fila almacenada, sin nada más que la
       fila.
 - [ ] El test permanente afirma la igualdad campo a campo sobre las 300 evaluaciones, y el score y
@@ -417,7 +434,8 @@ hay que renombrar uno, la tarea para y consulta.
 | --- | --- |
 | `/brief-check Coordination/Tasks/E9B-SENALES-TIPADAS.md` | Brief válido |
 | `git log --oneline` del extractor, del dorado y del motor | En ese orden |
-| Programa mínimo sobre `0.0`, `0.##`, `decimal.Round` y `F1` | Coincide con el punto 2 |
+| Programa mínimo sobre `0.0`, `0.##`, `decimal.Round`, `F1` y `F2` | Coincide con el punto 2 |
+| `elapsedMinutes` sobre `TimeSpan`, fuera del corpus | Igual a lo que `{0.##}` escribe |
 | Frase de las seis reglas compuesta desde la fila | Legible, sin intérprete |
 | Diferencial campo a campo, 300 evaluaciones | Cero desvíos |
 | `ExplanationGoldenTests` | Textos idénticos |
@@ -460,14 +478,16 @@ deshace:
 - hace falta renombrar un test que el README nombra;
 - el diferencial del dorado difiere en más de un campo y la explicación no es evidente;
 - aparece un motivo para subir a `e7-v3` distinto de escribir la mediana;
-- los tres formatos no se comportan como dice el punto 2;
+- los formatos no se comportan como dice el punto 2;
+- la conversión `double → decimal` de `elapsedMinutes` difiere de lo que la prosa escribía;
 - algo más de `AGENTS.md` o del Blueprint contradice la tarea.
 
 ## Entrega requerida
 
 - Resumen del resultado y archivos modificados.
 - El diferencial del dorado: cuántas evaluaciones, cuántos campos, cuántos desvíos.
-- La salida del programa que verifica los tres formatos.
+- La salida del programa que verifica los formatos, y el resultado de la prueba de
+  `elapsedMinutes`.
 - La lista de fingerprints dorados que cambiaron, con el valor viejo y el nuevo.
 - Las cinco falsaciones, con el error exacto de cada una.
 - Comandos y resultados exactos.
