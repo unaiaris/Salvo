@@ -50,7 +50,14 @@ public sealed partial record SignalFacts
     /// <summary>How many times the amount exceeds the median it was compared against.</summary>
     public decimal? Ratio { get; init; }
 
-    /// <summary>Whose median that was.</summary>
+    /// <summary>
+    /// Whose median that was, for the rule that can compare against either.
+    /// </summary>
+    /// <remarks>
+    /// Only <c>amount_anomaly</c> carries it. <c>new_buyer_high_value</c> fires precisely because
+    /// the buyer has no history at all, so its median is the merchant's by definition and a field
+    /// saying so would be a constant on the wire and in the fingerprint of every such signal.
+    /// </remarks>
     public AmountMedianScope? Scope { get; init; }
 
     /// <summary>The median the amount was compared against, in cents.</summary>
@@ -210,10 +217,9 @@ public sealed partial record SignalFacts
         {
             AmountCents = Amount(match, "amount"),
             CurrencyCode = match.Groups["currency"].Value,
-            Ratio = Number(match, "ratio"),
-            Scope = AmountMedianScope.Merchant,
             MedianCents = Amount(match, "median"),
             HistoryCount = Count(match, "history"),
+            Ratio = Number(match, "ratio"),
         };
     }
 
