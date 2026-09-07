@@ -16,8 +16,8 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 
 | Work ID | Estado | Propietario | Modelo y esfuerzo | Paths reservados |
 | --- | --- | --- | --- | --- |
-| `E9A-FIXTURE` | `Asignada` | `Claude` | Opus 5 · `high` | `backend/src/Salvo.Infrastructure/Seed/**`, `Salvo.Application/Orders/Seed/**`, el endpoint del seed, el panel del dashboard en backend y frontend, `frontend/src/app/alerts/[id]/divergence.ts`, `messages.ts`, `backend/tests/**` y las fixtures del frontend. **La reserva completa vive en el brief; esta fila la resume.** |
-| `E9B-SENALES-TIPADAS` | `Propuesta` | `Claude` | por acordar | `e3-v2`, contrato recapturado, el extractor como oráculo |
+| `E9A-FIXTURE` | `Verificada` (merge `41343c1`) | `Claude` | Opus 5 · `high` | `backend/src/Salvo.Infrastructure/Seed/**`, `Salvo.Application/Orders/Seed/**`, el endpoint del seed, el panel del dashboard en backend y frontend, `frontend/src/app/alerts/[id]/divergence.ts`, `messages.ts`, `backend/tests/**` y las fixtures del frontend. **La reserva completa vive en el brief; esta fila la resume.** |
+| `E9B-SENALES-TIPADAS` | `Asignada` | `Claude` | Opus 5 · `high` | `e3-v2`, contrato recapturado, el extractor como oráculo |
 | `E9C-PORTUGUES-ACCESIBILIDAD` | `Propuesta` | `Claude` | por acordar | `SALVO_LANGUAGE`, dos diccionarios, migración de idioma, recorrido con lector de pantalla |
 | `E9D-CIERRE` | `Propuesta` | `Claude` | por acordar | Repaso final de documentos, capturas y artículo |
 
@@ -78,6 +78,11 @@ Notas para los briefs de la Etapa 8:
 - En `stateDiagram-v2`, **un bucle sobre un estado no puede llevar rótulo** si ese estado tiene otras
   aristas salientes: el rótulo cae en la misma columna que la contigua y las dos cajas se pisan.
   Verificado en tres disposiciones.
+- **Un modelo distinto para validar que para ejecutar da una verificación de verdad independiente.**
+  El `brief-check` de `E9A` corrió con Fable · `xhigh` y encontró un hueco de reserva de paths que
+  seis checks anteriores dejaron pasar en briefs con la misma forma — el mismo que rompió `E7A` a
+  mitad de ejecución. Hasta acá el check corría con lo que la sesión tuviera puesto, y a veces eso
+  significaba que el mismo modelo escribía el plan y lo validaba.
 - **El commit que declara la base de una tarea va en la rama que describe, nunca en `main`.** Si va
   en `main` y después se rebasa, ese mismo commit pasa a ser la base y el campo vuelve a ser falso.
   Agregar commits a `main` no mueve el `merge-base`; rebasar sí. Le pasó a `E8B`.

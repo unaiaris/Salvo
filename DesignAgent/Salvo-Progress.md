@@ -261,17 +261,18 @@ tercera. (Sección histórica de la Etapa 4: las Etapas 5, 6 y 7 se completaron 
 
 ### Etapa 9 — Corpus, idiomas y cierre
 
-- [ ] Fixture enriquecida con **siete arquetipos**: tres falsos negativos invisibles cada uno por
-      una razón distinta, y cuatro falsos positivos que hacen decidir a las reglas que hoy no
-      deciden. La celda de la matriz de cada uno se escribe en el brief antes de correr el motor.
-- [ ] El seed versionado, con un ensayo que avise **antes del clic** que la base tiene el corpus
-      anterior.
-- [ ] Panel de denegados por el proveedor sin alerta local: sin él, un falso negativo no tiene
-      pantalla.
-- [ ] La matriz de confusión publicada con sus conteos y su `n`, y la discrepancia del barrido
-      explicada si aparece.
-- [ ] Las seis reglas y las tres bandas alcanzables desde el corpus.
-- [ ] Comercios en mercados plausibles.
+- [x] Fixture enriquecida con siete arquetipos. **Las 42 celdas predichas se cumplieron: cero
+      desvíos**, y la predicción está commiteada antes que la fixture.
+- [x] El seed versionado, con `GET /api/demo-data/seed-preview` que avisa antes del clic.
+- [x] Panel de denegados por el proveedor sin alerta local: 43 pedidos, entre ellos los tres
+      arquetipos invisibles.
+- [x] **F1 sobre el holdout: 0,632** (matriz 6/3/4/87), y 0,688 sobre calibración. El barrido sigue
+      eligiendo 60, así que no hay discrepancia que explicar.
+- [x] Las seis reglas disparan y las tres bandas existen: la distribución de scores ahora tiene 70 y
+      80, que el corpus v1 nunca alcanzaba.
+- [x] Comercios en el corredor UTC−3. Los `merchantId` son los del v1 a propósito: renombrar uno
+      anula el guardián de conflicto. `MER_US_MARKET` es hoy el comercio argentino, y `E9D` lo
+      explica.
 - [ ] Señales estructuradas (`e3-v2`), con `detail` conservado como campo heredado.
 - [ ] Portugués: `SALVO_LANGUAGE` del despliegue, y el idioma en la identidad de la explicación.
 - [ ] Pasada de accesibilidad con lector de pantalla real.
@@ -386,6 +387,8 @@ desempate de la cola por identificador aleatorio, y pintar `explanationId` en el
 | 2026-09-07 | Preparación E9 | Diseño v1 de la Etapa 9 | Once decisiones y seis preguntas abiertas | Superado por la v2 |
 | 2026-09-07 | Preparación E9 | Revisión adversarial con Fable 5.1 · `xhigh` | 11 hallazgos, 5 altos, más una primera parte sobre criterio de dominio. Corrigió el arquetipo central —una cuenta tomada que se envía a la víctima no monetiza nada— e invirtió el orden de la etapa: el corpus actual dispara tres de las seis reglas, así que el extractor de `SignalFacts` es el único oráculo capaz de certificar los campos tipados | Completada |
 | 2026-09-07 | Preparación E9 | Diseño v2 y estado canónico | Decisiones 62–64; §4.1, §7, §9 y §11 del Blueprint; el `13,8 %` corregido a `16,7 %` en cuatro documentos | Aprobada |
+| 2026-09-07 | 9 | `E9A-FIXTURE` | Nueve commits. La tabla de arquetipos predicha se commiteó **antes** que la fixture y las 42 celdas cayeron sin un solo desvío; de 2.400 comprobaciones campo a campo difirió una, y era la transcripción en Python la equivocada, no el motor. Dos hallazgos de construcción: un patrón de reparto con periodicidades alineadas clavaba a cada comercio en las mismas cinco horas, y la primera versión concentraba casi todos los arquetipos en un solo comprador cuyos propios montos altos le subían la mediana | Lista para integrar |
+| 2026-09-07 | 9 | Integración de `E9A-FIXTURE` | Merge `41343c1` + compuerta y smoke verdes. F1 holdout 0,632 y calibración 0,688, verificados por el coordinador contra las matrices que los tests fijan | Completada |
 
 ## Protocolo de actualización
 
