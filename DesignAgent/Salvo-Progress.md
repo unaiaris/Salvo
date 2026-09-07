@@ -12,12 +12,12 @@
 | Estado del proyecto | Etapa 8 completada y verificada; Etapa 9 en ejecución |
 | Etapa completada | Etapa 8 — El argumento del proyecto (`E8A` y `E8B` integradas) |
 | Próxima etapa | Etapa 9 — Corpus, idiomas y cierre. Es la última |
-| Estado de la próxima etapa | En ejecución. `E9A-FIXTURE` verificada (merge `41343c1`); `E9B-SENALES-TIPADAS` despachada |
+| Estado de la próxima etapa | En ejecución. `E9A` y `E9B` verificadas (merges `41343c1` y `4f7daf9`); `E9C-PORTUGUES-ACCESIBILIDAD` despachada |
 | Bloqueo actual | Ninguno |
 | Dependencias externas | Ninguna para el núcleo local |
 | Anthropic | Previsto para después del núcleo; decisión aparte, preparada por D11 |
 | Koin sandbox | Post-MVP; sujeto a onboarding y credenciales |
-| Coordinación Codex–Claude | `E9B-SENALES-TIPADAS` asignada a Opus 5 · `high`; `E9C` y `E9D` propuestas |
+| Coordinación Codex–Claude | `E9C-PORTUGUES-ACCESIBILIDAD` asignada a Opus 5 · `high`; `E9D` propuesta |
 
 **Este bloque se actualiza en cada cierre de etapa y en cada alta de tarea.** Quedó desfasado
 durante toda la Etapa 7 porque los cierres actualizaron el registro de actividad y los checklists
@@ -48,7 +48,7 @@ Solo puede existir una etapa `En curso` a la vez.
 | 6 | Proveedor antifraude mock | Completada | Callbacks duplicados sin efectos repetidos y pendientes que finalizan | Merges `bca2c46` y `a412693`; 196 tests .NET y 172 de frontend; compuerta y smoke verdes (29 comprobaciones) |
 | 7 | Explicabilidad | Completada | Funciona sin red; el texto verificado sobre la salida no cambia ninguna superficie de decisión | Merges `82f2487`, `ac11015`, `0d117dd` y `b4aac6b`; compuerta y smoke verdes sobre `main` |
 | 8 | El argumento del proyecto | Completada | README, diagramas, capturas y guion de demo; cada afirmación contrastada contra el código | Merges `1243d54` y `6ae7750`; `check-docs.sh` incorporado a la compuerta; seis capturas revisadas una por una |
-| 9 | Corpus, idiomas y cierre | En ejecución | Seis reglas y tres bandas alcanzables; F1 deja de valer 1,00 | `E9A-FIXTURE` integrada (merge `41343c1`): F1 holdout 0,632 y calibración 0,688, las seis reglas disparando y las tres bandas presentes. `E9B` despachada |
+| 9 | Corpus, idiomas y cierre | En ejecución | Seis reglas y tres bandas alcanzables; F1 deja de valer 1,00 | Merges `41343c1` y `4f7daf9`. F1 holdout 0,632 y calibración 0,688; las seis reglas disparan y las tres bandas existen; el motor escribe campos y el extractor de prosa ya no existe. `E9C` despachada |
 | Post-MVP | Koin sandbox, auth, observabilidad, deploy | Pendiente | Aprobación independiente por capacidad | Pendiente |
 
 ## Etapa 1 — Resultado verificado
@@ -273,7 +273,11 @@ tercera. (Sección histórica de la Etapa 4: las Etapas 5, 6 y 7 se completaron 
 - [x] Comercios en el corredor UTC−3. Los `merchantId` son los del v1 a propósito: renombrar uno
       anula el guardián de conflicto. `MER_US_MARKET` es hoy el comercio argentino, y `E9D` lo
       explica.
-- [ ] Señales estructuradas (`e3-v2`), con `detail` conservado como campo heredado.
+- [x] Señales estructuradas (`e3-v2`), con `detail` conservado como campo heredado. **El
+      diferencial contra lo que el extractor leía de la prosa no tuvo un solo desvío**: 56
+      evaluaciones, 87 señales, las seis reglas, y la captura commiteada antes que el motor. Los
+      textos dorados salieron idénticos sin tocar `ExplanationGoldenTests`, que es la prueba de que
+      fue un cambio de representación y nada más.
 - [ ] Portugués: `SALVO_LANGUAGE` del despliegue, y el idioma en la identidad de la explicación.
 - [ ] Pasada de accesibilidad con lector de pantalla real.
 - [ ] Códigos de error de fila traducidos (`describeRecordError`).
@@ -388,6 +392,8 @@ desempate de la cola por identificador aleatorio, y pintar `explanationId` en el
 | 2026-09-07 | Preparación E9 | Revisión adversarial con Fable 5.1 · `xhigh` | 11 hallazgos, 5 altos, más una primera parte sobre criterio de dominio. Corrigió el arquetipo central —una cuenta tomada que se envía a la víctima no monetiza nada— e invirtió el orden de la etapa: el corpus actual dispara tres de las seis reglas, así que el extractor de `SignalFacts` es el único oráculo capaz de certificar los campos tipados | Completada |
 | 2026-09-07 | Preparación E9 | Diseño v2 y estado canónico | Decisiones 62–64; §4.1, §7, §9 y §11 del Blueprint; el `13,8 %` corregido a `16,7 %` en cuatro documentos | Aprobada |
 | 2026-09-07 | 9 | `E9A-FIXTURE` | Nueve commits. La tabla de arquetipos predicha se commiteó **antes** que la fixture y las 42 celdas cayeron sin un solo desvío; de 2.400 comprobaciones campo a campo difirió una, y era la transcripción en Python la equivocada, no el motor. Dos hallazgos de construcción: un patrón de reparto con periodicidades alineadas clavaba a cada comercio en las mismas cinco horas, y la primera versión concentraba casi todos los arquetipos en un solo comprador cuyos propios montos altos le subían la mediana | Lista para integrar |
+| 2026-09-07 | 9 | `E9B-SENALES-TIPADAS` | Once commits. El `brief-check` con Fable · `xhigh` frenó el despacho dos veces: la primera por una contradicción con `AGENTS.md` que nadie había listado y por dos afirmaciones sobre precisión que el runtime desmiente, la segunda por dos observaciones menores. La medición de la fixture mostró que sus 300 instantes son minutos enteros, así que el dorado no podía certificar la fracción de `elapsedMinutes` y ese campo se probó aparte. En ejecución apareció que el extractor inventaba un `scope` constante en `new_buyer_high_value` | Lista para integrar |
+| 2026-09-07 | 9 | Integración de `E9B-SENALES-TIPADAS` | Merge `4f7daf9` + compuerta y smoke verdes (52 comprobaciones). Verificado por el coordinador contra el árbol: cero referencias a `Parse`, `ExplanationGoldenTests` y `divergence.ts` sin un byte de diferencia, el redondeo en el constructor con `AwayFromZero` y la escala escrita con `F{n}`, y el dorado escribiendo a `Path.GetTempPath()` en vez de sobre sí mismo | Completada |
 | 2026-09-07 | 9 | Integración de `E9A-FIXTURE` | Merge `41343c1` + compuerta y smoke verdes. F1 holdout 0,632 y calibración 0,688, verificados por el coordinador contra las matrices que los tests fijan | Completada |
 
 ## Protocolo de actualización

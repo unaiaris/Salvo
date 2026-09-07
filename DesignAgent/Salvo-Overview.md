@@ -73,8 +73,7 @@ externas.
 
 ## Próximo paso
 
-Ejecutar `E9B-SENALES-TIPADAS`: el motor pasa a escribir los campos de cada señal en vez de una
-frase inglesa, y el extractor de expresiones regulares que hoy lee esa prosa se borra después de
-certificar a su reemplazo sobre las evaluaciones del corpus v2. Después quedan `E9C`, el portugués y
-la accesibilidad, y `E9D`, el repaso final. Ninguna integración autoriza automáticamente la tarea
-siguiente.
+Ejecutar `E9C-PORTUGUES-ACCESIBILIDAD`: el idioma pasa a ser del despliegue y entra en la identidad
+de la explicación, la consola entera se traduce, y un recorrido con lector de pantalla produce una
+lista de hallazgos con severidad antes de corregir nada. Después queda `E9D`, el repaso final.
+Ninguna integración autoriza automáticamente la tarea siguiente.

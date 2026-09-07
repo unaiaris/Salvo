@@ -1,7 +1,7 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: Etapa 9 en ejecución, la última. `E9A-FIXTURE` verificada (merge `41343c1`);
-> `E9B-SENALES-TIPADAS` despachada
+> Estado: Etapa 9 en ejecución, la última. `E9A-FIXTURE` y `E9B-SENALES-TIPADAS` verificadas
+> (merges `41343c1` y `4f7daf9`); `E9C-PORTUGUES-ACCESIBILIDAD` despachada
 > Última actualización: 2026-09-07
 > Responsable: coordinador de la etapa
 
@@ -18,8 +18,8 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 | Work ID | Estado | Propietario | Modelo y esfuerzo | Paths reservados |
 | --- | --- | --- | --- | --- |
 | `E9A-FIXTURE` | `Verificada` (merge `41343c1`) | `Claude` | Opus 5 · `high` | `backend/src/Salvo.Infrastructure/Seed/**`, `Salvo.Application/Orders/Seed/**`, el endpoint del seed, el panel del dashboard en backend y frontend, `frontend/src/app/alerts/[id]/divergence.ts`, `messages.ts`, `backend/tests/**` y las fixtures del frontend. **La reserva completa vive en el brief; esta fila la resume.** |
-| `E9B-SENALES-TIPADAS` | `Asignada` | `Claude` | Opus 5 · `high` | `Salvo.Domain/Risk/**` y `Explanations/**`, `Application/Explanations/**`, `AlertViews.cs` y `AlertProjection.cs`, `Salvo.Infrastructure/Explanations/**`, `backend/tests/**`, el borde del frontend —`guards.ts`, `contract.ts`, `fixtures.ts`, `boundary.test.ts`, `format.ts`— y la recaptura del contrato. **La reserva completa vive en el brief; esta fila la resume.** |
-| `E9C-PORTUGUES-ACCESIBILIDAD` | `Propuesta` | `Claude` | por acordar | `SALVO_LANGUAGE`, dos diccionarios, migración de idioma, recorrido con lector de pantalla |
+| `E9B-SENALES-TIPADAS` | `Verificada` (merge `4f7daf9`) | `Claude` | Opus 5 · `high` | `Salvo.Domain/Risk/**` y `Explanations/**`, `Application/Explanations/**`, `AlertViews.cs` y `AlertProjection.cs`, `Salvo.Infrastructure/Explanations/**`, `backend/tests/**`, el borde del frontend —`guards.ts`, `contract.ts`, `fixtures.ts`, `boundary.test.ts`, `format.ts`— y la recaptura del contrato. **La reserva completa vive en el brief; esta fila la resume.** |
+| `E9C-PORTUGUES-ACCESIBILIDAD` | `Asignada` | `Claude` | Opus 5 · `high` | `SALVO_LANGUAGE`, dos diccionarios, migración de idioma, recorrido con lector de pantalla, **y el décimo `ExplanationFailureCode`** para la evaluación `e3-v1` sin campos, que hoy miente con `PROVIDER_UNAVAILABLE` y entra en la misma migración. **La reserva completa vive en el brief; esta fila la resume.** |
 | `E9D-CIERRE` | `Propuesta` | `Claude` | por acordar | Repaso final de documentos, capturas y artículo |
 
 **El orden es obligatorio y está argumentado en el diseño v2**: la fixture primero y el motor
@@ -84,6 +84,15 @@ Notas para los briefs de la Etapa 8:
   seis checks anteriores dejaron pasar en briefs con la misma forma — el mismo que rompió `E7A` a
   mitad de ejecución. Hasta acá el check corría con lo que la sesión tuviera puesto, y a veces eso
   significaba que el mismo modelo escribía el plan y lo validaba.
+- **Congelar una captura antes de mirarla es lo que deja ver lo que está mal en ella.** El
+  extractor de `E9B` ponía `scope = merchant` en `new_buyer_high_value` **siempre**, y esa regla
+  dispara justamente cuando el comprador no tiene historia: era una constante disfrazada de
+  medición, y estaba por entrar al fingerprint de cada señal de esa regla para siempre. Apareció al
+  leer la primera captura antes de congelarla, no al escribir la tabla del brief.
+- **Un criterio de aceptación imposible de cumplir es tan malo como uno que se cumple solo.** La
+  tabla de verificación de `E9B` pedía cero resultados de `GeneratedRegex` en todo
+  `Salvo.Domain/Explanations/`, donde vive también la de `NumberTokenizer`, que no tiene nada que
+  ver con cómo se guarda una señal. Un criterio se escribe contra el árbol, no contra la idea.
 - **Cerrar una tarea toca el checklist y la tabla de actividad, y se olvida de las cabeceras.**
   Tres veces seguidas —`E8A`, `E8B` y `E9A`— el estado canónico quedó a medias del mismo modo: el
   detalle se actualiza y los tres bloques que resumen dónde está el proyecto no. Son cuatro lugares
