@@ -23,12 +23,13 @@ public sealed class AlertCreationTests
         var dbContext = scope.ServiceProvider.GetRequiredService<SalvoDbContext>();
         var alerts = await dbContext.Alerts.AsNoTracking().ToListAsync();
 
-        // The eighteen flagged orders of the demo corpus score 60 or 90 under e3-v1, so the middle
-        // band is legitimately empty here.
-        Assert.Equal(18, alerts.Count);
-        Assert.Equal(13, alerts.Count(alert => alert.Severity == AlertSeverity.Medium));
-        Assert.Equal(0, alerts.Count(alert => alert.Severity == AlertSeverity.High));
-        Assert.Equal(5, alerts.Count(alert => alert.Severity == AlertSeverity.Critical));
+        // The twenty-three flagged orders of the demo corpus, spread over the three bands. The
+        // middle one is no longer empty: the stage 9 corpus reaches every band on purpose, and six
+        // of these alerts sit in it — one of them opened by an order that is not fraud at all.
+        Assert.Equal(23, alerts.Count);
+        Assert.Equal(11, alerts.Count(alert => alert.Severity == AlertSeverity.Medium));
+        Assert.Equal(6, alerts.Count(alert => alert.Severity == AlertSeverity.High));
+        Assert.Equal(6, alerts.Count(alert => alert.Severity == AlertSeverity.Critical));
         Assert.All(alerts, alert =>
         {
             Assert.Equal(AlertStatus.Open, alert.Status);
@@ -37,12 +38,12 @@ public sealed class AlertCreationTests
             Assert.Null(alert.ReviewedAt);
         });
 
-        Assert.Equal((18, 0, 0), (first.AlertsCreated, first.AlertsSkippedOpen, first.AlertsSkippedReviewed));
+        Assert.Equal((23, 0, 0), (first.AlertsCreated, first.AlertsSkippedOpen, first.AlertsSkippedReviewed));
 
         // A second run over an unchanged corpus opens nothing: every flagged order already has an
         // alert waiting for a verdict.
-        Assert.Equal((0, 18, 0), (second.AlertsCreated, second.AlertsSkippedOpen, second.AlertsSkippedReviewed));
-        Assert.Equal(18, await dbContext.Alerts.CountAsync());
+        Assert.Equal((0, 23, 0), (second.AlertsCreated, second.AlertsSkippedOpen, second.AlertsSkippedReviewed));
+        Assert.Equal(23, await dbContext.Alerts.CountAsync());
     }
 
     [Fact]

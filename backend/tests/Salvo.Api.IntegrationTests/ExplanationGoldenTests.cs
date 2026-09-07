@@ -20,7 +20,7 @@ namespace Salvo.Api.IntegrationTests;
 /// </para>
 /// <para>
 /// Written over an order of the fixture, never over one imported by hand into a local database:
-/// the references of <c>demo-orders.v1.json</c> run from <c>ORD_000001</c> to <c>ORD_000300</c>,
+/// the references of <c>demo-orders.v2.json</c> run from <c>ORD_000001</c> to <c>ORD_000300</c>,
 /// and anything outside that range is not something a fresh checkout can reproduce.
 /// </para>
 /// </remarks>
@@ -28,37 +28,43 @@ public sealed class ExplanationGoldenTests
 {
     /// <summary>
     /// <c>ORD_000011</c>: score 90, three rules, and a buyer with no history at this merchant. Its
-    /// ratio, <c>23.2</c>, is the branch of the wording that keeps a decimal.
+    /// ratio, <c>3.4</c>, is the branch of the wording that keeps a decimal.
     /// </summary>
     private const string DecimalReference = "ORD_000011";
 
     private const string DecimalExpected =
         "El pedido obtuvo 90 puntos sobre un umbral de 60, y la severidad resultante es crítica. "
         + "Se dispararon 3 reglas. "
-        + "El monto, 2.011,11 BRL, es 23,2 veces la mediana del comercio, calculada sobre 3 pedidos "
+        + "El monto, 507,86 BRL, es 3,4 veces la mediana del comercio, calculada sobre 3 pedidos "
         + "previos de los últimos 90 días. "
-        + "El comprador no tenía pedidos previos con este comercio, y el monto es 23,2 veces la "
+        + "El comprador no tenía pedidos previos con este comercio, y el monto es 3,4 veces la "
         + "mediana del comercio sobre 3 pedidos previos. "
-        + "El país del pedido, US, difiere del habitual del comercio, BR, observado en 3 de 3 "
+        + "El país del pedido, AR, difiere del habitual del comercio, BR, observado en 3 de 3 "
         + "pedidos previos: un 100 %. "
-        + "El pedido ocurrió el 4 de mayo de 2026 a las 21:00, hora del comercio.";
+        + "El pedido ocurrió el 5 de mayo de 2026 a las 02:15, hora del comercio.";
 
     /// <summary>
-    /// <c>ORD_000171</c>: score 60, two rules, and a ratio of exactly <c>15.0</c>. It is the other
-    /// branch, and the reason it is pinned: «15,0 veces» claims a precision to the tenth that the
+    /// <c>ORD_000171</c>: score 60, two rules, and a ratio of exactly <c>4.0</c>. It is the other
+    /// branch, and the reason it is pinned: «4,0 veces» claims a precision to the tenth that the
     /// ratio does not have, and a template that writes it would be right about the number and wrong
     /// about the claim.
     /// </summary>
+    /// <remarks>
+    /// It also covers the other scope. This order compares against the median of its own buyer,
+    /// who has four earlier orders at the merchant, so the pair of goldens now pins both sentences
+    /// the template can write about whose median an amount was measured against — which the
+    /// previous pair, both on the merchant median, did not.
+    /// </remarks>
     private const string WholeReference = "ORD_000171";
 
     private const string WholeExpected =
         "El pedido obtuvo 60 puntos sobre un umbral de 60, y la severidad resultante es media. "
         + "Se dispararon 2 reglas. "
-        + "El monto, 1.297,71 USD, es 15 veces la mediana del comercio, calculada sobre 56 pedidos "
+        + "El monto, 692,56 BRL, es 4 veces la mediana del comprador, calculada sobre 4 pedidos "
         + "previos de los últimos 90 días. "
-        + "El país del pedido, AR, difiere del habitual del comercio, US, observado en 50 de 56 "
-        + "pedidos previos: un 89 %. "
-        + "El pedido ocurrió el 7 de julio de 2026 a las 21:00, hora del comercio.";
+        + "El país del pedido, AR, difiere del habitual del comercio, BR, observado en 42 de 57 "
+        + "pedidos previos: un 74 %. "
+        + "El pedido ocurrió el 8 de julio de 2026 a las 08:30, hora del comercio.";
 
     [Fact]
     public async Task TheTemplateWritesExactlyThisWhenTheRatioHasADecimal()
@@ -67,11 +73,28 @@ public sealed class ExplanationGoldenTests
             Assert.Equal(["amount_anomaly", "new_buyer_high_value", "foreign_country"], rules));
 
         Assert.Equal(DecimalExpected, summary);
+    }
 
-        // The order is stored at midnight UTC and happened the previous evening in business time.
-        // The paragraph says the business one, which is the clock the rest of the console reads.
-        Assert.Contains("4 de mayo", summary, StringComparison.Ordinal);
-        Assert.DoesNotContain("5 de mayo", summary, StringComparison.Ordinal);
+    /// <summary>
+    /// The date is the business day, not the stored UTC one.
+    /// </summary>
+    /// <remarks>
+    /// It needs an order that falls on different days in the two zones, and which order that is
+    /// depends on the corpus: <c>ORD_000123</c> is stored at <c>2026-06-19T01:18Z</c> and happened
+    /// at 22:18 on the eighteenth in business time. Asserting it on whichever order happens to be
+    /// golden would make the claim true by luck — that is what happened to the earlier version of
+    /// this test, whose order stopped crossing midnight when the fixture changed and whose
+    /// assertion would then have passed for the wrong reason.
+    /// </remarks>
+    [Fact]
+    public async Task TheDateIsTheBusinessDayAndNotTheStoredUtcOne()
+    {
+        var summary = await WriteAsync("ORD_000123", rules =>
+            Assert.Equal(["amount_anomaly", "foreign_country"], rules));
+
+        Assert.Contains("18 de junio", summary, StringComparison.Ordinal);
+        Assert.DoesNotContain("19 de junio", summary, StringComparison.Ordinal);
+        Assert.Contains("22:18, hora del comercio", summary, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -84,8 +107,8 @@ public sealed class ExplanationGoldenTests
 
         // Said once, in the terms of the defect rather than of the fix: the trailing zero is gone
         // and the figure it belonged to is still the one the evaluation holds.
-        Assert.Contains("es 15 veces", summary, StringComparison.Ordinal);
-        Assert.DoesNotContain("15,0", summary, StringComparison.Ordinal);
+        Assert.Contains("es 4 veces", summary, StringComparison.Ordinal);
+        Assert.DoesNotContain("4,0", summary, StringComparison.Ordinal);
     }
 
     private static async Task<string> WriteAsync(

@@ -80,13 +80,15 @@ public sealed class ScoringRunPersistenceTests
         Assert.Equal(
             new Dictionary<int, int>
             {
-                [0] = 266,
-                [20] = 16,
-                [60] = 13,
-                [90] = 5,
+                [0] = 244,
+                [20] = 33,
+                [60] = 11,
+                [70] = 4,
+                [80] = 2,
+                [90] = 6,
             },
             rows.GroupBy(row => row.Score!.Value).ToDictionary(group => group.Key, group => group.Count()));
-        Assert.Equal(18, rows.Count(row => row.Status == RiskEvaluationStatus.Denied));
+        Assert.Equal(23, rows.Count(row => row.Status == RiskEvaluationStatus.Denied));
 
         var manifest = string.Join(
             "\n",
@@ -98,10 +100,15 @@ public sealed class ScoringRunPersistenceTests
         // Golden values. They change only when the corpus, the rule configuration or the wording of
         // a signal detail changes: a redaction edit that did not bump the rule config version breaks
         // this test loudly instead of silently appending 300 "new" evaluations on the next run.
+        // The single fingerprint is taken from an order that raised signals on purpose. The
+        // earlier one pinned ORD_000001, which scores zero with no signals, and a fingerprint over
+        // an empty evaluation depends on the order identifier and the rule configuration and on
+        // nothing the corpus says — so it survived the whole fixture being replaced without moving
+        // a digit. The manifest digest below is what actually holds the corpus.
         Assert.Equal(
-            "0d7470c324b0ca1fb3e6e8e10fc7f6a3c736314758dd5538238ec90da764edb0",
-            rows.Single(row => row.MerchantReferenceId == "ORD_000001").EvaluationFingerprint);
-        Assert.Equal("a13e26d1744ea734a1d0be745775533f82b5d06e997bdc27233c7595a032bae0", digest);
+            "39a65ad97b9472cf5586bbcb3332e16e8b1d4a43b2a1f3e65cd429c8c27905a6",
+            rows.Single(row => row.MerchantReferenceId == "ORD_000011").EvaluationFingerprint);
+        Assert.Equal("f7c8222541827ad361f570ad06911c60131fdb0f507087b3dbbf038fcded8514", digest);
     }
 
     [Fact]

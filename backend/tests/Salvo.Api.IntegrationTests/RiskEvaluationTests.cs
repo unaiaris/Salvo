@@ -38,21 +38,31 @@ public sealed class RiskEvaluationTests : IClassFixture<SalvoApiFactory>
         Assert.Equal(
             new Dictionary<int, int>
             {
-                [0] = 266,
-                [20] = 16,
-                [60] = 13,
-                [90] = 5,
+                [0] = 244,
+                [20] = 33,
+                [60] = 11,
+                [70] = 4,
+                [80] = 2,
+                [90] = 6,
             },
             first.Assessments
                 .GroupBy(assessment => assessment.Score)
                 .ToDictionary(group => group.Key, group => group.Count()));
+        // The sweep still chooses 60, and now it chooses it against a corpus that disagrees with
+        // the rules: the calibration cohort carries three legitimate orders above the threshold and
+        // seven frauds below it.
         Assert.Equal(60, first.SelectedThreshold.Threshold);
-        Assert.Equal(new ConfusionMatrix(12, 0, 0, 188), first.SelectedThreshold.Metrics.Matrix);
-        Assert.Equal(new ConfusionMatrix(6, 0, 0, 94), first.HoldoutMetrics.Matrix);
-        Assert.Equal(1m, first.HoldoutMetrics.Precision);
-        Assert.Equal(1m, first.HoldoutMetrics.Recall);
-        Assert.Equal(1m, first.HoldoutMetrics.F1);
-        Assert.Equal(0m, first.HoldoutMetrics.FalsePositiveRate);
+        Assert.Equal(new ConfusionMatrix(11, 3, 7, 179), first.SelectedThreshold.Metrics.Matrix);
+        // And the holdout is where the corpus stops being a mirror of the rules: three legitimate
+        // orders flagged, four frauds missed, and therefore an F1 that is no longer 1,00. That is
+        // the point of the stage 9 fixture, so these four numbers are the assertion that would
+        // catch a corpus quietly built to recover its own labels again.
+        Assert.Equal(new ConfusionMatrix(6, 3, 4, 87), first.HoldoutMetrics.Matrix);
+        Assert.Equal(6m / 9m, first.HoldoutMetrics.Precision);
+        Assert.Equal(0.6m, first.HoldoutMetrics.Recall);
+        Assert.NotNull(first.HoldoutMetrics.F1);
+        Assert.True(first.HoldoutMetrics.F1 < 1m);
+        Assert.Equal(3m / 90m, first.HoldoutMetrics.FalsePositiveRate);
         Assert.All(first.Assessments.SelectMany(assessment => assessment.Signals), signal =>
         {
             Assert.DoesNotContain("BUY_", signal.Detail, StringComparison.Ordinal);

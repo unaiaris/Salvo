@@ -22,7 +22,7 @@ public sealed class AlertFeedOrderTests
         var repeated = await AlertTestCorpus.ListAlertsAsync(client, "?sort=SCORE_DESC&pageSize=200");
         var byCreation = await AlertTestCorpus.ListAlertsAsync(client, "?pageSize=200");
 
-        Assert.Equal(18, sorted.Items.Count);
+        Assert.Equal(23, sorted.Items.Count);
         Assert.Equal(
             sorted.Items.Select(alert => alert.CurrentRiskScore).OrderByDescending(score => score),
             sorted.Items.Select(alert => alert.CurrentRiskScore));
@@ -63,7 +63,7 @@ public sealed class AlertFeedOrderTests
 
         var whole = await AlertTestCorpus.ListAlertsAsync(client, "?sort=SCORE_DESC&pageSize=200");
         var pages = new List<AlertListItem>();
-        for (var page = 1; page <= 4; page++)
+        for (var page = 1; page <= 5; page++)
         {
             var slice = await AlertTestCorpus.ListAlertsAsync(
                 client,
@@ -71,7 +71,7 @@ public sealed class AlertFeedOrderTests
             pages.AddRange(slice.Items);
         }
 
-        Assert.Equal(18, pages.Count);
+        Assert.Equal(23, pages.Count);
         Assert.Equal(pages.Count, pages.Select(alert => alert.Id).Distinct().Count());
         Assert.Equal(whole.Items.Select(alert => alert.Id), pages.Select(alert => alert.Id));
     }

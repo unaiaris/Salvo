@@ -20,11 +20,11 @@ public sealed class AlertEndpointTests
         var high = await AlertTestCorpus.ListAlertsAsync(client, "?severity=HIGH");
         var critical = await AlertTestCorpus.ListAlertsAsync(client, "?severity=CRITICAL&pageSize=200");
 
-        Assert.Equal(18, all.TotalCount);
-        Assert.Equal(13, medium.TotalCount);
-        Assert.Empty(high.Items);
-        Assert.Equal(0, high.TotalCount);
-        Assert.Equal(5, critical.TotalCount);
+        Assert.Equal(23, all.TotalCount);
+        Assert.Equal(11, medium.TotalCount);
+        Assert.Equal(6, high.TotalCount);
+        Assert.Equal(6, critical.TotalCount);
+        Assert.All(high.Items, alert => Assert.Equal("HIGH", alert.Severity));
         Assert.All(medium.Items, alert => Assert.Equal("MEDIUM", alert.Severity));
         Assert.All(critical.Items, alert => Assert.Equal("CRITICAL", alert.Severity));
 
@@ -34,13 +34,13 @@ public sealed class AlertEndpointTests
         var open = await AlertTestCorpus.ListAlertsAsync(client, "?status=OPEN&pageSize=200");
         var reviewed = await AlertTestCorpus.ListAlertsAsync(client, "?status=CONFIRMED_SAFE");
 
-        Assert.Equal(17, open.TotalCount);
+        Assert.Equal(22, open.TotalCount);
         Assert.Equal(all.Items[0].Id, Assert.Single(reviewed.Items).Id);
 
         var firstPage = await AlertTestCorpus.ListAlertsAsync(client, "?page=1&pageSize=5");
         var secondPage = await AlertTestCorpus.ListAlertsAsync(client, "?page=2&pageSize=5");
 
-        Assert.Equal(18, firstPage.TotalCount);
+        Assert.Equal(23, firstPage.TotalCount);
         Assert.Equal(5, firstPage.Items.Count);
         Assert.Equal(5, secondPage.Items.Count);
         Assert.Empty(firstPage.Items.Select(alert => alert.Id)

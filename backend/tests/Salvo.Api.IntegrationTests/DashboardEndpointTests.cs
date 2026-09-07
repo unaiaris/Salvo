@@ -15,12 +15,20 @@ public sealed class DashboardEndpointTests
     /// label.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// A reflection test over constructor parameters cannot establish this. There is a second port
     /// that reads labels, a handler can consume another handler that reads them, and above all
     /// every EF store receives the whole <see cref="SalvoDbContext"/> and could join
     /// <c>order_evaluation_labels</c> without any type in the application layer showing it. This
     /// test does not care where the leak would be: it flips every label in the database and demands
     /// the same bytes back.
+    /// </para>
+    /// <para>
+    /// The external evaluations are requested first, on purpose. The panel of orders a provider
+    /// denied without a local alert joins three tables and is the newest place where a label could
+    /// enter; leaving it empty would make the strongest assertion of the suite pass over a field
+    /// that has nothing in it.
+    /// </para>
     /// </remarks>
     [Fact]
     public async Task TheDashboardIsIndependentOfGroundTruth()
@@ -30,6 +38,9 @@ public sealed class DashboardEndpointTests
         (await client.PostAsync("/api/demo-data/seed", null)).EnsureSuccessStatusCode();
         await AlertTestCorpus.RunScoringAsync(client);
 
+        (await client.PostAsync("/api/demo-data/external-evaluations:request", null))
+            .EnsureSuccessStatusCode();
+
         var before = await client.GetStringAsync("/api/dashboard");
         var flipped = await FlipEveryLabelAsync(factory);
         var after = await client.GetStringAsync("/api/dashboard");
@@ -38,6 +49,14 @@ public sealed class DashboardEndpointTests
         // situation where flipping nothing proves nothing.
         Assert.Equal(300, flipped);
         Assert.Equal(before, after);
+
+        // And the panel really does have rows to be independent of.
+        using var document = JsonDocument.Parse(before);
+        Assert.True(
+            document.RootElement
+                .GetProperty("externalDenialsWithoutAlert")
+                .GetProperty("total")
+                .GetInt32() > 0);
     }
 
     [Fact]
@@ -62,6 +81,64 @@ public sealed class DashboardEndpointTests
     /// Money at risk is reported one currency at a time. The demo corpus mixes three, and a single
     /// figure over them would be a number without a unit.
     /// </summary>
+    /// <summary>
+    /// The panel that makes an order without an alert visible at all.
+    /// </summary>
+    /// <remarks>
+    /// The provider's verdict lives, everywhere else in the console, inside the detail of an alert,
+    /// and an order the rules never flagged has no detail to open. Three of the seven archetypes of
+    /// the stage 9 corpus are fraud the deterministic rules cannot see, and their references sit in
+    /// the band the simulated provider denies precisely so that this panel has something true to
+    /// show. Without it, "there is fraud a provider sees and we do not" is prose.
+    /// </remarks>
+    [Fact]
+    public async Task TheExternalDenialsPanelShowsTheFraudTheRulesNeverFlagged()
+    {
+        await using var factory = new SalvoApiFactory();
+        using var client = await factory.CreateMigratedClientAsync();
+        (await client.PostAsync("/api/demo-data/seed", null)).EnsureSuccessStatusCode();
+        await AlertTestCorpus.RunScoringAsync(client);
+
+        var empty = (await GetDashboardAsync(client)).ExternalDenialsWithoutAlert;
+
+        (await client.PostAsync("/api/demo-data/external-evaluations:request", null))
+            .EnsureSuccessStatusCode();
+
+        var panel = (await GetDashboardAsync(client)).ExternalDenialsWithoutAlert;
+        var references = panel.Items.Select(item => item.MerchantReferenceId).ToArray();
+
+        // Nobody asked the provider anything yet, so there is nothing to report and the panel says
+        // so instead of being absent.
+        Assert.Equal(0, empty.Total);
+        Assert.Empty(empty.Items);
+
+        Assert.Equal(43, panel.Total);
+        Assert.Equal(panel.Total, panel.Listed);
+
+        // The three archetypes the rules cannot see: the friendly fraud, the taken-over account
+        // seen only in its device, and the card-testing burst.
+        Assert.Contains("ORD_000275", references);
+        Assert.Contains("ORD_000277", references);
+        Assert.Contains("ORD_000075", references);
+
+        // Every row really is an order without an alert, and the local score travels with it so the
+        // disagreement is legible instead of implied.
+        var alerted = (await AlertTestCorpus.ListAlertsAsync(client, "?pageSize=200")).Items
+            .Select(alert => alert.MerchantReferenceId)
+            .ToHashSet(StringComparer.Ordinal);
+        Assert.All(references, reference => Assert.DoesNotContain(reference, alerted));
+        Assert.All(panel.Items, item =>
+        {
+            Assert.NotNull(item.LocalRiskScore);
+            Assert.True(item.LocalRiskScore < 60);
+        });
+
+        // Newest first, so the corpus is read the way an analyst reads a queue.
+        Assert.Equal(
+            panel.Items.Select(item => item.OccurredAt).OrderByDescending(instant => instant),
+            panel.Items.Select(item => item.OccurredAt));
+    }
+
     [Fact]
     public async Task AmountAtRiskIsPerCurrencyAndCarriesNoTotal()
     {
@@ -83,10 +160,12 @@ public sealed class DashboardEndpointTests
 
         Assert.Equal(["BRL", "USD", "UYU"], dashboard.AmountAtRisk.Select(entry => entry.CurrencyCode));
         Assert.Equal(expected, dashboard.AmountAtRisk);
-        Assert.All(dashboard.AmountAtRisk, entry => Assert.Equal(6, entry.AlertCount));
-        Assert.Equal(18, dashboard.OpenAlerts.Total);
         Assert.Equal(
-            [("CRITICAL", 5), ("HIGH", 0), ("MEDIUM", 13)],
+            [("BRL", 12), ("USD", 5), ("UYU", 6)],
+            dashboard.AmountAtRisk.Select(entry => (entry.CurrencyCode, entry.AlertCount)));
+        Assert.Equal(23, dashboard.OpenAlerts.Total);
+        Assert.Equal(
+            [("CRITICAL", 6), ("HIGH", 6), ("MEDIUM", 11)],
             dashboard.OpenAlerts.BySeverity.Select(entry => (entry.Severity, entry.AlertCount)));
 
         // Every entry carries a currency and nothing that aggregates across currencies: the shape
