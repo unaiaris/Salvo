@@ -6,6 +6,8 @@ import {
   wireImportResult,
   wireScoringRunSummary,
   wireSeedResult,
+  mockConsoleFetch,
+  wireCapabilities,
 } from "@/test/fixtures";
 import { INITIAL_ACTION_STATE } from "./action-state";
 import {
@@ -43,7 +45,7 @@ const CSV_FILE = new File(["merchantId\nmerchant-demo\n"], "orders.csv", { type:
 
 describe("importación de un archivo", () => {
   it("lista un renglón por registro rechazado, traduciendo el código", async () => {
-    fetchMock.mockResolvedValue(jsonResponse(wireImportResult()));
+    mockConsoleFetch(fetchMock, () => jsonResponse(wireImportResult()));
 
     const state = await importOrderFile(INITIAL_ACTION_STATE, formWith(CSV_FILE));
 
@@ -59,8 +61,39 @@ describe("importación de un archivo", () => {
     );
   });
 
+  /**
+   * El ítem «códigos de error de fila traducidos» del checklist de la Etapa 9.
+   *
+   * Hasta acá el código se rotulaba en castellano y el `message` de la API caía crudo al inglés. El
+   * rótulo ahora sale del diccionario del despliegue; el `message` sigue en inglés **a propósito**
+   * y eso es lo que se afirma. Es la única parte de la frase que la consola no escribe: nombra el
+   * valor que se rechazó, y es el detalle técnico y no la explicación.
+   */
+  it("traduce el código de cada registro rechazado al idioma del despliegue", async () => {
+    // Sin `mockConsoleFetch`, que contesta la ruta de capacidades por su cuenta y en castellano:
+    // acá lo que se prueba es justamente qué responde esa ruta.
+    fetchMock.mockImplementation((url: URL) =>
+      Promise.resolve(
+        url.pathname === "/api/system/capabilities"
+          ? jsonResponse(wireCapabilities({ language: "pt" }))
+          : jsonResponse(wireImportResult()),
+      ),
+    );
+
+    const state = await importOrderFile(INITIAL_ACTION_STATE, formWith(CSV_FILE));
+
+    expect(state.recordErrors[0]).toContain("Registro 4, linha 5");
+    expect(state.recordErrors[0]).toContain("O valor está fora da faixa admitida");
+    expect(state.recordErrors[0]).not.toContain("El valor está fuera del rango admitido");
+
+    // Y el mensaje de la API queda como vino: es lo que dice qué valor se rechazó.
+    expect(state.recordErrors[1]).toContain(
+      "The merchant reference already exists with different data.",
+    );
+  });
+
   it("avisa cuando la API dejó de enumerar errores", async () => {
-    fetchMock.mockResolvedValue(jsonResponse(wireImportResult({ errorsTruncated: true })));
+    mockConsoleFetch(fetchMock, () => jsonResponse(wireImportResult({ errorsTruncated: true })));
 
     const state = await importOrderFile(INITIAL_ACTION_STATE, formWith(CSV_FILE));
 
@@ -68,7 +101,7 @@ describe("importación de un archivo", () => {
   });
 
   it("no marca truncado un resultado completo", async () => {
-    fetchMock.mockResolvedValue(jsonResponse(wireImportResult()));
+    mockConsoleFetch(fetchMock, () => jsonResponse(wireImportResult()));
 
     expect((await importOrderFile(INITIAL_ACTION_STATE, formWith(CSV_FILE))).errorsTruncated).toBe(
       false,
@@ -76,7 +109,7 @@ describe("importación de un archivo", () => {
   });
 
   it("informa los cuatro totales de la importación", async () => {
-    fetchMock.mockResolvedValue(jsonResponse(wireImportResult()));
+    mockConsoleFetch(fetchMock, () => jsonResponse(wireImportResult()));
 
     const state = await importOrderFile(INITIAL_ACTION_STATE, formWith(CSV_FILE));
 
@@ -89,34 +122,38 @@ describe("importación de un archivo", () => {
   });
 
   it("dice que los pedidos importados todavía no tienen evaluación", async () => {
-    fetchMock.mockResolvedValue(jsonResponse(wireImportResult()));
+    mockConsoleFetch(fetchMock, () => jsonResponse(wireImportResult()));
 
     const state = await importOrderFile(INITIAL_ACTION_STATE, formWith(CSV_FILE));
 
     expect(state.recovery).toMatch(/corrida de scoring/i);
   });
 
-  it("rechaza un envío sin archivo sin llegar a llamar a la API", async () => {
+  it("rechaza un envío sin archivo sin llegar a llamar a la importación", async () => {
+    mockConsoleFetch(fetchMock, () => jsonResponse(wireImportResult()));
+
     const state = await importOrderFile(INITIAL_ACTION_STATE, formWith(null));
 
     expect(state.outcome).toBe("failed");
     expect(state.title).toBe("No llegó ningún archivo");
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(importCalls()).toHaveLength(0);
   });
 
   it("rechaza un formato que el contrato no admite", async () => {
+    mockConsoleFetch(fetchMock, () => jsonResponse(wireImportResult()));
+
     const state = await importOrderFile(INITIAL_ACTION_STATE, formWith(CSV_FILE, "XLSX"));
 
     expect(state.title).toBe("Ese formato no está soportado");
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(importCalls()).toHaveLength(0);
   });
 
   it("envía el archivo como multipart, sin fijar el Content-Type a mano", async () => {
-    fetchMock.mockResolvedValue(jsonResponse(wireImportResult()));
+    mockConsoleFetch(fetchMock, () => jsonResponse(wireImportResult()));
 
     await importOrderFile(INITIAL_ACTION_STATE, formWith(CSV_FILE));
 
-    const [url, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
+    const [url, init] = apiCall();
     expect(url.pathname).toBe("/api/order-imports");
     expect(init.body).toBeInstanceOf(FormData);
     // `fetch` tiene que poner el Content-Type con su propio boundary: fijarlo acá lo rompería.
@@ -134,7 +171,7 @@ describe("importación de un archivo", () => {
     ] as const;
 
     for (const [code, status, title] of cases) {
-      fetchMock.mockResolvedValue(problemResponse(status, code, "detalle de la API"));
+      mockConsoleFetch(fetchMock, () => problemResponse(status, code, "detalle de la API"));
 
       const state = await importOrderFile(INITIAL_ACTION_STATE, formWith(CSV_FILE));
 
@@ -146,7 +183,7 @@ describe("importación de un archivo", () => {
 
 describe("corrida de scoring", () => {
   it("presenta la secuencia y las seis cifras del resumen", async () => {
-    fetchMock.mockResolvedValue(jsonResponse(wireScoringRunSummary()));
+    mockConsoleFetch(fetchMock, () => jsonResponse(wireScoringRunSummary()));
 
     const state = await executeScoringRun(INITIAL_ACTION_STATE);
 
@@ -160,7 +197,7 @@ describe("corrida de scoring", () => {
   });
 
   it("da su propio mensaje a dos corridas simultáneas", async () => {
-    fetchMock.mockResolvedValue(
+    mockConsoleFetch(fetchMock, () => 
       problemResponse(409, "SCORING_RUN_CONFLICT", "A concurrent scoring run already persisted."),
     );
 
@@ -172,7 +209,7 @@ describe("corrida de scoring", () => {
   });
 
   it("cuenta cada intento, para poder anunciar dos resultados iguales seguidos", async () => {
-    fetchMock.mockResolvedValue(jsonResponse(wireScoringRunSummary()));
+    mockConsoleFetch(fetchMock, () => jsonResponse(wireScoringRunSummary()));
 
     const first = await executeScoringRun(INITIAL_ACTION_STATE);
     const second = await executeScoringRun(first);
@@ -181,12 +218,43 @@ describe("corrida de scoring", () => {
   });
 });
 
+/**
+ * The call that is not the language read.
+ *
+ * Every action asks the API for the deployment language first, so the first call is always the
+ * capabilities route. These assertions are about the request the action makes, not about its
+ * position.
+ */
+/**
+ * The calls that are not the language read.
+ *
+ * «Sin llegar a llamar a la API» became «sin llegar a llamar a la importación»: the action does
+ * ask the API which language to answer in before it can say anything at all, and that is a real
+ * call. What these two cases are about is that a submission the console can reject on its own
+ * never reaches `/api/order-imports`, and that is what is asserted.
+ */
+function importCalls(): unknown[] {
+  return fetchMock.mock.calls.filter(
+    ([url]) => (url as URL).pathname !== "/api/system/capabilities",
+  );
+}
+
+function apiCall(): [URL, RequestInit] {
+  const call = fetchMock.mock.calls.find(
+    ([url]) => (url as URL).pathname !== "/api/system/capabilities",
+  );
+
+  expect(call).toBeDefined();
+
+  return call as [URL, RequestInit];
+}
+
 describe("corpus de demostración", () => {
   it("distingue una carga real de una repetición idempotente", async () => {
-    fetchMock.mockResolvedValue(jsonResponse(wireSeedResult()));
+    mockConsoleFetch(fetchMock, () => jsonResponse(wireSeedResult()));
     const loaded = await seedDemoCorpus(INITIAL_ACTION_STATE);
 
-    fetchMock.mockResolvedValue(
+    mockConsoleFetch(fetchMock, () => 
       jsonResponse(wireSeedResult({ insertedOrders: 0, duplicateOrders: 300, insertedLabels: 0 })),
     );
     const again = await seedDemoCorpus(loaded);
@@ -197,7 +265,7 @@ describe("corpus de demostración", () => {
   });
 
   it("explica un choque con pedidos ya existentes", async () => {
-    fetchMock.mockResolvedValue(
+    mockConsoleFetch(fetchMock, () => 
       problemResponse(409, "DEMO_DATA_CONFLICT", "The demo dataset conflicts."),
     );
 
@@ -215,7 +283,7 @@ describe("corpus de demostración", () => {
  */
 describe("evaluación externa del corpus", () => {
   it("cuenta lo consultado y separa lo que sigue esperando al proveedor", async () => {
-    fetchMock.mockResolvedValue(
+    mockConsoleFetch(fetchMock, () => 
       jsonResponse({ examined: 300, requested: 300, settled: 279, stillPending: 21, skipped: 0 }),
     );
 
@@ -228,7 +296,7 @@ describe("evaluación externa del corpus", () => {
   });
 
   it("dice que no había nada nuevo cuando el proveedor ya conocía el corpus", async () => {
-    fetchMock.mockResolvedValue(
+    mockConsoleFetch(fetchMock, () => 
       jsonResponse({ examined: 0, requested: 0, settled: 0, stillPending: 0, skipped: 0 }),
     );
 
@@ -239,7 +307,7 @@ describe("evaluación externa del corpus", () => {
   });
 
   it("traduce el conflicto de una evaluación que ya espera al proveedor", async () => {
-    fetchMock.mockResolvedValue(problemResponse(
+    mockConsoleFetch(fetchMock, () => problemResponse(
         409,
         "EXTERNAL_EVALUATION_PENDING",
         "Order ... already has an external evaluation waiting for the provider.",
@@ -255,7 +323,7 @@ describe("evaluación externa del corpus", () => {
 
 describe("entrega de callbacks", () => {
   it("dice qué se entregó y qué se cerró", async () => {
-    fetchMock.mockResolvedValue(
+    mockConsoleFetch(fetchMock, () => 
       jsonResponse({ examined: 21, delivered: 21, settled: 21, replayed: 0, unavailable: 0 }),
     );
 
@@ -272,7 +340,7 @@ describe("entrega de callbacks", () => {
    * report a second success that never happened.
    */
   it("nombra una reentrega como reentrega y no como un efecto nuevo", async () => {
-    fetchMock.mockResolvedValue(
+    mockConsoleFetch(fetchMock, () => 
       jsonResponse({ examined: 21, delivered: 21, settled: 0, replayed: 21, unavailable: 0 }),
     );
 
@@ -283,7 +351,7 @@ describe("entrega de callbacks", () => {
   });
 
   it("dice qué hacer cuando no hay nada esperando al proveedor", async () => {
-    fetchMock.mockResolvedValue(
+    mockConsoleFetch(fetchMock, () => 
       jsonResponse({ examined: 0, delivered: 0, settled: 0, replayed: 0, unavailable: 0 }),
     );
 

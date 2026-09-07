@@ -25,7 +25,14 @@ public sealed class AlertExplanationConfiguration : IEntityTypeConfiguration<Ale
                     "failure_code IS NULL OR failure_code IN ('PROVIDER_UNAVAILABLE', "
                     + "'PROVIDER_TIMEOUT', 'PROVIDER_REFUSED', 'MALFORMED_OUTPUT', "
                     + "'NOT_GROUNDED_NUMBER', 'NOT_GROUNDED_RULE', 'TOO_LONG', 'CANCELLED', "
-                    + "'ATTEMPT_LIMIT_REACHED')");
+                    + "'ATTEMPT_LIMIT_REACHED', 'LEGACY_SIGNAL_FORMAT')");
+
+                // The languages this build writes. Closed like the others: a row in a language
+                // nothing can render is a paragraph nobody will ever read, and it would sit inside
+                // a unique index deciding what counts as already explained.
+                table.HasCheckConstraint(
+                    "ck_alert_explanations_language",
+                    "language IN ('es', 'pt')");
 
                 // The one that matters most: text exists exactly when the explanation is ready.
                 // «A rejected summary is never stored» is a property of the database here, not a
@@ -86,6 +93,11 @@ public sealed class AlertExplanationConfiguration : IEntityTypeConfiguration<Ale
             .HasColumnName("alert_policy_version")
             .HasMaxLength(32)
             .IsRequired();
+        builder.Property(explanation => explanation.Language)
+            .HasColumnName("language")
+            .HasConversion<ExplanationLanguageConverter>()
+            .HasMaxLength(2)
+            .IsRequired();
         builder.Property(explanation => explanation.ProviderVersion)
             .HasColumnName("provider_version")
             .HasMaxLength(64);
@@ -143,20 +155,36 @@ public sealed class AlertExplanationConfiguration : IEntityTypeConfiguration<Ale
         // The identity. Total rather than partial, which it can afford to be because a retry
         // happens on this same row: a second row for the same evaluation would be a second answer
         // to a question that has one.
+        //
+        // The language is one of its columns, and that is what lets a deployment that changed
+        // language write the paragraph it now needs. Without it the lookup finds the row of the
+        // other language, reads it as the answer, and the second one is never written — which is
+        // exactly the defect `E7D` was opened to fix, with `template_version` in this place.
         builder.HasIndex(explanation => new
             {
                 explanation.RiskEvaluationId,
                 explanation.Provider,
                 explanation.TemplateVersion,
                 explanation.AlertPolicyVersion,
+                explanation.Language,
             })
             .IsUnique()
             .HasDatabaseName("ux_alert_explanations_identity");
 
-        // At most one provider is being asked about an evaluation at a time. This is what
-        // serializes two concurrent requests at the moment when nothing has been asked yet, so the
-        // one that loses costs nothing.
-        builder.HasIndex(explanation => new { explanation.RiskEvaluationId, explanation.Provider })
+        // At most one provider is being asked about an evaluation at a time, per language. This is
+        // what serializes two concurrent requests at the moment when nothing has been asked yet, so
+        // the one that loses costs nothing.
+        //
+        // The language belongs here too, and for a different reason than in the identity index.
+        // Without it a live reservation in one language makes the reservation of the other collide
+        // instead of writing its row: the lookup by identity does not find it, the insert hits this
+        // index, and what the analyst sees is a database error rather than a paragraph.
+        builder.HasIndex(explanation => new
+            {
+                explanation.RiskEvaluationId,
+                explanation.Provider,
+                explanation.Language,
+            })
             .IsUnique()
             .HasFilter("status = 'PENDING'")
             .HasDatabaseName("ux_alert_explanations_pending_evaluation");

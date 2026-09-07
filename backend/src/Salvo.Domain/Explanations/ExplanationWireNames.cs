@@ -22,6 +22,10 @@ public static class ExplanationWireNames
     public const string TooLong = "TOO_LONG";
     public const string Cancelled = "CANCELLED";
     public const string AttemptLimitReached = "ATTEMPT_LIMIT_REACHED";
+    public const string LegacySignalFormat = "LEGACY_SIGNAL_FORMAT";
+
+    public const string Spanish = "es";
+    public const string Portuguese = "pt";
 
     public static string ToWire(ExplanationProvider provider)
     {
@@ -88,6 +92,7 @@ public static class ExplanationWireNames
             ExplanationFailureCode.TooLong => TooLong,
             ExplanationFailureCode.Cancelled => Cancelled,
             ExplanationFailureCode.AttemptLimitReached => AttemptLimitReached,
+            ExplanationFailureCode.LegacySignalFormat => LegacySignalFormat,
             _ => throw new ArgumentOutOfRangeException(
                 nameof(code),
                 code,
@@ -108,9 +113,59 @@ public static class ExplanationWireNames
             TooLong => ExplanationFailureCode.TooLong,
             Cancelled => ExplanationFailureCode.Cancelled,
             AttemptLimitReached => ExplanationFailureCode.AttemptLimitReached,
+            LegacySignalFormat => ExplanationFailureCode.LegacySignalFormat,
             _ => throw new ArgumentException(
                 $"Unsupported explanation failure code '{value}'.",
                 nameof(value)),
         };
     }
+
+    public static string ToWire(ExplanationLanguage language)
+    {
+        return language switch
+        {
+            ExplanationLanguage.Spanish => Spanish,
+            ExplanationLanguage.Portuguese => Portuguese,
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(language),
+                language,
+                "Unsupported explanation language."),
+        };
+    }
+
+    public static ExplanationLanguage ParseLanguage(string value)
+    {
+        return TryParseLanguage(value, out var language)
+            ? language
+            : throw new ArgumentException(
+                $"Unsupported explanation language '{value}'.",
+                nameof(value));
+    }
+
+    /// <summary>
+    /// The same parse, without the exception, for the one caller that has something better to say
+    /// than a stack trace: configuration read at startup names the value it got and the values it
+    /// could have had.
+    /// </summary>
+    public static bool TryParseLanguage(string? value, out ExplanationLanguage language)
+    {
+        switch (value)
+        {
+            case Spanish:
+                language = ExplanationLanguage.Spanish;
+
+                return true;
+            case Portuguese:
+                language = ExplanationLanguage.Portuguese;
+
+                return true;
+            default:
+                language = ExplanationLanguage.Spanish;
+
+                return false;
+        }
+    }
+
+    /// <summary>Every language this build can write, in the order the startup message lists them.</summary>
+    public static IReadOnlyList<string> KnownLanguages { get; } = [Spanish, Portuguese];
 }

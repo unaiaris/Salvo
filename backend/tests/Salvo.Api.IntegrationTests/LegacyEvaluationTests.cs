@@ -8,6 +8,7 @@ using Salvo.Application.Alerts;
 using Salvo.Application.Explanations;
 using Salvo.Application.Risk;
 using Salvo.Domain.Alerts;
+using Salvo.Domain.Explanations;
 using Salvo.Domain.Risk;
 using Salvo.Infrastructure.Persistence;
 
@@ -63,8 +64,18 @@ public sealed class LegacyEvaluationTests
             await response.Content.ReadFromJsonAsync<RequestExplanationResult>());
 
         Assert.Equal("FAILED", result.Explanation.Status);
-        Assert.NotNull(result.Explanation.FailureCode);
         Assert.Null(result.Explanation.Summary);
+
+        // And the code says what happened. Until `E9C1` this was `PROVIDER_UNAVAILABLE`, the
+        // nearest of the nine that existed and a false statement about this attempt: no provider is
+        // called at all, because the facts to check an answer against cannot be built. Somebody
+        // reading «the provider failed before answering» goes to debug a provider that did nothing.
+        Assert.Equal(
+            ExplanationWireNames.LegacySignalFormat,
+            result.Explanation.FailureCode);
+        Assert.NotEqual(
+            ExplanationWireNames.ProviderUnavailable,
+            result.Explanation.FailureCode);
 
         // The row is closed rather than left reserved, so the evaluation is not jammed for ever.
         await using var scope = factory.Services.CreateAsyncScope();
@@ -73,6 +84,12 @@ public sealed class LegacyEvaluationTests
 
         Assert.Equal("FAILED", stored.Status.ToString().ToUpperInvariant());
         Assert.Null(stored.Summary);
+        Assert.Equal(ExplanationFailureCode.LegacySignalFormat, stored.FailureCode);
+
+        // The tenth value is in the check constraint the database enforces, not only in the
+        // enumeration: the row above is the proof, because an INSERT of an unlisted code is
+        // refused outright.
+        Assert.Equal(ExplanationLanguage.Spanish, stored.Language);
     }
 
     /// <summary>

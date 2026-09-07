@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { scoringRunLabel } from "@/components/provenance";
-import type { ScoringRun } from "@/lib/api/contract";
-import { formatCount } from "@/lib/format";
+import type { Language, ScoringRun } from "@/lib/api/contract";
+import { formatting } from "@/lib/format";
 
 /**
  * The same three situations the alert feed distinguishes, told from the dashboard's side.
@@ -45,41 +45,57 @@ function EmptyState({
 }
 
 /** Nothing was ever imported. */
-export function NoOrdersDashboard() {
+export function NoOrdersDashboard({ language }: { readonly language: Language }) {
+  const { t } = formatting(language);
+
   return (
     <EmptyState
-      title="Todavía no hay pedidos"
-      body="La base está vacía: no hay monto en riesgo, ni tasa de marcado, ni semanas que dibujar. Importá un archivo CSV o JSON, o cargá el corpus de demostración."
-      action={{ href: "/import", label: "Ir a importación" }}
+      title={t.dashboard.emptyNoOrdersTitle}
+      body={t.dashboard.emptyNoOrdersBody}
+      action={{ href: "/import", label: t.common.goToImport }}
     />
   );
 }
 
 /** There are orders, and no run ever turned them into evaluations. */
-export function NoScoringRunDashboard({ ordersPendingScoring }: { readonly ordersPendingScoring: number }) {
+export function NoScoringRunDashboard({
+  ordersPendingScoring,
+  language,
+}: {
+  readonly ordersPendingScoring: number;
+  readonly language: Language;
+}) {
+  const f = formatting(language);
+
   return (
     <EmptyState
-      title="Hay pedidos importados y ninguna corrida de scoring"
-      body={`Los ${formatCount(ordersPendingScoring)} pedidos de la base no tienen evaluación, así que el dashboard no tiene nada que resumir: sin corrida no hay score, ni marcado, ni alertas. Nada de esto se calcula solo.`}
-      action={{ href: "/import", label: "Ejecutar scoring" }}
+      title={f.t.dashboard.emptyNoRunTitle}
+      body={f.t.dashboard.emptyNoRunBody(f.formatCount(ordersPendingScoring))}
+      action={{ href: "/import", label: f.t.common.runScoring }}
     />
   );
 }
 
 /** The corpus was scored and nothing reached the alerting floor. */
-export function NoOpenAlertsNotice({ run }: { readonly run: ScoringRun }) {
+export function NoOpenAlertsNotice({
+  run,
+  language,
+}: {
+  readonly run: ScoringRun;
+  readonly language: Language;
+}) {
+  const { t } = formatting(language);
+
   return (
     <section
       aria-labelledby="dashboard-no-alerts"
       className="rounded-lg border border-emerald-200 bg-emerald-50 p-5 text-emerald-950"
     >
       <h2 id="dashboard-no-alerts" className="text-base font-semibold">
-        No hay alertas abiertas
+        {t.dashboard.emptyNoAlertsTitle}
       </h2>
       <p className="mt-1 text-sm leading-6">
-        La {scoringRunLabel(run)} no dejó nada pendiente de revisión: ningún pedido alcanzó el
-        umbral, o todas las alertas que se abrieron ya tienen veredicto. Las cifras de riesgo de
-        abajo se calculan igual sobre la corrida vigente.
+        {t.dashboard.emptyNoAlertsBody(scoringRunLabel(run, language))}
       </p>
     </section>
   );

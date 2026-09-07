@@ -227,6 +227,12 @@ namespace Salvo.Infrastructure.Persistence.Migrations
                         .HasColumnType("INTEGER")
                         .HasColumnName("input_tokens");
 
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("language");
+
                     b.Property<int?>("OutputTokens")
                         .HasColumnType("INTEGER")
                         .HasColumnName("output_tokens");
@@ -296,12 +302,12 @@ namespace Salvo.Infrastructure.Persistence.Migrations
                     b.HasIndex("RequestedFromAlertId")
                         .HasDatabaseName("ix_alert_explanations_requested_from_alert");
 
-                    b.HasIndex("RiskEvaluationId", "Provider")
+                    b.HasIndex("RiskEvaluationId", "Provider", "Language")
                         .IsUnique()
                         .HasDatabaseName("ux_alert_explanations_pending_evaluation")
                         .HasFilter("status = 'PENDING'");
 
-                    b.HasIndex("RiskEvaluationId", "Provider", "TemplateVersion", "AlertPolicyVersion")
+                    b.HasIndex("RiskEvaluationId", "Provider", "TemplateVersion", "AlertPolicyVersion", "Language")
                         .IsUnique()
                         .HasDatabaseName("ux_alert_explanations_identity");
 
@@ -311,7 +317,9 @@ namespace Salvo.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_alert_explanations_failure", "failure_code IS NULL OR status = 'FAILED'");
 
-                            t.HasCheckConstraint("ck_alert_explanations_failure_code", "failure_code IS NULL OR failure_code IN ('PROVIDER_UNAVAILABLE', 'PROVIDER_TIMEOUT', 'PROVIDER_REFUSED', 'MALFORMED_OUTPUT', 'NOT_GROUNDED_NUMBER', 'NOT_GROUNDED_RULE', 'TOO_LONG', 'CANCELLED', 'ATTEMPT_LIMIT_REACHED')");
+                            t.HasCheckConstraint("ck_alert_explanations_failure_code", "failure_code IS NULL OR failure_code IN ('PROVIDER_UNAVAILABLE', 'PROVIDER_TIMEOUT', 'PROVIDER_REFUSED', 'MALFORMED_OUTPUT', 'NOT_GROUNDED_NUMBER', 'NOT_GROUNDED_RULE', 'TOO_LONG', 'CANCELLED', 'ATTEMPT_LIMIT_REACHED', 'LEGACY_SIGNAL_FORMAT')");
+
+                            t.HasCheckConstraint("ck_alert_explanations_language", "language IN ('es', 'pt')");
 
                             t.HasCheckConstraint("ck_alert_explanations_provider", "provider IN ('MOCK', 'ANTHROPIC')");
 

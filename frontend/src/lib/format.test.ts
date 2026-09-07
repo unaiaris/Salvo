@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import { projectSignal } from "@/lib/api/guards";
-import { ruleLabel, signalSentence } from "@/lib/format";
+import { formatting } from "@/lib/format";
 import { wireLegacySignal, wireSignal } from "@/test/fixtures";
 
 /**
@@ -95,11 +95,11 @@ describe("la frase de una señal", () => {
     const projected = projectSignal(asTheApiSendsIt(row!.signal));
     expect(projected).not.toBeNull();
 
-    const sentence = signalSentence(projected!);
+    const sentence = formatting("es").signalSentence(projected!);
     expect(sentence).toBe(expected);
     // Nothing of the engine's own vocabulary survives into what an analyst reads.
     expect(sentence).not.toContain(rule);
-    expect(ruleLabel(rule)).not.toBe(rule);
+    expect(formatting("es").ruleLabel(rule)).not.toBe(rule);
   });
 
   it("cubre las seis reglas del motor", () => {
@@ -126,7 +126,7 @@ describe("la frase de una señal", () => {
     expect(prose).toBe(
       "50786 BRL cents is 3.4x the merchant median 14937 over 3 prior orders in 90 days.",
     );
-    expect(signalSentence(projected!)).toBe(prose);
+    expect(formatting("es").signalSentence(projected!)).toBe(prose);
   });
 
   /**
@@ -138,6 +138,8 @@ describe("la frase de una señal", () => {
       wireLegacySignal({ rule: "regla_futura", detail: "Algo que este build no sabe componer." }),
     );
 
-    expect(signalSentence(projected!)).toBe("Algo que este build no sabe componer.");
+    expect(formatting("es").signalSentence(projected!)).toBe(
+      "Algo que este build no sabe componer.",
+    );
   });
 });

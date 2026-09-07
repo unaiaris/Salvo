@@ -15,12 +15,16 @@
 #   1b. Evaluación externa    — el mismo corpus, con la opinión del proveedor pedida y entregada.
 #   1c. Con explicación       — el mismo corpus, con la evaluación del snapshot puesta en palabras.
 #   1d. Plantilla anterior    — una explicación que escribió una plantilla que ya no es la vigente.
+#   1e. Interruptor de idioma — la misma base y el mismo `next start`, con la API en portugués.
+#   1f. Idioma desconocido    — `SALVO_LANGUAGE=fr`: la API no arranca.
 #   2.  Base vacía            — la misma API contra una base migrada y sin un solo pedido.
-#   3.  API apagada           — el proceso de la API muerto, la consola en pie.
+#   3.  API apagada           — el proceso de la API muerto, la consola en pie y en castellano.
 #
 # El 1b y el 1c van después del 1 y no antes: el bloque externo y el de explicación tienen dos
 # estados en pantalla cada uno —sin pedir y respondido— y comprobar el segundo destruye el primero.
 # El 1d va sobre una alerta distinta por la misma razón: el 1c dejó la suya escrita con la vigente.
+# El 1e va al final de la serie porque necesita que el 1c ya haya escrito la explicación castellana:
+# lo que comprueba es que el despliegue en portugués escribe la suya al lado y no la pisa.
 #
 # Reglas que este script se impone:
 #
@@ -214,12 +218,26 @@ scenario() {
 
 # ---------------------------------------------------------------------------- arranque
 
+# El segundo argumento es el idioma del despliegue. Se pasa a la API y a nadie más: la consola lo
+# lee de `GET /api/system/capabilities`, así que el mismo `next start` sirve los dos idiomas sin
+# reconstruirse. Que este script no necesite tocar el proceso de Next para cambiar de idioma es
+# justamente la propiedad que el origen único compra.
 start_api() {
-  local database="$1"
+  local database="$1" language="${2:-}"
+  local environment=(
+    "ASPNETCORE_URLS=${api_base}"
+    "ConnectionStrings__SalvoDb=Data Source=${database}"
+    "DemoData__Enabled=true"
+  )
 
-  ASPNETCORE_URLS="$api_base" \
-  ConnectionStrings__SalvoDb="Data Source=${database}" \
-  DemoData__Enabled=true \
+  # Un arreglo y `env`, y no un prefijo `${language:+VAR=valor}` delante del comando: bash expande
+  # ese prefijo *después* de decidir cuál es la palabra del comando, así que la asignación termina
+  # siendo el comando y falla con «command not found». Verificado rompiéndolo.
+  if [[ -n "$language" ]]; then
+    environment+=("SALVO_LANGUAGE=${language}")
+  fi
+
+  env "${environment[@]}" \
     dotnet backend/src/Salvo.Api/bin/Release/net10.0/Salvo.Api.dll >>"$api_log" 2>&1 &
   api_pid=$!
 
@@ -455,15 +473,18 @@ curl -sS --max-time 30 "${api_base}/api/alerts/${older_alert_id}" \
         db.prepare(`
           INSERT INTO alert_explanations (
             id, risk_evaluation_id, provider, template_version, alert_policy_version,
-            requested_from_alert_id, status, summary, referenced_rules_json, attempt_count,
-            requested_at_utc, settled_at_utc, row_version)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, 1)
+            language, requested_from_alert_id, status, summary, referenced_rules_json,
+            attempt_count, requested_at_utc, settled_at_utc, row_version)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, 1)
         `).run(
           crypto.randomUUID(),
           detail.snapshot.evaluationId,
           "MOCK",
           "e7-v1",
           detail.alertPolicyVersion,
+          // El texto de abajo es castellano, así que la fila se marca como tal: es el idioma en el
+          // que fue escrita, no un relleno.
+          "es",
           process.env.SMOKE_ALERT,
           "READY",
           process.env.SMOKE_WORDING,
@@ -488,11 +509,144 @@ expect_no_text "/alerts/${older_alert_id}" "Volver a intentar la explicación"
 # La alerta del 1c, escrita por la plantilla vigente, no ofrece nada.
 expect_no_text "/alerts/${alert_id}" "Redactar con la plantilla vigente"
 
+# ------------------------------------------------------------------- 1e. el interruptor de idioma
+#
+# La consola en portugués, sobre la misma base y el mismo `next start`. Es lo que convierte «el
+# idioma es conmutable» en una afirmación verificada de punta a punta: el diccionario puede estar
+# completo y compilar, y la consola seguir sirviendo castellano porque el idioma nunca llegó a
+# atravesar la API.
+#
+# No se duplican las 41 anclas del recorrido castellano. Se comprueba una pantalla de cada tipo —la
+# raíz, la cola, el detalle, la importación y el panel—, el `<html lang>`, y sobre todo lo único
+# que ningún diccionario puede dar: que la explicación se vuelve a escribir en el idioma nuevo y la
+# castellana queda intacta.
+
+scenario "el interruptor de idioma"
+
+stop_api
+start_api "$db_with_data" "pt"
+
+# La API declara el idioma, y es de donde la consola lo toma.
+checks_run=$((checks_run + 1))
+if curl -sS --max-time 30 "${api_base}/api/system/capabilities" | grep -qF '"language":"pt"'; then
+  printf '  ok     %-28s la API declara «pt»\n' "capabilities"
+else
+  checks_failed=$((checks_failed + 1))
+  printf '  FALLA  %-28s la API no declara «pt»\n' "capabilities"
+fi
+
+# Una pantalla de cada tipo, en portugués.
+expect_text "/" "Console antifraude"
+expect_text "/alerts" "Fila de alertas"
+expect_text "/import" "Importação e scoring"
+expect_text "/dashboard" "Painel"
+expect_text "/alerts/${alert_id}" "Snapshot que abriu o alerta"
+expect_text "/alerts/${alert_id}" "Avaliação vigente"
+# Y nada del castellano alrededor, que es el fallo que una traducción a medias produce.
+expect_no_text "/alerts" "Cola de alertas"
+expect_no_text "/dashboard" "Monto en riesgo"
+
+# `<html lang>`. No es cosmético: sin él un lector de pantalla pronuncia el portugués con fonética
+# castellana, que es donde el idioma del despliegue y la accesibilidad se tocan.
+expect_text "/" '<html lang="pt"'
+
+# La frase de una señal, compuesta desde los campos tipados en el idioma nuevo.
+expect_text "/alerts/${anomaly_alert_id}" "vezes a mediana do estabelecimento"
+
+# ---- La comprobación que vale más que todas las demás juntas ----
+#
+# La alerta del escenario 1c tiene su explicación escrita en castellano. Un despliegue en portugués
+# tiene que ver que para él no hay ninguna, escribir la suya al lado, y dejar la castellana como
+# estaba. Sin el idioma en la identidad de la fila, encuentra la castellana, la da por buena, y no
+# escribe nunca la portuguesa: el defecto de `E7D` con otra columna en el mismo lugar.
+
+# Antes de pedir nada: para este despliegue esta evaluación no está explicada.
+expect_text "/alerts/${alert_id}" "Ainda não foi pedida uma explicação"
+expect_text "/alerts/${alert_id}" "Explicar esta avaliação"
+expect_no_text "/alerts/${alert_id}" "puntos sobre un umbral de"
+
+echo "Pidiendo la explicación de la misma evaluación, ahora en portugués…"
+portuguese_explanation_id="$(
+  curl -sS -X POST --max-time 60 -H 'Content-Type: application/json' -d '{}' \
+    "${api_base}/api/alerts/${alert_id}/explanation" \
+    | node -e 'let raw="";process.stdin.on("data",c=>raw+=c).on("end",()=>{const body=JSON.parse(raw);process.stdout.write(body.applied && body.explanation.status === "READY" ? body.explanation.id : "");})'
+)"
+[[ -n "$portuguese_explanation_id" ]] \
+  || fail "el despliegue en portugués no escribió una explicación nueva: o devolvió la castellana, o falló."
+[[ "$portuguese_explanation_id" != "$explanation_id" ]] \
+  || fail "el despliegue en portugués devolvió la misma fila que el castellano: el idioma no está en la identidad."
+echo "Explicación portuguesa: ${portuguese_explanation_id}"
+
+expect_text "/alerts/${alert_id}" "O pedido obteve"
+expect_text "/alerts/${alert_id}" "não por um modelo de linguagem"
+
+# Y las dos filas conviven en la base, con su idioma y su texto. Se lee con `node:sqlite`, sobre la
+# base temporal de este script.
+checks_run=$((checks_run + 1))
+rows="$(
+  SMOKE_DB="$db_with_data" SMOKE_ES="$explanation_id" SMOKE_PT="$portuguese_explanation_id" node -e '
+    const { DatabaseSync } = require("node:sqlite");
+    const db = new DatabaseSync(process.env.SMOKE_DB, { readOnly: true });
+    const read = (id) => db.prepare(
+      "SELECT language, substr(summary, 1, 20) AS opening FROM alert_explanations WHERE id = ?",
+    ).get(id);
+    const spanish = read(process.env.SMOKE_ES);
+    const portuguese = read(process.env.SMOKE_PT);
+    db.close();
+    const ok =
+      spanish?.language === "es"
+      && portuguese?.language === "pt"
+      && spanish.opening.startsWith("El pedido obtuvo")
+      && portuguese.opening.startsWith("O pedido obteve");
+    process.stdout.write(ok ? "ok" : `es=${JSON.stringify(spanish)} pt=${JSON.stringify(portuguese)}`);
+  ' || true
+)"
+if [[ "$rows" == "ok" ]]; then
+  printf '  ok     %-28s dos filas, «es» intacta y «pt» nueva\n' "identidad por idioma"
+else
+  checks_failed=$((checks_failed + 1))
+  printf '  FALLA  %-28s %s\n' "identidad por idioma" "$rows"
+fi
+
+# ------------------------------------------------------------- 1f. un idioma que este build no habla
+#
+# Falla al arrancar, con el molde de `AI_PROVIDER`. Caer al castellano en silencio dejaría a un
+# despliegue que quiso portugués sirviendo castellano sin que nada lo reporte — y escribiendo filas
+# marcadas `es` que el despliegue corregido no puede reutilizar.
+
+scenario "un idioma que este build no habla"
+
+stop_api
+
+checks_run=$((checks_run + 1))
+unknown_language_log="${work_dir}/api-idioma-desconocido.log"
+# En un subshell y con su stderr apagado: el proceso aborta a propósito, y bash anunciaría el
+# «Abort trap» en medio de un informe verde como si algo hubiera salido mal.
+if (
+  env "ASPNETCORE_URLS=${api_base}" \
+      "ConnectionStrings__SalvoDb=Data Source=${db_with_data}" \
+      "SALVO_LANGUAGE=fr" \
+    dotnet backend/src/Salvo.Api/bin/Release/net10.0/Salvo.Api.dll >"$unknown_language_log" 2>&1
+) 2>/dev/null
+then
+  checks_failed=$((checks_failed + 1))
+  printf '  FALLA  %-28s la API arrancó con SALVO_LANGUAGE=fr\n' "arranque"
+elif grep -qF "SALVO_LANGUAGE='fr'" "$unknown_language_log" \
+  && grep -qF "es, pt" "$unknown_language_log"; then
+  printf '  ok     %-28s no arranca, y dice cuáles valen\n' "SALVO_LANGUAGE=fr"
+else
+  checks_failed=$((checks_failed + 1))
+  printf '  FALLA  %-28s no arrancó, pero sin nombrar el valor ni los válidos\n' "SALVO_LANGUAGE=fr"
+fi
+api_pid=""
+wait_until_port_free "$api_port"
+
 # ---------------------------------------------------------------------------- 2. base vacía
+#
+# Vuelve al castellano, que es lo que un despliegue sin `SALVO_LANGUAGE` sirve.
 
 scenario "base vacía"
 
-stop_api
 start_api "$db_empty"
 
 expect_text "/import" "todavía no hay ninguno en la base"
@@ -507,7 +661,10 @@ scenario "API apagada"
 
 stop_api
 
+# Sin capacidades legibles no hay idioma que leer, y la consola se compone en castellano: el idioma
+# es una preocupación de presentación y un fallo ahí no puede dejar la página en blanco.
 expect_text "/" "Consola antifraude"
+expect_text "/" '<html lang="es"'
 expect_text "/import" "No se pudo contactar a la API"
 expect_text "/alerts" "No se pudo contactar a la API"
 expect_text "/alerts/00000000-0000-4000-8000-000000000000" "No se pudo contactar a la API"

@@ -1,5 +1,5 @@
-import type { AlertDetail, AlertSignal } from "@/lib/api/contract";
-import { severityLabel } from "@/lib/format";
+import type { AlertDetail, AlertSignal, Language } from "@/lib/api/contract";
+import { formatting } from "@/lib/format";
 
 /**
  * How far the corpus has moved from the premise the alert was opened on, and how loudly the console
@@ -16,11 +16,12 @@ export type DivergenceNotice =
   | { readonly kind: "blocking"; readonly summary: string }
   | { readonly kind: "advisory"; readonly summary: string };
 
-export function describeDivergence(detail: AlertDetail): DivergenceNotice {
+export function describeDivergence(detail: AlertDetail, language: Language): DivergenceNotice {
   const { divergence, snapshot, currentEvaluation } = detail;
+  const { t } = formatting(language);
 
   if (divergence.hasBandDivergence) {
-    return { kind: "blocking", summary: bandSummary(detail) };
+    return { kind: "blocking", summary: bandSummary(detail, language) };
   }
 
   if (currentEvaluation === null || !hasMoved(snapshot, currentEvaluation)) {
@@ -29,10 +30,10 @@ export function describeDivergence(detail: AlertDetail): DivergenceNotice {
 
   return {
     kind: "advisory",
-    summary:
-      `La evaluación del pedido cambió (${String(snapshot.score)} → ` +
-      `${String(currentEvaluation.score)}) sin cambiar de banda. Las señales vigentes están en el ` +
-      "bloque «Evaluación vigente».",
+    summary: t.alertDetail.divergenceAdvisory(
+      String(snapshot.score),
+      String(currentEvaluation.score),
+    ),
   };
 }
 
@@ -70,21 +71,26 @@ function hasMoved(
   );
 }
 
-function bandSummary(detail: AlertDetail): string {
+function bandSummary(detail: AlertDetail, language: Language): string {
   const { divergence } = detail;
-  const from = `${severityLabel(divergence.snapshotSeverity)} con score ${String(divergence.snapshotScore)}`;
+  const f = formatting(language);
+  const { t } = f;
+  const from = t.alertDetail.divergenceOpenedAt(
+    f.severityLabel(divergence.snapshotSeverity),
+    String(divergence.snapshotScore),
+  );
 
   if (divergence.currentScore === null) {
-    return (
-      `La alerta se abrió en ${from}, pero el pedido ya no tiene evaluación vigente, así que no hay ` +
-      "nada con qué comparar el snapshot."
-    );
+    return t.alertDetail.divergenceNoCurrent(from);
   }
 
   const to =
     divergence.currentSeverity === null
-      ? `score ${String(divergence.currentScore)}, por debajo del umbral de alerta y sin banda`
-      : `${severityLabel(divergence.currentSeverity)} con score ${String(divergence.currentScore)}`;
+      ? t.alertDetail.divergenceBandless(String(divergence.currentScore))
+      : t.alertDetail.divergenceOpenedAt(
+          f.severityLabel(divergence.currentSeverity),
+          String(divergence.currentScore),
+        );
 
-  return `La alerta se abrió en ${from}. La evaluación vigente está en ${to}.`;
+  return t.alertDetail.divergenceBand(from, to);
 }

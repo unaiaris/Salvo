@@ -501,8 +501,9 @@ y leída junto a la explicación se atribuye a la IA aunque la derive una tabla.
 ### AlertExplanation
 
 - `id`
-- `riskEvaluationId`, `provider`, `templateVersion`, `alertPolicyVersion`: juntos, la identidad.
-  La alerta **no** forma parte de ella: todo lo que el proveedor recibe es función de la evaluación
+- `riskEvaluationId`, `provider`, `templateVersion`, `alertPolicyVersion`, `language`: juntos, la
+  identidad. La alerta **no** forma parte de ella: todo lo que el proveedor recibe es función de la
+  evaluación
 - `providerVersion` opcional: el modelo concreto. Nunca parte de la identidad
 - `requestedFromAlertId`: procedencia, no identidad
 - `status`: `PENDING | READY | FAILED`. `FAILED` no es terminal
@@ -512,9 +513,18 @@ y leída junto a la explicación se atribuye a la IA aunque la derive una tabla.
 - timestamps de solicitud y de asentamiento
 - token de concurrencia
 
+- `language`: el idioma en el que está escrito el texto, `es` o `pt`. Es del despliegue y nunca de
+  la petición
+
 Únicos: total sobre la identidad —los reintentos ocurren sobre la misma fila, así que no bloquea
-la regeneración— y parcial sobre `(riskEvaluationId, provider)` mientras esté `PENDING`.
+la regeneración— y parcial sobre `(riskEvaluationId, provider, language)` mientras esté `PENDING`.
 `READY ⇔ summary` es una restricción de la base, no una promesa del manejador.
+
+El idioma está en los dos índices y por motivos distintos. Fuera del primero, un despliegue que
+cambia de idioma encuentra la fila del otro, la da por buena y no escribe nunca la suya —el defecto
+de `E7D` con otra columna en el mismo lugar—. Fuera del segundo, una reserva viva en un idioma hace
+que la del otro choque contra el índice en vez de escribirse, y lo que el analista ve es un error de
+base de datos.
 
 ### CallbackReceipt
 
@@ -574,17 +584,26 @@ Reglas de versionado:
 ASPNETCORE_URLS="http://127.0.0.1:5100"
 ConnectionStrings__SalvoDb="Data Source=salvo.db"
 SALVO_API_BASE_URL="http://127.0.0.1:5100"
-BUSINESS_TIMEZONE="America/Montevideo"
+SALVO_LANGUAGE="es"
 SALVO_CALLBACK_SHARED_SECRET=""
 ```
 
 `SALVO_CALLBACK_SHARED_SECRET` es la variable que el endpoint de callback lee de verdad. Sin ella
 configurada, ese endpoint responde `401` a toda petición: falla cerrado.
 
-`BUSINESS_TIMEZONE` es **del despliegue, no del comercio**: una zona por comercio sería una columna
-que el contrato de importación no tiene. Por eso el corpus de demostración vive en el corredor
-UTC−3, donde las franjas coinciden. Hoy la variable **no la lee nadie** —el huso es una constante de
-`RuleConfig`—: la Etapa 9 la saca de `.env.example` o la conecta.
+`SALVO_LANGUAGE` es `es` o `pt`, y **la lee solo la API**. Un valor desconocido impide arrancar, con
+el molde de `AI_PROVIDER`: caer al castellano en silencio dejaría a un despliegue que quiso
+portugués sirviendo castellano sin que nada lo reporte, y escribiendo filas marcadas `es` que el
+despliegue corregido no puede reutilizar. La API lo publica en `GET /api/system/capabilities` y la
+consola lo toma de ahí; el proceso de Next nunca lee esta variable, porque dos lectores
+independientes de una variable es una consola en un idioma alrededor de un párrafo en el otro. Sin
+la variable, `es`, que es el valor por defecto y el de la demostración.
+
+El huso horario de negocio **no es configurable**. Es `America/Montevideo`, una constante de
+`RuleConfig`, y es del despliegue y no del comercio: una zona por comercio sería una columna que el
+contrato de importación no tiene. Por eso el corpus de demostración vive en el corredor UTC−3, donde
+las franjas coinciden. `BUSINESS_TIMEZONE` estuvo en `.env.example` hasta la Etapa 9 sin que nadie
+la leyera, prometiendo una configuración que no existe; se sacó.
 
 ### IA posterior
 
@@ -819,6 +838,9 @@ completo el MVP local.
 | 63 | El umbral de alerta es una política de negocio, no el resultado del barrido | El barrido maximiza F1 sobre una cohorte; si sugiere otro umbral, el producto no lo adopta: lo muestra y explica la diferencia | 2026-09-07 |
 | 64 | Una versión de plantilla **no** sube si el texto no cambia | Es la contrapositiva de la 58. Dos versiones con texto idéntico hacen que la consola ofrezca redactar de nuevo para producir el mismo párrafo | 2026-09-07 |
 | 65 | El corpus de demostración se construye para que las reglas se equivoquen, y su reparto de etiquetas es propio de cada versión | Un corpus en el que el score recupera la etiqueta hace que las métricas prueben el pipeline y no el criterio. La decisión 19 sigue vigente en lo que fija —300 pedidos, 300 etiquetas, fixture explícita— y deja de fijar cuántos fraudes | 2026-09-07 |
+| 66 | El idioma lo lee **solo la API**, que lo publica en `GET /api/system/capabilities`; la consola lo toma de ahí | Dos lectores independientes de `SALVO_LANGUAGE` es un despliegue mal configurado que sirve una consola en un idioma alrededor de un párrafo en el otro, sin que nada lo reporte. Tomarlo de la respuesta vuelve esa discrepancia irrepresentable | 2026-09-07 |
+| 67 | `Accept-Language` queda descartado | Ataría la identidad de una explicación guardada a quién preguntó primero, y una evaluación acumularía una fila por lector. El idioma por persona es post-MVP y necesita autenticación para siquiera plantearse | 2026-09-07 |
+| 68 | El idioma es una columna de la identidad de la explicación y **no** una versión de plantilla | La misma plantilla escribe los dos, y llamarlas `e7-v2` y `e7-v3` volvería «redactar con la plantilla vigente» un botón que ofrece cambiar de idioma. Es la decisión 64 aplicada: sin cambio de texto no hay versión nueva | 2026-09-07 |
 
 ## 14. Mapa de documentación
 

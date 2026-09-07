@@ -324,7 +324,7 @@ En este orden, y el orden es obligatorio:
    explicación, los dos diccionarios, y el recorrido con lector de pantalla.
    **Partida en dos el 2026-09-07, después de medir la superficie**: `E9C1-IDIOMA` y
    `E9C2-ACCESIBILIDAD`. Son 52 archivos de frontend con literales, una migración, la plantilla del
-   backend y 42 anclas del smoke por un lado; y por el otro un trabajo de criterio que produce una
+   backend y 41 anclas del smoke por un lado; y por el otro un trabajo de criterio que produce una
    lista antes que código y que necesita un paso manual del coordinador en el medio. Juntas, el
    riesgo concreto era que la accesibilidad se hiciera apurada al final de una tarea agotada.
    `E9C1` va primero: la accesibilidad crea texto nuevo, y con el diccionario ya puesto ese texto

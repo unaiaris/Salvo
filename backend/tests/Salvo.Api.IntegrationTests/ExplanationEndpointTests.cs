@@ -310,6 +310,7 @@ public sealed class ExplanationEndpointTests
             ExplanationProvider.Mock,
             DeterministicExplanationProvider.Version,
             detail.AlertPolicyVersion,
+            ExplanationLanguage.Spanish,
             alertId,
             requestedAt);
 

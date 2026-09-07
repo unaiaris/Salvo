@@ -61,7 +61,35 @@ export const ALERT_FEED_PAGE_SIZE = 200;
 /** `AlertEndpoints.MaximumNoteLength`. */
 export const REVIEW_NOTE_MAX_LENGTH = 2000;
 
-export type Capabilities = ApiView<Schemas["CapabilitiesResponse"]>;
+/**
+ * The languages this console can compose itself in, mirrored from `ExplanationWireNames`.
+ *
+ * A closed catalogue rather than the `string` the schema declares, and that is the whole point: a
+ * deployment whose API announced a language the console has no dictionary for would otherwise fall
+ * back to Spanish in silence and show half a screen nobody asked for. Here the guard refuses the
+ * response instead, and the failure is visible.
+ */
+export const CONSOLE_LANGUAGES = ["es", "pt"] as const;
+
+export type Language = (typeof CONSOLE_LANGUAGES)[number];
+
+/** Spanish, which is the default of the API and the language of the demonstration. */
+export const DEFAULT_LANGUAGE: Language = "es";
+
+export function isLanguage(value: string): value is Language {
+  return (CONSOLE_LANGUAGES as readonly string[]).includes(value);
+}
+
+/**
+ * The wire shape with its language narrowed to what the console can actually render.
+ *
+ * Everything else still comes from the generated schema, so a field renamed or added in the API
+ * breaks this type and the guard that has to satisfy it — which is the protection the derivation
+ * exists for.
+ */
+export type Capabilities = Omit<ApiView<Schemas["CapabilitiesResponse"]>, "language"> & {
+  readonly language: Language;
+};
 
 export type CallbackDelivery = ApiView<Schemas["CallbackDeliverySummary"]>;
 export type CorpusExternalEvaluations = ApiView<Schemas["CorpusExternalEvaluationSummary"]>;

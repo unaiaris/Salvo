@@ -1,10 +1,10 @@
-import { EXPLANATION_STATUS, type AlertDetail, type AlertExplanation } from "@/lib/api/contract";
 import {
-  explanationFailureLabel,
-  explanationProviderLabel,
-  formatInstant,
-  ruleLabel,
-} from "@/lib/format";
+  EXPLANATION_STATUS,
+  type AlertDetail,
+  type AlertExplanation,
+  type Language,
+} from "@/lib/api/contract";
+import { formatting, type Formatting } from "@/lib/format";
 import { ExplanationActions } from "./explanation-actions";
 import type { ExplanationAsk } from "./explanation-state";
 
@@ -20,9 +20,21 @@ import type { ExplanationAsk } from "./explanation-state";
  * severity and no sentence about what to do — decision 53 — because prose sitting inside a block
  * titled "Explicación" is read as the writer's opinion, and the writer here is a provider that is
  * not allowed to have one.
+ *
+ * The paragraph itself arrives already written, in the language of the deployment, because the
+ * backend composed it and stored it that way. This block does not translate it and could not: a
+ * stored explanation is a record, and a record translated on the way to the screen is a record
+ * nobody wrote.
  */
-export function ExplanationBlock({ detail }: { readonly detail: AlertDetail }) {
+export function ExplanationBlock({
+  detail,
+  language,
+}: {
+  readonly detail: AlertDetail;
+  readonly language: Language;
+}) {
   const explanation = detail.explanation;
+  const f = formatting(language);
 
   return (
     <section
@@ -31,12 +43,9 @@ export function ExplanationBlock({ detail }: { readonly detail: AlertDetail }) {
     >
       <div>
         <h2 id="explanation-title" className="text-lg font-semibold text-slate-900">
-          Explicación
+          {f.t.alertDetail.explanationTitle}
         </h2>
-        <p className="mt-1 text-sm text-slate-600">
-          El snapshot que abrió la alerta, contado en palabras. Describe la evaluación: no cambia el
-          score, ni la severidad, ni el veredicto.
-        </p>
+        <p className="mt-1 text-sm text-slate-600">{f.t.alertDetail.explanationLead}</p>
       </div>
 
       {/*
@@ -45,46 +54,46 @@ export function ExplanationBlock({ detail }: { readonly detail: AlertDetail }) {
         reason it is kept; hiding it would destroy that record in the name of tidiness.
       */}
       {explanation?.isOutdated === true && (
-        <OutdatedNotice hasCurrent={detail.currentExplanation !== null} />
+        <OutdatedNotice hasCurrent={detail.currentExplanation !== null} f={f} />
       )}
 
-      {explanation === null ? <NeverAsked /> : <Written explanation={explanation} />}
+      {explanation === null ? <NeverAsked f={f} /> : <Written explanation={explanation} f={f} />}
 
-      <Actions explanation={explanation} alertId={detail.id} />
+      <ExplanationActions alertId={detail.id} ask={askOf(explanation)} language={language} />
     </section>
   );
 }
 
-function OutdatedNotice({ hasCurrent }: { readonly hasCurrent: boolean }) {
+function OutdatedNotice({ hasCurrent, f }: { readonly hasCurrent: boolean; readonly f: Formatting }) {
   return (
     <div
       role="note"
       className="rounded-md border border-amber-400 bg-amber-50 p-3 text-sm leading-6 text-amber-950"
     >
-      <p className="font-semibold">Esta explicación describe una evaluación que ya no es la vigente</p>
+      <p className="font-semibold">{f.t.alertDetail.explanationOutdatedTitle}</p>
       <p className="mt-1">
-        Se redactó sobre el snapshot con el que se abrió la alerta, y desde entonces el pedido tiene
-        otra evaluación. Se conserva porque es el registro de lo que se pudo leer al decidir; las
-        señales de ahora están en el bloque «Evaluación vigente».
-        {hasCurrent ? " La evaluación vigente ya tiene además su propia explicación escrita." : ""}
+        {f.t.alertDetail.explanationOutdatedBody}
+        {hasCurrent ? f.t.alertDetail.explanationOutdatedHasCurrent : ""}
       </p>
     </div>
   );
 }
 
-function NeverAsked() {
+function NeverAsked({ f }: { readonly f: Formatting }) {
   return (
-    <p className="text-sm leading-6 text-slate-700">
-      Todavía no se pidió una explicación de esta evaluación. Pedirla no cambia nada del pedido ni de
-      la alerta: se le pide el texto al proveedor de explicaciones y se verifica contra la evaluación
-      antes de guardarlo.
-    </p>
+    <p className="text-sm leading-6 text-slate-700">{f.t.alertDetail.explanationNeverAsked}</p>
   );
 }
 
-function Written({ explanation }: { readonly explanation: AlertExplanation }) {
+function Written({
+  explanation,
+  f,
+}: {
+  readonly explanation: AlertExplanation;
+  readonly f: Formatting;
+}) {
   if (explanation.status === EXPLANATION_STATUS.ready) {
-    return <ReadySummary explanation={explanation} />;
+    return <ReadySummary explanation={explanation} f={f} />;
   }
 
   if (explanation.status === EXPLANATION_STATUS.pending) {
@@ -94,19 +103,24 @@ function Written({ explanation }: { readonly explanation: AlertExplanation }) {
           Never "pendiente" on its own: an alert waiting for a verdict, an external evaluation
           waiting for the provider, an order waiting to be scored and this are four different waits.
         */}
-        <p className="text-sm font-semibold text-slate-900">Redactando la explicación…</p>
+        <p className="text-sm font-semibold text-slate-900">{f.t.alertDetail.explanationWriting}</p>
         <p className="text-xs leading-5 text-slate-600">
-          Pedida el {formatInstant(explanation.requestedAt)}. Recargá la alerta en unos segundos. Si
-          la petición quedó a medias, el próximo pedido retoma la misma fila.
+          {f.t.alertDetail.explanationWritingHint(f.formatInstant(explanation.requestedAt))}
         </p>
       </div>
     );
   }
 
-  return <Failure explanation={explanation} />;
+  return <Failure explanation={explanation} f={f} />;
 }
 
-function ReadySummary({ explanation }: { readonly explanation: AlertExplanation }) {
+function ReadySummary({
+  explanation,
+  f,
+}: {
+  readonly explanation: AlertExplanation;
+  readonly f: Formatting;
+}) {
   return (
     <div className="flex flex-col gap-2">
       <p className="whitespace-pre-wrap rounded-md border border-teal-200 bg-white p-3 text-sm leading-6 text-slate-900">
@@ -123,37 +137,52 @@ function ReadySummary({ explanation }: { readonly explanation: AlertExplanation 
           One expression rather than three, because adjacent expressions are separate text nodes in
           the server-rendered HTML and the smoke reads that HTML, not the text content of a DOM.
         */}
-        {`Redactada por una ${explanationProviderLabel(explanation.provider)} (${explanation.templateVersion}), no por un modelo${
-          explanation.settledAt === null ? "" : `, el ${formatInstant(explanation.settledAt)}`
-        }.`}{" "}
-        Cada cifra y cada regla del texto se verificaron contra esta evaluación antes de guardarlo:
-        un texto que no pasa esa comprobación no se guarda ni se muestra.
+        {f.t.alertDetail.explanationWrittenBy(
+          f.explanationProviderLabel(explanation.provider),
+          explanation.templateVersion,
+          explanation.settledAt === null
+            ? ""
+            : f.t.alertDetail.explanationWrittenAt(f.formatInstant(explanation.settledAt)),
+        )}{" "}
+        {f.t.alertDetail.explanationVerified}
       </p>
       {explanation.referencedRules.length > 0 && (
         <p className="text-xs leading-5 text-slate-600">
-          Reglas citadas: {explanation.referencedRules.map(ruleLabel).join(", ")}.
+          {f.t.alertDetail.explanationCitedRules(
+            explanation.referencedRules.map((rule) => f.ruleLabel(rule)).join(", "),
+          )}
         </p>
       )}
     </div>
   );
 }
 
-function Failure({ explanation }: { readonly explanation: AlertExplanation }) {
+function Failure({
+  explanation,
+  f,
+}: {
+  readonly explanation: AlertExplanation;
+  readonly f: Formatting;
+}) {
   return (
     <div className="flex flex-col gap-2">
       <p className="text-sm font-semibold text-slate-900">
         {explanation.failureCode === null
-          ? "La redacción terminó sin texto utilizable"
-          : explanationFailureLabel(explanation.failureCode)}
+          ? f.t.alertDetail.explanationFailedWithoutCode
+          : f.explanationFailureLabel(explanation.failureCode)}
       </p>
       <p className="text-xs leading-5 text-slate-600">
-        {explanation.attemptCount === 1
-          ? "Se intentó una vez"
-          : `Se intentó ${String(explanation.attemptCount)} veces`}
-        {explanation.settledAt === null ? "" : `; el último, el ${formatInstant(explanation.settledAt)}`}.{" "}
+        {f.t.alertDetail.explanationAttempts(
+          explanation.attemptCount,
+          f.formatCount(explanation.attemptCount),
+        )}
+        {explanation.settledAt === null
+          ? ""
+          : f.t.alertDetail.explanationLastAttempt(f.formatInstant(explanation.settledAt))}
+        {". "}
         {explanation.attemptsExhausted
-          ? "Se agotó el presupuesto de intentos, así que no se vuelve a pedir. Un veredicto no necesita explicación para emitirse."
-          : "El texto que no se pudo verificar no se guarda ni llega a esta pantalla."}
+          ? f.t.alertDetail.explanationExhausted
+          : f.t.alertDetail.explanationNotStored}
       </p>
     </div>
   );
@@ -172,16 +201,6 @@ function Failure({ explanation }: { readonly explanation: AlertExplanation }) {
  * The order of the checks is the point. A row from another template is offered the current template
  * whatever its status, because its status describes a row the request will not touch.
  */
-function Actions({
-  explanation,
-  alertId,
-}: {
-  readonly explanation: AlertExplanation | null;
-  readonly alertId: string;
-}) {
-  return <ExplanationActions alertId={alertId} ask={askOf(explanation)} />;
-}
-
 function askOf(explanation: AlertExplanation | null): ExplanationAsk {
   if (explanation === null) {
     return "first";

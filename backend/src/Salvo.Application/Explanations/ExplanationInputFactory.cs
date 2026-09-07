@@ -14,7 +14,7 @@ namespace Salvo.Application.Explanations;
 /// </remarks>
 internal static class ExplanationInputFactory
 {
-    public static ExplanationInput For(ExplanationTarget target)
+    public static ExplanationInput For(ExplanationTarget target, ExplanationLanguage language)
     {
         ArgumentNullException.ThrowIfNull(target);
 
@@ -25,6 +25,7 @@ internal static class ExplanationInputFactory
             AlertWireNames.ToWire(severity),
             target.RuleConfigVersion,
             target.AlertPolicyVersion,
+            language,
             RiskSignalSerializer.Deserialize(target.SignalsJson),
             target.AmountCents,
             target.CurrencyCode,

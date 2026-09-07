@@ -1,5 +1,5 @@
-import type { DashboardRiskBucket } from "@/lib/api/contract";
-import { formatCalendarDate, formatCount, formatPercent } from "@/lib/format";
+import type { DashboardRiskBucket, Language } from "@/lib/api/contract";
+import { formatting, type Formatting } from "@/lib/format";
 
 /**
  * Risk over time, drawn as SVG on the server.
@@ -38,7 +38,15 @@ function niceMaximum(value: number): number {
   return Math.ceil(value / step) * step;
 }
 
-export function RiskOverTimeChart({ buckets }: { readonly buckets: readonly DashboardRiskBucket[] }) {
+export function RiskOverTimeChart({
+  buckets,
+  language,
+}: {
+  readonly buckets: readonly DashboardRiskBucket[];
+  readonly language: Language;
+}) {
+  const f = formatting(language);
+  const { t } = f;
   const maximum = niceMaximum(Math.max(...buckets.map((bucket) => bucket.orderCount), 1));
   const plotWidth = PLOT_RIGHT - PLOT_LEFT;
   const plotHeight = BASELINE - PLOT_TOP;
@@ -53,7 +61,10 @@ export function RiskOverTimeChart({ buckets }: { readonly buckets: readonly Dash
   // that ever stops being true.
   const range = first === undefined || last === undefined
     ? ""
-    : `, de ${formatCalendarDate(first.weekStart)} a ${formatCalendarDate(last.weekStart)}`;
+    : t.dashboard.chartRange(
+        f.formatCalendarDate(first.weekStart),
+        f.formatCalendarDate(last.weekStart),
+      );
 
   const scale = (value: number): number => (value / maximum) * plotHeight;
   const ticks = [0, maximum / 2, maximum];
@@ -69,14 +80,14 @@ export function RiskOverTimeChart({ buckets }: { readonly buckets: readonly Dash
         aria-labelledby="risk-chart-title risk-chart-desc"
         className="w-full"
       >
-        <title id="risk-chart-title">
-          Pedidos por semana y cuántos de ellos denegó la corrida vigente
-        </title>
+        <title id="risk-chart-title">{t.dashboard.chartTitle}</title>
         <desc id="risk-chart-desc">
-          {`${String(buckets.length)} semanas${range}. `
-            + `${formatCount(totalOrders)} pedidos en total, de los cuales `
-            + `${formatCount(totalFlagged)} quedaron denegados. `
-            + "Los mismos números están en la tabla que sigue al gráfico."}
+          {t.dashboard.chartDescription(
+            String(buckets.length),
+            range,
+            f.formatCount(totalOrders),
+            f.formatCount(totalFlagged),
+          )}
         </desc>
 
         {ticks.map((tick) => {
@@ -93,7 +104,7 @@ export function RiskOverTimeChart({ buckets }: { readonly buckets: readonly Dash
                 strokeWidth={1}
               />
               <text x={PLOT_LEFT - 8} y={y + 4} textAnchor="end" fontSize={11} fill="#475569">
-                {formatCount(Math.round(tick))}
+                {f.formatCount(Math.round(tick))}
               </text>
             </g>
           );
@@ -103,13 +114,16 @@ export function RiskOverTimeChart({ buckets }: { readonly buckets: readonly Dash
           const x = PLOT_LEFT + index * slot + (slot - barWidth) / 2;
           const orderHeight = scale(bucket.orderCount);
           const flaggedHeight = scale(bucket.flaggedCount);
-          const week = formatCalendarDate(bucket.weekStart);
+          const week = f.formatCalendarDate(bucket.weekStart);
 
           return (
             <g key={bucket.weekStart}>
               <title>
-                {`Semana del ${week}: ${formatCount(bucket.orderCount)} pedidos, `
-                  + `${formatCount(bucket.flaggedCount)} denegados`}
+                {t.dashboard.chartBar(
+                  week,
+                  f.formatCount(bucket.orderCount),
+                  f.formatCount(bucket.flaggedCount),
+                )}
               </title>
               <rect
                 x={x}
@@ -154,16 +168,16 @@ export function RiskOverTimeChart({ buckets }: { readonly buckets: readonly Dash
         <g fontSize={11} fill="#334155">
           <rect x={PLOT_LEFT} y={HEIGHT - 22} width={10} height={10} fill={ORDER_FILL} />
           <text x={PLOT_LEFT + 16} y={HEIGHT - 13}>
-            Pedidos de la semana
+            {t.dashboard.chartLegendOrders}
           </text>
           <rect x={PLOT_LEFT + 150} y={HEIGHT - 22} width={10} height={10} fill={FLAGGED_FILL} />
           <text x={PLOT_LEFT + 166} y={HEIGHT - 13}>
-            Denegados por la corrida vigente
+            {t.dashboard.chartLegendFlagged}
           </text>
         </g>
       </svg>
 
-      <RiskOverTimeTable buckets={buckets} />
+      <RiskOverTimeTable buckets={buckets} f={f} />
     </div>
   );
 }
@@ -172,26 +186,32 @@ export function RiskOverTimeChart({ buckets }: { readonly buckets: readonly Dash
  * The chart's numbers, exactly. It is not a fallback: it is the version of this figure that can be
  * read aloud, sorted by eye and copied, and it is always on screen rather than folded away.
  */
-function RiskOverTimeTable({ buckets }: { readonly buckets: readonly DashboardRiskBucket[] }) {
+function RiskOverTimeTable({
+  buckets,
+  f,
+}: {
+  readonly buckets: readonly DashboardRiskBucket[];
+  readonly f: Formatting;
+}) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[32rem] border-collapse text-sm">
         <caption className="pb-2 text-left text-xs text-slate-600">
-          Pedidos y denegados por semana, los mismos datos que dibuja el gráfico.
+          {f.t.dashboard.chartTableCaption}
         </caption>
         <thead>
           <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-600">
             <th scope="col" className="py-2 pr-4 font-semibold">
-              Semana
+              {f.t.dashboard.chartColumnWeek}
             </th>
             <th scope="col" className="py-2 pr-4 text-right font-semibold">
-              Pedidos
+              {f.t.dashboard.chartColumnOrders}
             </th>
             <th scope="col" className="py-2 pr-4 text-right font-semibold">
-              Denegados
+              {f.t.dashboard.chartColumnFlagged}
             </th>
             <th scope="col" className="py-2 text-right font-semibold">
-              Proporción
+              {f.t.dashboard.chartColumnShare}
             </th>
           </tr>
         </thead>
@@ -199,18 +219,18 @@ function RiskOverTimeTable({ buckets }: { readonly buckets: readonly DashboardRi
           {buckets.map((bucket) => (
             <tr key={bucket.weekStart} className="border-b border-slate-100">
               <th scope="row" className="py-1.5 pr-4 text-left font-normal text-slate-700">
-                {formatCalendarDate(bucket.weekStart)}
+                {f.formatCalendarDate(bucket.weekStart)}
               </th>
               <td className="py-1.5 pr-4 text-right tabular-nums">
-                {formatCount(bucket.orderCount)}
+                {f.formatCount(bucket.orderCount)}
               </td>
               <td className="py-1.5 pr-4 text-right tabular-nums">
-                {formatCount(bucket.flaggedCount)}
+                {f.formatCount(bucket.flaggedCount)}
               </td>
               <td className="py-1.5 text-right tabular-nums text-slate-600">
                 {bucket.orderCount === 0
                   ? "—"
-                  : formatPercent(bucket.flaggedCount / bucket.orderCount)}
+                  : f.formatPercent(bucket.flaggedCount / bucket.orderCount)}
               </td>
             </tr>
           ))}

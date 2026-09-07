@@ -47,4 +47,24 @@ public enum ExplanationFailureCode
     /// explanation worth retrying from one that is not.
     /// </summary>
     AttemptLimitReached = 9,
+
+    /// <summary>
+    /// The evaluation states its signals the way <c>e3-v1</c> did, as sentences rather than as
+    /// fields, so no fact of it can be built and nothing about it could be verified.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// It is the only member that describes this system rather than a provider, and it exists
+    /// because the nearest of the other nine was a lie. Until <c>E9C1</c> this case was stored as
+    /// <see cref="ProviderUnavailable"/>, which reads «the provider failed before answering» and
+    /// sends an analyst to debug a provider that was never called: the attempt is refused before
+    /// anything is asked of anybody.
+    /// </para>
+    /// <para>
+    /// Unreachable on a freshly seeded database, which holds no <c>e3-v1</c> row. It is reachable
+    /// on one that crossed the version change, where the snapshot of an alert is never rewritten
+    /// (decision 33) and therefore keeps its sentences for as long as the alert exists.
+    /// </para>
+    /// </remarks>
+    LegacySignalFormat = 10,
 }

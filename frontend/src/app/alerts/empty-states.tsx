@@ -1,6 +1,7 @@
 import Link from "next/link";
-import type { ScoringRun } from "@/lib/api/contract";
 import { scoringRunLabel } from "@/components/provenance";
+import type { Language, ScoringRun } from "@/lib/api/contract";
+import { formatting } from "@/lib/format";
 
 /**
  * Three empty feeds, three different situations, three different instructions.
@@ -43,33 +44,51 @@ function EmptyState({
 }
 
 /** Nothing was ever imported. */
-export function NoOrdersEmptyState() {
+export function NoOrdersEmptyState({ language }: { readonly language: Language }) {
+  const { t } = formatting(language);
+
   return (
     <EmptyState
-      title="Todavía no hay pedidos"
-      body="La base está vacía, así que no hay nada que puntuar ni nada que revisar. Importá un archivo CSV o JSON, o cargá el corpus de demostración."
-      action={{ href: "/import", label: "Ir a importación" }}
+      title={t.alertsPage.emptyNoOrdersTitle}
+      body={t.alertsPage.emptyNoOrdersBody}
+      action={{ href: "/import", label: t.common.goToImport }}
     />
   );
 }
 
 /** There are orders, but no run ever turned them into evaluations. */
-export function NoScoringRunEmptyState({ orderCount }: { readonly orderCount: number }) {
+export function NoScoringRunEmptyState({
+  orderCount,
+  language,
+}: {
+  readonly orderCount: number;
+  readonly language: Language;
+}) {
+  const f = formatting(language);
+
   return (
     <EmptyState
-      title="Hay pedidos importados y ninguna corrida de scoring"
-      body={`Los ${String(orderCount)} pedidos de la base todavía no se puntuaron, así que no existen evaluaciones ni alertas. La cola se llena recién después de ejecutar una corrida.`}
-      action={{ href: "/import", label: "Ejecutar scoring" }}
+      title={f.t.alertsPage.emptyNoRunTitle}
+      body={f.t.alertsPage.emptyNoRunBody(f.formatCount(orderCount))}
+      action={{ href: "/import", label: f.t.common.runScoring }}
     />
   );
 }
 
 /** The corpus was scored and nothing reached the alerting floor. */
-export function NoOpenAlertsEmptyState({ run }: { readonly run: ScoringRun }) {
+export function NoOpenAlertsEmptyState({
+  run,
+  language,
+}: {
+  readonly run: ScoringRun;
+  readonly language: Language;
+}) {
+  const { t } = formatting(language);
+
   return (
     <EmptyState
-      title="No hay alertas abiertas"
-      body={`La ${scoringRunLabel(run)} no dejó ninguna alerta pendiente de revisión: ningún pedido alcanzó el umbral, o todas las alertas abiertas ya tienen veredicto.`}
+      title={t.alertsPage.emptyNoAlertsTitle}
+      body={t.alertsPage.emptyNoAlertsBody(scoringRunLabel(run, language))}
     />
   );
 }

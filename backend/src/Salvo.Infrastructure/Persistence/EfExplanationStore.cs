@@ -75,14 +75,19 @@ public sealed class EfExplanationStore(SalvoDbContext dbContext) : IExplanationS
         ExplanationProvider provider,
         string templateVersion,
         string alertPolicyVersion,
+        ExplanationLanguage language,
         CancellationToken cancellationToken)
     {
-        // Tracked: the caller goes on to move this row.
+        // Tracked: the caller goes on to move this row. Every column of the unique index is here,
+        // the language included: a lookup narrower than the index it stands for would report «no
+        // row» for something the insert then collides with, or «this row» for a paragraph written
+        // in a language this deployment does not render.
         return await dbContext.AlertExplanations.FirstOrDefaultAsync(
             explanation => explanation.RiskEvaluationId == riskEvaluationId
                 && explanation.Provider == provider
                 && explanation.TemplateVersion == templateVersion
-                && explanation.AlertPolicyVersion == alertPolicyVersion,
+                && explanation.AlertPolicyVersion == alertPolicyVersion
+                && explanation.Language == language,
             cancellationToken);
     }
 

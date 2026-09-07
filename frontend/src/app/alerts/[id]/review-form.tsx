@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { REVIEW_NOTE_MAX_LENGTH } from "@/lib/api/contract";
+import { ALERT_STATUS, REVIEW_NOTE_MAX_LENGTH, type Language } from "@/lib/api/contract";
+import { messagesFor, type Dictionary } from "@/lib/i18n/dictionary";
 import { reviewAlert } from "./review-action";
 import { INITIAL_REVIEW_STATE, REVIEW_CHOICES, type ReviewFormState } from "./review-state";
 
@@ -22,6 +23,7 @@ export function ReviewForm({
   explanationId,
   requiresAcknowledgement,
   divergenceSummary,
+  language,
 }: {
   readonly alertId: string;
   /**
@@ -35,6 +37,7 @@ export function ReviewForm({
   readonly requiresAcknowledgement: boolean;
   /** Empty unless `requiresAcknowledgement`; the sentence the analyst has to confirm. */
   readonly divergenceSummary: string;
+  readonly language: Language;
 }) {
   const [state, formAction, pending] = useActionState(reviewAlert, INITIAL_REVIEW_STATE);
 
@@ -48,6 +51,7 @@ export function ReviewForm({
         requiresAcknowledgement={requiresAcknowledgement}
         divergenceSummary={divergenceSummary}
         pending={pending}
+        t={messagesFor(language)}
       />
     </form>
   );
@@ -68,11 +72,13 @@ function ReviewFields({
   requiresAcknowledgement,
   divergenceSummary,
   pending,
+  t,
 }: {
   readonly state: ReviewFormState;
   readonly requiresAcknowledgement: boolean;
   readonly divergenceSummary: string;
   readonly pending: boolean;
+  readonly t: Dictionary;
 }) {
   const [note, setNote] = useState(state.submittedNote);
   const [status, setStatus] = useState(state.submittedStatus);
@@ -86,7 +92,7 @@ function ReviewFields({
       {requiresAcknowledgement && (
         <div className="rounded-lg border-2 border-amber-400 bg-amber-50 p-4">
           <h3 className="text-sm font-semibold text-amber-950">
-            El corpus cambió desde que se abrió esta alerta
+            {t.alertDetail.reviewAcknowledgeTitle}
           </h3>
           <p className="mt-1 text-sm leading-6 text-amber-900">{divergenceSummary}</p>
           <label className="mt-3 flex items-start gap-2 text-sm font-medium text-amber-950">
@@ -99,35 +105,45 @@ function ReviewFields({
               }}
               className="mt-1 size-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700"
             />
-            Leí en qué cambió la evaluación vigente y quiero emitir el veredicto igual.
+            {t.alertDetail.reviewAcknowledgeLabel}
           </label>
         </div>
       )}
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="text-sm font-semibold text-slate-900">Veredicto</legend>
-        {REVIEW_CHOICES.map((choice) => (
-          <label key={choice.value} className="flex items-start gap-2 text-sm text-slate-800">
-            <input
-              type="radio"
-              name="newStatus"
-              value={choice.value}
-              checked={status === choice.value}
-              onChange={() => {
-                setStatus(choice.value);
-              }}
-              className="mt-1 size-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
-            />
-            <span>
-              <span className="font-medium">{choice.label}</span>
-              <span className="block text-xs text-slate-600">{choice.hint}</span>
-            </span>
-          </label>
-        ))}
+        <legend className="text-sm font-semibold text-slate-900">
+          {t.alertDetail.reviewLegend}
+        </legend>
+        {REVIEW_CHOICES.map((choice) => {
+          const safe = choice === ALERT_STATUS.confirmedSafe;
+
+          return (
+            <label key={choice} className="flex items-start gap-2 text-sm text-slate-800">
+              <input
+                type="radio"
+                name="newStatus"
+                value={choice}
+                checked={status === choice}
+                onChange={() => {
+                  setStatus(choice);
+                }}
+                className="mt-1 size-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+              />
+              <span>
+                <span className="font-medium">
+                  {safe ? t.alertDetail.reviewSafeLabel : t.alertDetail.reviewFraudLabel}
+                </span>
+                <span className="block text-xs text-slate-600">
+                  {safe ? t.alertDetail.reviewSafeHint : t.alertDetail.reviewFraudHint}
+                </span>
+              </span>
+            </label>
+          );
+        })}
       </fieldset>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-semibold text-slate-900">Nota de la revisión (opcional)</span>
+        <span className="font-semibold text-slate-900">{t.alertDetail.reviewNoteLabel}</span>
         <textarea
           name="note"
           rows={4}
@@ -140,14 +156,12 @@ function ReviewFields({
           className="rounded-md border border-slate-300 bg-white p-2 text-sm text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
         />
         <span id="note-hint" className="text-xs text-slate-600">
-          Hasta {REVIEW_NOTE_MAX_LENGTH} caracteres. Queda en la auditoría junto al veredicto.
+          {t.alertDetail.reviewNoteHint(String(REVIEW_NOTE_MAX_LENGTH))}
         </span>
       </label>
 
       {blockedByDivergence && (
-        <p className="text-sm font-medium text-amber-900">
-          Marcá la casilla de arriba para poder enviar el veredicto.
-        </p>
+        <p className="text-sm font-medium text-amber-900">{t.alertDetail.reviewBlocked}</p>
       )}
 
       <div>
@@ -156,16 +170,22 @@ function ReviewFields({
           disabled={!canSubmit}
           className="inline-flex rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-400 hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
         >
-          {pending ? "Registrando…" : "Registrar veredicto"}
+          {pending ? t.alertDetail.reviewSubmitPending : t.alertDetail.reviewSubmit}
         </button>
       </div>
 
-      {state.outcome !== "idle" && <ReviewOutcome state={state} />}
+      {state.outcome !== "idle" && <ReviewOutcome state={state} t={t} />}
     </>
   );
 }
 
-function ReviewOutcome({ state }: { readonly state: ReviewFormState }) {
+function ReviewOutcome({
+  state,
+  t,
+}: {
+  readonly state: ReviewFormState;
+  readonly t: Dictionary;
+}) {
   const failed = state.outcome === "failed";
 
   return (
@@ -183,7 +203,9 @@ function ReviewOutcome({ state }: { readonly state: ReviewFormState }) {
         <p className="mt-1 text-sm font-medium leading-6">{state.recovery}</p>
       )}
       {state.technicalDetail !== "" && (
-        <p className="mt-2 text-xs opacity-80">Detalle técnico de la API: {state.technicalDetail}</p>
+        <p className="mt-2 text-xs opacity-80">
+          {t.common.technicalDetail(state.technicalDetail)}
+        </p>
       )}
     </section>
   );

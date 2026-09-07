@@ -376,6 +376,7 @@ public sealed class ExplanationFactsTests
             "CRITICAL",
             RuleConfig.E3V1.Version,
             "e4-v1",
+            ExplanationLanguage.Spanish,
             Signals,
             50786,
             "BRL",

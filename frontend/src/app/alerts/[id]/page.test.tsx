@@ -6,6 +6,7 @@ import {
   problemResponse,
   wireAlertDetail,
   wireExplanation,
+  mockConsoleFetch,
 } from "@/test/fixtures";
 import { renderableServerTree } from "@/test/server-tree";
 import AlertDetailPage from "./page";
@@ -26,7 +27,7 @@ afterEach(() => {
 });
 
 async function renderDetail(overrides: Record<string, unknown> = {}) {
-  fetchMock.mockResolvedValue(jsonResponse(wireAlertDetail(overrides)));
+  mockConsoleFetch(fetchMock, () => jsonResponse(wireAlertDetail(overrides)));
 
   return render(
     await renderableServerTree(AlertDetailPage({ params: Promise.resolve({ id: ALERT_ID }) })),
@@ -161,7 +162,7 @@ describe("detalle de la alerta", () => {
   });
 
   it("una alerta inexistente ofrece volver al feed", async () => {
-    fetchMock.mockResolvedValue(
+    mockConsoleFetch(fetchMock, () => 
       problemResponse(404, "ALERT_NOT_FOUND", "No alert exists with identifier 2f2b…"),
     );
 

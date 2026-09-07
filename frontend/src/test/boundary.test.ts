@@ -15,6 +15,7 @@ import {
   wireEvaluationMetrics,
   wireExplanation,
   wireExternalEvaluation,
+  mockConsoleFetch,
 } from "./fixtures";
 import {
   clientComponentFiles,
@@ -210,7 +211,7 @@ describe("frontera servidor–cliente", () => {
   });
 
   it("tampoco los pasa desde el feed", async () => {
-    fetchMock.mockResolvedValue(
+    mockConsoleFetch(fetchMock, () => 
       jsonResponse(
         wireAlertList({
           ...INTRUDERS,

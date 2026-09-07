@@ -1,5 +1,7 @@
 "use client";
 
+import type { Language } from "@/lib/api/contract";
+import { messagesFor, type Dictionary } from "@/lib/i18n/dictionary";
 import type { ActionState } from "./action-state";
 
 /**
@@ -9,7 +11,15 @@ import type { ActionState } from "./action-state";
  * because a failure here has to read like a failure anywhere else in the console: the console's own
  * sentence first, the way forward second, the API's `detail` last and only as technical background.
  */
-export function ActionOutcome({ state }: { readonly state: ActionState }) {
+export function ActionOutcome({
+  state,
+  language,
+}: {
+  readonly state: ActionState;
+  readonly language: Language;
+}) {
+  const t = messagesFor(language);
+
   if (state.outcome === "idle") {
     return null;
   }
@@ -39,11 +49,11 @@ export function ActionOutcome({ state }: { readonly state: ActionState }) {
         </ul>
       )}
 
-      {state.recordErrors.length > 0 && <RecordErrors state={state} />}
+      {state.recordErrors.length > 0 && <RecordErrors state={state} t={t} />}
 
       {state.technicalDetail !== "" && (
         <p className="mt-3 border-t border-current/20 pt-3 text-xs opacity-80">
-          Detalle técnico de la API: {state.technicalDetail}
+          {t.common.technicalDetail(state.technicalDetail)}
         </p>
       )}
     </section>
@@ -57,15 +67,13 @@ export function ActionOutcome({ state }: { readonly state: ActionState }) {
  * reads a translation of it, decided on the server. The truncation notice is not optional — the API
  * caps the list, and a shorter list read as the whole truth is worse than no list.
  */
-function RecordErrors({ state }: { readonly state: ActionState }) {
+function RecordErrors({ state, t }: { readonly state: ActionState; readonly t: Dictionary }) {
   return (
     <div className="mt-4 border-t border-current/20 pt-3">
       <h4 className="text-sm font-semibold">
-        Registros rechazados ({state.recordErrors.length})
+        {t.importPage.rejectedTitle(String(state.recordErrors.length))}
       </h4>
-      <p className="mt-1 text-xs">
-        Ninguno de estos se escribió. Los pedidos válidos del mismo archivo sí.
-      </p>
+      <p className="mt-1 text-xs">{t.importPage.rejectedHint}</p>
       <ul className="mt-2 flex max-h-80 flex-col gap-1 overflow-y-auto text-sm">
         {state.recordErrors.map((error) => (
           <li key={error} className="font-mono text-xs leading-5">
@@ -74,10 +82,7 @@ function RecordErrors({ state }: { readonly state: ActionState }) {
         ))}
       </ul>
       {state.errorsTruncated && (
-        <p className="mt-2 text-sm font-medium">
-          La API dejó de enumerar errores en este punto: hay más registros rechazados de los que se
-          listan acá.
-        </p>
+        <p className="mt-2 text-sm font-medium">{t.importPage.rejectedTruncated}</p>
       )}
     </div>
   );

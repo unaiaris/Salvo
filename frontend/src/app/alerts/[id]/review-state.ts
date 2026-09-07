@@ -43,15 +43,12 @@ export const INITIAL_REVIEW_STATE: ReviewFormState = {
   submissionId: 0,
 };
 
+/**
+ * The two verdicts, as values. The words that go with each one live in the dictionaries and are
+ * looked up where the radio is rendered: the value is a domain constant and the label is a
+ * sentence, and only one of the two changes with the reader.
+ */
 export const REVIEW_CHOICES = [
-  {
-    value: ALERT_STATUS.confirmedSafe,
-    label: "Confirmar segura",
-    hint: "El pedido no es fraude.",
-  },
-  {
-    value: ALERT_STATUS.reportedFraud,
-    label: "Reportar fraude",
-    hint: "El pedido es fraude y queda registrado como tal.",
-  },
+  ALERT_STATUS.confirmedSafe,
+  ALERT_STATUS.reportedFraud,
 ] as const;

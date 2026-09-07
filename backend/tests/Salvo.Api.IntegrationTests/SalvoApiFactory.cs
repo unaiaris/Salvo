@@ -48,6 +48,21 @@ public sealed class SalvoApiFactory : WebApplicationFactory<Program>
     }
 
     /// <summary>
+    /// A factory over a database file somebody else owns, which is what lets two hosts stand over
+    /// one database in turn.
+    /// </summary>
+    /// <remarks>
+    /// The one scenario that needs it is a deployment restarted with a different
+    /// <c>SALVO_LANGUAGE</c>: the second host has to find the rows the first one wrote. Its own
+    /// file would make the question meaningless. The caller keeps the file, so this factory does
+    /// not delete it on dispose — <see cref="DeletesDatabaseFile"/> says which of the two owns it.
+    /// </remarks>
+    public static SalvoApiFactory OverDatabaseFile(string path)
+    {
+        return new(path) { DeletesDatabaseFile = false };
+    }
+
+    /// <summary>
     /// Optional service overrides, applied after the test database is registered. Set it before the
     /// first client or service is resolved.
     /// </summary>
@@ -63,6 +78,9 @@ public sealed class SalvoApiFactory : WebApplicationFactory<Program>
     /// <see langword="false"/> are the only place where the gate is actually exercised.
     /// </remarks>
     public bool DemoDataEnabled { get; set; } = true;
+
+    /// <summary>Whether disposing removes the database file. False for a borrowed one.</summary>
+    private bool DeletesDatabaseFile { get; init; } = true;
 
     /// <summary>
     /// Extra host settings, applied before the application is built. Set them before the first
@@ -154,7 +172,7 @@ public sealed class SalvoApiFactory : WebApplicationFactory<Program>
 
         sharedConnection?.Dispose();
 
-        if (databaseFilePath is null)
+        if (databaseFilePath is null || !DeletesDatabaseFile)
         {
             return;
         }

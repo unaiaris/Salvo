@@ -3251,3 +3251,207 @@ Y dos que no estaban pedidas:
   integrado.
 
 Estado: **Lista para integrar**.
+
+## `E9C1-IDIOMA` — El idioma deja de estar escrito en el código
+
+### Identificación
+
+- Estado de la rama: `Lista para integrar`
+- Etapa: 9
+- Rama/worktree: `claude/e9c1-idioma`
+- Commit base: `163d7ea` (`docs: partir E9C en idioma y accesibilidad`), el `merge-base` real con
+  `main`. Los tres commits que lo siguen antes del código son del coordinador y de las dos vueltas
+  del `brief-check`.
+- Commit final: `bd25f5b`
+- Fecha: 2026-09-07
+
+### Resultado
+
+El idioma es una propiedad del despliegue. `SALVO_LANGUAGE=es|pt` **la lee solo la API**, que se
+niega a arrancar ante un valor desconocido con el molde de `AI_PROVIDER` y publica el que parseó en
+`GET /api/system/capabilities`. La consola lo toma de ahí y nunca lee la variable, así que un
+despliegue mal configurado no puede servir una consola en un idioma alrededor de un párrafo en el
+otro: esa discrepancia deja de ser representable. `Accept-Language` queda descartado y dicho.
+
+**El idioma entra en la identidad de la explicación**, que es la parte que no es cosmética. Es la
+quinta columna de `ux_alert_explanations_identity` y la tercera del índice parcial de `PENDING`, y
+las dos hacen falta por motivos distintos. Las tres costuras de consulta filtran por idioma, la
+lectura del detalle incluida — que es la mitad fácil de olvidar, porque escribir bien la fila
+portuguesa y seguir leyendo la castellana la deja existiendo sin que nadie la vea.
+
+La consola entera se compone desde dos diccionarios tipados, con la propiedad que no es negociable:
+una clave que falta en un idioma es un error de compilación. La plantilla del backend escribe en el
+idioma de su input, con las cifras compartidas y las palabras por idioma.
+
+`LEGACY_SIGNAL_FORMAT` es el décimo `ExplanationFailureCode` y entra en la misma migración. Una
+evaluación `e3-v1` fallaba con `PROVIDER_UNAVAILABLE`, que es falso: no se llama a ningún proveedor.
+
+### Archivos modificados
+
+**Backend — el idioma**
+
+- `backend/src/Salvo.Domain/Explanations/ExplanationLanguage.cs` (nuevo)
+- `backend/src/Salvo.Domain/Explanations/ExplanationWireNames.cs`
+- `backend/src/Salvo.Domain/Explanations/ExplanationFailureCode.cs`
+- `backend/src/Salvo.Domain/Explanations/AlertExplanation.cs`
+- `backend/src/Salvo.Domain/Explanations/ExplanationInput.cs`
+- `backend/src/Salvo.Domain/Explanations/SpanishNumberFormat.cs` →
+  `ExplanationNumberFormat.cs` (`git mv`, sin una línea de cambio en el cuerpo)
+- `backend/src/Salvo.Application/Explanations/DeploymentLanguage.cs` (nuevo)
+- `backend/src/Salvo.Application/Explanations/{IExplanationStore,ExplanationInputFactory,RequestExplanationHandler}.cs`
+- `backend/src/Salvo.Infrastructure/DependencyInjection.cs`
+- `backend/src/Salvo.Infrastructure/Persistence/ExplanationLanguageConverter.cs` (nuevo)
+- `backend/src/Salvo.Infrastructure/Persistence/Configurations/AlertExplanationConfiguration.cs`
+- `backend/src/Salvo.Infrastructure/Persistence/{EfExplanationStore,EfAlertStore}.cs`
+- `backend/src/Salvo.Infrastructure/Persistence/Migrations/20260907150822_ExplanationLanguage.*`
+- `backend/src/Salvo.Api/SystemEndpoints.cs`
+
+**Backend — la plantilla**
+
+- `backend/src/Salvo.Infrastructure/Explanations/ExplanationVocabulary.cs` (nuevo, los dos idiomas)
+- `backend/src/Salvo.Infrastructure/Explanations/ExplanationFigures.cs` (nuevo, las cifras)
+- `backend/src/Salvo.Infrastructure/Explanations/DeterministicExplanationProvider.cs`
+
+**Backend — tests**
+
+- `ExplanationLanguageTests.cs` y `ExplanationGoldenPortugueseTests.cs` (nuevos)
+- `LegacyEvaluationTests.cs`, `SalvoApiFactory.cs`, `AlertSchemaTests.cs`,
+  `ExplanationTemplateVersionTests.cs`, `ExplanationEndpointTests.cs`, `AlertReviewTests.cs`,
+  `SignalFactsGoldenTests.cs`, `ExplanationFactsTests.cs`
+
+**Frontend**
+
+- `src/lib/i18n/{dictionary.ts,es.ts,pt.ts,glosario.mjs,glosario-pt.md}` (nuevos)
+- `src/lib/format.ts` y `src/lib/api/messages.ts`, reescritos por idioma
+- `src/lib/api/{contract.ts,guards.ts,console.ts}`
+- Las cinco rutas y sus componentes: `app/layout.tsx`, `app/page.tsx`, `app/alerts/**`,
+  `app/dashboard/**`, `app/import/**`, `components/**`
+- `openapi/salvo-openapi.json` y `src/lib/api/schema.d.ts`, recapturados
+- Los tests de todo lo anterior, más `src/test/fixtures.ts`
+
+**Otros**
+
+- `.env.example`, `scripts/smoke-ui.sh`, `DesignAgent/Salvo-Blueprint.md`
+
+### Verificación
+
+| Comando / comprobación | Resultado |
+| --- | --- |
+| `./scripts/check.sh` | Verde. 0 warnings, 117 tests de dominio, 172 de integración, 245 de frontend, `check-docs.sh` con 68 comprobaciones, los dos builds |
+| `dotnet ef migrations has-pending-model-changes` | «No changes have been made to the model since the last migration» |
+| `./scripts/smoke-ui.sh` | **Verde: 71 comprobaciones, 0 fallas** (eran 52) |
+| `SALVO_LANGUAGE=fr` | La API no arranca: `SALVO_LANGUAGE='fr' is not a language this build can write. Use one of: es, pt.` |
+| Sin la variable, `./scripts/demo.sh` | Capacidades `"language":"es"`, `<html lang="es">`, las cuatro pantallas en castellano y la explicación abriendo con «El pedido obtuvo». Base nueva `salvo-demo-20260907-125920.db`; `salvo.db` con su `md5` original |
+| **Comprobación central**, en el smoke y en `ExplanationLanguageTests` | Con la explicación castellana escrita, el despliegue en `pt` la ve como no explicada, escribe una fila nueva, y las dos conviven: `es` con «El pedido obtuvo» y `pt` con «O pedido obteve», ids distintos, resto de la identidad igual |
+| Dos reservas `PENDING` en idiomas distintos | Conviven. Y dos en el **mismo** idioma siguen chocando: el índice se estrechó, no se apagó |
+| `ExplanationGoldenTests` | Pasa **sin tocar un carácter** |
+| Migración sobre una copia de `salvo.db` | Las 2 filas existentes quedan en `es` con su texto intacto; el índice lleva `language`; el `CHECK` incluye `LEGACY_SIGNAL_FORMAT` |
+| `grep -rn "BUSINESS_TIMEZONE"` | Una sola aparición, en el Blueprint, declarando que se retiró |
+
+**Las siete falsaciones.** Cada una se rompió a propósito, se corrió el test, se anotó el error y se
+deshizo.
+
+1. **El idioma fuera de la identidad.** Sacarlo del índice sola no llega a correr: EF lo frena antes
+   con `PendingModelChangesWarning`, que es su propia guarda haciendo su trabajo. Sacarlo de
+   `FindAsync` —la búsqueda que representa esa identidad— sí reproduce el defecto exacto de `E7D`:
+   `ChangingTheLanguageWritesANewRow…` falla con `Assert.True() Failure — Expected: True, Actual:
+   False` sobre `result.Applied`. El despliegue portugués encontró la fila castellana, la dio por
+   buena y no escribió nada.
+2. **El idioma fuera del índice parcial de `PENDING`.** Falsado contra el esquema anterior real:
+   una base migrada hasta `Explanations` y dos inserts que solo difieren en idioma dan
+   `UNIQUE constraint failed: alert_explanations.risk_evaluation_id, alert_explanations.provider
+   (19)`. Con el índice de esta tarea, las dos filas entran: `filas pendientes: 2, idiomas: es,pt`.
+3. **Una clave faltante que cae al castellano.** Con el tipo como está, quitar `reviewSubmit` de
+   `pt.ts` da `error TS2741: Property 'reviewSubmit' is missing…`. Cambiando `Dictionary` por una
+   mezcla con caída silenciosa y quitando la misma clave: **0 errores de tipos y 239 de 239 tests
+   verdes**. Ése es el punto: el modo de falla es invisible, y lo que se vería es un botón en
+   castellano en una consola portuguesa.
+4. **`SALVO_LANGUAGE=fr`.** La API muere en el arranque con el mensaje de arriba, que nombra el
+   valor recibido y los válidos.
+5. **`PROVIDER_UNAVAILABLE` en la evaluación `e3-v1`.**
+   `Assert.Equal() Failure: Strings differ — Expected: "LEGACY_SIGNAL_FORMAT", Actual:
+   "PROVIDER_UNAVAILABLE"`.
+6. **La lectura de la consola sin filtrar por idioma.** `TheConsoleReadsTheExplanationOfItsOwnLanguage`
+   falla con `Assert.Null() Failure: Value is not null` y el valor es la explicación castellana
+   entera —«El pedido obtuvo 70 puntos…»— servida a un lector portugués. Es el modo de falla más
+   caro de la tarea: la fila correcta existe, nadie la ve, y todo lo demás está verde.
+7. **`projectCapabilities` sin tocar tras la recaptura.**
+   `src/lib/api/guards.ts(795,3): error TS2741: Property 'language' is missing…`. Salió sola al
+   recapturar, antes de que hiciera falta provocarla.
+
+### Decisiones y supuestos
+
+- **El décimo código se llama `LEGACY_SIGNAL_FORMAT`.** Nombra la causa —la evaluación guarda sus
+  señales en el formato anterior del motor— y no un síntoma, y entra en los 21 caracteres que la
+  columna admite. Era decisión delegada.
+- **`SpanishNumberFormat` pasó a `ExplanationNumberFormat`** con `git mv` y sin una línea de cambio
+  en el cuerpo: el portugués de Brasil usa los mismos separadores. `git rm` está denegado y esto no
+  es un borrado.
+- **El diccionario es un objeto anidado y `Dictionary` es `typeof es`.** Los valores son frases
+  enteras, y las que llevan cifras son funciones de esas cifras. Era decisión delegada, con la
+  restricción que no lo era.
+- **El idioma baja como primitiva y los componentes cliente buscan sus propias palabras.** Es la
+  lección de `E7B`: un rótulo pasado como prop viaja en el payload RSC de toda página, haya control
+  o no. Los dos diccionarios entran al bundle del cliente, que para una consola de cinco rutas es el
+  precio correcto.
+- **La raíz deja de ser estática, y se elige.** El `<html lang>` vive en el layout, el layout envuelve
+  todas las rutas, y leer las capacidades ahí las vuelve dinámicas. La alternativa era un segundo
+  lector de `SALVO_LANGUAGE` dentro del proceso de Next, que es exactamente la discrepancia que el
+  origen único existe para impedir. El comentario de `page.tsx` lo dice en vez de seguir afirmando lo
+  contrario.
+- **`fetchCapabilities` quedó memoizada y las tres pantallas que ya la piden derivan el idioma de esa
+  misma respuesta.** No estaba en el brief: apareció porque el test que afirma «no pregunta por las
+  capacidades más de una vez» se puso rojo, y tenía razón. `cache()` de React no se puede observar
+  bajo Vitest, así que la propiedad se sostiene en el código y no en el framework.
+- **El glosario vive en `frontend/src/lib/i18n/glosario-pt.md`, no en `docs/`**, que está reservado
+  para `E9D`. Queda al lado de lo que describe, que además es mejor para quien lo corrige. **528
+  entradas**, regenerables con `glosario.mjs`, y su primera línea dice que el portugués no lo revisó
+  un hablante nativo.
+- **`error.message` de un registro rechazado sigue en inglés**, y hay un test que lo afirma. Es la
+  única parte de esa frase que la consola no escribe: nombra el valor rechazado, y es detalle técnico
+  y no explicación. El código que lo acompaña sí se traduce, que es el ítem del checklist.
+- **`REVIEW_CHOICES` perdió sus palabras** y quedó como los dos valores de dominio. El rótulo se
+  busca donde se pinta el radio.
+- **Los tests de acciones de servidor cambiaron de forma**, porque el comportamiento cambió: cada
+  acción pregunta el idioma antes de hacer nada. `mockConsoleFetch` en las fixtures contesta esa ruta
+  y entrega una respuesta nueva por llamada — un `Response` se lee una sola vez, y `mockResolvedValue`
+  devolvía siempre el mismo objeto. Las aserciones que indexaban `mock.calls[0]` ahora buscan la
+  llamada que les importa.
+- **La versión de plantilla no subió** (decisión 64). El castellano no cambió un byte.
+
+### Riesgos o pendientes
+
+- **El portugués no lo revisó un hablante nativo.** Está dicho en `pt.ts`, en el glosario, en los
+  dorados portugueses y en el vocabulario del backend. La palabra que más conviene revisar es
+  «estabelecimento» para *comercio*: es la del mercado adquirente brasileño, pero es una elección.
+- **La raíz es dinámica desde ahora.** Ningún documento público afirmaba que fuera estática —lo
+  comprobé—, así que no hay nada que corregir fuera del comentario de `page.tsx`, pero es un cambio
+  de forma del build que conviene tener presente.
+- **Las cuatro anclas de `tools/capturas/capturar.mjs` siguen en castellano y no se tocaron**, como
+  el brief exige. Las capturas de `E9D` salen en `es` y siguen valiendo.
+- **Nadie traduce lo ya guardado, por diseño.** Una explicación escrita en castellano se queda en
+  castellano; el despliegue portugués escribe la suya al lado. Traducir una fila guardada sería
+  inventar un registro que nadie escribió.
+- **Un `e3-v1` en portugués sigue fallando con `LEGACY_SIGNAL_FORMAT`**, y el rótulo está en los dos
+  idiomas. Sobre una base recién sembrada el caso no existe.
+- **La pasada `pt` del smoke cubre cinco pantallas y la comprobación central, no las 41 anclas.** Es
+  deliberado y está escrito en el script: duplicarlas a mano era exactamente lo que el brief prohibía.
+- **`E9C2` hereda un diccionario puesto**, que es la razón por la que va después: el texto que cree
+  la pasada de accesibilidad nace en los dos idiomas en vez de nacer en castellano y traducirse.
+
+### Integración
+
+- Orden sugerido: esta rama sola. `E9C2` y `E9D` dependen de ella integrada.
+- **Migraciones: una**, `20260907150822_ExplanationLanguage`. Rellena `es` en las filas existentes,
+  agrega el idioma a los dos índices y el décimo código al `CHECK`. Probada sobre una copia de
+  `salvo.db`, que quedó correcta. Toda base anterior al merge la necesita.
+- Hay recaptura de OpenAPI y de `schema.d.ts`, ya versionadas.
+- **Integrar por merge y no por rebase**: rebasar movería el `merge-base` y volvería falso el commit
+  base declarado arriba.
+- Posibles conflictos: `main` no se movió desde `163d7ea`. Si se moviera, los puntos de roce son el
+  Blueprint, `scripts/smoke-ui.sh` y el borde del contrato.
+- Verificación posterior al merge: `./scripts/check.sh` y `./scripts/smoke-ui.sh` sobre el estado
+  integrado. Y, si se quiere verlo a mano, `./scripts/demo.sh` para el castellano y la misma base con
+  `SALVO_LANGUAGE=pt` para el portugués: es el mismo `next start`.
+
+Estado: **Lista para integrar**.

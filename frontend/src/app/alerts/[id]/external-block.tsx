@@ -3,14 +3,9 @@ import {
   type AlertDetail,
   type AlertEvaluation,
   type AlertExternalEvaluation,
+  type Language,
 } from "@/lib/api/contract";
-import {
-  externalErrorLabel,
-  externalSourceLabel,
-  externalStatusLabel,
-  formatInstant,
-  providerLabel,
-} from "@/lib/format";
+import { formatting, type Formatting } from "@/lib/format";
 import { ExternalActions } from "./external-actions";
 
 /**
@@ -25,11 +20,14 @@ import { ExternalActions } from "./external-actions";
 export function ExternalEvaluationBlock({
   detail,
   triggerEnabled,
+  language,
 }: {
   readonly detail: AlertDetail;
   readonly triggerEnabled: boolean;
+  readonly language: Language;
 }) {
   const external = detail.externalEvaluation;
+  const f = formatting(language);
 
   return (
     <section
@@ -38,20 +36,20 @@ export function ExternalEvaluationBlock({
     >
       <div>
         <h2 id="external-title" className="text-lg font-semibold text-slate-900">
-          Evaluación externa
+          {f.t.alertDetail.externalTitle}
         </h2>
         <p className="mt-1 text-sm text-slate-600">
           {external === null
-            ? "Una segunda opinión, de un proveedor antifraude externo. Todavía no se pidió ninguna para este pedido."
-            : `${providerLabel(external.provider)}. El proveedor opina; la decisión sigue siendo del comercio.`}
+            ? f.t.alertDetail.externalNever
+            : f.t.alertDetail.externalProvider(f.providerLabel(external.provider))}
         </p>
       </div>
 
-      {external !== null && <ExternalState external={external} />}
+      {external !== null && <ExternalState external={external} f={f} />}
       {external !== null && (
-        <Divergence external={external} current={detail.currentEvaluation} />
+        <Divergence external={external} current={detail.currentEvaluation} f={f} />
       )}
-      {external?.hasContradictoryCallback === true && <Contradiction />}
+      {external?.hasContradictoryCallback === true && <Contradiction f={f} />}
 
       <ExternalActions
         orderId={detail.orderId}
@@ -59,38 +57,50 @@ export function ExternalEvaluationBlock({
         externalEvaluationId={external === null ? "" : external.id}
         canRequest={external === null}
         canDeliver={triggerEnabled && external?.status === EXTERNAL_STATUS.pending}
+        language={language}
       />
     </section>
   );
 }
 
-function ExternalState({ external }: { readonly external: AlertExternalEvaluation }) {
+function ExternalState({
+  external,
+  f,
+}: {
+  readonly external: AlertExternalEvaluation;
+  readonly f: Formatting;
+}) {
   return (
     <div className="flex flex-col gap-2">
       <p className="text-lg font-semibold text-slate-900">
-        {externalStatusLabel(external.status)}
+        {f.externalStatusLabel(external.status)}
       </p>
       <p className="text-xs leading-5 text-slate-600">
-        Pedida el {formatInstant(external.requestedAt)}
+        {f.t.alertDetail.externalRequestedAt(f.formatInstant(external.requestedAt))}
         {external.settledAt !== null && external.settledBy !== null
-          ? `. Respondida el ${formatInstant(external.settledAt)}, ${externalSourceLabel(external.settledBy)}.`
+          ? f.t.alertDetail.externalSettledAt(
+              f.formatInstant(external.settledAt),
+              f.externalSourceLabel(external.settledBy),
+            )
           : "."}
       </p>
       {external.score !== null && (
         <p className="text-xs leading-5 text-slate-600">
-          Score del proveedor: <span className="tabular-nums">{external.score}</span>. Está en la
-          escala del proveedor y no se compara con el score local, que es otra escala de otro
-          sistema.
+          {f.t.alertDetail.externalScore}{" "}
+          <span className="tabular-nums">{external.score}</span>
+          {f.t.alertDetail.externalScoreHint}
         </p>
       )}
       {external.errorCode !== null && (
-        <p className="text-sm leading-6 text-slate-800">{externalErrorLabel(external.errorCode)}.</p>
+        <p className="text-sm leading-6 text-slate-800">
+          {f.externalErrorLabel(external.errorCode)}.
+        </p>
       )}
       {external.lastErrorCode !== null && external.status === EXTERNAL_STATUS.pending && (
         <p className="text-sm leading-6 text-amber-900">
-          Último intento fallido: {externalErrorLabel(external.lastErrorCode).toLowerCase()}. La
-          evaluación sigue esperando al proveedor: un intento que no llegó a respuesta no es un
-          veredicto.
+          {f.t.alertDetail.externalLastError(
+            f.externalErrorLabel(external.lastErrorCode).toLowerCase(),
+          )}
         </p>
       )}
     </div>
@@ -104,9 +114,11 @@ function ExternalState({ external }: { readonly external: AlertExternalEvaluatio
 function Divergence({
   external,
   current,
+  f,
 }: {
   readonly external: AlertExternalEvaluation;
   readonly current: AlertEvaluation | null;
+  readonly f: Formatting;
 }) {
   if (current === null) {
     return null;
@@ -122,40 +134,37 @@ function Divergence({
       role="note"
       className="rounded-md border border-violet-400 bg-white p-3 text-sm leading-6 text-slate-800"
     >
-      <p className="font-semibold text-slate-900">Los dos criterios no coinciden</p>
+      <p className="font-semibold text-slate-900">{f.t.alertDetail.externalDisagreementTitle}</p>
       <ul className="mt-2 flex flex-col gap-1">
         <li>
-          <span className="font-medium">Motor local:</span>{" "}
+          <span className="font-medium">{f.t.alertDetail.externalLocalLabel}</span>{" "}
           {current.isFlagged
-            ? "marcó el pedido por encima del umbral."
-            : "dejó el pedido por debajo del umbral."}{" "}
-          Reglas deterministas sobre la historia del comprador.
+            ? f.t.alertDetail.externalLocalFlagged
+            : f.t.alertDetail.externalLocalNotFlagged}{" "}
+          {f.t.alertDetail.externalLocalHint}
         </li>
         <li>
-          <span className="font-medium">Proveedor externo:</span>{" "}
-          {externalVerdict ? "denegó el pedido." : "aprobó el pedido."}{" "}
+          <span className="font-medium">{f.t.alertDetail.externalProviderLabel}</span>{" "}
+          {externalVerdict
+            ? f.t.alertDetail.externalProviderDenied
+            : f.t.alertDetail.externalProviderApproved}{" "}
           {external.settledBy === null
             ? ""
-            : `Llegó ${externalSourceLabel(external.settledBy)}.`}
+            : f.t.alertDetail.externalArrived(f.externalSourceLabel(external.settledBy))}
         </li>
       </ul>
-      <p className="mt-2">
-        No se combinan en un veredicto único ni se comparan sus scores. La discrepancia es
-        información para quien revisa, no una operación aritmética.
-      </p>
+      <p className="mt-2">{f.t.alertDetail.externalDisagreementHint}</p>
     </div>
   );
 }
 
-function Contradiction() {
+function Contradiction({ f }: { readonly f: Formatting }) {
   return (
     <p
       role="status"
       className="rounded-md border border-amber-400 bg-amber-50 p-3 text-sm leading-6 text-amber-950"
     >
-      El proveedor envió un veredicto contradictorio: después de responder, mandó otro distinto sobre
-      la misma evaluación. Vale el primero —una evaluación con veredicto no se reabre— y la
-      contradicción queda registrada en vez de descartarse en silencio.
+      {f.t.alertDetail.externalContradiction}
     </p>
   );
 }

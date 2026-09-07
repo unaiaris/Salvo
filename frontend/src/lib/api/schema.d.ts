@@ -527,6 +527,7 @@ export interface components {
         CapabilitiesResponse: {
             demoDataEnabled: boolean;
             externalCallbackTriggerEnabled: boolean;
+            language: string;
         };
         ConfusionMatrixView: {
             /** Format: int32 */

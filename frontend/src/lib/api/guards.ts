@@ -1,4 +1,4 @@
-import { EXPLANATION_STATUS } from "./contract";
+import { EXPLANATION_STATUS, isLanguage } from "./contract";
 import type {
   AlertDetail,
   Capabilities,
@@ -779,6 +779,11 @@ export function projectOrderCount(value: unknown): Pick<OrderList, "totalCount">
   return totalCount === null ? null : { totalCount };
 }
 
+/**
+ * The language is projected like every other field and, unlike most, it is also checked against a
+ * closed catalogue. A value this console has no dictionary for is a contract mismatch and says so;
+ * rendering Spanish around it would be the silent failure the whole arrangement exists to prevent.
+ */
 export function projectCapabilities(value: unknown): Capabilities | null {
   const raw = asRecord(value);
   if (raw === null) {
@@ -787,12 +792,18 @@ export function projectCapabilities(value: unknown): Capabilities | null {
 
   const demoDataEnabled = flag(raw.demoDataEnabled);
   const externalCallbackTriggerEnabled = flag(raw.externalCallbackTriggerEnabled);
+  const language = text(raw.language);
 
-  if (demoDataEnabled === null || externalCallbackTriggerEnabled === null) {
+  if (
+    demoDataEnabled === null
+    || externalCallbackTriggerEnabled === null
+    || language === null
+    || !isLanguage(language)
+  ) {
     return null;
   }
 
-  return { demoDataEnabled, externalCallbackTriggerEnabled };
+  return { demoDataEnabled, externalCallbackTriggerEnabled, language };
 }
 
 export function projectExternalEvaluationRequest(

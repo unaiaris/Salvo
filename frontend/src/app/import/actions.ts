@@ -1,15 +1,20 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { importOrders, runScoring, seedDemoOrders } from "@/lib/api/console";
+import { deploymentLanguage, importOrders, runScoring, seedDemoOrders } from "@/lib/api/console";
 import {
   deliverExternalCallbacks,
   requestCorpusExternalEvaluations,
 } from "@/lib/api/external";
-import { IMPORT_FORMATS, type ImportFormat, type ImportRecordError } from "@/lib/api/contract";
+import {
+  IMPORT_FORMATS,
+  type ImportFormat,
+  type ImportRecordError,
+  type Language,
+} from "@/lib/api/contract";
 import type { ApiFailure } from "@/lib/api/failures";
 import { describeFailure } from "@/lib/api/messages";
-import { formatCount, formatInstant, importErrorLabel } from "@/lib/format";
+import { formatting, type Formatting } from "@/lib/format";
 import { type ActionState, INITIAL_ACTION_STATE } from "./action-state";
 
 /**
@@ -28,8 +33,8 @@ function revalidateConsole(): void {
   revalidatePath("/alerts");
 }
 
-function failed(failure: ApiFailure, submissionId: number): ActionState {
-  const message = describeFailure(failure);
+function failed(failure: ApiFailure, language: Language, submissionId: number): ActionState {
+  const message = describeFailure(failure, language);
 
   return {
     ...INITIAL_ACTION_STATE,
@@ -44,10 +49,13 @@ function failed(failure: ApiFailure, submissionId: number): ActionState {
 
 export async function seedDemoCorpus(previous: ActionState): Promise<ActionState> {
   const submissionId = previous.submissionId + 1;
+  const language = await deploymentLanguage();
+  const f = formatting(language);
+  const { outcomes } = f.t;
   const result = await seedDemoOrders();
 
   if (!result.ok) {
-    return failed(result.failure, submissionId);
+    return failed(result.failure, language, submissionId);
   }
 
   revalidateConsole();
@@ -57,18 +65,18 @@ export async function seedDemoCorpus(previous: ActionState): Promise<ActionState
   return {
     ...INITIAL_ACTION_STATE,
     outcome: "done",
-    title: inserted === 0 ? "El corpus de demostración ya estaba cargado" : "Corpus cargado",
-    body:
-      inserted === 0
-        ? "La carga es idempotente: los pedidos ya estaban en la base y no se duplicó ninguno."
-        : "Los pedidos quedaron en la base. Todavía no tienen evaluación ni alerta.",
-    recovery: "Ejecutá una corrida de scoring para puntuarlos.",
+    title: inserted === 0 ? outcomes.seedAlreadyLoadedTitle : outcomes.seedLoadedTitle,
+    body: inserted === 0 ? outcomes.seedAlreadyLoadedBody : outcomes.seedLoadedBody,
+    recovery: outcomes.seedRecovery,
     technicalDetail: "",
     facts: [
-      `Versión de la fixture: ${seed.datasetVersion}`,
-      `Pedidos insertados: ${formatCount(inserted)} de ${formatCount(seed.totalOrders)}`,
-      `Pedidos ya presentes: ${formatCount(seed.duplicateOrders)}`,
-      `Etiquetas insertadas: ${formatCount(seed.insertedLabels)} de ${formatCount(seed.totalLabels)}`,
+      outcomes.seedFactVersion(seed.datasetVersion),
+      outcomes.seedFactInserted(f.formatCount(inserted), f.formatCount(seed.totalOrders)),
+      outcomes.seedFactDuplicates(f.formatCount(seed.duplicateOrders)),
+      outcomes.seedFactLabels(
+        f.formatCount(seed.insertedLabels),
+        f.formatCount(seed.totalLabels),
+      ),
     ],
     submissionId,
   };
@@ -79,6 +87,9 @@ export async function importOrderFile(
   formData: FormData,
 ): Promise<ActionState> {
   const submissionId = previous.submissionId + 1;
+  const language = await deploymentLanguage();
+  const f = formatting(language);
+  const { outcomes } = f.t;
   const file = formData.get("file");
   const format = readFormat(formData.get("format"));
 
@@ -86,12 +97,17 @@ export async function importOrderFile(
   // upload. Answering here uses the same catalogue entry the API would have produced, without the
   // round trip.
   if (!(file instanceof File) || file.size === 0) {
-    return failed({ kind: "problem", status: 400, code: "FILE_REQUIRED", detail: null }, submissionId);
+    return failed(
+      { kind: "problem", status: 400, code: "FILE_REQUIRED", detail: null },
+      language,
+      submissionId,
+    );
   }
 
   if (format === null) {
     return failed(
       { kind: "problem", status: 415, code: "UNSUPPORTED_FORMAT", detail: null },
+      language,
       submissionId,
     );
   }
@@ -99,7 +115,7 @@ export async function importOrderFile(
   const result = await importOrders(file, format);
 
   if (!result.ok) {
-    return failed(result.failure, submissionId);
+    return failed(result.failure, language, submissionId);
   }
 
   revalidateConsole();
@@ -109,20 +125,18 @@ export async function importOrderFile(
     outcome: "done",
     title:
       imported.importedCount === 0
-        ? "No se importó ningún pedido"
-        : `Se importaron ${formatCount(imported.importedCount)} pedidos`,
-    body:
-      "La importación es estricta por registro y atómica por archivo: los pedidos válidos se "
-      + "escribieron todos juntos y los rechazados no se escribieron nunca.",
-    recovery: "Los pedidos nuevos no tienen evaluación hasta que ejecutes una corrida de scoring.",
+        ? outcomes.importNoneTitle
+        : outcomes.importSomeTitle(f.formatCount(imported.importedCount)),
+    body: outcomes.importBody,
+    recovery: outcomes.importRecovery,
     technicalDetail: "",
     facts: [
-      `Registros leídos: ${formatCount(imported.totalRecords)}`,
-      `Importados: ${formatCount(imported.importedCount)}`,
-      `Duplicados, ya presentes con los mismos datos: ${formatCount(imported.duplicateCount)}`,
-      `Rechazados: ${formatCount(imported.invalidRecordCount)}`,
+      outcomes.importFactRead(f.formatCount(imported.totalRecords)),
+      outcomes.importFactImported(f.formatCount(imported.importedCount)),
+      outcomes.importFactDuplicates(f.formatCount(imported.duplicateCount)),
+      outcomes.importFactRejected(f.formatCount(imported.invalidRecordCount)),
     ],
-    recordErrors: imported.errors.map(describeRecordError),
+    recordErrors: imported.errors.map((error) => describeRecordError(error, f)),
     errorsTruncated: imported.errorsTruncated,
     submissionId,
   };
@@ -130,10 +144,13 @@ export async function importOrderFile(
 
 export async function executeScoringRun(previous: ActionState): Promise<ActionState> {
   const submissionId = previous.submissionId + 1;
+  const language = await deploymentLanguage();
+  const f = formatting(language);
+  const { outcomes } = f.t;
   const result = await runScoring();
 
   if (!result.ok) {
-    return failed(result.failure, submissionId);
+    return failed(result.failure, language, submissionId);
   }
 
   revalidateConsole();
@@ -142,22 +159,19 @@ export async function executeScoringRun(previous: ActionState): Promise<ActionSt
   return {
     ...INITIAL_ACTION_STATE,
     outcome: "done",
-    title: `Corrida #${formatCount(run.sequence)} completada`,
-    body:
-      "Ya existe una evaluación vigente por pedido y las alertas que correspondían quedaron "
-      + "abiertas. Una evaluación reusada es una cuyo resultado no cambió: mismo corpus, misma "
-      + "configuración, mismo resultado.",
-    recovery: "Revisá la cola de alertas o mirá el dashboard.",
+    title: outcomes.scoringTitle(f.formatCount(run.sequence)),
+    body: outcomes.scoringBody,
+    recovery: outcomes.scoringRecovery,
     technicalDetail: "",
     facts: [
-      `Configuración de reglas: ${run.ruleConfigVersion}`,
-      `Terminó: ${formatInstant(run.completedAt)}`,
-      `Pedidos evaluados: ${formatCount(run.orderCount)}`,
-      `Evaluaciones creadas: ${formatCount(run.evaluationsCreated)}`,
-      `Evaluaciones reusadas: ${formatCount(run.evaluationsReused)}`,
-      `Alertas abiertas: ${formatCount(run.alertsCreated)}`,
-      `Omitidas por tener ya una alerta abierta: ${formatCount(run.alertsSkippedOpen)}`,
-      `Omitidas por tener ya un veredicto: ${formatCount(run.alertsSkippedReviewed)}`,
+      outcomes.scoringFactConfig(run.ruleConfigVersion),
+      outcomes.scoringFactFinished(f.formatInstant(run.completedAt)),
+      outcomes.scoringFactOrders(f.formatCount(run.orderCount)),
+      outcomes.scoringFactCreated(f.formatCount(run.evaluationsCreated)),
+      outcomes.scoringFactReused(f.formatCount(run.evaluationsReused)),
+      outcomes.scoringFactAlerts(f.formatCount(run.alertsCreated)),
+      outcomes.scoringFactSkippedOpen(f.formatCount(run.alertsSkippedOpen)),
+      outcomes.scoringFactSkippedReviewed(f.formatCount(run.alertsSkippedReviewed)),
     ],
     submissionId,
   };
@@ -172,10 +186,13 @@ export async function executeScoringRun(previous: ActionState): Promise<ActionSt
  */
 export async function requestCorpusExternal(previous: ActionState): Promise<ActionState> {
   const submissionId = previous.submissionId + 1;
+  const language = await deploymentLanguage();
+  const f = formatting(language);
+  const { outcomes } = f.t;
   const result = await requestCorpusExternalEvaluations();
 
   if (!result.ok) {
-    return failed(result.failure, submissionId);
+    return failed(result.failure, language, submissionId);
   }
 
   revalidateConsole();
@@ -186,22 +203,19 @@ export async function requestCorpusExternal(previous: ActionState): Promise<Acti
     outcome: "done",
     title:
       summary.requested === 0
-        ? "El proveedor ya conocía todos los pedidos"
-        : `Se consultaron ${formatCount(summary.requested)} pedidos`,
-    body:
-      "Cada pedido pasa por el mismo caso de uso que una consulta suelta: la fila se reserva antes "
-      + "de llamar al proveedor, así que dos consultas simultáneas no crean dos evaluaciones del "
-      + "lado del proveedor.",
+        ? outcomes.corpusExternalKnownTitle
+        : outcomes.corpusExternalRequestedTitle(f.formatCount(summary.requested)),
+    body: outcomes.corpusExternalBody,
     recovery:
       summary.stillPending === 0
-        ? "El veredicto de cada pedido aparece en el detalle de su alerta."
-        : "Los que siguen esperando al proveedor se cierran entregando sus callbacks o reconciliando.",
+        ? outcomes.corpusExternalSettledRecovery
+        : outcomes.corpusExternalPendingRecovery,
     facts: [
-      `Pedidos sin evaluación externa: ${formatCount(summary.examined)}`,
-      `Consultados: ${formatCount(summary.requested)}`,
-      `Con veredicto en el acto: ${formatCount(summary.settled)}`,
-      `Esperando al proveedor: ${formatCount(summary.stillPending)}`,
-      `Omitidos, ya tenían evaluación: ${formatCount(summary.skipped)}`,
+      outcomes.corpusExternalFactExamined(f.formatCount(summary.examined)),
+      outcomes.corpusExternalFactRequested(f.formatCount(summary.requested)),
+      outcomes.corpusExternalFactSettled(f.formatCount(summary.settled)),
+      outcomes.corpusExternalFactPending(f.formatCount(summary.stillPending)),
+      outcomes.corpusExternalFactSkipped(f.formatCount(summary.skipped)),
     ],
     submissionId,
   };
@@ -217,10 +231,13 @@ export async function requestCorpusExternal(previous: ActionState): Promise<Acti
  */
 export async function deliverAllCallbacks(previous: ActionState): Promise<ActionState> {
   const submissionId = previous.submissionId + 1;
+  const language = await deploymentLanguage();
+  const f = formatting(language);
+  const { outcomes } = f.t;
   const result = await deliverExternalCallbacks(null);
 
   if (!result.ok) {
-    return failed(result.failure, submissionId);
+    return failed(result.failure, language, submissionId);
   }
 
   revalidateConsole();
@@ -235,26 +252,21 @@ export async function deliverAllCallbacks(previous: ActionState): Promise<Action
     outcome: "done",
     title:
       delivery.examined === 0
-        ? "No hay ninguna evaluación externa esperando al proveedor"
+        ? outcomes.deliverNoneTitle
         : allReplayed
-          ? `Los ${formatCount(delivery.delivered)} callbacks ya se habían recibido`
-          : `Se entregaron ${formatCount(delivery.delivered)} callbacks`,
-    body: allReplayed
-      ? "Cada mensaje es idéntico a uno ya registrado, así que no se repitió ningún efecto: se anotó "
-        + "que el proveedor los volvió a enviar y nada más."
-      : "Los callbacks entran por el mismo caso de uso que usaría el proveedor: mismo recibo, misma "
-        + "deduplicación, mismas reglas de transición. Quien pulsa elige qué evaluación, nunca qué "
-        + "responde el proveedor.",
+          ? outcomes.deliverReplayedTitle(f.formatCount(delivery.delivered))
+          : outcomes.deliverDoneTitle(f.formatCount(delivery.delivered)),
+    body: allReplayed ? outcomes.deliverReplayedBody : outcomes.deliverDoneBody,
     recovery:
       delivery.examined === 0
-        ? "Solicitá evaluaciones externas del corpus para que haya algo que entregar."
-        : "El veredicto del proveedor aparece en el detalle de cada alerta.",
+        ? outcomes.deliverNoneRecovery
+        : outcomes.deliverDoneRecovery,
     facts: [
-      `Evaluaciones esperando al proveedor: ${formatCount(delivery.examined)}`,
-      `Callbacks entregados: ${formatCount(delivery.delivered)}`,
-      `Cerraron con veredicto: ${formatCount(delivery.settled)}`,
-      `Ya se habían recibido: ${formatCount(delivery.replayed)}`,
-      `No se pudieron escribir por concurrencia: ${formatCount(delivery.unavailable)}`,
+      outcomes.deliverFactExamined(f.formatCount(delivery.examined)),
+      outcomes.deliverFactDelivered(f.formatCount(delivery.delivered)),
+      outcomes.deliverFactSettled(f.formatCount(delivery.settled)),
+      outcomes.deliverFactReplayed(f.formatCount(delivery.replayed)),
+      outcomes.deliverFactUnavailable(f.formatCount(delivery.unavailable)),
     ],
     submissionId,
   };
@@ -265,15 +277,28 @@ export async function deliverAllCallbacks(previous: ActionState): Promise<Action
  *
  * Written here rather than in the component because the wording is the server's: the code is a
  * domain value from the importer and the analyst reads a translation of it, never the identifier.
+ *
+ * <strong>`error.message` is the API's own, and it stays in English.</strong> It is the only part
+ * of this sentence the console does not own: it names the value that was rejected, and it is the
+ * technical detail rather than the explanation. The code beside it is what carries the meaning, and
+ * that is translated — which is the checklist item «códigos de error de fila traducidos».
  */
-function describeRecordError(error: ImportRecordError): string {
+function describeRecordError(error: ImportRecordError, f: Formatting): string {
+  const { importPage } = f.t;
   const where =
     error.lineNumber === null
-      ? `Registro ${formatCount(error.recordNumber)}`
-      : `Registro ${formatCount(error.recordNumber)}, línea ${formatCount(error.lineNumber)}`;
-  const field = error.field === null ? "" : ` · campo ${error.field}`;
+      ? importPage.recordAt(f.formatCount(error.recordNumber))
+      : importPage.recordAtLine(
+          f.formatCount(error.recordNumber),
+          f.formatCount(error.lineNumber),
+        );
 
-  return `${where}${field} · ${importErrorLabel(error.code)}: ${error.message}`;
+  return importPage.recordError(
+    where,
+    error.field === null ? "" : importPage.recordField(error.field),
+    f.importErrorLabel(error.code),
+    error.message,
+  );
 }
 
 function readFormat(value: FormDataEntryValue | null): ImportFormat | null {

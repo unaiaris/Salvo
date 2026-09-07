@@ -1,11 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { EXTERNAL_STATUS } from "@/lib/api/contract";
+import { deploymentLanguage } from "@/lib/api/console";
+import { EXTERNAL_STATUS, type Language } from "@/lib/api/contract";
 import { deliverExternalCallbacks, requestExternalEvaluation } from "@/lib/api/external";
 import type { ApiFailure } from "@/lib/api/failures";
 import { describeFailure } from "@/lib/api/messages";
-import { externalStatusLabel } from "@/lib/format";
+import { formatting } from "@/lib/format";
 import type { ExternalActionState } from "./external-state";
 
 /**
@@ -17,8 +18,12 @@ import type { ExternalActionState } from "./external-state";
  * nobody had given yet.
  */
 
-function failed(failure: ApiFailure, submissionId: number): ExternalActionState {
-  const message = describeFailure(failure);
+function failed(
+  failure: ApiFailure,
+  language: Language,
+  submissionId: number,
+): ExternalActionState {
+  const message = describeFailure(failure, language);
 
   return {
     outcome: "failed",
@@ -42,10 +47,12 @@ export async function requestExternal(
   const submissionId = previous.submissionId + 1;
   const orderId = readField(formData, "orderId");
   const alertId = readField(formData, "alertId");
+  const language = await deploymentLanguage();
+  const f = formatting(language);
 
   const result = await requestExternalEvaluation(orderId);
   if (!result.ok) {
-    return failed(result.failure, submissionId);
+    return failed(result.failure, language, submissionId);
   }
 
   revalidate(alertId);
@@ -55,16 +62,12 @@ export async function requestExternal(
   return {
     outcome: "done",
     title: applied
-      ? "Evaluación externa solicitada"
-      : "Este pedido ya tenía una evaluación externa",
-    body: `${externalStatusLabel(evaluation.status)}. ${
-      waiting
-        ? "El proveedor aceptó la consulta y todavía no decidió: la respuesta va a llegar por callback, o al reconciliar."
-        : "El veredicto del proveedor queda registrado junto al criterio local, sin combinarse con él."
+      ? f.t.outcomes.externalRequestedTitle
+      : f.t.outcomes.externalAlreadyTitle,
+    body: `${f.externalStatusLabel(evaluation.status)}. ${
+      waiting ? f.t.outcomes.externalWaitingBody : f.t.outcomes.externalSettledBody
     }`,
-    recovery: applied
-      ? ""
-      : "Pedirla de nuevo no crea una segunda evaluación del lado del proveedor.",
+    recovery: applied ? "" : f.t.outcomes.externalAlreadyRecovery,
     technicalDetail: "",
     submissionId,
   };
@@ -77,10 +80,12 @@ export async function deliverCallback(
   const submissionId = previous.submissionId + 1;
   const externalEvaluationId = readField(formData, "externalEvaluationId");
   const alertId = readField(formData, "alertId");
+  const language = await deploymentLanguage();
+  const { outcomes } = formatting(language).t;
 
   const result = await deliverExternalCallbacks(externalEvaluationId);
   if (!result.ok) {
-    return failed(result.failure, submissionId);
+    return failed(result.failure, language, submissionId);
   }
 
   revalidate(alertId);
@@ -88,12 +93,15 @@ export async function deliverCallback(
 
   return {
     outcome: "done",
-    title: delivery.replayed > 0 ? "Ese callback ya se había recibido" : "Callback entregado",
+    title:
+      delivery.replayed > 0
+        ? outcomes.externalCallbackReplayedTitle
+        : outcomes.externalCallbackDoneTitle,
     body:
       delivery.replayed > 0
-        ? "El mensaje es idéntico a uno ya registrado, así que no se repitió ningún efecto: se anotó que el proveedor lo volvió a enviar y nada más."
-        : "El callback entró por el mismo camino que usaría el proveedor: mismo recibo, misma deduplicación, mismas reglas de transición.",
-    recovery: delivery.settled > 0 ? "El estado del proveedor ya figura arriba." : "",
+        ? outcomes.externalCallbackReplayedBody
+        : outcomes.externalCallbackDoneBody,
+    recovery: delivery.settled > 0 ? outcomes.externalCallbackRecovery : "",
     technicalDetail: "",
     submissionId,
   };
