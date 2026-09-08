@@ -1,8 +1,8 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: **Etapa 9 completada. El MVP está cerrado.** Las cinco tareas verificadas: merges
-> `41343c1`, `4f7daf9`, `0d65f9a`, `835a76a` y `c2e9a65`. Lo que sigue es post-MVP.
-> Última actualización: 2026-09-07
+> Estado: **MVP cerrado; Etapa 10 en ejecución.** La instancia pública, sobre las nueve etapas
+> verificadas. `E10A-CONTENEDOR-Y-MEDICION` despachada.
+> Última actualización: 2026-09-08
 > Responsable: coordinador de la etapa
 
 ## Estados
@@ -21,6 +21,9 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 | `E9B-SENALES-TIPADAS` | `Verificada` (merge `4f7daf9`) | `Claude` | Opus 5 · `high` | `Salvo.Domain/Risk/**` y `Explanations/**`, `Application/Explanations/**`, `AlertViews.cs` y `AlertProjection.cs`, `Salvo.Infrastructure/Explanations/**`, `backend/tests/**`, el borde del frontend —`guards.ts`, `contract.ts`, `fixtures.ts`, `boundary.test.ts`, `format.ts`— y la recaptura del contrato. **La reserva completa vive en el brief; esta fila la resume.** |
 | `E9C1-IDIOMA` | `Verificada` (merge `0d65f9a`) | `Claude` | Opus 5 · `high` | `SALVO_LANGUAGE`, el idioma en la identidad de la explicación con su migración, dos diccionarios en el frontend, la plantilla del backend, `messages.ts`, `describeRecordError`, `format.ts`, `<html lang>`, las anclas del smoke, **y el décimo `ExplanationFailureCode`** en la misma migración. **La reserva completa vive en el brief; esta fila la resume.** |
 | `E9C2-ACCESIBILIDAD` | `Verificada` (merge `835a76a`) | `Claude` | Opus 5 · `high` | Linter y comprobaciones automáticas de accesibilidad, la lista de hallazgos con severidad **antes** de corregir, y las correcciones que el coordinador elija tras el recorrido con VoiceOver |
+| `E10A-CONTENEDOR-Y-MEDICION` | `Asignada` | `Claude` | Opus 5 · `high` | `Dockerfile` y `.dockerignore` nuevos, `scripts/**`, `frontend/next.config.ts` y el borde que lo describe, `Program.cs` y `appsettings*`, `Persistence/**` y el `csproj` **solo si** el camino de migración lo exige, `backend/tests/**`, `frontend/src/test/**` y `Salvo-Getting-Started.md`. **La reserva completa vive en el brief; esta fila la resume.** |
+| `E10B-INSTANCIA-COMPARTIDA` | `Propuesta` | `Claude` | por acordar | El reinicio por antigüedad, el cartel en los dos idiomas, el límite en la capa de Next, el tope de pedidos por instancia, y la sonda de salud. **Bloqueada hasta que el coordinador revise la decisión 8 en sus seis lugares** |
+| `E10C-PUBLICACION` | `Propuesta` | `Claude` | por acordar | Elegir plataforma con los números de `E10A`, desplegar, y el link en README, artículo y guía |
 | `E9D-CIERRE` | `Verificada` (merge `c2e9a65`) | `Claude` | Opus 5 · `high` | Repaso final: las seis capturas regeneradas, las cifras del corpus en README y guion, `docs/muestras/`, el artículo para revisores, y la deuda dicha —contraste sin verificar, recorrido parcial, `glosario.mjs` dentro de `src/`, `MER_US_MARKET`, la tasa base de construcción y la lista de bases `.db`—. **La reserva completa vive en el brief; esta fila la resume.** |
 
 **El orden es obligatorio y está argumentado en el diseño v2**: la fixture primero y el motor
