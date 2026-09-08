@@ -4362,3 +4362,316 @@ aleatorio y el `explanationId` que no se pinta.
 - **Le queda al coordinador**, como siempre: cerrar `E9D` en el Workboard y en el Progress —los
   cuatro lugares de la lista, incluida la cabecera del Overview—, decidir qué bases `.db` borra,
   decidir sobre `demo-orders.v1.json`, y publicar el artículo.
+
+---
+
+## `E10A-CONTENEDOR-Y-MEDICION` — el contenedor, y la medición que decide si la Etapa 10 es posible
+
+### Identificación
+
+- Estado de la rama: `Lista para integrar`
+- Etapa: 10
+- Rama/worktree: `claude/e10a-contenedor`
+- Commit base: `e1233ba` (`merge-base` con `main`)
+- Commit final: `b41a4d4`
+- Fecha: 2026-09-08
+- Modelo y esfuerzo: Opus 5 · `high`
+
+Cuatro commits de implementación: `b604034` (borrar el rewrite), `762b81c` (la imagen y la base al
+arrancar), `42dd53c` (el código de salida, que salió de una falsación) y `b41a4d4` (la guía).
+
+### El veredicto
+
+**`no queda descartado`**, con una condición que hay que leer entera.
+
+Con 512 MB y **0,5 vCPU** la instancia entra con muchísimo aire: arranca en 3,3 s y el camino frío
+completo —arrancar, migrar, sembrar 300 pedidos y puntuarlos— tarda menos de 5 s.
+
+Con 512 MB y **0,1 vCPU**, que es exactamente lo que declara el tier gratuito de Koyeb, **el
+arranque tarda 77 s contra un umbral de 90**. Entra, y entra por trece segundos. Y solo entra
+gracias a ReadyToRun: sin precompilar, el mismo arranque tarda 103 s y **no entra**.
+
+**No existe el veredicto `entra` y este handoff no lo da.** Limitar un contenedor a 0,1 vCPU en un
+Apple M1 dentro de la máquina virtual de Docker Desktop **no reproduce** una fracción de vCPU en
+hardware compartido: la memoria sí se acota de verdad, pero un núcleo de esta máquina es más rápido
+que el que reparte un tier gratuito, y `--cpus=0.1` es una cuota dura sin ráfaga, que puede ser más
+severa o menos que lo que hace la plataforma. No lo verifiqué y no lo afirmo.
+
+Lo que esta medición sí es: **un filtro, y filtró barato.** Si no hubiera entrado acá, no entraba en
+ningún lado y la etapa cambiaba de forma hoy. Que entre acá **no prueba** que entre allá. El número
+definitivo lo mide `E10C` sobre la plataforma elegida, y hasta entonces ningún documento del
+proyecto puede decir que la instancia funciona.
+
+### La tabla de mediciones
+
+Cuatro corridas completas con la imagen final, más dos previas que sirvieron para decidir
+ReadyToRun. Cada camino frío estrena un contenedor con `/data` vacío, que es lo que pasa cuando una
+plataforma despierta uno nuevo.
+
+**Camino frío — contenedor nuevo, base vacía**
+
+| Qué se mide | Umbral, y de dónde sale | 0,1 vCPU sin R2R | 0,1 vCPU | 0,25 vCPU | 0,5 vCPU |
+| --- | --- | --- | --- | --- | --- |
+| Arranque: dos procesos, migración y primer `200` | 90 s (`SMOKE_TIMEOUT_SECONDS`, `smoke-ui.sh:51`) | **103,16 s** | 77,49 s | 17,50 s | 3,30 s |
+| — de los cuales, migrar la base vacía | sin umbral previo | 64,30 s | 43,11 s | 8,90 s | 1,59 s |
+| Sembrado de los 300 pedidos | 60 s (`smoke-ui.sh:304`) | 31,21 s | 24,68 s | 3,75 s | 0,77 s |
+| Corrida de scoring sobre los 300 | 120 s (`smoke-ui.sh:306`) | 16,71 s | 17,50 s | 4,45 s | 0,74 s |
+| Primer render de `/` | 30 s (`smoke-ui.sh:184`) | 1,37 s | 1,60 s | 0,08 s | 0,07 s |
+| Primer render de `/alerts` | 30 s | 5,94 s | 5,64 s | 1,96 s | 0,27 s |
+| Primer render de `/dashboard` | 30 s | 7,74 s | 6,12 s | 1,13 s | 0,32 s |
+| Primer render de `/import` | 30 s | 2,38 s | 2,34 s | 0,54 s | 0,29 s |
+| RAM en reposo | 512 MiB | 104,9 MiB | 100,1 MiB | 88,5 MiB | 86,4 MiB |
+| RAM tras la corrida | 512 MiB | 126,8 MiB | 117,3 MiB | 104,7 MiB | 100,2 MiB |
+
+**Camino tibio — el mismo contenedor, con la base ya sembrada**
+
+| Qué se mide | Umbral | 0,1 vCPU sin R2R | 0,1 vCPU | 0,25 vCPU | 0,5 vCPU |
+| --- | --- | --- | --- | --- | --- |
+| Sembrado repetido, idempotente | 60 s | 6,57 s | 5,32 s | 1,11 s | 0,27 s |
+| Corrida repetida, reusa evaluaciones | 120 s | 6,62 s | 5,63 s | 1,64 s | 0,33 s |
+| Render de `/alerts`, ya caliente | 30 s | 1,70 s | 0,90 s | 0,07 s | 0,07 s |
+| Render de `/dashboard`, ya caliente | 30 s | 3,13 s | 2,03 s | 0,27 s | 0,12 s |
+| RAM al terminar | 512 MiB | 145,3 MiB | 137,0 MiB | 132,5 MiB | 127,4 MiB |
+
+**La memoria nunca fue el problema.** El techo medido son 145 MiB de 512, con los dos runtimes en
+pie y el corpus puntuado. Sobra el 70 %.
+
+**El problema es el arranque, y dentro del arranque, la migración.** A 0,1 vCPU son 43,1 de los
+77,5 s. El desglose por marca de tiempo, de los registros del contenedor definitivo:
+
+| Tramo | A 0,1 vCPU, con ReadyToRun |
+| --- | --- |
+| El entrypoint lanza la API → la API llega a aplicar migraciones | 12,8 s (host, inyección de dependencias, carga de ensamblados) |
+| → «Acquiring an exclusive lock» | **23,2 s — construir el modelo de EF Core**, puro CPU y reflexión |
+| → la última de las siete migraciones aplicada | 6,3 s |
+| → `Now listening` | 3,8 s |
+| → `/health` responde | 9,8 s |
+| → la consola anuncia que está lista | 7,8 s |
+
+Los tramos suman 63,7 s y el cronómetro marcó 77,49 s: la diferencia es lo que queda fuera de los
+registros, que son la creación del contenedor antes de la primera línea y el primer render real
+después de que Next dice estar listo. Sin ReadyToRun el mismo desglose da 42,9 s en el tramo del
+modelo de EF Core en vez de 23,2 s, que es de dónde sale la mayor parte de la mejora.
+
+**La escala no es lineal y conviene saberlo antes de elegir plan.** De 0,1 a 0,25 vCPU —dos veces y
+media de CPU— el arranque cae 4,4 veces, de 77,5 s a 17,5 s. A 0,1 el planificador corta la cuota
+constantemente durante un tramo que es puro cómputo.
+
+**Y hay un camino más si `E10C` lo necesita, que esta tarea no tomó**: el modelo compilado de
+EF Core (`dotnet ef dbcontext optimize`) ataca justamente esos 43 s, porque elimina la construcción
+del modelo por reflexión. Se dejó afuera a propósito: con 77 s ya se entra, genera código nuevo en
+`Salvo.Infrastructure/Persistence/`, y ampliar el alcance para ganar margen que todavía no hace
+falta es exactamente lo que un brief pide no hacer.
+
+### Con qué se midió
+
+| | |
+| --- | --- |
+| Docker | 29.7.2, build a7dcaa6 (Docker Desktop) |
+| Recursos de la máquina virtual | **3 CPUs** y 8.320.434.176 bytes de RAM (7,75 GiB), driver `overlayfs` |
+| Sistema | macOS 15.6.1, build 24G90 |
+| Chip | Apple M1, 8 núcleos, `aarch64` |
+| Imagen medida | `salvo:e10a`, 847 MB |
+| Límites de cada corrida | `--memory=512m --memory-swap=512m --cpus=<0.1\|0.25\|0.5>` |
+
+**Corrección a un dato del brief**: dice que la máquina virtual tiene «8 CPUs y 8 GB». La RAM
+coincide; las CPUs no. `docker info` reporta **3**. Es el número con el que se midió y el que hay
+que citar para reproducir.
+
+### Las tres falsaciones
+
+Cada una se rompió a propósito, se corrió, se anotó el error exacto y se deshizo. Ninguna tocó un
+archivo del repositorio: las dos que necesitaban una imagen distinta usaron un `Dockerfile` de
+falsación en el directorio temporal, con `FROM salvo:e10a-r2r`.
+
+**1. Dejar el rewrite → la API entera, publicada.** Medido con los dos procesos en pie y el rewrite
+todavía puesto, todo contra el puerto público de Next:
+
+| Petición al puerto público | Con rewrite | Sin rewrite |
+| --- | --- | --- |
+| `GET /api/api/dashboard` | **200**, el dashboard entero | 404 |
+| `GET /api/openapi/v1.json` | **200**, OpenAPI 3.1.1 con 19 rutas, 84.532 bytes | 404 |
+| `POST /api/api/demo-data/seed` | **200**: sembró 300 pedidos y 28 etiquetas de fraude | 404 |
+| `POST /api/api/risk-evaluations:run` | **200**: corrió y abrió 23 alertas | 404 |
+| `POST /api/api/external-callbacks/external-mock` | llegaba al endpoint | 404 |
+| `GET /api/dashboard` — **la sonda mal apuntada** | 404 | 404 |
+
+La última fila es la que enseña algo. **El rewrite quita el prefijo**: `/api/dashboard` iba a
+`${api}/dashboard`, que no existe porque toda ruta de la API empieza con `/api/`. Por eso da 404 en
+las dos columnas y como criterio no prueba nada. La ruta que llegaba era la del prefijo doblado.
+
+**2. Quitar `tzdata` de la imagen final → la API no arranca.** Error exacto, con el contenedor
+saliendo con código 1:
+
+```
+Unhandled exception. System.TypeInitializationException: The type initializer for
+'Salvo.Domain.Risk.RuleConfig' threw an exception.
+ ---> System.TimeZoneNotFoundException: The time zone ID 'America/Montevideo' was not found on the
+      local computer.
+ ---> System.IO.DirectoryNotFoundException: Could not find a part of the path
+      '/usr/share/zoneinfo/America/Montevideo'.
+   at Salvo.Domain.Risk.RuleConfig..ctor(String version) in RuleConfig.cs:line 28
+   at Salvo.Api.Program.Main(String[] args) in Program.cs:line 24
+[entrypoint] la API murió durante el arranque
+```
+
+Falla antes de construir el host, envuelto en dos capas de excepción. La imagen elegida
+—`aspnet:10.0`, Ubuntu 24.04— **ya trae los husos horarios**, así que el riesgo no se materializa
+hoy; se materializaría con una base `alpine` o `-chiseled`, y por eso queda escrito en el
+`Dockerfile`.
+
+**3. Matar la API con el contenedor vivo.** En dos partes, y la primera encontró un defecto real.
+
+*Sin supervisor* —un entrypoint que solo levanta los dos y espera—, se mata la API y:
+
+```
+estado del contenedor:  running   <-- SIGUE VIVO
+procesos adentro:       bash (entrypoint) y next-server. La API no está.
+la API en loopback:     NO responde: ECONNREFUSED
+  /            HTTP 200
+  /alerts      HTTP 200
+  /dashboard   HTTP 200
+  /import      HTTP 200
+lo que ve el visitante: «No se pudo contactar a la API»
+```
+
+**Las cuatro rutas responden 200 con la API muerta detrás.** Ése es exactamente el modo de falla que
+la regla existe para impedir, y una sonda de salud que mire el puerto público ve una instancia sana.
+
+*Con supervisor*, el contenedor termina. Pero la primera corrida **salió con código 0**, y eso está
+mal: ASP.NET se apaga limpiamente ante SIGTERM y devuelve 0, y ese 0 viajaba tal cual a través de
+`wait -n`. Desde afuera se lee como un final deseado, y un supervisor de plataforma que distinga
+«terminó bien» de «se cayó» podría no reiniciar. Corregido en `42dd53c`, y comprobado en las dos
+direcciones:
+
+| Qué pasa | Estado | Código |
+| --- | --- | --- |
+| Se mata la API dentro del contenedor | `exited` | **1** |
+| `docker stop` (SIGTERM ordenado) | `exited` | **0** |
+
+### Archivos modificados
+
+| Archivo | Qué |
+| --- | --- |
+| `frontend/next.config.ts` | Borrado el rewrite, con el motivo y las mediciones en el comentario. `output: "standalone"` detrás de `SALVO_BUILD_STANDALONE=1` |
+| `frontend/src/lib/api/server-client.ts` | El comentario de cabecera ya no describe un rewrite que no existe |
+| `frontend/src/lib/api/server-client.test.ts` | El test se llamaba «no rutas relativas al rewrite»; ahora nombra lo que comprueba |
+| `backend/src/Salvo.Api/Program.cs` | `MigrateIfAsked` detrás de `Database:MigrateOnStartup`, y `StartupLog` como delegado generado |
+| `Dockerfile` | Nuevo |
+| `.dockerignore` | Nuevo |
+| `scripts/contenedor-entrypoint.sh` | Nuevo: el proceso 1, con la supervisión |
+| `scripts/contenedor.sh` | Nuevo: construir, correr, medir, parar |
+| `DesignAgent/Salvo-Getting-Started.md` | La sección del contenedor y tres afirmaciones que esta tarea volvió falsas |
+
+Nada fuera de los paths autorizados. **No** se tocaron `README.md`, `docs/**`, `AGENTS.md`, el
+Blueprint, el Workboard ni el Progress.
+
+### Verificación
+
+| Comando/comprobación | Resultado |
+| --- | --- |
+| `./scripts/check.sh` | **Verde.** 73 comprobaciones de documentos, 117 tests de dominio, 172 de integración, 273 de frontend, 0 warnings |
+| `./scripts/smoke-ui.sh` | **Verde.** 71 comprobaciones, 0 fallas |
+| `GET /api/api/dashboard` en el puerto de Next | Con rewrite: 200 y el dashboard. Sin rewrite: **404** |
+| Recorrido de las cuatro pantallas, fuera del contenedor | Completo, con 300 sembrados, 5 importados de `docs/muestras/import-valido.csv` en `multipart/form-data`, y dos corridas |
+| Recorrido de las cuatro pantallas, **dentro** del contenedor | Completo: 23 alertas abiertas y 300 pedidos de la corrida vigente, con los textos ancla del smoke |
+| Versiones dentro de la imagen | Node `v24.20.0`, runtime .NET `10.0.11`, SDK de construcción `10.0.400`, `America/Montevideo` presente, usuario `app` (uid 1654), no root |
+| Arranque sin `tzdata` | La API no arranca; error transcrito arriba |
+| Matar la API dentro del contenedor | El contenedor termina con código 1 |
+| Base creada al arrancar sobre `/data` vacío | Las siete migraciones aplicadas antes del primer `200` |
+| `git status --porcelain` | Limpio; solo paths autorizados en los cuatro commits |
+
+### Decisiones y supuestos
+
+**El camino de la base: `Database.Migrate()` y no un script SQL generado.** Los dos evitan el SDK en
+la imagen —las migraciones están compiladas en `Salvo.Infrastructure`—, así que el argumento tuvo
+que ser otro: **es el único camino que la compuerta ya vigila.** `scripts/check.sh` corre
+`dotnet ef migrations has-pending-model-changes`, de modo que un modelo que se aparte de sus
+migraciones rompe el build. Un script generado sería un segundo artefacto de la misma verdad, y
+nada en este repositorio notaría que se quedó viejo. Va detrás de una bandera apagada por defecto
+porque migrar al arrancar es correcto para un contenedor efímero y discutible para una máquina con
+datos, y `Salvo-Getting-Started.md` promete que la aplicación no toca una base que no creó.
+
+**La API sobre el runtime compartido, sin recorte y con ReadyToRun.** El recorte quita por análisis
+estático lo que solo se alcanza por reflexión, que es como EF Core construye su modelo: sería pagar
+riesgo de ejecución para ahorrar disco. ReadyToRun, en cambio, no cambia comportamiento —solo
+precompila— y es lo que convierte 103 s en 77 s. La imagen bajó de 909 MB a 847 MB, porque publicar
+con `--runtime` acota además las dependencias.
+
+**`output: "standalone"` detrás de una variable.** Encendido siempre cambiaría lo que produce
+`npm run build`, que es el último paso de la compuerta. El contenedor pide el suyo con
+`SALVO_BUILD_STANDALONE=1` y la compuerta sigue verificando exactamente lo que verificaba.
+
+**`DemoData__Enabled=true` en la imagen, y dicho.** Sin eso la API ni registra el sembrado, ni las
+métricas de calidad, ni los disparadores del proveedor externo: la mitad del producto. **`E10B`
+decide si eso sobrevive a una instancia pública**, porque encender la demostración expone la ruta de
+sembrado a cualquiera y lo que lo vuelve aceptable es el reinicio, que esta tarea no construyó.
+
+**La sonda de salud del entrypoint la hace Node y no `curl`.** La imagen de runtime no trae `curl`
+—comprobado adentro— y Node está garantizado porque corre la consola. Agregar un paquete a la imagen
+final para hacer lo que ya se puede hacer con lo que hay no se justifica.
+
+**Node del tarball oficial y no de la etiqueta `node:24`.** `package.json` fija `24.20.0` exacto y
+una etiqueta mayor se mueve sola. El `Dockerfile` verifica la versión descargada antes de seguir.
+
+**El contenedor no monta volumen.** `/data` vive en su capa escribible, así que cada contenedor
+nuevo estrena base vacía. Es la forma más fiel de reproducir lo que hace una plataforma al despertar
+uno, y evita tener que borrar volúmenes entre mediciones —lo que este repositorio no hace.
+
+### Riesgos y pendientes
+
+- **El margen a 0,1 vCPU es de trece segundos sobre noventa, y no está probado contra la
+  plataforma.** Es el riesgo principal que hereda `E10C`, y la primera cosa que debería medir sobre
+  el destino real antes de anunciar nada.
+- **`E10B` tiene una decisión de producto que esta medición vuelve concreta.** Si el reinicio siembra
+  y puntúa dentro del arranque, a 0,1 vCPU el visitante espera **119 s** —77 de arranque, 25 de
+  sembrado y 17 de scoring— antes de ver la primera pantalla con datos. Si en cambio la consola
+  abre vacía y se llena después, el visitante espera 77 s y ve una consola que dice que no hay
+  pedidos. Ninguna de las dos es obviamente mejor y el diseño no la tomó: la medición la vuelve una
+  elección informada en vez de un descubrimiento.
+- **El modelo compilado de EF Core queda disponible y sin usar**, con 43 s de arranque como premio
+  si hiciera falta.
+- **La imagen pesa 847 MB.** No afecta la ejecución y sí el primer despliegue. La mayor parte es el
+  runtime de ASP.NET Core más Node; recortarla exigiría el trimming que se descartó arriba.
+- **Nada de esto está publicado**, y la invariante de `AGENTS.md` sobre despliegue sigue intacta:
+  esta tarea no abrió ninguna ruta al público. Su revisión, y la decisión 70, son del coordinador
+  antes de `E10B`.
+- **La medición usó `--cpus`, que es una cuota dura sin ráfaga.** No verifiqué cómo reparte CPU
+  ninguna de las tres plataformas candidatas, y no afirmo que se parezca.
+
+### Para que el coordinador borre
+
+Este script no borra nada, ni del lado de Docker. Quedaron:
+
+**Imágenes** (`docker rmi <nombre>`):
+
+| Imagen | Tamaño | Para qué |
+| --- | --- | --- |
+| `salvo:e10a` | 847 MB | **La buena.** La que produce `./scripts/contenedor.sh construir` |
+| `salvo:e10a-r2r` | 847 MB | Idéntica a la anterior; era el nombre provisorio mientras se comparaba ReadyToRun |
+| `salvo:falsacion-sin-tzdata` | 847 MB | Falsación 2. Se puede borrar |
+| `salvo:falsacion-sin-supervisor` | 847 MB | Falsación 3. Se puede borrar |
+| `mcr.microsoft.com/dotnet/sdk:10.0` | 1,3 GB | Base de construcción, descargada por esta tarea |
+| `mcr.microsoft.com/dotnet/aspnet:10.0` | 368 MB | Base de ejecución, descargada por esta tarea |
+
+**Contenedores**, todos detenidos (`docker rm <nombre>`): `salvo-prueba`, `salvo-mata`,
+`salvo-mata2`, `salvo-stop`, `salvo-sin-sup`, `salvo-e10a-medicion-20260908-175140`,
+`salvo-e10a-medicion-20260908-175235`, `salvo-r2r-medicion-20260908-175742`,
+`salvo-r2r-bis-medicion-20260908-180041`, `salvo-r2r-025-medicion-20260908-180321`,
+`salvo-final-01-medicion-20260908-180733` y `salvo-final-05-medicion-20260908-181114`.
+
+Ninguna base de datos del proyecto fue borrada ni modificada. Las pruebas de fuera del contenedor
+usaron bases nuevas en el directorio temporal de la sesión.
+
+### Integración
+
+- Orden sugerido: merge directo a `main`, **por merge y nunca por rebase**.
+- Migraciones o pasos manuales: ninguno. No hay migración nueva; la que se aplica al arrancar son
+  las siete que ya existían.
+- Posibles conflictos: ninguno esperado. `E10B` va a tocar `next.config.ts`, `Program.cs` y los
+  diccionarios, todos después de este merge.
+- Verificación posterior al merge: `./scripts/check.sh` y `./scripts/smoke-ui.sh` sobre el estado
+  integrado, y `./scripts/contenedor.sh construir` para confirmar que la imagen sale del árbol
+  integrado.
+- **Antes de despachar `E10B`**: la decisión 8 en sus seis lugares y la decisión 70, que son del
+  coordinador y que este handoff no toca.
