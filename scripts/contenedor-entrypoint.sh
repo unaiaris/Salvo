@@ -26,6 +26,10 @@ startup_timeout="${SALVO_API_STARTUP_TIMEOUT_SECONDS:-90}"
 
 api_pid=""
 web_pid=""
+# Distingue las dos formas de terminar. Sin esto las dos se ven iguales desde afuera, y no lo son:
+# que la plataforma pida detener el contenedor es un final normal, y que uno de los dos procesos se
+# caiga solo no lo es nunca.
+detencion_pedida=0
 
 log() { printf '[entrypoint] %s\n' "$*"; }
 
@@ -45,7 +49,14 @@ shutdown() {
 
   exit "$code"
 }
-trap shutdown EXIT INT TERM
+
+pedir_detencion() {
+  detencion_pedida=1
+  shutdown
+}
+
+trap shutdown EXIT
+trap pedir_detencion INT TERM
 
 # ------------------------------------------------------------------ la API
 
@@ -99,10 +110,21 @@ web_pid=$!
 wait -n "$api_pid" "$web_pid"
 first_exit=$?
 
+if ((detencion_pedida)); then
+  # Llegó un SIGTERM y el hijo terminó por eso. Es la salida ordenada.
+  exit 0
+fi
+
 if kill -0 "$api_pid" 2>/dev/null; then
   log "la consola terminó (código ${first_exit}); se baja la API y termina el contenedor"
 else
   log "la API terminó (código ${first_exit}); se baja la consola y termina el contenedor"
 fi
 
-exit "${first_exit:-1}"
+# **Nunca se sale con 0 por acá**, y el motivo lo encontró una falsación de `E10A`. Matar la API
+# dentro del contenedor la hacía terminar con código 0 —un apagado limpio de ASP.NET ante SIGTERM—,
+# así que `wait -n` devolvía 0 y el contenedor terminaba anunciando éxito. Un supervisor de
+# plataforma que distinga «terminó bien» de «se cayó» leería eso como un final deseado y podría no
+# reiniciar. Que un hijo termine solo, con el código que sea, es siempre una falla de este
+# contenedor: se traduce a 1 cuando el hijo no dio un código propio.
+exit "$(( first_exit == 0 ? 1 : first_exit ))"
