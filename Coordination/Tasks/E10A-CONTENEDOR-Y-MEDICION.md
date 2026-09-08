@@ -43,7 +43,9 @@ No despliega nada. No hay instancia pública al terminar esta tarea.
 - `Coordination/Tasks/E10-revision-adversarial.md`, los hallazgos **1, 2 y 3**.
 - `DesignAgent/Salvo-Progress.md`, checklist «Etapa 10 — La instancia pública»: los dos primeros
   ítems son los que esta tarea cierra. La etapa está abierta en el Progress, en el Workboard y en
-  `AGENTS.md` por un commit del coordinador **en esta misma rama**, anterior al brief.
+  `AGENTS.md` por un commit del coordinador **en esta misma rama**. Llegó **después** del commit del
+  brief y no antes: la apertura se hizo al corregir el `brief-check`, y decirlo al revés sería
+  falso.
 - `DesignAgent/Salvo-Blueprint.md`: **no tiene sección de Etapa 10 ni decisión 70, y es correcto que
   no las tenga**. La decisión 70 la escribe el coordinador antes de `E10B`, junto con la revisión de
   la 8. Esta tarea no toca el Blueprint.
@@ -52,13 +54,12 @@ No despliega nada. No hay instancia pública al terminar esta tarea.
   abre ninguna ruta al público y no cambia quién puede llamar a qué. Su revisión es requisito de
   `E10B`, no de ésta. Si algo de esta tarea pareciera contradecirla, **parar y consultar**.
 - Código, abierto antes de escribir nada:
-  - `frontend/next.config.ts`
-- `frontend/src/lib/api/server-client.ts` y `frontend/src/lib/api/server-client.test.ts` — **el
-  comentario de cabecera del primero describe el rewrite** (líneas 12 a 14) y el segundo tiene un
-  test que lo nombra en su título y en su comentario. Borrar el rewrite sin tocarlos deja código que
-  describe algo que ya no existe, que es la clase de mentira que este proyecto persigue: el rewrite que se borra, y `experimental.taint`, que no se toca.
-  - `frontend/src/lib/api/server-client.ts`, el comentario de cabecera: explica por qué la consola
-    usa URL absoluta y por qué el rewrite no le sirve.
+  - `frontend/next.config.ts`: el rewrite que se borra, y `experimental.taint`, que no se toca.
+  - `frontend/src/lib/api/server-client.ts`, el comentario de cabecera (líneas 12 a 14): explica por
+    qué la consola usa URL absoluta y por qué el rewrite no le sirve — y **describe el rewrite**, así
+    que hay que corregirlo al borrarlo.
+  - `frontend/src/lib/api/server-client.test.ts`, líneas 30 y 31: un test que nombra el rewrite en
+    su título y en su comentario.
   - `backend/src/Salvo.Api/Program.cs`: el arranque, y la ausencia de cualquier migración.
   - `backend/src/Salvo.Domain/Risk/RuleConfig.cs`:
     `TimeZoneInfo.FindSystemTimeZoneById("America/Montevideo")`.
@@ -191,6 +192,9 @@ esperar a que responda. Es lo que hace repetible la medición y lo que va a usar
 - `Dockerfile` y `.dockerignore` (nuevos), en la raíz
 - `scripts/**`
 - `frontend/next.config.ts`
+- `frontend/src/lib/api/server-client.ts` y `frontend/src/lib/api/server-client.test.ts` — **borrar
+  el rewrite sin tocarlos deja código que describe algo que ya no existe**, que es la clase de
+  mentira que este proyecto persigue. `frontend/src/test/**` no los cubre: viven en `lib/api/`
 - `backend/src/Salvo.Api/Program.cs` y `backend/src/Salvo.Api/appsettings*.json`
 - `backend/src/Salvo.Infrastructure/Persistence/**` y
   `backend/src/Salvo.Api/Salvo.Api.csproj`, **solo** si el camino elegido en el punto 3 lo exige —

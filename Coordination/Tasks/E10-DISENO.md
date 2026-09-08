@@ -13,7 +13,7 @@
 | --- | --- | --- |
 | 1, alta | **D2 afirmaba lo contrario de lo que hace el archivo**: dije que el rewrite esconde la API y la publica. `/api/:path*` reescribe sin filtro, y la consola **no lo usa** —siempre URL absoluta desde el servidor de Node, como documenta `server-client.ts`—. Hoy es superficie expuesta sin beneficio | El rewrite **se borra**. Es una línea, y recién entonces la topología dice lo que D2 afirmaba (D2) |
 | 2, alta | «Koyeb no duerme» salió de un blog, no de la fuente. **Las tres candidatas duermen**: Koyeb a la hora, Render a los quince minutos, SnapDeploy también | El arranque en frío es **el riesgo central de la etapa**, no la RAM. Y el reinicio deja de ser un reloj (D3, D8) |
-| 3, alta | `E10A` medía «todo local» y **no hay runtime de contenedores en la máquina**. Es el hallazgo de Chrome en `E8`, otra vez | Instalarlo es el primer paso de `E10A`, y los umbrales salen del código (D7) |
+| 3, alta | `E10A` medía «todo local» y **no había runtime de contenedores en la máquina**. Es el hallazgo de Chrome en `E8`, otra vez | Lo instala el coordinador antes de despachar, y los umbrales salen del código (D7) |
 | 4, alta | «No puede contener otros datos» **no es verificable**: importación y nota de revisión son escritura anónima de texto libre, visible para todos hasta el reinicio | La condición se reescribe, y se decide qué queda abierto (D1) |
 | 5, alta | El limitador **no ve visitantes**: todo llega desde `127.0.0.1` sin cabecera de origen, y el costo de una corrida depende de cuántos pedidos hay, no de cuántas veces se pida | El límite sube a la capa de Next, y aparece un tope de pedidos por instancia (D5) |
 | Medias | La mecánica del reinicio con conexiones agrupadas, `tzdata` en la imagen, el supervisor de dos procesos, una sonda que vería sana una consola con la API muerta, y la decisión 8 escrita en **seis** lugares y no dos | Todo adentro (D3, D9) |
@@ -53,7 +53,7 @@ producción no lleva el SDK.
 | D4 | La instancia pública enciende la demostración a propósito, y eso se dice | D3 |
 | D5 | El límite sube a la capa de Next, y aparece un **tope de pedidos por instancia** | Hallazgo 5 |
 | D6 | Un cartel visible, en los dos idiomas | D1 |
-| D7 | Primero hay que **instalar un runtime de contenedores**; los umbrales salen del smoke | Hallazgo 3 |
+| D7 | El runtime de contenedores **lo instala el coordinador** antes de despachar; los umbrales salen del smoke | Hallazgo 3 |
 | D8 | Ninguna cifra de plataforma se publica sin verificarla. **La v1 rompió esta regla en su propio texto** | Regla del proyecto |
 | D9 | La decisión 8 está en **seis** lugares, uno de ellos bloquea la ejecución | Hallazgo medio |
 
@@ -204,9 +204,10 @@ que descubre cuando ve el veredicto de otro.
 
 ## D7 — 512 MB es una restricción de diseño
 
-**Primero hay que poder medir: en esta máquina no hay runtime de contenedores.** Ni `docker`, ni
-`podman`, ni `colima`, ni `nerdctl`. Es el hallazgo de Chrome en la Etapa 8, otra vez, y el primer
-paso de `E10A` es instalar uno — no dar por hecho que está.
+**Primero hay que poder medir: cuando se escribió este diseño no había runtime de contenedores en
+la máquina.** Ni `docker`, ni `podman`, ni `colima`, ni `nerdctl`. Fue el hallazgo de Chrome en la
+Etapa 8, otra vez. **Lo instaló el coordinador** —Docker Desktop 29.7.2 sobre macOS 15.6.1— antes
+de despachar `E10A`: instalar software en la máquina del usuario no es trabajo de una tarea.
 
 .NET más Next SSR en el mismo contenedor, con 512 MB de RAM y una fracción de CPU. Se mide con el
 contenedor limitado a mano, y los números van al handoff: RAM en reposo, RAM bajo la corrida de
@@ -253,7 +254,7 @@ decisión 70 escrita y la 8 marcada como superada. Ninguna tarea la toca desde s
 
 En este orden, y el orden es obligatorio:
 
-1. **`E10A-CONTENEDOR-Y-MEDICION`** — instalar un runtime de contenedores, borrar el rewrite,
+1. **`E10A-CONTENEDOR-Y-MEDICION`** — borrar el rewrite,
    escribir el `Dockerfile` con los dos procesos y su supervisor, resolver la creación de la base al
    arrancar, y **medir el camino frío completo** contra los umbrales que ya existen en el smoke. Es
    la tarea que decide si el resto es posible, y **puede terminar diciendo que no lo es**.

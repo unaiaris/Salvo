@@ -1,7 +1,7 @@
 # Salvo — Seguimiento de implementación
 
 > Estado del documento: activo
-> Última actualización: 2026-09-06
+> Última actualización: 2026-09-08
 > Fuente de alcance: [[Salvo-Blueprint]]
 > Regla: actualizar este archivo al comenzar y cerrar cada etapa
 
