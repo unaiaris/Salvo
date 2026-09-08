@@ -1,0 +1,53 @@
+# Salvo — qué no entra al contexto de construcción de la imagen.
+#
+# Dos motivos, y el segundo importa más que el primero. El obvio: `node_modules` y los artefactos de
+# compilación de la máquina pesan y se reconstruyen dentro de la imagen igual. El que importa: en
+# esta máquina hay bases de datos con nombre `salvo*.db` al lado del proyecto, y sin esta lista se
+# copiarían al contexto de construcción y podrían terminar dentro de una imagen. Ninguna base local
+# entra en una imagen, nunca — la del contenedor se crea vacía al arrancar.
+
+# Artefactos de compilación
+**/bin/
+**/obj/
+frontend/.next/
+frontend/out/
+frontend/node_modules/
+node_modules/
+tools/capturas/node_modules/
+**/TestResults/
+**/coverage/
+
+# Bases de datos locales, en cualquier variante: la imagen no lleva datos de nadie
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+*.db.*
+
+# Entorno y secretos. `.env.example` tampoco hace falta dentro de la imagen.
+.env
+.env.*
+*.pem
+
+# Historia y herramientas de trabajo
+.git/
+.github/
+.claude/
+_local/
+
+# Documentación y material que la imagen no ejecuta
+DesignAgent/
+ClaudeAgent/
+Coordination/
+docs/
+README.md
+AGENTS.md
+CLAUDE.md
+tools/
+
+# Tests: la imagen corre la aplicación, no la verifica. La compuerta lo hace afuera.
+backend/tests/
+
+# Sistema operativo
+.DS_Store
+**/*.tsbuildinfo

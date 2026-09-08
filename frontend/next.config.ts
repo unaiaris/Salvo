@@ -30,10 +30,29 @@ import type { NextConfig } from "next";
  * sonda externa que refleje a la API, por ejemplo— se acota a esa ruta y a ninguna más, con el
  * motivo escrito.
  */
+/**
+ * La salida autocontenida, encendida solo cuando la construye el contenedor.
+ *
+ * `output: "standalone"` hace que `next build` copie a `.next/standalone` únicamente los archivos
+ * que el servidor necesita, con un `server.js` mínimo en lugar de `next start`. Para la imagen es
+ * la diferencia entre llevar `node_modules` entero y llevar lo que se usa.
+ *
+ * **Va detrás de una variable y no siempre encendido** porque cambia lo que produce `npm run build`,
+ * y ese comando es el último paso de `scripts/check.sh`. La compuerta tiene que seguir verificando
+ * exactamente el build que se verificaba antes; el contenedor pide el suyo con
+ * `SALVO_BUILD_STANDALONE=1` y nadie más lo ve.
+ *
+ * El `server.js` que genera **no copia `.next/static`**, según la documentación de Next 16 que viene
+ * en `node_modules/next/dist/docs`, así que el `Dockerfile` lo copia aparte. Este proyecto no tiene
+ * `frontend/public`, de modo que no hay un tercer directorio que mover.
+ */
+const standalone = process.env.SALVO_BUILD_STANDALONE === "1";
+
 const nextConfig: NextConfig = {
   experimental: {
     taint: true,
   },
+  ...(standalone ? { output: "standalone" as const } : {}),
 };
 
 export default nextConfig;
