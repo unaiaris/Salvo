@@ -1,7 +1,7 @@
 # Salvo — Guía de arranque
 
 > Estado del documento: vigente
-> Última actualización: 2026-09-07
+> Última actualización: 2026-09-08
 > Fuente de verdad: [[Salvo-Blueprint]]
 > Seguimiento: [[Salvo-Progress]] · Navegación: [[Salvo-MOC]]
 
@@ -11,8 +11,10 @@
 - Etapa 1 integrada mediante PR #1, cerrada mediante PR #2 y verificada sobre `main` en `66f0949`.
 - Etapas 2 a 8 integradas y verificadas con la compuerta full-stack y, desde la Etapa 5, con
   `scripts/smoke-ui.sh` sobre el estado integrado.
-- Etapa 9 en ejecución, la última del MVP. El estado vigente y los propietarios están en
-  `../Coordination/Workboard.md`; ninguna etapa comienza sin autorización explícita.
+- Etapa 9 completada: el MVP quedó cerrado con las nueve etapas verificadas.
+- Etapa 10 en ejecución, la primera fuera del núcleo local: la instancia pública. El estado vigente
+  y los propietarios están en `../Coordination/Workboard.md`; ninguna etapa comienza sin
+  autorización explícita.
 
 ## Herramientas
 
@@ -22,10 +24,12 @@
 - npm/npx 11.19.0.
 - SDK .NET 10.0.400, fijado mediante `global.json`.
 - Git 2.32.0.
+- Docker Desktop 29.7.2, instalado en la Etapa 10 para construir y medir el contenedor. No hizo
+  falta en ninguna de las nueve etapas del MVP. En macOS su binario vive en `~/.docker/bin/docker`,
+  que no siempre está en el `PATH` de un shell no interactivo.
 
 ### Pendientes o no detectadas
 
-- Docker no está instalado; no se necesita para el MVP.
 - El comando `code` no está disponible; cualquier editor compatible sirve.
 
 ## Cuentas y credenciales
@@ -62,6 +66,8 @@ El núcleo local no necesita cuentas externas.
 7. Explicabilidad determinista; Anthropic solo tras aprobación, que no se pidió.
 8. El argumento del proyecto: README, diagramas, capturas y guion de demo.
 9. Corpus, idiomas y cierre: fixture enriquecida, señales estructuradas, portugués y accesibilidad.
+10. La instancia pública: el contenedor y su medición, la instancia compartida que se reinicia, y la
+    publicación.
 
 ## Trabajo con Codex y Claude
 
@@ -119,20 +125,62 @@ antes del primer empujón que incluya capturas, porque el mensaje de error no su
 | `./scripts/check-docs.sh` | Comprobar que cada ruta, enlace y test que cita el README existe |
 | `./scripts/check.sh` | Compuerta completa backend + frontend |
 | `./scripts/smoke-ui.sh` | Recorrido de la consola en seis escenarios, con procesos reales |
+| `./scripts/contenedor.sh` | Construir, correr y medir la imagen con los dos procesos |
 
 `npm run check` empieza por `api:types:check`, no por el typecheck: un contrato que derivó invalida
 todo lo que viene después. `./scripts/smoke-ui.sh` no forma parte de la compuerta —cuesta compilar
 las dos toolchains y arrancar dos procesos— y se ejecuta tras integrar cada etapa.
 
-Para probar el proxy local, arrancar la API en `http://127.0.0.1:5100` y después el frontend. La
-ruta `/api/health` del frontend se reescribe al endpoint `/health` de la API mediante
-`SALVO_API_BASE_URL`.
+**No hay proxy del navegador hacia la API, y desde la Etapa 10 tampoco hay un rewrite que lo
+finja.** La consola habla con la API desde el proceso de Node, con URL absoluta tomada de
+`SALVO_API_BASE_URL`; el navegador nunca la alcanza. Hasta la Etapa 10 `next.config.ts` reescribía
+`/api/:path*` hacia la API, y esa regla no atendía ninguna petición de la consola mientras
+publicaba el contrato entero —sembrado y scoring incluidos— a un `/api` de distancia del puerto
+público. Se borró.
 
-La API no aplica migraciones ni carga demo automáticamente. En desarrollo, después de migrar la DB,
-`POST /api/demo-data/seed` carga la fixture fija e idempotente. `POST /api/order-imports` recibe
-`multipart/form-data` con `file` y `format=CSV|JSON`. Si una DB local anterior a E2 solo contiene el
-checkpoint de fundación, debe apartarse o eliminarse de forma explícita por el desarrollador antes
-de aplicar la primera migración; la aplicación nunca la borra.
+La API no aplica migraciones ni carga demo automáticamente **en ningún modo de desarrollo**. En
+desarrollo, después de migrar la DB, `POST /api/demo-data/seed` carga la fixture fija e idempotente.
+`POST /api/order-imports` recibe `multipart/form-data` con `file` y `format=CSV|JSON`. Si una DB
+local anterior a E2 solo contiene el checkpoint de fundación, debe apartarse o eliminarse de forma
+explícita por el desarrollador antes de aplicar la primera migración; la aplicación nunca la borra.
+
+La única excepción es el contenedor, y está detrás de una bandera con nombre:
+`Database__MigrateOnStartup=true` hace que la API aplique las migraciones pendientes antes de
+atender la primera petición. Vale `false` en todos los demás lados. Migrar al arrancar es correcto
+para un contenedor que estrena una base vacía y discutible para una máquina que guarda datos, así
+que la diferencia se declara en vez de heredarse.
+
+## El contenedor
+
+Salvo entero —consola y API— en una imagen, con la forma de un tier gratuito: un puerto público, la
+API en `127.0.0.1`, y la base creada al arrancar.
+
+```bash
+./scripts/contenedor.sh construir   # la imagen
+./scripts/contenedor.sh correr      # la levanta con 512 MB y espera a que responda
+./scripts/contenedor.sh medir       # camino frío y camino tibio, cronometrados
+./scripts/contenedor.sh parar
+```
+
+Necesita Docker. Si `docker` no está en el `PATH`, el script lo busca en `~/.docker/bin`, que es
+donde lo deja Docker Desktop en macOS.
+
+Tres propiedades de la imagen que conviene conocer antes de tocarla:
+
+- **`tzdata` no es opcional.** `RuleConfig` resuelve `America/Montevideo` en su constructor estático
+  y `Program.Main` valida las configuraciones de reglas antes de construir el host, así que una
+  imagen base sin husos horarios no arranca. `mcr.microsoft.com/dotnet/aspnet:10.0` los trae; una
+  variante `alpine` o `-chiseled` habría que comprobarla.
+- **Si muere uno de los dos procesos, muere el contenedor**, y con código distinto de cero. Sin esa
+  regla, una API caída deja la consola respondiendo `200` en todas sus rutas —con el aviso de que no
+  se pudo contactar a la API, que es lo que corresponde— y una sonda que mire solo el puerto público
+  ve una instancia sana.
+- **`./scripts/contenedor.sh` no borra nada**: ni imágenes, ni contenedores. Los deja y los nombra
+  al terminar, igual que `demo.sh` deja sus bases.
+
+Lo que esta imagen todavía **no** tiene, y decide la tarea siguiente de la Etapa 10: el reinicio
+periódico, el cartel que avisa que la instancia es compartida y efímera, el límite de tasa y el tope
+de pedidos. Hasta que existan, no se publica en ninguna parte.
 
 ## Restricciones operativas
 
