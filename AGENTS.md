@@ -54,9 +54,12 @@ cambia alcance o arquitectura, actualizar primero su bitácora y después los do
   `E8B-DEMO-CAPTURAS` (`6ae7750`). El README pasó a ser el argumento del proyecto, y
   `scripts/check-docs.sh` entró en la compuerta: cada ruta y cada nombre de test que un documento
   público cita se comprueba, no se promete.
-- Etapa 9 en ejecución, la última: corpus, idiomas y cierre. El corpus de demostración se construye
-  para que las reglas **se equivoquen** (decisión 65); el idioma es del despliegue (decisión 62); y
-  el umbral de alerta es una política de negocio y no el resultado del barrido (decisión 63).
+- Etapa 9 completada: corpus, idiomas y cierre. El corpus de demostración se construye para que
+  las reglas **se equivoquen** (decisión 65); el idioma es del despliegue (decisión 62); y el
+  umbral de alerta es una política de negocio y no el resultado del barrido (decisión 63).
+- **Etapa 10 en ejecución: la instancia pública.** Una sandbox compartida que se reinicia sola, con
+  corpus sintético. **La línea de más abajo sobre despliegue sigue vigente y no la toca ninguna
+  tarea**: su revisión la hace el coordinador antes de `E10B`, y hasta entonces nada se publica.
 - El orden de la Etapa 9 es obligatorio: la fixture primero y el motor después, porque el corpus
   actual dispara tres de las seis reglas y el extractor de `SignalFacts` es el único oráculo capaz
   de certificar los campos tipados de las otras tres.

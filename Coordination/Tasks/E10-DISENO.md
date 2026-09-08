@@ -213,8 +213,9 @@ contenedor limitado a mano, y los números van al handoff: RAM en reposo, RAM ba
 scoring, **y sobre todo el camino frío completo**: arranque de los dos procesos, migración, sembrado
 y scoring, cronometrado por partes.
 
-**Los umbrales no se inventan: ya están en el código.** El smoke espera 60 s para el sembrado y
-120 s para el scoring, y 5 s por página. Si el camino frío en un contenedor limitado los pasa, la
+**Los umbrales no se inventan: ya están en el código.** El smoke espera 60 s para el sembrado, 120 s para el
+scoring, 30 s por página y 90 s hasta que un proceso responda. Los 5 s que uno recuerda son otra
+cosa: el tiempo máximo de una petición de la consola a la API, en `server-client.ts`. Si el camino frío en un contenedor limitado los pasa, la
 instancia no es usable y hay que saberlo en la primera tarea.
 
 Si no entra, la salida está decidida de antemano y no se improvisa: **se parte en dos servicios**

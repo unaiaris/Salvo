@@ -9,15 +9,15 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado del proyecto | **MVP cerrado.** Las nueve etapas completadas y verificadas |
+| Estado del proyecto | **MVP cerrado.** Las nueve etapas completadas y verificadas. **Etapa 10 en ejecución**: la instancia pública |
 | Etapa completada | Etapa 9 — Corpus, idiomas y cierre (`E9A`, `E9B`, `E9C1`, `E9C2` y `E9D` integradas) |
-| Próxima etapa | Ninguna del núcleo local. Lo que sigue es post-MVP: Koin sandbox, autenticación, observabilidad y despliegue |
-| Estado de la próxima etapa | Sin abrir. Cada capacidad post-MVP necesita su propia aprobación |
+| Próxima etapa | Etapa 10 — La instancia pública. Es la primera fuera del núcleo local |
+| Estado de la próxima etapa | En ejecución. Diseño v2 aprobado tras revisión adversarial (`e1233ba`); `E10A-CONTENEDOR-Y-MEDICION` despachada |
 | Bloqueo actual | Ninguno |
 | Dependencias externas | Ninguna para el núcleo local |
 | Anthropic | Previsto para después del núcleo; decisión aparte, preparada por D11 |
 | Koin sandbox | Post-MVP; sujeto a onboarding y credenciales |
-| Coordinación Codex–Claude | Sin trabajo activo. Las veintitrés tareas del MVP están verificadas |
+| Coordinación Codex–Claude | `E10A-CONTENEDOR-Y-MEDICION` asignada a Opus 5 · `high`; `E10B` y `E10C` propuestas |
 
 **Este bloque se actualiza en cada cierre de etapa y en cada alta de tarea.** Quedó desfasado
 durante toda la Etapa 7 porque los cierres actualizaron el registro de actividad y los checklists
@@ -49,7 +49,8 @@ Solo puede existir una etapa `En curso` a la vez.
 | 7 | Explicabilidad | Completada | Funciona sin red; el texto verificado sobre la salida no cambia ninguna superficie de decisión | Merges `82f2487`, `ac11015`, `0d117dd` y `b4aac6b`; compuerta y smoke verdes sobre `main` |
 | 8 | El argumento del proyecto | Completada | README, diagramas, capturas y guion de demo; cada afirmación contrastada contra el código | Merges `1243d54` y `6ae7750`; `check-docs.sh` incorporado a la compuerta; seis capturas revisadas una por una |
 | 9 | Corpus, idiomas y cierre | Completada | Seis reglas y tres bandas alcanzables; F1 deja de valer 1,00 | Merges `41343c1` y `4f7daf9`. F1 holdout 0,632 y calibración 0,688; las seis reglas disparan y las tres bandas existen; el motor escribe campos y el extractor de prosa ya no existe. y `0d65f9a`. El idioma es del despliegue y entra en la identidad de la explicación; el castellano sigue siendo el valor por defecto. La consola pasa de 6 a 31 reglas de accesibilidad más `axe-core` en la compuerta. `E9D` despachada |
-| Post-MVP | Koin sandbox, auth, observabilidad, deploy | Pendiente | Aprobación independiente por capacidad | Pendiente |
+| 10 | La instancia pública | En ejecución | Cualquiera la usa desde el navegador, gratis, sin instalar nada | Diseño v2 (`e1233ba`) tras 13 hallazgos, 5 altos. `E10A` mide si es posible y **puede terminar diciendo que no** |
+| Post-MVP | Koin sandbox, auth, observabilidad | Pendiente | Aprobación independiente por capacidad | Pendiente |
 
 ## Etapa 1 — Resultado verificado
 
@@ -258,6 +259,16 @@ tercera. (Sección histórica de la Etapa 4: las Etapas 5, 6 y 7 se completaron 
       descarga inicial de unos 150 MB es el único paso que este clon no ejercitó. Pasó no es lo
       mismo que se probó.
 
+
+### Etapa 10 — La instancia pública
+
+- [ ] El contenedor corre consola y API, y **el camino frío está medido** contra los umbrales que ya
+      existen en el smoke. Puede terminar diciendo que la etapa no es posible.
+- [ ] El rewrite de `/api/:path*` borrado: hoy publica la API entera a un `/api/api/` de distancia.
+- [ ] La instancia se reinicia sola, avisa en pantalla que es compartida y efímera, y tiene tope de
+      pedidos.
+- [ ] La decisión 8 revisada en sus **seis** lugares por el coordinador, con la 70 escrita.
+- [ ] Publicada, con el link en el README, en el artículo y en la guía.
 
 ### Etapa 9 — Corpus, idiomas y cierre
 
