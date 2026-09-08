@@ -9,9 +9,13 @@ import { taintApiPayload } from "./taint";
  * Three properties of it are load-bearing, and the stage 1 health probe — deleted in this stage —
  * had none of them:
  *
- * - **Absolute URLs.** The `/api/:path*` rewrite in `next.config.ts` only exists for requests that
- *   reach the Next server from a browser. `fetch("/api/alerts")` inside a server component runs in
- *   Node, where a relative URL is a `TypeError`.
+ * - **Absolute URLs.** `fetch("/api/alerts")` inside a server component runs in Node, where a
+ *   relative URL is a `TypeError`: there is no origin to resolve it against. Until stage 10 a
+ *   rewrite in `next.config.ts` mapped `/api/:path*` to the API, and this comment named it as the
+ *   thing absolute URLs were not relying on. It was deleted — it served no request this client
+ *   ever made, and it published the whole API on the public port — so the reason is now simpler
+ *   than it was: an absolute URL is the only kind that works here, and nothing forwards a relative
+ *   one on this client's behalf.
  * - **An explicit timeout**, as `AGENTS.md` requires of any external call. Without it a hung API
  *   hangs the server render, and the analyst gets a spinner with no end.
  * - **No caching.** A review has to be visible on the next read; `no-store` keeps the fetch cache

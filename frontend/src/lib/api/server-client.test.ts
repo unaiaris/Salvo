@@ -27,9 +27,11 @@ function requestOf(call: number): { url: URL; init: RequestInit } {
 }
 
 describe("el cliente de la API", () => {
-  it("pide URLs absolutas, no rutas relativas al rewrite", async () => {
-    // El rewrite de next.config.ts solo existe para el navegador; en Node una ruta relativa es un
-    // TypeError, así que la URL absoluta no es una preferencia de estilo.
+  it("pide URLs absolutas, con el origen de la API y no el de la consola", async () => {
+    // En Node una ruta relativa es un TypeError —no hay origen contra el cual resolverla—, así que
+    // la URL absoluta no es una preferencia de estilo. Hasta la Etapa 10 este test decía «no rutas
+    // relativas al rewrite»; el rewrite de next.config.ts se borró porque no atendía ninguna
+    // petición de este cliente y publicaba la API entera en el puerto público.
     mockConsoleFetch(fetchMock, () => jsonResponse(wireAlertList()));
 
     await fetchOpenAlerts();
