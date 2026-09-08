@@ -67,13 +67,20 @@ externas.
 | Kit Claude y coordinación paralela | Preparados |
 | Etapas 1 a 7 | Integradas y verificadas en `main` |
 | Etapa 8 — El argumento del proyecto | En ejecución: diseño v2 aprobado y tareas despachadas |
-| Etapa 9 — Corpus, idiomas y cierre | En ejecución |
+| Etapa 9 — Corpus, idiomas y cierre | Completada |
 | Anthropic | Decisión aparte. Hoy `AI_PROVIDER=anthropic` se niega a arrancar |
 | Koin sandbox | Opcional, sujeto a onboarding |
 
 ## Próximo paso
 
-Ejecutar `E9D-CIERRE`, la última tarea del MVP: regenerar las seis capturas y el guion sobre el
-corpus actual, poner al día todas las cifras que los documentos afirman, actualizar el artículo para
-revisores, y dejar escrita la deuda que la etapa decidió no pagar. Después de eso el núcleo local
-está cerrado y lo que sigue es post-MVP: Koin sandbox, autenticación, observabilidad y despliegue.
+**El MVP está cerrado.** Las nueve etapas completadas y verificadas, con la compuerta y el smoke
+verdes sobre `main`.
+
+Lo que sigue es post-MVP y **ninguna capacidad se abre automáticamente**: cada una necesita su
+propia aprobación, con su diseño y su brief, como todas las anteriores. En orden de lo que más
+enseñaría: el adaptador de Anthropic —que cambia quién redacta la explicación, no si el texto se
+verifica—, la integración con el sandbox de Koin, la autenticación, la observabilidad y el
+despliegue.
+
+Y hay una lista de deuda declarada en «Límites declarados» del README: nueve entradas que la Etapa 9
+decidió no pagar y escribió con nombre. Ésa es la cantera natural de una pasada de afinamiento.

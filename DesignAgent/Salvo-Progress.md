@@ -9,15 +9,15 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado del proyecto | Etapa 8 completada y verificada; Etapa 9 en ejecución |
-| Etapa completada | Etapa 8 — El argumento del proyecto (`E8A` y `E8B` integradas) |
-| Próxima etapa | Etapa 9 — Corpus, idiomas y cierre. Es la última |
-| Estado de la próxima etapa | En ejecución. `E9A`, `E9B`, `E9C1` y `E9C2` verificadas (merges `41343c1`, `4f7daf9`, `0d65f9a` y `835a76a`); `E9D-CIERRE` despachada |
+| Estado del proyecto | **MVP cerrado.** Las nueve etapas completadas y verificadas |
+| Etapa completada | Etapa 9 — Corpus, idiomas y cierre (`E9A`, `E9B`, `E9C1`, `E9C2` y `E9D` integradas) |
+| Próxima etapa | Ninguna del núcleo local. Lo que sigue es post-MVP: Koin sandbox, autenticación, observabilidad y despliegue |
+| Estado de la próxima etapa | Sin abrir. Cada capacidad post-MVP necesita su propia aprobación |
 | Bloqueo actual | Ninguno |
 | Dependencias externas | Ninguna para el núcleo local |
 | Anthropic | Previsto para después del núcleo; decisión aparte, preparada por D11 |
 | Koin sandbox | Post-MVP; sujeto a onboarding y credenciales |
-| Coordinación Codex–Claude | `E9D-CIERRE` asignada a Opus 5 · `high`. Es la última tarea de la última etapa |
+| Coordinación Codex–Claude | Sin trabajo activo. Las veintitrés tareas del MVP están verificadas |
 
 **Este bloque se actualiza en cada cierre de etapa y en cada alta de tarea.** Quedó desfasado
 durante toda la Etapa 7 porque los cierres actualizaron el registro de actividad y los checklists
@@ -48,7 +48,7 @@ Solo puede existir una etapa `En curso` a la vez.
 | 6 | Proveedor antifraude mock | Completada | Callbacks duplicados sin efectos repetidos y pendientes que finalizan | Merges `bca2c46` y `a412693`; 196 tests .NET y 172 de frontend; compuerta y smoke verdes (29 comprobaciones) |
 | 7 | Explicabilidad | Completada | Funciona sin red; el texto verificado sobre la salida no cambia ninguna superficie de decisión | Merges `82f2487`, `ac11015`, `0d117dd` y `b4aac6b`; compuerta y smoke verdes sobre `main` |
 | 8 | El argumento del proyecto | Completada | README, diagramas, capturas y guion de demo; cada afirmación contrastada contra el código | Merges `1243d54` y `6ae7750`; `check-docs.sh` incorporado a la compuerta; seis capturas revisadas una por una |
-| 9 | Corpus, idiomas y cierre | En ejecución | Seis reglas y tres bandas alcanzables; F1 deja de valer 1,00 | Merges `41343c1` y `4f7daf9`. F1 holdout 0,632 y calibración 0,688; las seis reglas disparan y las tres bandas existen; el motor escribe campos y el extractor de prosa ya no existe. y `0d65f9a`. El idioma es del despliegue y entra en la identidad de la explicación; el castellano sigue siendo el valor por defecto. La consola pasa de 6 a 31 reglas de accesibilidad más `axe-core` en la compuerta. `E9D` despachada |
+| 9 | Corpus, idiomas y cierre | Completada | Seis reglas y tres bandas alcanzables; F1 deja de valer 1,00 | Merges `41343c1` y `4f7daf9`. F1 holdout 0,632 y calibración 0,688; las seis reglas disparan y las tres bandas existen; el motor escribe campos y el extractor de prosa ya no existe. y `0d65f9a`. El idioma es del despliegue y entra en la identidad de la explicación; el castellano sigue siendo el valor por defecto. La consola pasa de 6 a 31 reglas de accesibilidad más `axe-core` en la compuerta. `E9D` despachada |
 | Post-MVP | Koin sandbox, auth, observabilidad, deploy | Pendiente | Aprobación independiente por capacidad | Pendiente |
 
 ## Etapa 1 — Resultado verificado
@@ -292,7 +292,11 @@ tercera. (Sección histórica de la Etapa 4: las Etapas 5, 6 y 7 se completaron 
       contraste de color **no lo comprueba nada** y queda dicho. Ningún documento afirma que alguien
       recorrió la consola entera sin ver la pantalla.
 - [x] Códigos de error de fila traducidos (`describeRecordError`), en los dos idiomas y con test.
-- [ ] Repaso final: todos los documentos y el artículo para revisores, con las cifras nuevas.
+- [x] Repaso final. Toda cifra que un documento afirma sale de **una corrida del 2026-09-07** y no
+      de otro documento; cuatro párrafos de prosa que describían el corpus v1 reescritos; las seis
+      capturas regeneradas; nueve deudas escritas con nombre y ninguna pagada. Y el aviso del
+      dashboard, que afirmaba lo contrario de lo que mostraba, corregido tras revisar las capturas
+      una por una.
 
 Fuera de la etapa, dichos: la ruta `/orders`, un proveedor simulado que se porte mal, Anthropic, el
 desempate de la cola por identificador aleatorio, y pintar `explanationId` en el panel de revisión.
@@ -403,6 +407,9 @@ desempate de la cola por identificador aleatorio, y pintar `explanationId` en el
 | 2026-09-07 | Preparación E9 | Revisión adversarial con Fable 5.1 · `xhigh` | 11 hallazgos, 5 altos, más una primera parte sobre criterio de dominio. Corrigió el arquetipo central —una cuenta tomada que se envía a la víctima no monetiza nada— e invirtió el orden de la etapa: el corpus actual dispara tres de las seis reglas, así que el extractor de `SignalFacts` es el único oráculo capaz de certificar los campos tipados | Completada |
 | 2026-09-07 | Preparación E9 | Diseño v2 y estado canónico | Decisiones 62–64; §4.1, §7, §9 y §11 del Blueprint; el `13,8 %` corregido a `16,7 %` en cuatro documentos | Aprobada |
 | 2026-09-07 | 9 | `E9A-FIXTURE` | Nueve commits. La tabla de arquetipos predicha se commiteó **antes** que la fixture y las 42 celdas cayeron sin un solo desvío; de 2.400 comprobaciones campo a campo difirió una, y era la transcripción en Python la equivocada, no el motor. Dos hallazgos de construcción: un patrón de reparto con periodicidades alineadas clavaba a cada comercio en las mismas cinco horas, y la primera versión concentraba casi todos los arquetipos en un solo comprador cuyos propios montos altos le subían la mediana | Lista para integrar |
+| 2026-09-08 | 9 | `E9D-CIERRE` | Siete commits. Toda cifra publicada sale de una corrida real y fechada, no de un handoff. Reescribió además cuatro párrafos de prosa que ningún `grep` de cifras encontraba —«el corpus alcanza tres de las seis reglas», «cuando el motor los emita, el extractor se borra» en futuro cuando ya no existía— y dejó nueve deudas escritas con nombre | Lista para integrar |
+| 2026-09-08 | 9 | Revisión de capturas por el coordinador | Encontró la peor afirmación falsa que quedaba, y estaba **dentro del producto**: el aviso del dashboard decía que la fixture fue construida para que las reglas recuperen sus propias etiquetas, a veinte píxeles de un F1 de 63,2 %, en la captura embebida en el README. No fue falta de `E9D`: el brief le reservó `frontend/src/**` fuera de alcance y ese aviso no lo cita ningún documento. Corregido en los dos idiomas, en el glosario y en las dos anclas que lo comprobaban | Completada |
+| 2026-09-08 | 9 | Integración de `E9D-CIERRE` | Merge `c2e9a65` + compuerta y smoke verdes. **Cierra el MVP**: las nueve etapas completadas y verificadas | Completada |
 | 2026-09-07 | 9 | `E9C2-ACCESIBILIDAD`, fase 1 | La tarea **se detuvo en el medio, que es su forma**, y la parada se respetó: un solo archivo de producto tocado en toda la fase. Midió que las seis reglas heredadas solo comprueban que un atributo `aria-*` esté bien escrito, y ninguna mira si un control se puede operar. Las dos dependencias ya estaban en el árbol como transitivas y se declararon en su versión exacta; no entró una tercera. Encontró un defecto real de marcado y entregó siete hallazgos con severidad | Parcial |
 | 2026-09-07 | 9 | Recorrido con VoiceOver | Lo corrió el coordinador. **Parcial**: portada y encabezado de la cola de alertas, sin hallazgos, e interrumpido ahí por lo tedioso del ejercicio. No cambió nada: los siete hallazgos ya estaban medidos y ninguno dependía del recorrido para existir. Se ajustó la afirmación de la etapa en vez de estirarla | Completada |
 | 2026-09-07 | 9 | `E9C2-ACCESIBILIDAD`, fase 2 | Seis commits, uno por hallazgo, con las tres claves nuevas en los dos diccionarios en un commit **anterior** al código que las usa. Entraron los cinco aprobados; el contraste y el encabezado único quedaron afuera y dichos | Lista para integrar |

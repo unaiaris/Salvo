@@ -1,7 +1,7 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: Etapa 9 en ejecución, la última. `E9A`, `E9B`, `E9C1` y `E9C2` verificadas (merges
-> `41343c1`, `4f7daf9`, `0d65f9a` y `835a76a`); `E9D-CIERRE` despachada
+> Estado: **Etapa 9 completada. El MVP está cerrado.** Las cinco tareas verificadas: merges
+> `41343c1`, `4f7daf9`, `0d65f9a`, `835a76a` y `c2e9a65`. Lo que sigue es post-MVP.
 > Última actualización: 2026-09-07
 > Responsable: coordinador de la etapa
 
@@ -21,7 +21,7 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 | `E9B-SENALES-TIPADAS` | `Verificada` (merge `4f7daf9`) | `Claude` | Opus 5 · `high` | `Salvo.Domain/Risk/**` y `Explanations/**`, `Application/Explanations/**`, `AlertViews.cs` y `AlertProjection.cs`, `Salvo.Infrastructure/Explanations/**`, `backend/tests/**`, el borde del frontend —`guards.ts`, `contract.ts`, `fixtures.ts`, `boundary.test.ts`, `format.ts`— y la recaptura del contrato. **La reserva completa vive en el brief; esta fila la resume.** |
 | `E9C1-IDIOMA` | `Verificada` (merge `0d65f9a`) | `Claude` | Opus 5 · `high` | `SALVO_LANGUAGE`, el idioma en la identidad de la explicación con su migración, dos diccionarios en el frontend, la plantilla del backend, `messages.ts`, `describeRecordError`, `format.ts`, `<html lang>`, las anclas del smoke, **y el décimo `ExplanationFailureCode`** en la misma migración. **La reserva completa vive en el brief; esta fila la resume.** |
 | `E9C2-ACCESIBILIDAD` | `Verificada` (merge `835a76a`) | `Claude` | Opus 5 · `high` | Linter y comprobaciones automáticas de accesibilidad, la lista de hallazgos con severidad **antes** de corregir, y las correcciones que el coordinador elija tras el recorrido con VoiceOver |
-| `E9D-CIERRE` | `Asignada` | `Claude` | Opus 5 · `high` | Repaso final: las seis capturas regeneradas, las cifras del corpus en README y guion, `docs/muestras/`, el artículo para revisores, y la deuda dicha —contraste sin verificar, recorrido parcial, `glosario.mjs` dentro de `src/`, `MER_US_MARKET`, la tasa base de construcción y la lista de bases `.db`—. **La reserva completa vive en el brief; esta fila la resume.** |
+| `E9D-CIERRE` | `Verificada` (merge `c2e9a65`) | `Claude` | Opus 5 · `high` | Repaso final: las seis capturas regeneradas, las cifras del corpus en README y guion, `docs/muestras/`, el artículo para revisores, y la deuda dicha —contraste sin verificar, recorrido parcial, `glosario.mjs` dentro de `src/`, `MER_US_MARKET`, la tasa base de construcción y la lista de bases `.db`—. **La reserva completa vive en el brief; esta fila la resume.** |
 
 **El orden es obligatorio y está argumentado en el diseño v2**: la fixture primero y el motor
 después, porque el corpus actual dispara tres de las seis reglas y el extractor de `SignalFacts` es
@@ -85,6 +85,14 @@ Notas para los briefs de la Etapa 8:
   seis checks anteriores dejaron pasar en briefs con la misma forma — el mismo que rompió `E7A` a
   mitad de ejecución. Hasta acá el check corría con lo que la sesión tuviera puesto, y a veces eso
   significaba que el mismo modelo escribía el plan y lo validaba.
+- **Una reserva de paths tiene que seguir a las afirmaciones, no a los tipos de archivo.** `E9D`
+  existía para poner al día lo que el proyecto afirma, y le reservé `frontend/src/**` fuera de
+  alcance razonando «esta tarea no toca código de producto». Pero el producto **también afirma
+  cosas**: el aviso del dashboard decía que la fixture recupera sus propias etiquetas, a veinte
+  píxeles de un F1 de 63,2 %, en la captura embebida en el README. La tarea hizo exactamente lo que
+  el brief le pidió y aun así se le escapó la peor afirmación falsa del repositorio. Lo encontró el
+  coordinador **mirando las capturas una por una**, que es la única verificación que ningún script
+  del proyecto puede hacer.
 - **Un documento que instruye a una persona necesita que sus pasos sean *ejecutables*, no solo que
   sus datos sean correctos.** El guión de VoiceOver pedía verificar un aviso de divergencia que una
   base recién sembrada no puede mostrar. Un brief para un agente falla ruidosamente si le pedís algo
