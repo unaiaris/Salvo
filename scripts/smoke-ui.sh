@@ -349,7 +349,7 @@ expect_text "/dashboard" "Fraude reportado"
 expect_text "/dashboard" "Pedidos y denegados por semana"
 # La sección de calidad existe porque esta API arranca con DemoData__Enabled=true.
 expect_text "/dashboard" "Calidad del criterio"
-expect_text "/dashboard" "no la calidad del criterio de detección"
+expect_text "/dashboard" "F1 es un parámetro elegido y no un resultado"
 # La suma de las tres monedas del corpus demo. Es una cifra sin unidad y no puede estar en pantalla.
 expect_no_text "/dashboard" "3.731.104"
 # El panel de la Etapa 9: existe siempre, y sin evaluaciones externas dice por qué está vacío.

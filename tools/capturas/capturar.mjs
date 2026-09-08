@@ -132,7 +132,7 @@ try {
   await shootPage(page, "04-dashboard.png", "/dashboard", [
     "Monto en riesgo",
     "Calidad del criterio",
-    "no la calidad del criterio de detección",
+    "F1 es un parámetro elegido y no un resultado",
     "Score local",
     "ORD_000275",
   ]);
