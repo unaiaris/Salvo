@@ -3919,7 +3919,16 @@ Estado: **Lista para integrar**.
 - Etapa: 9, la última del MVP
 - Rama/worktree: `claude/e9d-cierre`
 - Commit base: `ad70c58`
-- Commit final: `4195487`
+- Commit final: `2f85714`. La tarea entregó en `4195487`; los dos commits que siguen son una
+  corrección del coordinador, hecha al revisar las capturas una por una antes de integrar: el aviso
+  de calidad del dashboard afirmaba que **la fixture fue construida para que las reglas recuperen
+  sus propias etiquetas**, que era cierto del corpus v1 y es exactamente lo que la Etapa 9 existe
+  para destruir. Estaba a veinte píxeles de un F1 de 63,2 %, en la captura que va embebida en el
+  README. **No fue una falta de la tarea**: el brief le reservó `frontend/src/**` fuera de alcance
+  salvo por literales que un documento cite, y ese aviso no lo cita nadie porque vive solo en
+  pantalla. Se corrigió en los dos idiomas y en el glosario, y las dos anclas que lo comprobaban
+  —la aserción previa de `capturar.mjs` y la del smoke— pasaron a afirmar la claim que la pantalla
+  tiene que hacer.
 - Fecha: 2026-09-07
 
 ### Resultado
