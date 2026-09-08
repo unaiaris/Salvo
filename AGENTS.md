@@ -58,8 +58,8 @@ cambia alcance o arquitectura, actualizar primero su bitácora y después los do
   las reglas **se equivoquen** (decisión 65); el idioma es del despliegue (decisión 62); y el
   umbral de alerta es una política de negocio y no el resultado del barrido (decisión 63).
 - **Etapa 10 en ejecución: la instancia pública.** Una sandbox compartida que se reinicia sola, con
-  corpus sintético. **La línea de más abajo sobre despliegue sigue vigente y no la toca ninguna
-  tarea**: su revisión la hace el coordinador antes de `E10B`, y hasta entonces nada se publica.
+  corpus sintético. La invariante sobre despliegue **ya fue revisada** por el coordinador: es la
+  decisión 70, y reemplaza a la 8 conservando su motivo.
 - El orden de la Etapa 9 es obligatorio: la fixture primero y el motor después, porque el corpus
   actual dispara tres de las seis reglas y el extractor de `SignalFacts` es el único oráculo capaz
   de certificar los campos tipados de las otras tres.
@@ -114,7 +114,10 @@ cambia alcance o arquitectura, actualizar primero su bitácora y después los do
   aprobación, onboarding y credenciales.
 - El score local, la evaluación externa y la alerta son entidades/conceptos separados.
 - El dataset es 100% sintético. No incorporar PII o información financiera real.
-- Sin autenticación, la aplicación es solo local y no se despliega con rutas mutables públicas.
+- Sin autenticación **no se despliega nada que reciba datos de una persona real**. La excepción es
+  una instancia pública de demostración que cumpla las tres condiciones de la decisión 70: datos
+  sintéticos a los que vuelve en cada reinicio, aviso en pantalla de que es compartida y efímera, y
+  un reinicio que no depende de que nadie se acuerde.
 - NL→SQL, auth, observabilidad, Postgres y deploy están fuera del MVP inicial.
 
 ## Stack y versiones

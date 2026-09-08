@@ -12,12 +12,12 @@
 | Estado del proyecto | **MVP cerrado.** Las nueve etapas completadas y verificadas. **Etapa 10 en ejecución**: la instancia pública |
 | Etapa completada | Etapa 9 — Corpus, idiomas y cierre (`E9A`, `E9B`, `E9C1`, `E9C2` y `E9D` integradas) |
 | Próxima etapa | Etapa 10 — La instancia pública. Es la primera fuera del núcleo local |
-| Estado de la próxima etapa | En ejecución. Diseño v2 aprobado tras revisión adversarial (`e1233ba`); `E10A-CONTENEDOR-Y-MEDICION` despachada |
+| Estado de la próxima etapa | En ejecución. `E10A` verificada (merge `29677f6`); `E10B-INSTANCIA-COMPARTIDA` despachada |
 | Bloqueo actual | Ninguno |
 | Dependencias externas | Ninguna para el núcleo local |
 | Anthropic | Previsto para después del núcleo; decisión aparte, preparada por D11 |
 | Koin sandbox | Post-MVP; sujeto a onboarding y credenciales |
-| Coordinación Codex–Claude | `E10A-CONTENEDOR-Y-MEDICION` asignada a Opus 5 · `high`; `E10B` y `E10C` propuestas |
+| Coordinación Codex–Claude | `E10B-INSTANCIA-COMPARTIDA` asignada a Opus 5 · `high`; `E10C` propuesta |
 
 **Este bloque se actualiza en cada cierre de etapa y en cada alta de tarea.** Quedó desfasado
 durante toda la Etapa 7 porque los cierres actualizaron el registro de actividad y los checklists
@@ -49,7 +49,7 @@ Solo puede existir una etapa `En curso` a la vez.
 | 7 | Explicabilidad | Completada | Funciona sin red; el texto verificado sobre la salida no cambia ninguna superficie de decisión | Merges `82f2487`, `ac11015`, `0d117dd` y `b4aac6b`; compuerta y smoke verdes sobre `main` |
 | 8 | El argumento del proyecto | Completada | README, diagramas, capturas y guion de demo; cada afirmación contrastada contra el código | Merges `1243d54` y `6ae7750`; `check-docs.sh` incorporado a la compuerta; seis capturas revisadas una por una |
 | 9 | Corpus, idiomas y cierre | Completada | Seis reglas y tres bandas alcanzables; F1 deja de valer 1,00 | Merges `41343c1` y `4f7daf9`. F1 holdout 0,632 y calibración 0,688; las seis reglas disparan y las tres bandas existen; el motor escribe campos y el extractor de prosa ya no existe. y `0d65f9a`. El idioma es del despliegue y entra en la identidad de la explicación; el castellano sigue siendo el valor por defecto. La consola pasa de 6 a 31 reglas de accesibilidad más `axe-core` en la compuerta. `E9D` despachada |
-| 10 | La instancia pública | En ejecución | Cualquiera la usa desde el navegador, gratis, sin instalar nada | Diseño v2 (`e1233ba`) tras 13 hallazgos, 5 altos. `E10A` mide si es posible y **puede terminar diciendo que no** |
+| 10 | La instancia pública | En ejecución | Cualquiera la usa desde el navegador, gratis, sin instalar nada | Merge `29677f6`. **El contenedor arranca en 77,5 s a 0,1 vCPU y en 3,3 s a 0,5**, con 145 MiB de 512. El cuello es el arranque, no la RAM. Decisión 70 escrita; `E10B` despachada |
 | Post-MVP | Koin sandbox, auth, observabilidad | Pendiente | Aprobación independiente por capacidad | Pendiente |
 
 ## Etapa 1 — Resultado verificado
@@ -262,12 +262,16 @@ tercera. (Sección histórica de la Etapa 4: las Etapas 5, 6 y 7 se completaron 
 
 ### Etapa 10 — La instancia pública
 
-- [ ] El contenedor corre consola y API, y **el camino frío está medido** contra los umbrales que ya
-      existen en el smoke. Puede terminar diciendo que la etapa no es posible.
-- [ ] El rewrite de `/api/:path*` borrado: hoy publica la API entera a un `/api/api/` de distancia.
+- [x] El contenedor corre consola y API, y el camino frío está medido: **77,5 s de 90 a 0,1 vCPU**,
+      y 3,3 s a 0,5. RAM máxima 145 MiB de 512. Solo entra gracias a ReadyToRun: sin precompilar
+      tarda 103 s. **Filtra pero no prueba**: un M1 dentro de la VM de Docker no es hardware
+      compartido, y el número definitivo lo mide `E10C`.
+- [x] El rewrite de `/api/:path*` borrado. La falsación lo confirmó: con él puesto,
+      `POST /api/api/demo-data/seed` contra el puerto público sembraba 300 pedidos y el OpenAPI
+      entero se servía con sus 19 rutas.
+- [x] La decisión 8 revisada en sus **seis** lugares, con la 70 escrita.
 - [ ] La instancia se reinicia sola, avisa en pantalla que es compartida y efímera, y tiene tope de
       pedidos.
-- [ ] La decisión 8 revisada en sus **seis** lugares por el coordinador, con la 70 escrita.
 - [ ] Publicada, con el link en el README, en el artículo y en la guía.
 
 ### Etapa 9 — Corpus, idiomas y cierre
@@ -321,7 +325,7 @@ desempate de la cola por identificador aleatorio, y pintar `explanationId` en el
 | Baseline, reglas y calibración E3 | Resuelta | Preparación de Etapa 3 | Decisiones 21–27 del Blueprint + brief `E3-MOTOR-DETERMINISTA` |
 | Anthropic real | Diferida | Decisión aparte | La Etapa 7 cerró con proveedor determinista. Hoy `AI_PROVIDER=anthropic` se niega a arrancar, con o sin clave |
 | Acceso Koin sandbox | Diferida | Post-MVP | Requiere onboarding, private key y `org_id` |
-| Auth/multi-tenant | Diferida | Post-MVP | Necesaria antes de publicación mutable |
+| Auth/multi-tenant | Diferida | Post-MVP | Necesaria antes de recibir datos de una persona real; la instancia pública de la Etapa 10 no los recibe (decisión 70) |
 | Deploy/Postgres | Diferida | Post-MVP | No condiciona la demo local |
 | Primer trabajo paralelo Codex–Claude | Cerrada sin ocurrir | — | Codex construyó las Etapas 0 a 3 y Claude las 4 a 7, siempre en secuencia. El protocolo paralelo existe y no se usó |
 
@@ -418,6 +422,8 @@ desempate de la cola por identificador aleatorio, y pintar `explanationId` en el
 | 2026-09-07 | Preparación E9 | Revisión adversarial con Fable 5.1 · `xhigh` | 11 hallazgos, 5 altos, más una primera parte sobre criterio de dominio. Corrigió el arquetipo central —una cuenta tomada que se envía a la víctima no monetiza nada— e invirtió el orden de la etapa: el corpus actual dispara tres de las seis reglas, así que el extractor de `SignalFacts` es el único oráculo capaz de certificar los campos tipados | Completada |
 | 2026-09-07 | Preparación E9 | Diseño v2 y estado canónico | Decisiones 62–64; §4.1, §7, §9 y §11 del Blueprint; el `13,8 %` corregido a `16,7 %` en cuatro documentos | Aprobada |
 | 2026-09-07 | 9 | `E9A-FIXTURE` | Nueve commits. La tabla de arquetipos predicha se commiteó **antes** que la fixture y las 42 celdas cayeron sin un solo desvío; de 2.400 comprobaciones campo a campo difirió una, y era la transcripción en Python la equivocada, no el motor. Dos hallazgos de construcción: un patrón de reparto con periodicidades alineadas clavaba a cada comercio en las mismas cinco horas, y la primera versión concentraba casi todos los arquetipos en un solo comprador cuyos propios montos altos le subían la mediana | Lista para integrar |
+| 2026-09-08 | 10 | `E10A-CONTENEDOR-Y-MEDICION` | Diez commits, tres vueltas de `brief-check`. Veredicto **«no queda descartado»**, que es lo máximo que una medición en un M1 puede afirmar. La sorpresa fue dónde está el cuello: la RAM nunca fue el problema —145 MiB de 512— y el arranque es todo, con 23 de los 77 segundos yéndose en construir el modelo de EF Core. La falsación 3 encontró un defecto no previsto: al matar la API el contenedor terminaba con código **0**, porque ASP.NET se apaga limpio ante SIGTERM, así que una plataforma que distinga «terminó» de «se cayó» podría no reiniciarlo | Lista para integrar |
+| 2026-09-08 | 10 | Integración de `E10A` y decisión 70 | Merge `29677f6` + compuerta y smoke verdes. El coordinador reemplazó la decisión 8 en sus seis lugares conservando su motivo: el aislamiento que la 8 exigía lo da el reinicio. Y la medición cambió dos puntos del diseño: la base sembrada se hornea en la imagen y el reinicio pasa a ser copiar ese archivo | Completada |
 | 2026-09-08 | 9 | `E9D-CIERRE` | Siete commits. Toda cifra publicada sale de una corrida real y fechada, no de un handoff. Reescribió además cuatro párrafos de prosa que ningún `grep` de cifras encontraba —«el corpus alcanza tres de las seis reglas», «cuando el motor los emita, el extractor se borra» en futuro cuando ya no existía— y dejó nueve deudas escritas con nombre | Lista para integrar |
 | 2026-09-08 | 9 | Revisión de capturas por el coordinador | Encontró la peor afirmación falsa que quedaba, y estaba **dentro del producto**: el aviso del dashboard decía que la fixture fue construida para que las reglas recuperen sus propias etiquetas, a veinte píxeles de un F1 de 63,2 %, en la captura embebida en el README. No fue falta de `E9D`: el brief le reservó `frontend/src/**` fuera de alcance y ese aviso no lo cita ningún documento. Corregido en los dos idiomas, en el glosario y en las dos anclas que lo comprobaban | Completada |
 | 2026-09-08 | 9 | Integración de `E9D-CIERRE` | Merge `c2e9a65` + compuerta y smoke verdes. **Cierra el MVP**: las nueve etapas completadas y verificadas | Completada |

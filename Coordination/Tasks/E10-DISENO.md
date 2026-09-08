@@ -250,6 +250,26 @@ exactamente lo que pasó en `E9B` con la regla del `detail`.
 **La corrige el coordinador antes de despachar `E10B`**, en los seis lugares y de una vez, con la
 decisión 70 escrita y la 8 marcada como superada. Ninguna tarea la toca desde su rama.
 
+## Lo que la medición de `E10A` cambió — 2026-09-08
+
+Dos puntos del diseño se reescriben con números en la mano, y los dos mejoran:
+
+**D3, el reinicio, deja de ser «recrear, sembrar y puntuar».** Sembrar cuesta 24,7 s y puntuar 17,5 s
+a 0,1 vCPU, así que hacerlo al arrancar pondría al primer visitante a esperar 119 segundos. **La base
+sembrada se hornea dentro de la imagen** durante la construcción, y el reinicio pasa a ser **copiar
+ese archivo** encima del de trabajo. Es más rápido, es trivialmente correcto —el archivo horneado es
+el estado sintético prístino por construcción— y elimina de raíz el problema que la revisión marcó
+sobre recrear un SQLite que la API tiene abierto.
+
+**D4 se resuelve solo: `DemoData:Enabled` puede quedar en `false`.** Si el corpus viene horneado, la
+instancia pública no necesita la ruta de sembrado, y con eso desaparece la dependencia incómoda
+entre D3 y D4 —«encender la demostración es aceptable *porque* la base se reinicia»—. Lo que hay que
+verificar es qué más cuelga de esa bandera: las métricas de calidad y el disparo de callbacks también.
+
+**Y una tercera, que no estaba en el diseño**: 23 de los 77 segundos de arranque se van construyendo
+el modelo de EF Core. `dotnet ef dbcontext optimize` lo precompila. Es una función estándar de EF y
+es la mitad de lo que separa a esta instancia de ser usable.
+
 ## Partición
 
 En este orden, y el orden es obligatorio:

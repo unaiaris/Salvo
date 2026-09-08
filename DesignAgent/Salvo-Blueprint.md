@@ -647,7 +647,7 @@ Servicios/cuentas:
 - Callbacks persistidos antes de responder `2xx` e idempotentes ante replay.
 - Timeouts de red y errores sanitizados.
 - La caída de IA o Koin no impide el scoring local.
-- Sin autenticación, la app es solo local y no se publica con rutas mutables abiertas.
+- Sin autenticación no se despliega nada que reciba datos de una persona real. Una **instancia pública de demostración** es la excepción, y solo si cumple las tres a la vez: arranca con datos sintéticos y vuelve a ellos en cada reinicio, anuncia en pantalla que es compartida y efímera, y el reinicio no depende de que nadie se acuerde (decisión 70, que reemplaza a la 8).
 - Antes de datos reales o sandbox se revisan LGPD, retención, redacción y origen de callbacks.
 
 ## 11. Etapas pequeñas y verificables
@@ -780,7 +780,7 @@ completo el MVP local.
 | 5 | Koin mock es parte del MVP; sandbox es posterior | El acceso real exige onboarding, credenciales y HTTPS | 2026-08-30 |
 | 6 | Anthropic es el proveedor previsto, pero se integra después del núcleo | La IA no debe ser una dependencia crítica | 2026-08-30 |
 | 7 | NL→SQL sale del MVP | Menor riesgo y mayor foco en integración antifraude | 2026-08-30 |
-| 8 | Sin auth, la aplicación permanece local | Evitar rutas mutables públicas sin aislamiento | 2026-08-30 |
+| 8 | Sin auth, la aplicación permanece local | Evitar rutas mutables públicas sin aislamiento | 2026-08-30 · **superada por la 70** |
 | 9 | Baseline estrictamente temporal | Evitar fuga de información y métricas engañosas | 2026-08-30 |
 | 10 | Node 24.20.0 y npm 11.19.0 como entorno base | Versiones instaladas y compatibles | 2026-08-30 |
 | 11 | Versiones de dependencias fijadas tras smoke test | Reproducibilidad y control de cambios | 2026-08-30 |
@@ -842,6 +842,7 @@ completo el MVP local.
 | 67 | `Accept-Language` queda descartado | Ataría la identidad de una explicación guardada a quién preguntó primero, y una evaluación acumularía una fila por lector. El idioma por persona es post-MVP y necesita autenticación para siquiera plantearse | 2026-09-07 |
 | 68 | El idioma es una columna de la identidad de la explicación y **no** una versión de plantilla | La misma plantilla escribe los dos, y llamarlas `e7-v2` y `e7-v3` volvería «redactar con la plantilla vigente» un botón que ofrece cambiar de idioma. Es la decisión 64 aplicada: sin cambio de texto no hay versión nueva | 2026-09-07 |
 | 69 | Un bloque de cifras de un documento público declara de qué corrida salió y de qué fecha | La decisión 60 comprueba por script las rutas y los nombres de test de un documento, y **no puede comprobar una cifra**: se verificó cambiando una por otra falsa y viendo la compuerta entera en verde. Lo que no se puede detectar se fecha, para que un lector sepa qué parte del documento envejece sin avisar | 2026-09-07 |
+| 70 | Una instancia pública de demostración es admisible sin autenticación | **Reemplaza a la 8 conservando su motivo.** El aislamiento que la 8 exigía lo da el reinicio: nadie queda con el estado que otro dejó porque el estado no sobrevive. Tres condiciones a la vez: datos sintéticos a los que vuelve en cada reinicio, aviso en pantalla de que es compartida y efímera, y un reinicio que no depende de que nadie se acuerde. Lo que **no** cambia: sin auth no se despliega nada que reciba datos de una persona real | 2026-09-08 |
 
 ## 14. Mapa de documentación
 

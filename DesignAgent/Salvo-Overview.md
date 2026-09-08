@@ -47,7 +47,8 @@ credenciales reales.
 
 - Anthropic real.
 - Sandbox, fingerprint o certificación Koin.
-- Autenticación y publicación con rutas mutables.
+- Autenticación. La publicación con rutas mutables entró en la Etapa 10, acotada por la decisión 70
+  a una instancia compartida, efímera y con corpus sintético.
 - Consulta NL→SQL.
 - Observabilidad, Postgres y despliegue.
 

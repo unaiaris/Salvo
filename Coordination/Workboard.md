@@ -1,7 +1,7 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: **MVP cerrado; Etapa 10 en ejecución.** La instancia pública, sobre las nueve etapas
-> verificadas. `E10A-CONTENEDOR-Y-MEDICION` despachada.
+> Estado: **MVP cerrado; Etapa 10 en ejecución.** `E10A` verificada (merge `29677f6`): el contenedor
+> arranca en 77 s a 0,1 vCPU y en 3,3 s a 0,5. `E10B-INSTANCIA-COMPARTIDA` despachada.
 > Última actualización: 2026-09-08
 > Responsable: coordinador de la etapa
 
@@ -21,8 +21,8 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 | `E9B-SENALES-TIPADAS` | `Verificada` (merge `4f7daf9`) | `Claude` | Opus 5 · `high` | `Salvo.Domain/Risk/**` y `Explanations/**`, `Application/Explanations/**`, `AlertViews.cs` y `AlertProjection.cs`, `Salvo.Infrastructure/Explanations/**`, `backend/tests/**`, el borde del frontend —`guards.ts`, `contract.ts`, `fixtures.ts`, `boundary.test.ts`, `format.ts`— y la recaptura del contrato. **La reserva completa vive en el brief; esta fila la resume.** |
 | `E9C1-IDIOMA` | `Verificada` (merge `0d65f9a`) | `Claude` | Opus 5 · `high` | `SALVO_LANGUAGE`, el idioma en la identidad de la explicación con su migración, dos diccionarios en el frontend, la plantilla del backend, `messages.ts`, `describeRecordError`, `format.ts`, `<html lang>`, las anclas del smoke, **y el décimo `ExplanationFailureCode`** en la misma migración. **La reserva completa vive en el brief; esta fila la resume.** |
 | `E9C2-ACCESIBILIDAD` | `Verificada` (merge `835a76a`) | `Claude` | Opus 5 · `high` | Linter y comprobaciones automáticas de accesibilidad, la lista de hallazgos con severidad **antes** de corregir, y las correcciones que el coordinador elija tras el recorrido con VoiceOver |
-| `E10A-CONTENEDOR-Y-MEDICION` | `Asignada` | `Claude` | Opus 5 · `high` | `Dockerfile` y `.dockerignore` nuevos, `scripts/**`, `frontend/next.config.ts` y el borde que lo describe, `Program.cs` y `appsettings*`, `Persistence/**` y el `csproj` **solo si** el camino de migración lo exige, `backend/tests/**`, `frontend/src/test/**` y `Salvo-Getting-Started.md`. **La reserva completa vive en el brief; esta fila la resume.** |
-| `E10B-INSTANCIA-COMPARTIDA` | `Propuesta` | `Claude` | por acordar | El reinicio por antigüedad, el cartel en los dos idiomas, el límite en la capa de Next, el tope de pedidos por instancia, y la sonda de salud. **Bloqueada hasta que el coordinador revise la decisión 8 en sus seis lugares** |
+| `E10A-CONTENEDOR-Y-MEDICION` | `Verificada` (merge `29677f6`) | `Claude` | Opus 5 · `high` | `Dockerfile` y `.dockerignore` nuevos, `scripts/**`, `frontend/next.config.ts` y el borde que lo describe, `Program.cs` y `appsettings*`, `Persistence/**` y el `csproj` **solo si** el camino de migración lo exige, `backend/tests/**`, `frontend/src/test/**` y `Salvo-Getting-Started.md`. **La reserva completa vive en el brief; esta fila la resume.** |
+| `E10B-INSTANCIA-COMPARTIDA` | `Asignada` | `Claude` | Opus 5 · `high` | **La base sembrada horneada en la imagen** y el modelo de EF compilado —las dos optimizaciones que la medición volvió obligatorias—, el reinicio como copia de ese archivo, el cartel en los dos idiomas, el límite en la capa de Next, el tope de pedidos por instancia, y la sonda de salud. **Desbloqueada**: la decisión 70 reemplazó a la 8 en sus seis lugares. **La reserva completa vive en el brief; esta fila la resume.** |
 | `E10C-PUBLICACION` | `Propuesta` | `Claude` | por acordar | Elegir plataforma con los números de `E10A`, desplegar, y el link en README, artículo y guía |
 | `E9D-CIERRE` | `Verificada` (merge `c2e9a65`) | `Claude` | Opus 5 · `high` | Repaso final: las seis capturas regeneradas, las cifras del corpus en README y guion, `docs/muestras/`, el artículo para revisores, y la deuda dicha —contraste sin verificar, recorrido parcial, `glosario.mjs` dentro de `src/`, `MER_US_MARKET`, la tasa base de construcción y la lista de bases `.db`—. **La reserva completa vive en el brief; esta fila la resume.** |
 
@@ -88,6 +88,15 @@ Notas para los briefs de la Etapa 8:
   seis checks anteriores dejaron pasar en briefs con la misma forma — el mismo que rompió `E7A` a
   mitad de ejecución. Hasta acá el check corría con lo que la sesión tuviera puesto, y a veces eso
   significaba que el mismo modelo escribía el plan y lo validaba.
+- **Un anclaje de edición tiene que ser único, no solo existir.** La lección de más abajo decía
+  «verificar antes de mutar y releer después», y yo verifiqué que el anclaje existía. Lo que no
+  verifiqué es que fuera el único: `- \`frontend/next.config.ts\`` aparecía dos veces —en la lista de
+  código a leer y en la reserva de paths— y el reemplazo tomó la primera, insertando un párrafo en
+  el medio de otra viñeta. Si un anclaje aparece más de una vez, hay que agregarle contexto hasta
+  que no.
+- **Una cita por número de línea envejece; una cita por texto no.** El brief de `E10A` citaba
+  `AGENTS.md` línea 114, y la volvió falsa **mi propio commit** de apertura de la Etapa 10, que
+  agregó tres líneas por encima. El arreglo no es actualizar el número: es citar la frase.
 - **Una reserva de paths tiene que seguir a las afirmaciones, no a los tipos de archivo.** `E9D`
   existía para poner al día lo que el proyecto afirma, y le reservé `frontend/src/**` fuera de
   alcance razonando «esta tarea no toca código de producto». Pero el producto **también afirma

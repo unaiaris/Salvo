@@ -422,7 +422,10 @@ aleatorio, así que dos alertas del mismo score aparecen en cualquier orden entr
 de revisión no muestra qué explicación tenía delante quien decidió, aunque la base lo guarde y sea
 una clave foránea real.
 
-**No hay autenticación**, y por eso la aplicación es local y no se despliega con rutas mutables.
+**No hay autenticación**, y por eso no se despliega nada que reciba datos de una persona real. Una
+instancia pública de demostración es la única excepción, y paga su precio: es **compartida y
+efímera**, lo que alguien escribe ahí lo ven los demás hasta el próximo reinicio, y el reinicio
+devuelve todo al corpus sintético.
 Tampoco hay observabilidad, ni Postgres, ni consulta en lenguaje natural: están fuera del MVP.
 **Anthropic sigue siendo una decisión aparte** y no tiene adaptador: `AI_PROVIDER=anthropic` se niega
 a arrancar, a propósito.
