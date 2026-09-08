@@ -49,8 +49,10 @@ No despliega nada. No hay instancia pública al terminar esta tarea.
 - `DesignAgent/Salvo-Blueprint.md`: **no tiene sección de Etapa 10 ni decisión 70, y es correcto que
   no las tenga**. La decisión 70 la escribe el coordinador antes de `E10B`, junto con la revisión de
   la 8. Esta tarea no toca el Blueprint.
-- `AGENTS.md`, línea 114: «sin autenticación, la aplicación es solo local y no se despliega con
-  rutas mutables públicas». **Esta tarea no la contradice y no la toca**: no despliega nada, no
+- `AGENTS.md`, la invariante «sin autenticación, la aplicación es solo local y no se despliega con
+  rutas mutables públicas» — **hoy en la línea 117**, y se cita por su texto porque abrir la Etapa 10
+  la corrió tres líneas hacia abajo: un número de línea envejece, una frase no.
+  **Esta tarea no la contradice y no la toca**: no despliega nada, no
   abre ninguna ruta al público y no cambia quién puede llamar a qué. Su revisión es requisito de
   `E10B`, no de ésta. Si algo de esta tarea pareciera contradecirla, **parar y consultar**.
 - Código, abierto antes de escribir nada:
@@ -299,7 +301,7 @@ deshace:
   coordinador, no la tarea;
 - borrar el rewrite rompe algo que la consola sí usaba;
 - hace falta tocar el motor, el contrato o los diccionarios;
-- algo de esta tarea parece contradecir la línea 114 de `AGENTS.md`;
+- algo de esta tarea parece contradecir la invariante de `AGENTS.md` sobre despliegue;
 - la imagen no puede fijar las versiones que `global.json` y `package.json` clavan.
 
 ## Entrega requerida
