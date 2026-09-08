@@ -17,7 +17,7 @@ El campo `format` es obligatorio y vale `CSV` o `JSON`; sin él la API responde 
 | --- | --- | --- |
 | `import-valido.csv` | El camino feliz, y que importar **no** puntúa | 5 importados, 0 rechazados |
 | `import-con-errores.csv` | El rechazo por registro: el archivo no es todo o nada | 1 importado, 5 rechazados |
-| `import-hora-inusual.json` | Formato JSON, y la sexta regla que el corpus demo no alcanza | 21 importados, 0 rechazados |
+| `import-hora-inusual.json` | Formato JSON, y `unusual_hour` en un solo archivo, sin depender del corpus | 21 importados, 0 rechazados |
 | `import-raiz-invalida.json` | El rechazo del **documento entero**, que es otra cosa | `400 INVALID_JSON_ROOT` |
 
 ## La importación no es todo o nada por archivo
@@ -59,27 +59,32 @@ Dos comercios distintos pueden usar la misma numeración interna sin colisionar,
 que esa decisión soporta. Por eso la fila 6 usa `MER_BR_STORE`: con cualquier otro comercio no habría
 conflicto, sería un pedido nuevo y legítimo.
 
-## `import-hora-inusual.json`: la regla y la banda que el corpus no alcanza
+## `import-hora-inusual.json`: la sexta regla, en un solo archivo
 
-Con el corpus demo, `unusual_hour` **no puede dispararse**. Exige que la franja de seis horas del
-pedido aparezca en el 10 % o menos de los pedidos previos del comercio, y la franja más rara de los
-tres comercios del corpus está en 16,7 %. Es una limitación de la fixture, no de la regla, y la
-Etapa 9 la corrige.
+Este archivo es anterior al corpus v2 y nació para alcanzar lo que el corpus v1 no alcanzaba. **Eso
+ya no hace falta**: el corpus de demostración dispara hoy las seis reglas y produce las tres bandas.
+`unusual_hour` salta dos veces sobre él, en `ORD_000160` y `ORD_000244`, los dos en la franja
+00:00–06:00 con **cero** apariciones previas de esa franja en veinticinco y veintiséis pedidos del
+comercio. La cifra que este documento repetía —«la franja más rara está en 16,7 %»— era del corpus
+anterior; recalculada sobre el v2 da **0 %**, y la más rara que **no** llega a disparar da 12 %.
 
-Este archivo crea un comercio nuevo, `MER_UY_PHARMA`, con veinte pedidos de rutina —todos entre las
-09:00 y las 11:30 locales, en Uruguay, montos normales— y después uno solo, `ORD_959999`, a las
-**03:30 de la madrugada, desde Argentina y por cuarenta veces la mediana**. Tras importarlo hay que
-ejecutar la corrida; el pedido queda así:
+Lo que el archivo sigue teniendo de útil es que la regla se ve entera en una sola importación, sin
+sembrar trescientos pedidos ni buscar una alerta en la cola. Crea un comercio nuevo,
+`MER_UY_PHARMA`, con veinte pedidos de rutina —todos entre las 09:00 y las 11:30 locales, en
+Uruguay, montos normales— y después uno solo, `ORD_959999`, a las **03:30 de la madrugada, desde
+Argentina y por cuarenta veces la mediana**. Tras importarlo hay que ejecutar la corrida; el pedido
+queda así:
 
-| Regla | Peso | Detalle que escribe el motor |
+| Regla | Peso | Qué midió la señal |
 | --- | --- | --- |
 | `amount_anomaly` | +40 | 39,6× la mediana del comercio sobre 20 pedidos previos |
 | `foreign_country` | +20 | AR contra el habitual UY, en 20 de 20 pedidos previos |
 | `unusual_hour` | +10 | Franja 00:00–06:00, hora de Montevideo, 0 de 20 previos |
 
-Total **70**, que cae en la banda `ALTA` —60–69 media, 70–89 alta, 90–100 crítica—, la única que el
-corpus demo nunca produce. `new_buyer_high_value` **no** dispara, y eso es deliberado: `BUY_950001`
-ya tiene dos pedidos previos en ese comercio.
+Total **70**, que cae en la banda alta —60–69 media, 70–89 alta, 90–100 crítica—.
+`new_buyer_high_value` **no** dispara, y eso es deliberado: `BUY_950001` ya tiene dos pedidos previos
+en ese comercio. El motor guarda cada señal como campos con nombre, no como una frase, y la consola
+compone el texto a partir de ellos.
 
 ## Valores admitidos que conviene no adivinar
 
@@ -89,7 +94,7 @@ ya tiene dos pedidos previos en ese comercio.
 - La raíz de un JSON **tiene que ser un array** de pedidos, con los mismos campos que el CSV.
 
 El corpus de demostración de trescientos pedidos no se importa: vive como recurso embebido en
-`backend/src/Salvo.Infrastructure/Seed/Fixtures/demo-orders.v1.json` y se carga con el botón «Cargar
+`backend/src/Salvo.Infrastructure/Seed/Fixtures/demo-orders.v2.json` y se carga con el botón «Cargar
 corpus de demostración». Ese archivo tiene raíz de objeto y trae `isFraudLabel`, que el importador
 **nunca** escribe: una importación no produce etiquetas de verdad de campo.
 

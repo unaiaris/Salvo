@@ -841,6 +841,7 @@ completo el MVP local.
 | 66 | El idioma lo lee **solo la API**, que lo publica en `GET /api/system/capabilities`; la consola lo toma de ahí | Dos lectores independientes de `SALVO_LANGUAGE` es un despliegue mal configurado que sirve una consola en un idioma alrededor de un párrafo en el otro, sin que nada lo reporte. Tomarlo de la respuesta vuelve esa discrepancia irrepresentable | 2026-09-07 |
 | 67 | `Accept-Language` queda descartado | Ataría la identidad de una explicación guardada a quién preguntó primero, y una evaluación acumularía una fila por lector. El idioma por persona es post-MVP y necesita autenticación para siquiera plantearse | 2026-09-07 |
 | 68 | El idioma es una columna de la identidad de la explicación y **no** una versión de plantilla | La misma plantilla escribe los dos, y llamarlas `e7-v2` y `e7-v3` volvería «redactar con la plantilla vigente» un botón que ofrece cambiar de idioma. Es la decisión 64 aplicada: sin cambio de texto no hay versión nueva | 2026-09-07 |
+| 69 | Un bloque de cifras de un documento público declara de qué corrida salió y de qué fecha | La decisión 60 comprueba por script las rutas y los nombres de test de un documento, y **no puede comprobar una cifra**: se verificó cambiando una por otra falsa y viendo la compuerta entera en verde. Lo que no se puede detectar se fecha, para que un lector sepa qué parte del documento envejece sin avisar | 2026-09-07 |
 
 ## 14. Mapa de documentación
 

@@ -475,9 +475,11 @@ export const es = {
       "Medida contra las etiquetas del corpus de demostración. Ninguna cifra del resto de esta "
       + "pantalla usa esas etiquetas.",
     qualityCaveat:
-      "La fixture demo fue construida para que las reglas recuperen sus propias etiquetas. Estas "
-      + "métricas prueban el pipeline de evaluación —división temporal, holdout sin retuning, "
-      + "cálculo correcto—, no la calidad del criterio de detección.",
+      "La fixture demo tiene errores puestos a mano: tres falsos negativos que ninguna regla "
+      + "puede ver y cuatro falsos positivos. Por eso F1 no vale 1,00, y por eso tampoco mide el "
+      + "criterio: con los errores puestos a propósito, F1 es un parámetro elegido y no un "
+      + "resultado. Estas métricas prueban el pipeline de evaluación —división temporal, holdout "
+      + "sin retuning, cálculo correcto—, no la calidad de la detección.",
     qualityScoredOrders: "Pedidos puntuados",
     qualityLabeled: "Con etiqueta",
     qualityUnlabeled: "Sin etiqueta",

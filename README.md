@@ -71,7 +71,7 @@ flowchart TD
     A["Importar CSV o JSON<br/>validación por registro, escritura atómica por archivo"] --> B
     B["Ejecutar la corrida de scoring<br/>acción explícita: importar no procesa"] --> C
     C["Baseline por pedido<br/>solo historia estrictamente anterior"] --> D
-    D["Seis reglas puras emiten señales con su detalle<br/>score = suma de pesos, tope 100"] --> E
+    D["Seis reglas puras emiten señales con sus campos medidos<br/>score = suma de pesos, tope 100"] --> E
     E["Evaluación local append-only<br/>identidad = fingerprint del contenido"] --> F
     F["La corrida referencia una evaluación por pedido<br/>eso, y solo eso, define qué está vigente"] --> G
     G{"¿score mayor o igual a 60?"}
@@ -93,11 +93,11 @@ entre una regeneración y otra, y el texto alternativo de cada una, están en
 
 | | |
 | --- | --- |
-| ![Cola de alertas de Salvo con dieciocho alertas abiertas, ordenadas por score, mostrando pedido, severidad, score del snapshot, score vigente, monto y fecha](docs/capturas/01-cola.png) | ![Detalle de la alerta del pedido ORD_000011, con sus tres señales de riesgo, la opinión del proveedor externo, la explicación redactada y el formulario para emitir el veredicto](docs/capturas/02-detalle.png) |
+| ![Cola de alertas de Salvo con veintitrés alertas abiertas, ordenadas por score, mostrando pedido, severidad, score del snapshot, score vigente, monto y fecha](docs/capturas/01-cola.png) | ![Detalle de la alerta del pedido ORD_000011, con sus tres señales de riesgo, la opinión del proveedor externo, la explicación redactada y el formulario para emitir el veredicto](docs/capturas/02-detalle.png) |
 | **La cola.** Alertas abiertas, de mayor a menor score vigente. La severidad con la que se abrió cada alerta y la que dice el corpus ahora van en columnas separadas: son dos momentos distintos. | **El detalle.** El pedido, el snapshot congelado, la evaluación vigente, la opinión del proveedor, la explicación y el veredicto. Todo lo que hace falta para decidir, en una pantalla. |
 | ![Bloque de explicación de una alerta: un párrafo que describe la evaluación con sus cifras, y debajo la nota de que lo redactó una plantilla determinista y no un modelo, verificado contra la evaluación antes de guardarse](docs/capturas/03-explicacion.png) | ![Bloque de evaluación externa mostrando que los dos criterios no coinciden: el motor local marcó el pedido por encima del umbral y el proveedor externo lo aprobó, con la aclaración de que no se combinan en un veredicto único](docs/capturas/06-divergencia.png) |
 | **La explicación.** Cada cifra y cada regla del párrafo se verificaron contra la evaluación antes de guardarlo. El pie dice quién lo escribió y con qué versión de plantilla. | **La divergencia de criterio.** El motor local marcó el pedido; el proveedor lo aprobó. No se combinan en un veredicto único y no se comparan sus scores: son escalas de sistemas distintos. |
-| ![Pantalla de importación tras enviar un archivo con errores: un pedido importado, cinco registros rechazados listados uno por uno con su línea, su campo y el motivo del rechazo](docs/capturas/05-import.png) | ![Dashboard de Salvo con dieciocho alertas abiertas, monto en riesgo separado por moneda, gráfico semanal de pedidos y denegados, y la sección de calidad del criterio con la advertencia de que las métricas prueban el pipeline y no la detección](docs/capturas/04-dashboard.png) |
+| ![Pantalla de importación tras enviar un archivo con errores: un pedido importado, cinco registros rechazados listados uno por uno con su línea, su campo y el motivo del rechazo](docs/capturas/05-import.png) | ![Dashboard de Salvo con veintitrés alertas abiertas, monto en riesgo separado por moneda, gráfico semanal de pedidos y denegados, y la sección de calidad del criterio con la advertencia de que las métricas prueban el pipeline y no la detección](docs/capturas/04-dashboard.png) |
 | **La importación.** Estricta por registro y atómica por archivo: las filas válidas entran todas juntas y las rechazadas se listan una por una, con su línea y su motivo. | **El dashboard.** Monto en riesgo por moneda, sin sumarlas jamás entre sí, y el gráfico semanal dibujado en SVG por el servidor. Abajo, la calidad del criterio con su advertencia. |
 
 ## Las tres fuentes de verdad que nunca se mezclan
@@ -282,11 +282,17 @@ Tres cosas que este dibujo dice y conviene leer despacio:
   adaptador futuro pasaría porque alguien se acordó. Acá no hay ningún camino a la base que la
   esquive: `backend/src/Salvo.Application/Explanations/RequestExplanationHandler.cs` la llama, y un
   test de mutación quita la llamada y observa cómo un rechazo se convierte en un texto guardado.
+- **Los hechos se construyen en el dominio, no leyendo prosa.** Cada regla guarda su medición como
+  campos con nombre, y `backend/src/Salvo.Domain/Explanations/ExplanationFacts.cs` arma con ellos,
+  con el pedido y con la configuración el conjunto de cifras que una frase correcta puede contener.
+  Incluye las que no están en ningún campo porque son otra manera de escribir la misma verdad: el
+  monto en unidades y no en centavos, con separador de miles, el porcentaje redondeado, el instante
+  en hora del comercio. Quitar cualquiera de esas entradas devuelve un rechazo de texto correcto.
 - **El tokenizador es uno solo y está declarado**,
-  `backend/src/Salvo.Domain/Explanations/NumberTokenizer.cs`. Corre sobre los dos lados: sobre el
-  `detail` en inglés que escribe el motor, para construir los hechos, y sobre el resumen en español
-  que devuelve el proveedor, para leer qué afirmó. Dos tokenizadores discreparían, y la discrepancia
-  aparecería como rechazo de texto correcto.
+  `backend/src/Salvo.Domain/Explanations/NumberTokenizer.cs`. Corre sobre el resumen que devuelve el
+  proveedor, para leer qué afirmó, y fija además con cuántos decimales puede escribirse un hecho sin
+  dejar de respaldarlo. Que la tolerancia de redondeo sea una sola es el punto: dos criterios
+  discreparían, y la discrepancia aparecería como rechazo de texto correcto.
 - **Al input de un modelo no entra ningún texto que no escriba el motor.** Quedan fuera los campos
   importados, los identificadores y las notas escritas por personas. Un identificador normalizado a
   mayúsculas no es seguro por tener formato estricto: admite una instrucción legible en su alfabeto.
@@ -321,9 +327,10 @@ ESLint, Vitest y el build de producción del frontend.
 `scripts/smoke-ui.sh` es lo único que verifica el recorrido de verdad, y por eso no está dentro de la
 compuerta: levanta la API y `next start` en puertos propios, sobre bases temporales, y le pide las
 rutas a un servidor HTTP real. Cubre cinco rutas —`/`, `/import`, `/alerts`, el detalle de una alerta
-y `/dashboard`— en seis escenarios: con datos, con la evaluación externa pedida y entregada, con la
-explicación escrita, con una explicación de una plantilla anterior, con la base vacía y con la API
-apagada. No toca la base de desarrollo y no borra nada.
+y `/dashboard`— en ocho escenarios: con datos, con la evaluación externa pedida y entregada, con la
+explicación escrita, con una explicación de una plantilla anterior, con el despliegue en portugués,
+con un idioma que este build no habla y por eso no arranca, con la base vacía y con la API apagada.
+No toca la base de desarrollo y no borra nada.
 
 ```bash
 ./scripts/check-docs.sh
@@ -363,55 +370,100 @@ de cualquiera de los dos no detiene el scoring local.
 
 Un proyecto que dice lo que le falta se lee mejor que uno que finge estar terminado.
 
-**Las métricas prueban el pipeline, no el criterio.** La fixture demo fue construida para que las
-reglas recuperen sus propias etiquetas, así que la puntuación es perfecta y eso no significa lo que
-parece —el valor exacto está en el bloque de más abajo—. La advertencia está escrita en la propia
-consola, en
-`frontend/src/app/dashboard/quality-section.tsx`: lo que estas métricas prueban es que la evaluación
-es honesta —división temporal, holdout sin retuning, aritmética que cierra—, no que las reglas
-generalizarían a un corpus con el que no fueron construidas.
+**F1 es un parámetro del diseño, no un resultado.** Los veintiocho fraudes de trescientos pedidos no
+son la medición de nada: son una tasa base del 9,3 % que alguien eligió al escribir la fixture, junto
+con qué pedidos son fraude y cuáles de ellos las reglas no pueden ver. El corpus se construyó **para
+que las reglas se equivoquen**, con falsos negativos y falsos positivos puestos a mano, así que la
+puntuación de más abajo mide qué tan bien se armó ese ejercicio y no qué tan bien detecta el motor.
+Lo que sí prueban las métricas es que la evaluación es honesta: división temporal, holdout sin
+retuning y aritmética que cierra. La advertencia está escrita en la propia consola, en
+`frontend/src/app/dashboard/quality-section.tsx`, y no en una nota al pie.
 
-**El corpus alcanza tres de las seis reglas.** Tiene un solo arquetipo de fraude —monto atípico desde
-país extranjero—, así que `velocity`, `cross_border_velocity` y `unusual_hour` funcionan y están
-probadas, pero nunca abren una alerta con estos datos. `unusual_hour` es, además, estructuralmente
-inalcanzable con esta fixture: exige una franja de seis horas con no más del 10 % de los pedidos del
-comercio en treinta días, y la franja más rara de los tres comercios no baja de ahí. La banda alta,
-70–89, tampoco aparece.
+**Ninguna cifra de este README está verificada por script.** `scripts/check-docs.sh` comprueba que
+cada ruta exista, que cada enlace apunte a algo y que cada test nombrado exista de verdad; de las
+cifras no sabe nada. Se comprobó cambiando una por una falsa y viendo que la compuerta entera pasaba
+en verde. Así que el bloque de más abajo depende de que alguien lo regenere, y por eso dice de qué
+corrida salió y de qué día. Es la parte del documento que envejece sin avisar.
 
-**Los detalles de las señales están en inglés.** El motor los escribe como frases y el fingerprint
-las hashea, así que las cifras que necesita un resumen en español viven dentro de prosa inglesa.
-`SignalFacts` en el dominio ya las convierte en campos tipados; cuando el motor los emita
-directamente, el extractor se borra.
+**El contraste de color no lo comprueba nada.** `jsdom` no calcula estilos ni tiene canvas, así que
+`axe-core` devuelve `color-contrast` como incompleto en vez de como violación, y la regla está
+apagada por su nombre en `frontend/src/test/axe.ts`. Apagada y dicha es honesto; silenciosamente
+incompleta no lo es.
+
+**El recorrido con lector de pantalla fue parcial.** Se recorrieron la portada y el encabezado de la
+cola de alertas, sin hallazgos, y ahí se interrumpió. Nadie recorrió esta consola entera sin ver la
+pantalla, y ningún documento del repositorio dice lo contrario. La pasada automática sí se hizo
+entera: treinta y una reglas de accesibilidad en el linter más `axe-core` sobre el árbol renderizado,
+las dos dentro de la compuerta.
+
+**El portugués no lo revisó un hablante nativo.** Los dos diccionarios están completos y una clave
+faltante es error de compilación, pero la elección de cada palabra es mía.
+`frontend/src/lib/i18n/glosario-pt.md` pone las dos versiones lado a lado para que alguien lo corrija
+fila por fila sin abrir código.
+
+**`MER_US_MARKET` es hoy el comercio argentino.** El corpus vive en el corredor UTC−3 para que «hora
+del comercio» signifique lo mismo en los tres, así que ese comercio factura en dólares con noventa de
+sus cien pedidos desde Argentina. El identificador quedó heredado del corpus anterior y **se explica
+en vez de arreglarse**: la referencia de un pedido es `(comercio, referencia)`, y renombrar el
+comercio anularía el guardián de conflicto que impide que dos corpus contradictorios convivan en la
+misma base. El nombre miente; cambiarlo cuesta más de lo que corrige.
+
+**Quedan tres asperezas de idioma en la consola.** El mensaje técnico de un registro rechazado sigue
+en inglés, porque nombra el valor rechazado y no lo escribe la consola. El código `UNKNOWN_FIELD`,
+que solo emite el parser de JSON, no tiene rótulo traducido y se muestra crudo. Y el aviso de una
+importación de un solo pedido dice «Se importaron 1 pedidos».
+
+**`frontend/src/lib/i18n/glosario.mjs` es un generador que vive dentro del árbol de fuentes.** Está
+al lado del archivo que produce y de los diccionarios que lee, que es lo cómodo para quien lo corre,
+pero `frontend/src/` es código de la consola y esto no lo es. Se deja donde está y se dice.
+
+**Dos cosas que se vieron y no se arreglaron.** El orden de la cola desempata con un identificador
+aleatorio, así que dos alertas del mismo score aparecen en cualquier orden entre corridas. Y el panel
+de revisión no muestra qué explicación tenía delante quien decidió, aunque la base lo guarde y sea
+una clave foránea real.
 
 **No hay autenticación**, y por eso la aplicación es local y no se despliega con rutas mutables.
 Tampoco hay observabilidad, ni Postgres, ni consulta en lenguaje natural: están fuera del MVP.
-
-La Etapa 9 enriquece la fixture con casos duros —falsos negativos y falsos positivos deliberados—
-para que las seis reglas y las tres bandas sean alcanzables y las métricas dejen de ser perfectas.
+**Anthropic sigue siendo una decisión aparte** y no tiene adaptador: `AI_PROVIDER=anthropic` se niega
+a arrancar, a propósito.
 
 <!-- corpus:inicio -->
 
 ### El corpus de demostración, en números
 
-Este bloque se regenera. Todas las cifras que dependen del corpus viven acá y en ningún otro lugar
-de este archivo, porque la Etapa 9 va a cambiarlas de una sola pasada. Salen de una base nueva:
-migrar, `POST /api/demo-data/seed`, `POST /api/risk-evaluations:run`, y leer `/api/dashboard` y
-`/api/evaluation-metrics`.
+Todas las cifras que dependen del corpus viven acá y en ningún otro lugar de este archivo. **Salen de
+una corrida del 2026-09-07** sobre una base recién migrada, no de otro documento: `POST
+/api/demo-data/seed`, `POST /api/risk-evaluations:run`, y después leer `/api/dashboard`,
+`/api/evaluation-metrics` y `/api/alerts`.
 
 | Magnitud | Valor |
 | --- | --- |
 | Pedidos sintéticos | 300, del 2026-05-01 al 2026-08-28 |
 | Comercios | 3, uno por moneda: UYU, BRL y USD, 100 pedidos cada uno |
-| Etiquetas de fraude | 18 fraudes y 282 legítimos |
-| Evaluaciones de la corrida | 300, todas con fingerprint distinto |
-| Alertas abiertas | 18: 13 media, 0 alta, 5 crítica |
-| Tasa de marcado | 6 % |
-| Monto en riesgo | 1.898.778 centavos UYU, 1.279.386 BRL y 764.082 USD, seis alertas por moneda |
-| Reglas que disparan | `foreign_country` en 34 evaluaciones, `amount_anomaly` en 18, `new_buyer_high_value` en 5 |
-| Calibración y holdout | 200 pedidos de calibración, 100 de holdout, división temporal |
-| Umbral elegido | 60, con precisión 1,00, recall 1,00 y F1 1,00 sobre calibración y sobre holdout |
+| Dónde operan | El corredor UTC−3: Uruguay, Brasil y Argentina |
+| Etiquetas de fraude | 28 fraudes y 272 legítimos: una tasa base del 9,3 %, elegida al construir la fixture |
+| Evaluaciones de la corrida | 300 con `e3-v2`, todas con fingerprint distinto; 56 levantan al menos una señal |
+| Alertas abiertas | 23: 11 media, 6 alta y 6 crítica. Las tres bandas existen |
+| Tasa de marcado | 7,7 % |
+| Monto en riesgo | 2.844.758 centavos UYU en 6 alertas, 756.612 BRL en 12 y 129.734 USD en 5 |
+| Reglas que disparan | Las seis. Sobre las 300 evaluaciones: `foreign_country` 50, `amount_anomaly` 19, `new_buyer_high_value` 10, `cross_border_velocity` 4, `velocity` 2 y `unusual_hour` 2 |
+| Calibración y holdout | 200 pedidos de calibración y 100 de holdout, división temporal |
+| Umbral elegido | 60, que es además el que maximiza F1 en el barrido de calibración |
 | Evaluación externa del corpus | 300 pedidos: 279 se asientan en el acto y 21 quedan pendientes de callback |
 | Tras entregar los callbacks | 237 aprobadas, 54 denegadas y 9 en error: 6 rechazadas por el proveedor y 3 que nunca salieron |
+| Denegados por el proveedor sin alerta local | 43 con las 279 síncronas; 51 después de entregar los 21 callbacks |
+
+La calidad del criterio va con sus conteos y su `n`, y no como una razón con dos decimales, porque
+las cohortes son chicas y una razón sola esconde cuánto pesa cada caso:
+
+| Cohorte | n | Verdaderos positivos | Falsos positivos | Falsos negativos | Verdaderos negativos | Precisión | Recall | F1 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Calibración, umbral 60 | 200 | 11 | 3 | 7 | 179 | 11 de 14 | 11 de 18 | 0,688 |
+| Holdout, umbral 60 | 100 | 6 | 3 | 4 | 87 | 6 de 9 | 6 de 10 | 0,632 |
+
+El holdout tiene **diez** pedidos fraudulentos, así que un falso negativo más movería el recall diez
+puntos de golpe. Con cohortes de este tamaño, la tercera cifra decimal de un F1 no significa nada, y
+la matriz sí.
 
 Las bandas del proveedor simulado no son cifras del corpus sino de su función: el resultado depende
 de los dígitos finales de la referencia del pedido, módulo cien, y está documentado en

@@ -123,10 +123,18 @@ try {
   ]);
 
   // ------------------------------------------------------------------ 04. el dashboard
+  //
+  // «Score local» es la última columna de la tabla de denegados por el proveedor sin alerta local, y
+  // solo existe cuando ese panel tiene filas: vacío, el panel es un párrafo. Se exige acá para que
+  // la captura no pueda volver a salir con ese panel en blanco sin que nadie se entere, que es como
+  // salió antes de que `capturas.sh` pidiera la evaluación externa del corpus. `ORD_000275` es uno
+  // de los tres arquetipos que las reglas no pueden ver, y es lo que el panel existe para mostrar.
   await shootPage(page, "04-dashboard.png", "/dashboard", [
     "Monto en riesgo",
     "Calidad del criterio",
-    "no la calidad del criterio de detección",
+    "F1 es un parámetro elegido y no un resultado",
+    "Score local",
+    "ORD_000275",
   ]);
 
   // ------------------------------------------------------------------ 05. la importación

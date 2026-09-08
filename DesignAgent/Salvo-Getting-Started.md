@@ -1,7 +1,7 @@
 # Salvo — Guía de arranque
 
 > Estado del documento: vigente
-> Última actualización: 2026-09-06
+> Última actualización: 2026-09-07
 > Fuente de verdad: [[Salvo-Blueprint]]
 > Seguimiento: [[Salvo-Progress]] · Navegación: [[Salvo-MOC]]
 
@@ -9,10 +9,10 @@
 
 - Etapa 0 documental completada.
 - Etapa 1 integrada mediante PR #1, cerrada mediante PR #2 y verificada sobre `main` en `66f0949`.
-- Etapas 2 a 7 integradas y verificadas con la compuerta full-stack y, desde la Etapa 5, con
+- Etapas 2 a 8 integradas y verificadas con la compuerta full-stack y, desde la Etapa 5, con
   `scripts/smoke-ui.sh` sobre el estado integrado.
-- Etapa 8 en ejecución. El estado vigente y los propietarios están en `../Coordination/Workboard.md`;
-  ninguna etapa comienza sin autorización explícita.
+- Etapa 9 en ejecución, la última del MVP. El estado vigente y los propietarios están en
+  `../Coordination/Workboard.md`; ninguna etapa comienza sin autorización explícita.
 
 ## Herramientas
 
@@ -86,6 +86,20 @@ npm ci --prefix frontend
 
 El comando `dotnet` debe estar disponible en `PATH`; `global.json` rechazará un SDK distinto de
 10.0.400.
+
+### Un empujón con capturas adentro no entra en el buffer por defecto
+
+Un `git push` que lleve las seis capturas regeneradas mueve varios megabytes en un solo envío y
+falla con `HTTP 400 curl 22 The requested URL returned error: 400`, que no dice nada sobre el
+tamaño. El buffer de `git` para HTTP es de 1 MiB por defecto y el empujón lo pasa. Se arregla una
+vez por clon:
+
+```bash
+git config http.postBuffer 524288000
+```
+
+Es configuración local del repositorio, no del sistema, y no cambia nada más. Conviene ponerla
+antes del primer empujón que incluya capturas, porque el mensaje de error no sugiere la causa.
 
 ## Comandos disponibles
 

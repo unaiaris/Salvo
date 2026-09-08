@@ -455,9 +455,11 @@ export const pt: Dictionary = {
       "Medida contra os rótulos do corpus de demonstração. Nenhum número do resto desta tela usa "
       + "esses rótulos.",
     qualityCaveat:
-      "A fixture de demonstração foi construída para que as regras recuperem seus próprios rótulos. "
-      + "Estas métricas provam o pipeline de avaliação —divisão temporal, holdout sem retuning, "
-      + "cálculo correto—, não a qualidade do critério de detecção.",
+      "A fixture de demonstração tem erros colocados à mão: três falsos negativos que nenhuma "
+      + "regra consegue ver e quatro falsos positivos. Por isso o F1 não vale 1,00, e por isso "
+      + "também não mede o critério: com os erros colocados de propósito, o F1 é um parâmetro "
+      + "escolhido e não um resultado. Estas métricas provam o pipeline de avaliação —divisão "
+      + "temporal, holdout sem retuning, cálculo correto—, não a qualidade da detecção.",
     qualityScoredOrders: "Pedidos pontuados",
     qualityLabeled: "Com rótulo",
     qualityUnlabeled: "Sem rótulo",

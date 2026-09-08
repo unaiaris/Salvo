@@ -71,8 +71,9 @@ entran nueve mil novecientos ochenta y ocho, y las doce se devuelven para correg
 deterministas, cada una con su peso y con un detalle legible que dice de dónde salió el número.»
 
 **El clic.** Abrir el detalle de `ORD_000011`. Se leen las tres señales en voz alta: monto atípico
-—veintitrés veces la mediana del comercio—, comprador nuevo con monto alto, y país distinto del
-habitual. Suman noventa sobre un umbral de sesenta, y noventa cae en la banda crítica.
+—3,4 veces la mediana del comercio, calculada sobre tres pedidos previos—, comprador nuevo con monto
+alto, y país distinto del habitual. Suman noventa sobre un umbral de sesenta, y noventa cae en la
+banda crítica.
 
 **La frase que más distingue.** «El baseline de cada pedido usa solo historia anterior a ese pedido.
 Nunca el presente ni el futuro. Y la etiqueta de fraude del dataset no es una señal: se usa para
@@ -167,23 +168,26 @@ bloque para el final del recorrido por la alerta.
 
 **Se va a** `/dashboard`, hasta «Calidad del criterio».
 
-**La frase.** «Acá está la parte que más me interesa mostrar. Las métricas dan perfectas, y eso no es
-una buena noticia: es un límite del corpus, no una virtud del motor. La advertencia está escrita
+**La frase.** «Acá está la parte que más me interesa mostrar. Las métricas **no** dan perfectas, y
+eso es deliberado: el corpus está construido para que las reglas se equivoquen. Hay fraude que estas
+reglas no pueden ver y hay pedidos legítimos que marcan, puestos a mano. La advertencia está escrita
 debajo, en el producto, no en una nota al pie.»
 
 <!-- corpus:inicio -->
 
-Las cifras que se citan en este bloque salen del corpus de demostración y las regenera la Etapa 9:
-**300 pedidos** de tres comercios, **18 alertas abiertas** —13 medias y 5 críticas, ninguna alta—,
-umbral **60**, y precisión, recall y F1 **1,00** tanto en calibración como en holdout.
+Las cifras de este bloque salen del corpus de demostración, de la corrida del 2026-09-07: **300
+pedidos** de tres comercios con **28 fraudes**, **23 alertas abiertas** —11 medias, 6 altas y 6
+críticas—, umbral **60**, y F1 de **0,688** en calibración y **0,632** en holdout. La matriz de
+confusión, con sus conteos, está en el README.
 
 <!-- corpus:fin -->
 
-**La frase que remata.** «Con este corpus, el score y la etiqueta coinciden siempre, así que las
-métricas prueban el pipeline y no el criterio. Hay un solo arquetipo de fraude, tres de las seis
-reglas nunca abren una alerta, y la banda alta no se alcanza. Está escrito en el README y es el
-trabajo de la etapa siguiente. Un proyecto que declara lo que le falta se lee mejor que uno que
-finge estar terminado.»
+**La frase que remata.** «Ahora, ojo con la cifra: la tasa base es del 9,3 % y la elegí yo al
+escribir la fixture, igual que elegí qué pedidos son fraude y cuáles de ellos las reglas no pueden
+ver. Con los errores puestos a mano, F1 es un parámetro del diseño y no un resultado. Lo que estas
+métricas sí prueban es que la evaluación es honesta: división temporal, holdout sin retuning y
+aritmética que cierra. Un proyecto que declara lo que le falta se lee mejor que uno que finge estar
+terminado.»
 
 **Si falla.** Si «Calidad del criterio» no está, la API arrancó sin `DemoData:Enabled`. Esa sección
 vive detrás de esa bandera a propósito: la etiqueta de fraude es verdad de campo y el dashboard
