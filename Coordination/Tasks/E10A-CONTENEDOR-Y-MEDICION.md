@@ -14,10 +14,16 @@
 - Integración: **por merge, nunca por rebase.**
 - Modelo y esfuerzo acordados: **Opus 5 · `high`**.
 - Dependencias: ninguna. `E10B` y `E10C` dependen de esta integrada, en ese orden.
-- **Requisito previo, ya cumplido**: el coordinador instaló **Docker Desktop** en macOS 15.6.1,
-  Apple Silicon, y `docker run --rm alpine echo hola` responde. Cuando se escribió el diseño no
-  había ningún runtime de contenedores en la máquina, y esta tarea no instala software: si `docker`
-  no responde, **parar y consultar** en vez de instalar nada.
+- **Corrección al diseño**: la partición de `E10-DISENO.md` v2 dice que `E10A` instala el runtime
+  de contenedores. **El brief manda y lo prohíbe**: el coordinador ya lo instaló, y esta tarea no
+  instala software en la máquina del usuario. El diseño quedó desfasado en ese punto y se corrige
+  cuando la etapa cierre.
+- **Requisito previo, cumplido con una trampa**: el coordinador instaló **Docker Desktop 29.7.2**
+  en macOS 15.6.1, Apple Silicon, con 8 CPUs y 8 GB en su máquina virtual. Responde en la terminal
+  del usuario, **pero `docker` no está en el `PATH` del shell de esta sesión**. El binario está en
+  **`~/.docker/bin/docker`**, y también dentro de `Docker.app`. La tarea **usa esa ruta o agrega ese
+  directorio al `PATH`** al principio; **no instala software** y no da por hecho que `docker` esté
+  suelto en el `PATH`.
 
 ## Resultado esperado
 
@@ -35,12 +41,22 @@ No despliega nada. No hay instancia pública al terminar esta tarea.
 - `Coordination/Tasks/E10-DISENO.md` (**v2**), decisiones **D2, D3, D7 y D8**, y la condición de
   parada del final de la partición.
 - `Coordination/Tasks/E10-revision-adversarial.md`, los hallazgos **1, 2 y 3**.
+- `DesignAgent/Salvo-Progress.md`, checklist «Etapa 10 — La instancia pública»: los dos primeros
+  ítems son los que esta tarea cierra. La etapa está abierta en el Progress, en el Workboard y en
+  `AGENTS.md` por un commit del coordinador **en esta misma rama**, anterior al brief.
+- `DesignAgent/Salvo-Blueprint.md`: **no tiene sección de Etapa 10 ni decisión 70, y es correcto que
+  no las tenga**. La decisión 70 la escribe el coordinador antes de `E10B`, junto con la revisión de
+  la 8. Esta tarea no toca el Blueprint.
 - `AGENTS.md`, línea 114: «sin autenticación, la aplicación es solo local y no se despliega con
   rutas mutables públicas». **Esta tarea no la contradice y no la toca**: no despliega nada, no
   abre ninguna ruta al público y no cambia quién puede llamar a qué. Su revisión es requisito de
   `E10B`, no de ésta. Si algo de esta tarea pareciera contradecirla, **parar y consultar**.
 - Código, abierto antes de escribir nada:
-  - `frontend/next.config.ts`: el rewrite que se borra, y `experimental.taint`, que no se toca.
+  - `frontend/next.config.ts`
+- `frontend/src/lib/api/server-client.ts` y `frontend/src/lib/api/server-client.test.ts` — **el
+  comentario de cabecera del primero describe el rewrite** (líneas 12 a 14) y el segundo tiene un
+  test que lo nombra en su título y en su comentario. Borrar el rewrite sin tocarlos deja código que
+  describe algo que ya no existe, que es la clase de mentira que este proyecto persigue: el rewrite que se borra, y `experimental.taint`, que no se toca.
   - `frontend/src/lib/api/server-client.ts`, el comentario de cabecera: explica por qué la consola
     usa URL absoluta y por qué el rewrite no le sirve.
   - `backend/src/Salvo.Api/Program.cs`: el arranque, y la ausencia de cualquier migración.
@@ -65,9 +81,21 @@ la URL pública.
 comentario de cabecera de `server-client.ts` lo explica: una URL relativa dentro de un componente de
 servidor es un `TypeError`. Es superficie expuesta sin un beneficio a cambio.
 
-Se borra, y **se demuestra que estaba de más**: con la consola corriendo, `GET /api/dashboard`
-contra el puerto de Next tiene que dar 404, y las cuatro pantallas tienen que seguir funcionando
-enteras, incluida una importación y una corrida.
+**Y hay que apuntarle bien, porque el rewrite quita el prefijo.** `source: "/api/:path*"` manda a
+`${api}/:path*`, así que `/api/dashboard` llega a `${api}/dashboard` — que **no existe**, porque
+todas las rutas de la API empiezan con `/api/` (`DashboardEndpoints.cs:13` es `/api/dashboard`). O
+sea: `GET /api/dashboard` contra Next **ya da 404 hoy, con el rewrite puesto**, y como criterio no
+demuestra nada.
+
+La ruta que sí llega es la del prefijo doblado: **`/api/api/dashboard`** → `${api}/api/dashboard`.
+Ésa es la sonda.
+
+Se borra, y **se demuestra que estaba de más** con dos comprobaciones que hoy dan distinto:
+
+- Con el rewrite puesto, `GET /api/api/dashboard` contra el puerto de Next **devuelve el dashboard**.
+  Sin el rewrite, da 404.
+- Las cuatro pantallas siguen funcionando enteras después de borrarlo, incluida una importación y
+  una corrida.
 
 #### 2. La imagen
 
@@ -88,6 +116,11 @@ Restricciones duras, todas verificadas contra el árbol:
 Decisiones delegadas con su costo escrito: si la API se publica autocontenida y recortada —menos
 RAM y menos imagen, a cambio de una compilación más larga—, y si Next usa `output: "standalone"`,
 que reduce mucho lo que el runtime de Node necesita.
+
+**Y una configuración que hay que poner y decir**: el contenedor necesita `DemoData__Enabled=true`
+para poder sembrar, y en `appsettings.json` está en `false`. No es un detalle de la medición: es la
+diferencia entre una imagen que puede mostrar el producto y una que no. Se pone en el contenedor,
+con su motivo, y **`E10B` decide si eso sobrevive a la instancia pública**.
 
 #### 3. La base, al arrancar
 
@@ -110,11 +143,11 @@ de un tier gratuito —**512 MB de RAM y una fracción de vCPU**—, y los núme
 
 | Qué se mide | Umbral, y de dónde sale |
 | --- | --- |
-| Arranque de los dos procesos hasta que `/health` responde | La sonda del smoke espera **5 s** |
+| Arranque de los dos procesos hasta que `/health` responde | `SMOKE_TIMEOUT_SECONDS`, que vale **90 s** (`scripts/smoke-ui.sh:51`). Los `--max-time 5` de la línea 150 son el tope de **cada intento** dentro de ese bucle, no el umbral |
 | Migración de una base vacía | Sin umbral previo: se establece acá |
 | Sembrado de los 300 pedidos | `scripts/smoke-ui.sh` usa `--max-time` **60 s** |
 | Corrida de scoring sobre los 300 | `scripts/smoke-ui.sh` usa `--max-time` **120 s** |
-| Primer render de cada una de las cuatro pantallas | El smoke usa `--max-time` **30 s** |
+| Primer render de cada una de las cuatro pantallas | El smoke usa `--max-time` **30 s** (líneas 184 y 206) |
 | RAM en reposo, y RAM durante la corrida | 512 MB es el techo |
 
 **Los umbrales no se inventan: ya están en el código**, y son los que la compuerta usa hoy sobre una
@@ -159,8 +192,9 @@ esperar a que responda. Es lo que hace repetible la medición y lo que va a usar
 - `scripts/**`
 - `frontend/next.config.ts`
 - `backend/src/Salvo.Api/Program.cs` y `backend/src/Salvo.Api/appsettings*.json`
-- `backend/src/Salvo.Infrastructure/Persistence/**`, **solo** si el camino elegido en el punto 3 lo
-  exige
+- `backend/src/Salvo.Infrastructure/Persistence/**` y
+  `backend/src/Salvo.Api/Salvo.Api.csproj`, **solo** si el camino elegido en el punto 3 lo exige —
+  un script SQL generado en tiempo de compilación se engancha desde el `csproj`
 - `backend/tests/**` y `frontend/src/test/**`
 - `DesignAgent/Salvo-Getting-Started.md`
 - `Coordination/Handoffs/Claude.md`
@@ -193,8 +227,10 @@ reservado.
 ## Criterios de aceptación
 
 - [ ] `/brief-check Coordination/Tasks/E10A-CONTENEDOR-Y-MEDICION.md` sin faltantes antes de empezar.
-- [ ] El rewrite ya no existe, `GET /api/dashboard` contra el puerto de Next da **404**, y las cuatro
-      pantallas funcionan enteras, con una importación y una corrida hechas.
+- [ ] El rewrite ya no existe. **La sonda es `/api/api/dashboard`, no `/api/dashboard`**: con el
+      rewrite devuelve el dashboard y sin él da 404. Las cuatro pantallas funcionan enteras, con una
+      importación y una corrida hechas.
+- [ ] `server-client.ts` y su test ya no describen un rewrite que no existe.
 - [ ] La imagen construye con el SDK `10.0.400` y Node `24.20.0`.
 - [ ] **El handoff registra con qué se midió**: la versión exacta de `docker`, la de macOS, el chip,
       y los recursos que la máquina virtual de Docker Desktop tenía asignados. Sin eso el número no
@@ -216,7 +252,7 @@ reservado.
 | Comando/comprobación | Resultado esperado |
 | --- | --- |
 | `/brief-check` del brief | Válido |
-| `curl` a `/api/dashboard` en el puerto de Next | `404` |
+| `curl` a `/api/api/dashboard` en el puerto de Next | Con rewrite: el dashboard. Sin rewrite: `404` |
 | Recorrido de las cuatro pantallas | Completo, con importación y corrida |
 | Construcción de la imagen | Con las versiones clavadas |
 | Arranque sin `tzdata` | La API no arranca, y el error se anota |
@@ -233,9 +269,11 @@ reservado.
 **Falsaciones exigidas.** Cada una se rompe a propósito, se corre, se anota el error exacto, y se
 deshace:
 
-1. Dejar el rewrite → `GET /api/demo-data/seed` contra el puerto público **siembra la base**. Es el
-   hallazgo 1 reproducido: la demostración de que la v1 del diseño afirmaba lo contrario de lo que
-   hacía el archivo.
+1. Dejar el rewrite → **`POST /api/api/demo-data/seed`** contra el puerto público **siembra la
+   base**. Van los dos detalles: el prefijo doblado, porque el rewrite lo quita, y `POST`, porque el
+   sembrado es `MapPost` (`OrderEndpoints.cs:34`). Es el hallazgo 1 reproducido, y de paso la
+   demostración de que una sonda mal apuntada —`GET /api/demo-data/seed`— da 404 con el rewrite y
+   sin él, y por eso no prueba nada.
 2. Quitar `tzdata` de la imagen final → la API no arranca, y el error nombra la zona horaria.
 3. Matar la API con el contenedor vivo → sin la regla del punto 2, la consola sigue respondiendo
    200 con todo roto detrás. **Anotar exactamente eso**, que es el modo de falla que la regla existe
