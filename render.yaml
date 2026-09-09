@@ -1,0 +1,96 @@
+# Salvo — la instancia pública de demostración, declarada como código.
+#
+# Este archivo describe el único servicio que Salvo publica: la consola y su API dentro de un
+# contenedor, en el plan gratuito de Render. No lo aplica un agente. Lo aplica una persona desde
+# «New > Blueprint» en el panel de Render, con el repositorio conectado, y el bloque de pasos vive
+# en la entrada de `E10C` de `Coordination/Handoffs/Claude.md`.
+#
+# ## Por qué existe este archivo y no una lista de campos en un documento
+#
+# Porque las variables de entorno de esta instancia ya tienen su motivo escrito, en el `ENV` de la
+# etapa final del `Dockerfile`, y un formulario web no los conserva. Un servicio creado a mano en el
+# panel es una configuración que nadie puede revisar en un diff y que se pierde si hay que rehacerla.
+#
+# ## Lo que este archivo deliberadamente NO declara
+#
+# **Casi todas las variables de entorno**, y eso es a propósito. Viven en el `ENV` del `Dockerfile`,
+# que es una sola fuente de verdad con el porqué de cada valor al lado. Redeclararlas acá sería
+# tener dos declaraciones de lo mismo, que es exactamente el modo de fallo contra el que
+# `scripts/contenedor-entrypoint.sh` se defiende cuando deriva la ruta de la base de la cadena de
+# conexión en vez de declararla aparte. Si alguna vez hay que cambiar un valor, se cambia donde está
+# su explicación.
+#
+# La excepción es `PORT`, y el motivo está abajo.
+
+services:
+  - name: salvo
+    type: web
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+
+    # 0,1 CPU y 512 MB (https://render.com/docs/compute-plans, leído el 2026-09-09). Es el plan con
+    # el que se midió todo: `E10B` arranca en 41 s con los datos ya puestos y usa 103 MiB de los 512.
+    #
+    # El plan gratuito se eligió por su **modo de falla**, no por su rendimiento: sin método de pago
+    # cargado, «Render instead disables your services for the duration of the current billing
+    # period» (https://render.com/docs/faq). No puede cobrar de más porque no puede cobrar.
+    plan: free
+
+    # De las cinco regiones del plan gratuito —Oregon, Ohio, Virginia, Frankfurt y Singapur—
+    # **ninguna está en Sudamérica**. Virginia es la más cercana a Montevideo y a São Paulo, que es
+    # de donde va a venir quien mire esto. Suma latencia de red a un producto que ya arranca lento, y
+    # queda dicho en el README en vez de escondido.
+    region: virginia
+
+    # Se despliega desde el `Dockerfile` del repositorio y no desde una imagen ya construida, por
+    # dos razones. La primera es de Render: «Services deployed from prebuilt images don't support
+    # auto-deploys» (https://render.com/docs/web-services). La segunda es del proyecto: la imagen
+    # que corre sale del árbol que cualquiera puede leer, y no de un registro donde habría que
+    # confiar en que alguien subió lo que dice.
+    #
+    # `commit` reconstruye en cada push a la rama vinculada. **Tiene un costo medido**: el workspace
+    # Hobby incluye 500 minutos de construcción por mes (https://render.com/docs/build-pipeline), y
+    # una construcción sin caché de esta imagen tarda lo que dice el handoff de `E10C`. Si el
+    # repositorio vuelve a tener actividad de desarrollo, esto pasa a `off` y se despliega a mano.
+    autoDeployTrigger: commit
+
+    # **No se declara `healthCheckPath`, y es una decisión con evidencia, no un olvido.**
+    #
+    # La consola tiene `/health`, que mira los dos procesos y contesta 503 si la API no responde
+    # (`frontend/src/app/health/route.ts`). Configurarlo acá haría que Render lo sondee «every few
+    # seconds» (https://render.com/docs/health-checks) y reinicie la instancia si falla 60 s
+    # seguidos, que suena a exactamente lo que se quiere.
+    #
+    # El problema es lo que **ninguna página oficial contesta**: si esas sondas cuentan como
+    # «inbound traffic» a los efectos del sueño. Render duerme un servicio gratuito que pasa 15
+    # minutos sin recibir tráfico entrante (https://render.com/docs/free), y lo que mantiene activa
+    # una instancia es «an incoming HTTP request» o un mensaje de WebSocket
+    # (https://render.com/changelog/free-web-services-now-remain-active-while-receiving-websocket-messages).
+    # Si el sondeo de la plataforma entra en esa definición, la instancia **no duerme nunca** y se
+    # come las 750 horas mensuales del plan, que son menos que las 720 o 744 horas que tiene un mes.
+    # Quedarse sin horas es la instancia suspendida hasta el mes siguiente: un link roto.
+    #
+    # El riesgo es asimétrico. No configurarlo cuesta una etiqueta de estado en el panel; que la
+    # instancia nunca duerma cuesta el link. Y lo que la sonda vigilaría ya lo vigila el supervisor
+    # del punto de entrada, que termina el contenedor si cualquiera de los dos procesos se cae.
+    # `/health` sigue existiendo y sirve para preguntarle a mano cómo está.
+    #
+    # Si alguna vez Render documenta que sus sondas no cuentan como tráfico, esto se enciende con
+    # una línea: `healthCheckPath: /health`.
+
+    envVars:
+      # **La única variable que se declara acá**, porque es la única donde Render y la imagen pueden
+      # discrepar. Render define `PORT` para todo servicio web y su valor por defecto es `10000`
+      # (https://render.com/docs/environment-variables), mientras que la imagen trae `ENV PORT=3000`
+      # y `EXPOSE 3000`. Ninguna página oficial dice quién gana entre el `ENV` de un `Dockerfile` y
+      # una variable del servicio.
+      #
+      # Declararla con el mismo valor que la imagen vuelve la pregunta irrelevante: gane quien gane,
+      # el valor es 3000. `server.js` de Next lee `PORT` del entorno, así que el servidor escucha
+      # donde Render enruta.
+      #
+      # El requisito que sí es explícito ya está cumplido por la imagen: «Every Render web service
+      # must bind to a port on host `0.0.0.0`» (https://render.com/docs/web-services), y el
+      # `Dockerfile` trae `HOSTNAME=0.0.0.0`.
+      - key: PORT
+        value: "3000"
