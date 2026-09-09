@@ -324,12 +324,17 @@ medir_instancia() {
   docker stop "$con_todo" >/dev/null 2>&1 || true
 
   local t_sin_base
-  t_sin_base="$(cronometrar_arranque "$sin_base" -e SALVO_BAKED_DB=)"
+  # `Database__MigrateOnStartup` hay que encenderla a mano: la imagen la trae apagada justamente
+  # porque la base viene horneada, y sin base horneada la API se encontraría un archivo sin tablas.
+  t_sin_base="$(cronometrar_arranque "$sin_base" -e SALVO_BAKED_DB= -e Database__MigrateOnStartup=true)"
   docker stop "$sin_base" >/dev/null 2>&1 || true
 
   printf '  %-52s %s\n' "E10A: ninguna de las dos (medido entonces)" "77,49 s"
-  printf '  %-52s %s\n' "Solo el modelo compilado (sin base horneada)" "$(human "$t_sin_base")"
-  printf '  %-52s %s\n' "Las dos" "$(human "$t_completo")"
+  printf '  %-52s %s\n' "Sin base horneada (solo el modelo compilado)" "$(human "$t_sin_base")"
+  printf '  %-52s %s\n' "Con base horneada (las dos)" "$(human "$t_completo")"
+  echo
+  echo "  El modelo compilado no aporta nada medible: la diferencia entera está entre estas dos"
+  echo "  filas, y es la base horneada. El detalle y los números están en DependencyInjection.cs."
 
   echo
   echo "Contenedores que quedan en pie y **no se borran**:"
