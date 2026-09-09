@@ -49,6 +49,20 @@ export const es = {
    * inactividad, y no siempre hay además un máximo por antigüedad. Son frases enteras y no una
    * armada con fragmentos: una cláusula pegada al final es gramatical en un idioma y no en el otro.
    */
+  /**
+   * Lo que el visitante lee cuando el límite de tasa lo frena.
+   *
+   * Vive en los diccionarios aunque lo sirva `proxy.ts` en texto plano y en los dos idiomas a la
+   * vez: componer la respuesta traducida costaría pedirle el idioma a la API y renderizar una
+   * página, que es justo el trabajo que el límite existe para no hacer.
+   */
+  rateLimit: {
+    title: "Demasiadas peticiones.",
+    body:
+      "Esta es una instancia de demostración compartida y pequeña. Esperá unos segundos y volvé a "
+      + "intentarlo.",
+  },
+
   sharedInstance: {
     label: "Sobre esta instancia",
     title: "Instancia de demostración compartida.",

@@ -166,6 +166,7 @@ ENV ASPNETCORE_URLS=http://127.0.0.1:5100 \
     SharedInstance__Enabled=true \
     SharedInstance__ResetMinutes=30 \
     SharedInstance__MaxOrders=500 \
+    SALVO_RATE_LIMIT=on \
     SALVO_LANGUAGE=es \
     HOSTNAME=0.0.0.0 \
     PORT=3000 \
@@ -209,7 +210,13 @@ ENV ASPNETCORE_URLS=http://127.0.0.1:5100 \
 # y la importación acepta 10.000 registros por archivo tantas veces como uno quiera. 500 deja 200
 # de margen sobre el corpus horneado —muchísimo más de lo que un visitante importa para probar— y
 # acota el peor caso de una corrida a algo cercano al doble de lo que hoy tarda.
-
+#
+# `SALVO_RATE_LIMIT=on`: el límite de tasa, que vive en la capa de Next y **no** en la API. Después
+# de que la Etapa 10 borró el rewrite, toda petición le llega a la API desde `127.0.0.1` sin
+# cabecera de origen: limitar ahí sería limitar a la consola contra sí misma. El visitante existe en
+# el proceso de Node, que es donde llega su conexión. Apagado por omisión, porque la compuerta, el
+# smoke y las capturas hacen decenas de peticiones en segundos y un límite pensado para
+# desconocidos las volvería intermitentes; esta imagen lo enciende.
 
 EXPOSE 3000
 ENTRYPOINT ["/app/entrypoint.sh"]

@@ -37,6 +37,13 @@ export const pt: Dictionary = {
     disclaimerShared: "Dados sintéticos · sem autenticação · instância compartilhada",
   },
 
+  rateLimit: {
+    title: "Requisições demais.",
+    body:
+      "Esta é uma instância de demonstração compartilhada e pequena. Espere alguns segundos e tente "
+      + "de novo.",
+  },
+
   sharedInstance: {
     label: "Sobre esta instância",
     title: "Instância de demonstração compartilhada.",

@@ -18,7 +18,7 @@ dos idiomas.
 brasileño; «monto» es *valor*; «corrida» es *execução*; «veredicto» es *veredito*; «denegado» es
 *negado*; «etiqueta» es *rótulo*.
 
-Entradas: **538**.
+Entradas: **543**.
 
 | Clave | Castellano | Português |
 | --- | --- | --- |
@@ -35,6 +35,8 @@ Entradas: **538**.
 | `nav.dashboard` | Dashboard | Painel |
 | `nav.disclaimer` | Datos sintéticos · sin autenticación · uso local | Dados sintéticos · sem autenticação · uso local |
 | `nav.disclaimerShared` | Datos sintéticos · sin autenticación · instancia compartida | Dados sintéticos · sem autenticação · instância compartilhada |
+| `rateLimit.title` | Demasiadas peticiones. | Requisições demais. |
+| `rateLimit.body` | Esta es una instancia de demostración compartida y pequeña. Esperá unos segundos y volvé a intentarlo. | Esta é uma instância de demonstração compartilhada e pequena. Espere alguns segundos e tente de novo. |
 | `sharedInstance.label` | Sobre esta instancia | Sobre esta instância |
 | `sharedInstance.title` | Instancia de demostración compartida. | Instância de demonstração compartilhada. |
 | `sharedInstance.synthetic` | Los datos son sintéticos. | Os dados são sintéticos. |
@@ -458,6 +460,9 @@ Entradas: **538**.
 | `failures.TOO_MANY_RECORDS.title` | El archivo tiene demasiados registros | O arquivo tem registros demais |
 | `failures.TOO_MANY_RECORDS.body` | La importación acepta hasta 10.000 pedidos por archivo. Se rechaza el documento entero: no se importa una parte y se descarta el resto en silencio. | A importação aceita até 10.000 pedidos por arquivo. O documento inteiro é rejeitado: não se importa uma parte e se descarta o resto em silêncio. |
 | `failures.TOO_MANY_RECORDS.recovery` | Partí el archivo en tandas de hasta 10.000 registros. | Divida o arquivo em lotes de até 10.000 registros. |
+| `failures.ORDER_LIMIT_REACHED.title` | Esta instancia no acepta más pedidos | Esta instância não aceita mais pedidos |
+| `failures.ORDER_LIMIT_REACHED.body` | Es una instancia de demostración compartida y tiene un techo de pedidos, porque lo que cuesta una corrida de scoring depende de cuántos hay. No es un problema de tu archivo: el mismo entraría en una instancia con lugar. | É uma instância de demonstração compartilhada e tem um teto de pedidos, porque o custo de uma execução de scoring depende de quantos existem. Não é um problema do seu arquivo: o mesmo entraria em uma instância com espaço. |
+| `failures.ORDER_LIMIT_REACHED.recovery` | Probá con un archivo más chico, o esperá al próximo reinicio, que devuelve la base al corpus de demostración. | Tente com um arquivo menor, ou espere o próximo reinício, que devolve a base ao corpus de demonstração. |
 | `failures.UNSUPPORTED_MEDIA_TYPE.title` | La consola envió el formulario en un formato que la API no acepta | O console enviou o formulário em um formato que a API não aceita |
 | `failures.UNSUPPORTED_MEDIA_TYPE.body` | La importación viaja como `multipart/form-data`. Es un error interno: no debería ocurrir desde esta pantalla. | A importação viaja como `multipart/form-data`. É um erro interno: não deveria acontecer nesta tela. |
 | `failures.UNSUPPORTED_MEDIA_TYPE.recovery` | Recargá la página y volvé a intentarlo. Si vuelve a pasar, reportalo con la hora exacta. | Recarregue a página e tente de novo. Se acontecer outra vez, reporte com a hora exata. |
