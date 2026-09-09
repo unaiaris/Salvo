@@ -15,6 +15,10 @@
   la punta y volvería falso el campo que acaba de declarar. **La primera versión de este brief lo
   intentó igual y el `brief-check` lo cazó**: declaraba `1ea0747` y el commit que lo declaraba dejó
   la punta en otro lado.
+  **El coordinador acepta que este campo no lleve SHA**, y eso desplaza la verificación: el paso del
+  `brief-check` que comprueba el commit base no se puede ejecutar sobre este brief, y quien lo
+  comprueba es el primer commit de la rama y después el handoff. La regla es determinista mientras
+  la integración sea por merge, que este brief exige.
 - Integración: **por merge, nunca por rebase.**
 - Modelo y esfuerzo acordados: **Opus 5 · `high`**.
 - Dependencias: `E10B` integrada y verificada (merge `23a47cd`). Ninguna tarea depende de ésta.
@@ -172,7 +176,9 @@ verdad, y es **la única que puede decir qué espera un visitante**. Se mide:
   medición**: se publica lo que el cronómetro diga.
 - **El camino tibio**: la misma ruta con la instancia ya despierta.
 - **Que los datos estén**: 23 alertas abiertas, 51 denegados por el proveedor sin alerta local, y la
-  explicación escrita de `ORD_000011`. Es la misma comprobación que hace `contenedor.sh medir`.
+  explicación escrita de `ORD_000011`. Son las mismas tres cifras que imprime
+  `contenedor.sh medir-instancia` —**`medir` es otro subcomando**, que arranca con base vacía y
+  siembra—. Y las **imprime**, no las afirma: leer la salida es parte de la comprobación.
 - **Que el reinicio ocurra y no rompa nada.** Es la medición más incómoda y conviene decir cómo se
   hace: el tope de antigüedad son 30 minutos y Render duerme a los 15, así que hay que darle tráfico
   cada menos de quince durante media hora para que el reinicio por antigüedad llegue a ocurrir en vez
@@ -267,7 +273,8 @@ Ninguno. No hay tareas en vuelo.
 - [ ] El reinicio comprobado en la plataforma: ocurre, y la instancia vuelve con los datos puestos.
 - [ ] El link y las cuatro propiedades —compartida, efímera, sintética, lenta la primera vez— en el
       README, en la guía y en el texto entregado para el artículo.
-- [ ] Las tres deudas nuevas escritas en «Límites declarados».
+- [ ] Las **dos** deudas nuevas escritas en «Límites declarados», y el párrafo de autenticación que
+      ya está ahí **enlazado al link, no duplicado**.
 - [ ] `./scripts/check.sh` y `./scripts/smoke-ui.sh` verdes sobre la rama.
 - [ ] `./scripts/check-docs.sh` verde. **Y dicho con precisión**: ese script descarta los enlaces con
       esquema, no toca la red, y lo dice en su propia cabecera. **Ningún script del proyecto comprueba
@@ -280,7 +287,7 @@ Ninguno. No hay tareas en vuelo.
 | --- | --- |
 | `./scripts/check.sh` | Verde. El README cambia, así que `check-docs.sh` es la parte que importa |
 | `./scripts/smoke-ui.sh` | Verde, las 71 comprobaciones |
-| `./scripts/contenedor.sh medir-instancia` | Verde en local, para saber que la imagen que se sube es la que se midió |
+| `./scripts/contenedor.sh medir-instancia` | Corre en local y **se lee la salida**: imprime las cifras, no las afirma. Es para saber que la imagen que se sube es la que se midió |
 | `curl -s -o /dev/null -w '%{time_total}' <URL>/alerts` tras 15 min de silencio | El número que se publica como arranque en frío |
 | `curl -s <URL>/alerts`, leyendo el HTML | La cola muestra **23 alertas abiertas** |
 | `curl -s <URL>/dashboard`, leyendo el HTML | El panel muestra **51 denegados por el proveedor sin alerta local** |
