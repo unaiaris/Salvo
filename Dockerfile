@@ -218,5 +218,15 @@ ENV ASPNETCORE_URLS=http://127.0.0.1:5100 \
 # smoke y las capturas hacen decenas de peticiones en segundos y un límite pensado para
 # desconocidos las volvería intermitentes; esta imagen lo enciende.
 
+# La sonda mira **los dos procesos**. `GET /health` de la consola le pregunta a la API por la suya y
+# contesta 503 si no responde, que es la diferencia entre una instancia sana y media aplicación
+# muerta: si la API cae y `server.js` sigue en pie, todas las rutas siguen contestando 200 con el
+# aviso de error puesto, y una sonda contra el puerto público vería todo bien.
+#
+# `node` y no `curl` por lo mismo que el punto de entrada: la imagen de runtime no trae `curl`.
+# `--start-period` cubre el arranque en frío completo, que a 0,1 vCPU es de decenas de segundos.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=3 \
+    CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
 EXPOSE 3000
 ENTRYPOINT ["/app/entrypoint.sh"]
