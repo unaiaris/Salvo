@@ -13,6 +13,11 @@ public interface IOrderDataStore
         IReadOnlyCollection<Guid> orderIds,
         CancellationToken cancellationToken);
 
+    /// <summary>
+    /// How many orders the store holds. Only asked for where the deployment sets a ceiling.
+    /// </summary>
+    Task<int> CountOrdersAsync(CancellationToken cancellationToken);
+
     Task AddOrdersAsync(
         IReadOnlyCollection<Order> orders,
         CancellationToken cancellationToken);

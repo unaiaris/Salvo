@@ -838,6 +838,16 @@ export const es = {
       body: "La importación acepta hasta 10.000 pedidos por archivo. Se rechaza el documento entero: no se importa una parte y se descarta el resto en silencio.",
       recovery: "Partí el archivo en tandas de hasta 10.000 registros.",
     },
+    ORDER_LIMIT_REACHED: {
+      title: "Esta instancia no acepta más pedidos",
+      body:
+        "Es una instancia de demostración compartida y tiene un techo de pedidos, porque lo que "
+        + "cuesta una corrida de scoring depende de cuántos hay. No es un problema de tu archivo: "
+        + "el mismo entraría en una instancia con lugar.",
+      recovery:
+        "Probá con un archivo más chico, o esperá al próximo reinicio, que devuelve la base al "
+        + "corpus de demostración.",
+    },
     UNSUPPORTED_MEDIA_TYPE: {
       title: "La consola envió el formulario en un formato que la API no acepta",
       body: "La importación viaja como `multipart/form-data`. Es un error interno: no debería ocurrir desde esta pantalla.",

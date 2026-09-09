@@ -165,6 +165,7 @@ ENV ASPNETCORE_URLS=http://127.0.0.1:5100 \
     SALVO_BAKED_DB=/app/seed/salvo.db \
     SharedInstance__Enabled=true \
     SharedInstance__ResetMinutes=30 \
+    SharedInstance__MaxOrders=500 \
     SALVO_LANGUAGE=es \
     HOSTNAME=0.0.0.0 \
     PORT=3000 \
@@ -202,6 +203,12 @@ ENV ASPNETCORE_URLS=http://127.0.0.1:5100 \
 # siguiente en el peor caso. **Una sola variable con dos lectores**: el punto de entrada programa el
 # reinicio con ella y la API la publica para el cartel, así que la pantalla no puede prometer un
 # número distinto del que se cumple.
+#
+# `SharedInstance__MaxOrders=500`: el techo de pedidos, que **ningún limitador de tasa reemplaza**.
+# Lo que cuesta una corrida de scoring depende de cuántos pedidos hay, no de cuántas veces se pida,
+# y la importación acepta 10.000 registros por archivo tantas veces como uno quiera. 500 deja 200
+# de margen sobre el corpus horneado —muchísimo más de lo que un visitante importa para probar— y
+# acota el peor caso de una corrida a algo cercano al doble de lo que hoy tarda.
 
 
 EXPOSE 3000

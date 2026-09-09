@@ -52,6 +52,7 @@ public static class DependencyInjection
         AddExternalProvider(services, configuration);
         AddExplanationProvider(services, configuration);
         services.TryAddSingleton(TimeProvider.System);
+        services.AddSingleton(ReadOrderCapacity(configuration));
         services.AddSingleton<IOrderIdGenerator, SystemOrderIdGenerator>();
         services.AddSingleton<IRiskIdGenerator, SystemRiskIdGenerator>();
         services.AddSingleton<IAlertIdGenerator, SystemAlertIdGenerator>();
@@ -92,6 +93,34 @@ public static class DependencyInjection
         services.AddScoped<RequestExplanationHandler>();
 
         return services;
+    }
+
+    /// <summary>
+    /// The ceiling on stored orders this deployment declares, if any.
+    /// </summary>
+    /// <remarks>
+    /// Absent means unlimited, which is what every deployment but the shared public instance uses.
+    /// A value that is not a positive whole number stops the process instead of being ignored: a
+    /// ceiling silently dropped is a public instance running without the one defence that bounds
+    /// how expensive its scoring runs can become.
+    /// </remarks>
+    private static OrderCapacity ReadOrderCapacity(IConfiguration configuration)
+    {
+        var raw = configuration["SharedInstance:MaxOrders"];
+
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return OrderCapacity.Unlimited;
+        }
+
+        if (!int.TryParse(raw, NumberStyles.None, CultureInfo.InvariantCulture, out var maximum)
+            || maximum <= 0)
+        {
+            throw new InvalidOperationException(
+                $"SharedInstance:MaxOrders must be a positive whole number of orders, and it is '{raw}'.");
+        }
+
+        return new(maximum);
     }
 
     /// <summary>

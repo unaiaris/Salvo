@@ -19,6 +19,7 @@ public static class OrderEndpoints
             .Accepts<IFormFile>("multipart/form-data")
             .Produces<ImportOrdersResult>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
             .ProducesProblem(StatusCodes.Status415UnsupportedMediaType)
             .DisableAntiforgery();
@@ -120,6 +121,7 @@ public static class OrderEndpoints
             {
                 OrderImportDocumentFailure.TooManyRecords => StatusCodes.Status413PayloadTooLarge,
                 OrderImportDocumentFailure.UnsupportedFormat => StatusCodes.Status415UnsupportedMediaType,
+                OrderImportDocumentFailure.CapacityReached => StatusCodes.Status409Conflict,
                 _ => StatusCodes.Status400BadRequest,
             };
 

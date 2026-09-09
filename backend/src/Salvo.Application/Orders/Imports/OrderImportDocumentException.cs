@@ -5,6 +5,13 @@ public enum OrderImportDocumentFailure
     InvalidDocument,
     TooManyRecords,
     UnsupportedFormat,
+
+    /// <summary>
+    /// The deployment holds as many orders as it is willing to. Not a defect of the file: the same
+    /// file would be accepted on an instance with room, which is why it answers 409 and not 4xx of
+    /// the request.
+    /// </summary>
+    CapacityReached,
 }
 
 public sealed class OrderImportDocumentException : Exception

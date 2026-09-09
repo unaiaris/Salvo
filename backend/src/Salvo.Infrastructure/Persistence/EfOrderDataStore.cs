@@ -7,6 +7,11 @@ namespace Salvo.Infrastructure.Persistence;
 
 public sealed class EfOrderDataStore(SalvoDbContext dbContext) : IOrderDataStore
 {
+    public Task<int> CountOrdersAsync(CancellationToken cancellationToken)
+    {
+        return dbContext.Orders.CountAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyDictionary<OrderReference, Order>> GetOrdersByReferencesAsync(
         IReadOnlyCollection<OrderReference> references,
         CancellationToken cancellationToken)
