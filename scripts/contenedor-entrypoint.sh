@@ -32,6 +32,59 @@ web_pid=""
 detencion_pedida=0
 
 log() { printf '[entrypoint] %s\n' "$*"; }
+fail() { log "ERROR: $*"; exit 1; }
+
+# ------------------------------------------------------- la base, copiada de la imagen
+
+# **Esto es el reinicio de la instancia pública.** La imagen lleva una base ya sembrada, puntuada,
+# con las evaluaciones externas entregadas y una explicación escrita; copiarla encima de la de
+# trabajo devuelve la instancia al estado prístino con una sola primitiva.
+#
+# Se hace acá y no con una cirugía sobre el archivo en caliente porque acá **todavía no hay nadie
+# que lo tenga abierto**: la API arranca unas líneas más abajo. La revisión adversarial de la
+# Etapa 10 marcó que borrar y recrear un SQLite bajo conexiones agrupadas no es gratis, y con la
+# base horneada ese problema no llega a existir.
+#
+# Es incondicional, y esa es la propiedad. Un visitante que importó pedidos, emitió veredictos o
+# escribió notas no le deja nada al siguiente, y nadie tiene que acordarse de limpiar — que es la
+# tercera condición de la decisión 70.
+copiar_base_horneada() {
+  local baked="${SALVO_BAKED_DB:-}"
+
+  if [[ -z "$baked" ]]; then
+    log "SALVO_BAKED_DB vacío: la base de trabajo queda como esté"
+    return 0
+  fi
+
+  [[ -f "$baked" ]] || fail "no está la base horneada en ${baked}."
+
+  # La ruta de trabajo se saca de la cadena de conexión en vez de declararse aparte: dos
+  # declaraciones de la misma ruta es una manera de que la API abra un archivo y el arranque
+  # escriba otro, y eso se vería como una instancia que no reinicia nunca.
+  local conn="${ConnectionStrings__SalvoDb:-}"
+  [[ -n "$conn" ]] || fail "ConnectionStrings__SalvoDb no está definida y hay una base horneada que copiar."
+
+  local work="${conn#*Data Source=}"
+  work="${work%%;*}"
+  work="${work#"${work%%[![:space:]]*}"}"
+  work="${work%"${work##*[![:space:]]}"}"
+
+  [[ "$work" = /* ]] || fail "la cadena de conexión no da una ruta absoluta: '${conn}'."
+
+  # Los diarios de una ejecución anterior no se arrastran: describen transacciones de una base que
+  # está por dejar de existir, y aplicarlos sobre la copia nueva sería reintroducir justo lo que el
+  # reinicio quita. Se truncan en vez de borrarse porque `rm` está denegado en este repositorio.
+  local sufijo
+  for sufijo in -wal -shm -journal; do
+    [[ -e "${work}${sufijo}" ]] && : > "${work}${sufijo}"
+  done
+
+  mkdir -p "$(dirname "$work")"
+  cp "$baked" "$work"
+  log "base restaurada desde ${baked} ($(wc -c < "$work" | tr -d ' ') bytes)"
+}
+
+copiar_base_horneada
 
 # Baja a los dos hijos. Se llama tanto en la salida normal como ante SIGTERM/SIGINT: la plataforma
 # manda SIGTERM al detener el contenedor y sin esto los hijos se quedarían hasta el SIGKILL.

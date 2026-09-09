@@ -87,6 +87,29 @@ RUN dotnet publish backend/src/Salvo.Api/Salvo.Api.csproj \
       -p:PublishReadyToRun=true \
       --output /app/api
 
+# ---------------------------------------------------------------- la base, ya sembrada
+
+# Sembrar y puntuar cuestan 24,68 s y 17,50 s a 0,1 vCPU, medidos en `E10A`. Hacerlo al arrancar
+# pondría al primer visitante a esperar dos minutos frente a una consola vacía; hacerlo acá lo paga
+# quien construye, una sola vez, y el arranque solo copia el archivo.
+#
+# Esta etapa **corre la API** para producir la base, en vez de escribir SQL a mano: el corpus, la
+# corrida, el proveedor mock y la plantilla de explicación son los mismos casos de uso que la
+# aplicación ejecuta, así que el archivo horneado no puede describir un estado que la aplicación no
+# sepa producir. `scripts/hornear-base.sh` dice qué deja montado y afirma las cantidades.
+#
+# Se hace sobre el SDK y no sobre la imagen de runtime por una razón práctica: Node hace de cliente
+# HTTP, y acá ya está a mano. Correr la API publicada para `linux-${TARGETARCH}` en esta etapa exige
+# que la arquitectura de construcción y la de destino coincidan; una construcción cruzada la emula,
+# que funciona y tarda más.
+FROM ${DOTNET_SDK_IMAGE} AS seeded
+COPY --from=node-dist /opt/node /opt/node
+ENV PATH=/opt/node/bin:${PATH}
+COPY --from=backend /app/api /app/api
+COPY scripts/hornear-base.sh /usr/local/bin/hornear-base.sh
+RUN chmod +x /usr/local/bin/hornear-base.sh \
+    && /usr/local/bin/hornear-base.sh /seed/salvo.db /app/api
+
 # ---------------------------------------------------------------- la consola
 
 FROM ${DOTNET_SDK_IMAGE} AS frontend
@@ -122,7 +145,14 @@ COPY --from=frontend /web/.next/static ./web/.next/static
 COPY scripts/contenedor-entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
-# La base vive en un directorio propio para que un volumen se monte ahí sin tapar la aplicación.
+# La base sembrada, tal como la dejó la etapa `seeded`. El punto de entrada la copia a `/data` en
+# cada arranque, y **esa copia es el reinicio de la instancia**: no hay cirugía sobre un SQLite que
+# la API tiene abierto, porque cuando se copia todavía no hay nadie que lo tenga abierto.
+COPY --from=seeded /seed/salvo.db /app/seed/salvo.db
+
+# La base de trabajo vive en un directorio propio para que un volumen se monte ahí sin tapar la
+# aplicación. **Esta imagen es efímera por construcción**: lo que haya en `/data` se reemplaza en
+# cada arranque, así que montar un volumen ahí no da persistencia.
 RUN mkdir -p /data && chown -R app:app /data /app
 USER app
 
@@ -131,6 +161,7 @@ ENV ASPNETCORE_URLS=http://127.0.0.1:5100 \
     ConnectionStrings__SalvoDb="Data Source=/data/salvo.db" \
     Database__MigrateOnStartup=true \
     DemoData__Enabled=true \
+    SALVO_BAKED_DB=/app/seed/salvo.db \
     SALVO_LANGUAGE=es \
     HOSTNAME=0.0.0.0 \
     PORT=3000 \
@@ -144,11 +175,15 @@ ENV ASPNETCORE_URLS=http://127.0.0.1:5100 \
 # demás modos de correr esta API, y `Program.MigrateIfAsked` explica por qué la diferencia se
 # declara en vez de heredarse.
 #
-# `DemoData__Enabled=true`: en `appsettings.json` vale `false`, y sin encenderlo la API ni registra
-# el sembrado, ni las métricas de calidad, ni los disparadores del proveedor externo — es decir, la
-# mitad del producto. Se enciende acá, para esta imagen, y **`E10B` decide si eso sobrevive a una
-# instancia pública**: encender la demostración expone la ruta de sembrado a cualquiera, y lo que la
-# vuelve aceptable es el reinicio que esta tarea todavía no construyó.
+# `Database__MigrateOnStartup=true` **se conserva aunque la base venga horneada y migrada**, y no
+# es redundante: es lo que hace que el caso malo sea benigno. Si algún día la copia de la base
+# horneada no llegara, la API se encontraría con un archivo vacío; con la migración encendida crea
+# el esquema y la consola dice que no hay pedidos, en vez de contestar «no such table» a todo. El
+# punto de entrada, además, falla antes si el archivo horneado no está en la imagen.
+#
+# `DemoData__Enabled=true`: enciende las métricas de calidad y los disparadores del proveedor
+# externo, que son la mitad del argumento del proyecto.
+
 
 EXPOSE 3000
 ENTRYPOINT ["/app/entrypoint.sh"]
