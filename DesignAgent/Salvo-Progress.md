@@ -12,12 +12,12 @@
 | Estado del proyecto | **MVP cerrado.** Las nueve etapas completadas y verificadas. **Etapa 10 en ejecución**: la instancia pública |
 | Etapa completada | Etapa 9 — Corpus, idiomas y cierre (`E9A`, `E9B`, `E9C1`, `E9C2` y `E9D` integradas) |
 | Próxima etapa | Etapa 10 — La instancia pública. Es la primera fuera del núcleo local |
-| Estado de la próxima etapa | En ejecución. `E10A` (`29677f6`) y `E10B` (`23a47cd`) verificadas; queda `E10C-PUBLICACION` |
+| Estado de la próxima etapa | En ejecución. `E10A` (`29677f6`) y `E10B` (`23a47cd`) verificadas; `E10C-PUBLICACION` despachada |
 | Bloqueo actual | Ninguno |
 | Dependencias externas | Ninguna para el núcleo local |
 | Anthropic | Previsto para después del núcleo; decisión aparte, preparada por D11 |
 | Koin sandbox | Post-MVP; sujeto a onboarding y credenciales |
-| Coordinación Codex–Claude | `E10B-INSTANCIA-COMPARTIDA` integrada y verificada; `E10C-PUBLICACION` propuesta, sin asignar |
+| Coordinación Codex–Claude | `E10B-INSTANCIA-COMPARTIDA` integrada y verificada; `E10C-PUBLICACION` asignada a Opus 5 · `high` |
 
 **Este bloque se actualiza en cada cierre de etapa y en cada alta de tarea.** Quedó desfasado
 durante toda la Etapa 7 porque los cierres actualizaron el registro de actividad y los checklists
@@ -445,6 +445,7 @@ desempate de la cola por identificador aleatorio, y pintar `explanationId` en el
 | 2026-09-07 | 9 | Integración de `E9B-SENALES-TIPADAS` | Merge `4f7daf9` + compuerta y smoke verdes (52 comprobaciones). Verificado por el coordinador contra el árbol: cero referencias a `Parse`, `ExplanationGoldenTests` y `divergence.ts` sin un byte de diferencia, el redondeo en el constructor con `AwayFromZero` y la escala escrita con `F{n}`, y el dorado escribiendo a `Path.GetTempPath()` en vez de sobre sí mismo | Completada |
 | 2026-09-07 | 9 | Integración de `E9A-FIXTURE` | Merge `41343c1` + compuerta y smoke verdes. F1 holdout 0,632 y calibración 0,688, verificados por el coordinador contra las matrices que los tests fijan | Completada |
 | 2026-09-09 | 10 | `E10B-INSTANCIA-COMPARTIDA` | Once commits. **119,7 s a 41 s** hasta el primer dato y 145 a 103 MiB de RAM. La medición encontró dos defectos propios que nadie había previsto: el `HEALTHCHECK` de Docker costaba 43 s sondeando cada 5 s durante el `start-period`, y migrar una base ya migrada costaba 26 s. Y **falsó la premisa de una de sus dos optimizaciones**: los 23,2 s que `E10A` atribuyó a construir el modelo de EF Core eran la infraestructura de migraciones, que `UseModel` no toca, así que el modelo precompilado no aportó nada fuera del ruido | Lista para integrar |
+| 2026-09-09 | 10 | Despacho de `E10C-PUBLICACION` | **Tres vueltas de `brief-check`** con Fable · `xhigh`. La primera encontró cinco fallas, y dos eran reglas que el propio brief enuncia: la tabla de verificación le pedía datos a la API por el puerto público —un camino que el brief mismo dice que se borró en `E10A`— y faltaba el encargo de `x-forwarded-for` que el handoff de `E10B`, declarado de lectura obligatoria, le dejaba a esta tarea. La segunda encontró dos restos de la corrección. El campo del commit base quedó sin SHA a propósito, porque cualquier commit que lo declare en `main` mueve la punta y lo vuelve falso; la verificación se desplaza al primer commit de la rama | Despachada |
 | 2026-09-09 | 10 | Integración de `E10B` y reversión del modelo precompilado | Merge `23a47cd` + compuerta y smoke verdes. El coordinador tomó la recomendación del handoff y revirtió `772b4a1`: 2.081 líneas en diecisiete archivos —las generadas, los trece `HaveSentinel` que existían solo para que el generador corriera, y el test de deriva que existía solo para cuidarlas— a cambio de nada medible. La reversión dio conflicto en `DependencyInjection.cs`, resuelto a mano, y arrastró una limpieza: la medición de `contenedor.sh` quedó de dos filas. Los números de la falsación se conservan en el handoff | Completada |
 
 ## Protocolo de actualización
