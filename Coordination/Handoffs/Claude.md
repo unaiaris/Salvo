@@ -4675,3 +4675,253 @@ usaron bases nuevas en el directorio temporal de la sesión.
   integrado.
 - **Antes de despachar `E10B`**: la decisión 8 en sus seis lugares y la decisión 70, que son del
   coordinador y que este handoff no toca.
+
+---
+
+## `E10B-INSTANCIA-COMPARTIDA` — la imagen se vuelve una instancia pública defendible
+
+### Identificación
+
+- Estado de la rama: `Lista para integrar`
+- Etapa: 10
+- Rama/worktree: `claude/e10b-instancia`
+- Commit base: `dc85350` (`merge-base` real con `main`)
+- Commit final: `73a1eee`
+- Fecha: 2026-09-09
+- Modelo y esfuerzo: Opus 5 · `high`
+
+Nueve commits: `772b4a1` (modelo de EF precompilado), `6f99305` (la base horneada y el reinicio),
+`a7ebf38` (`DemoData:Enabled` partido), `d97f5f9` (reinicio por antigüedad), `cc6b6a0` (el cartel),
+`944a828` (el techo de pedidos), `1656fc0` (el límite de tasa), `e8988e5` (la sonda) y `97eeb7c`
+(los dos defectos que la medición encontró).
+
+### El resultado, en una línea
+
+**El arranque en frío a 0,1 vCPU pasa de 77,5 s a 41–48 s, y llega con los datos puestos**: 23
+alertas, 51 denegados sin alerta local y una explicación escrita, sin que nadie pida nada.
+
+### La medición
+
+Mismo método y misma máquina que `E10A`: `--memory=512m --cpus=0.1`, contenedor nuevo cada vez,
+cronómetro desde `docker run` hasta el primer `200` de `/`.
+
+| Qué se mide | Umbral | `E10A` | `E10B` |
+| --- | --- | --- | --- |
+| Arranque en frío, y ya con datos | 90 s | 77,49 s **y la base vacía** | **41–48 s con 300 pedidos puntuados** |
+| — mediana de cinco corridas | | | 41 s |
+| Primer render de `/alerts` | 30 s | 5,64 s | 5,42 s |
+| Primer render de `/dashboard` | 30 s | 6,12 s | 6,13 s |
+| RAM en reposo | 512 MiB | 100,1 MiB | 87,7 MiB |
+| RAM tras los renders | 512 MiB | 117,3 MiB | 103,3 MiB |
+
+**La comparación honesta es peor todavía para `E10A`.** Sus 77,5 s dejaban una base vacía: para que
+un visitante viera algo había que sembrar (24,68 s) y puntuar (17,50 s), o sea **119,7 s**. Contra
+eso, 41 s es **2,9 veces más rápido**.
+
+### El aporte de cada optimización, y una de las dos no aportó
+
+| Variante | Arranque a 0,1 vCPU |
+| --- | --- |
+| Ninguna de las dos | **77,48 s** — reproduce los 77,49 s de `E10A` clavados |
+| Solo el modelo compilado | 68,90 / 73,16 / 84,02 s |
+| Solo la base horneada | 38,60 / 44,65 s |
+| Las dos | 40,68 / 41,09 / 48,46 / 48,84 s |
+
+**El modelo compilado de EF Core no aporta nada medible.** Se trajo contra los 23,2 s que `E10A`
+atribuyó a construir el modelo, y **esa atribución era equivocada**: ese tramo es la infraestructura
+de migraciones —`Migrate()` carga el ensamblado, instancia las siete migraciones y construye el
+modelo que cada `Designer` lleva dentro—, y `UseModel` no lo toca, porque reemplaza el modelo del
+contexto y no los de las migraciones.
+
+Medido sobre dos imágenes idénticas salvo la línea de `UseModel`:
+
+| | Con modelo compilado | Sin él |
+| --- | --- | --- |
+| Arranque en frío a 0,1 vCPU | 41 s | 39 s |
+| Primer render con datos | 6,28 s | 6,38 s |
+| Suite de integración | 20,3 / 26,0 s | 21,4 / 23,8 s |
+
+Las tres diferencias están dentro del ruido. **El ahorro entero es de la base horneada**, y sobre
+todo de que gracias a ella se puede apagar la migración al arrancar.
+
+**Recomendación al coordinador, que es suya y no mía**: revertir `772b4a1` es defendible. Cuesta
+1.813 líneas generadas en trece archivos, `HaveSentinel` en trece tipos de dominio y un test de
+deriva, a cambio de nada medible. Lo dejé puesto porque quitarlo no es una decisión que el brief
+delegue, y porque el código no está roto: está probado, no enmascara la comprobación de la compuerta
+—comprobado en las dos direcciones— y `CompiledModelIsCurrentTests` lo mantiene honesto. Lo que sí
+hice fue **corregir las dos afirmaciones que prometían los 23,2 s**, en `DependencyInjection.cs` y
+en el test, porque habían quedado falsas.
+
+### Dos defectos míos que la medición encontró
+
+La primera corrida dio **112 s**, peor que `E10A`. El diagnóstico salió de apagar una cosa por vez
+sobre la misma imagen.
+
+**El `HEALTHCHECK` costaba 43 s.** Lo escribí con `--interval=30s` y `--start-period=120s`, creyendo
+que durante el período de arranque no se ejecuta. Se ejecuta: el período de arranque solo hace que
+sus fallos no cuenten. Y peor: durante ese período Docker **no espera al intervalo**, sondea cada
+cinco segundos —`--start-interval`, que vale 5 s por omisión—, así que subir el intervalo a cinco
+minutos solo bajó el costo a 16 s. A 0,1 vCPU cada comprobación levanta un proceso de Node entero.
+Medido con `--no-healthcheck` sobre la misma imagen: **55,58 s contra 39,53 s**. Se quitó de la
+imagen; lo que vigila de verdad es la sonda de la plataforma contra `/health` y el supervisor del
+punto de entrada, y lo que se pierde es una etiqueta en `docker ps`.
+
+**Migrar una base ya migrada costaba 26 s.** Dejé `Database__MigrateOnStartup` encendido con el
+argumento de que hacía benigno el caso malo, y ese argumento costaba veintiséis segundos en cada
+arranque para terminar diciendo «No migrations were applied». Se apagó. El caso malo lo cubre una
+comprobación más barata y más ruidosa: el punto de entrada **falla y lo dice** si el archivo horneado
+no está —verificado, código 1 y el mensaje—. Un contenedor que no arranca y explica por qué es mejor
+que uno que arranca y miente.
+
+### Las cuatro falsaciones exigidas
+
+**1. No copiar la base horneada → el contenedor arranca vacío.** Con `SALVO_BAKED_DB=` la API
+contesta `totalCount = 0` y la consola dice «Todavía no hay pedidos» y «La base está vacía, así que
+no hay nada que puntuar ni nada que revisar». Es la demostración de que el estado viene de la imagen.
+
+**2. Quitar el límite de tasa → la degradación dura cinco veces más.** Un atacante desde
+`10.0.0.1` dispara 1.000 peticiones a `/alerts` con 40 en paralelo, mientras un visitante desde
+`10.0.0.99` mide su propia latencia. A 0,5 vCPU:
+
+| | Sin límite | Con límite |
+| --- | --- | --- |
+| Renders que el servidor llegó a servir | **1.000** | **120** (880 rechazados con 429) |
+| Cuánto duró el bucle | **91,8 s** | 22,2 s |
+| Visitante en reposo | 1,15 s | 0,97 s |
+| Visitante bajo carga | 3,85 / 4,58 / 3,68 s | 3,83 / 4,71 / **0,57 s** |
+
+El número que justifica el límite es el primero: **8,3 veces menos trabajo llega al servidor**. Y el
+tercer valor del visitante con límite —0,57 s— es el momento en que el cubo del atacante se agotó y
+la instancia volvió a ser normal mientras él seguía insistiendo.
+
+**3. Quitar el techo de pedidos → el mismo trabajo cuesta once veces más.** Cada tanda importa
+exactamente 400 pedidos y corre el scoring, así que el trabajo nominal de cada corrida es idéntico.
+A 0,5 vCPU, sin techo:
+
+| Pedidos en la base | Corrida sobre 400 nuevos | Render de `/dashboard` |
+| --- | --- | --- |
+| 700 | 0,55 s | 0,076 s |
+| 1.100 | 0,62 s | 0,082 s |
+| 1.500 | 1,32 s | 0,089 s |
+| 1.900 | 1,85 s | 0,102 s |
+| 2.300 | 1,60 s | 0,172 s |
+| 2.700 | 2,00 s | 0,185 s |
+| 3.100 | 2,73 s | 0,193 s |
+| 3.500 | **6,15 s** | **0,271 s** |
+
+**Once veces más caro por el mismo trabajo**, y el dashboard 3,6 veces más lento. Esto es lo que
+demuestra que un limitador de tasa no alcanza: ocho importaciones son un puñado de peticiones que
+cualquier límite razonable permite, y el daño que dejan es permanente hasta el reinicio.
+
+**4. Una sonda que solo mira a Next miente.** Con la consola viva y la API ausente:
+
+| Ruta | Respuesta |
+| --- | --- |
+| `/` | 200 |
+| `/alerts` | 200 |
+| `/dashboard` | 200 |
+| `/import` | 200 |
+| `/health` | **503** — `{"status":"unavailable","console":"ok","api":"unreachable"}` |
+
+Las cuatro primeras son lo que vería una sonda contra el puerto público.
+
+### Lo que se verificó además, contra el contenedor
+
+- **Reiniciar devuelve exactamente el estado horneado.** Un visitante importó 150 pedidos y emitió
+  un veredicto: la base quedó en 450 pedidos y 22 alertas abiertas. Tras `docker restart`: **300
+  pedidos, 23 alertas, 51 denegados sin alerta**.
+- **El reinicio por antigüedad ocurre y sale con 75.** Con `SharedInstance__ResetMinutes=1` el
+  contenedor terminó en `exited codigo=75`, y el registro dice «se cumplieron 1 min: se reinicia la
+  instancia y vuelve a los datos horneados».
+- **El techo actúa.** Importar 400 sobre 300 con techo de 500 devuelve `409 ORDER_LIMIT_REACHED`.
+- **El cartel está en las cinco pantallas y en los dos idiomas**, con `<html lang>` correcto. Y la
+  línea del encabezado dejó de decir «uso local»: dice «instancia compartida» / «instância
+  compartilhada».
+
+### Qué se decidió sobre la bandera, y por qué
+
+**Se partió**, que es lo que el brief recomendaba, y la medición no cambió el argumento.
+`DemoData:Enabled` gobernaba cuatro cosas; apagarla entera se habría llevado el panel de calidad
+—F1, la matriz, el barrido—, que es la mitad de lo que el proyecto argumenta. `DemoData:SeedEnabled`
+apaga solo la ruta de sembrado, que era la única con la que un visitante podía dejar la consola
+inservible para el siguiente: cargar el corpus sobre una base que ya tiene esas referencias se
+rechaza, y cargarlo del doble de tamaño no.
+
+**El interruptor nuevo estrecha y nunca ensancha**: solo se consulta cuando `DemoData:Enabled` ya
+está encendida, y vale `true` por omisión, así que la compuerta, el smoke, las capturas y
+`scripts/demo.sh` declaran una sola variable y siguen viendo la demostración entera.
+
+### Decisiones delegadas que tomé
+
+| Qué | Valor | Por qué |
+| --- | --- | --- |
+| `N` del reinicio | **30 min** | Tres recorridos completos del guion, que dura diez. Es lo que un visitante puede ensuciarle al siguiente en el peor caso |
+| Código de salida | **75** | `EX_TEMPFAIL` de `sysexits.h`. Lo que importa es que no sea 0: una plataforma con política `on-failure` no reinicia un contenedor que anunció éxito. Cuál reinicia cada plataforma lo confirma `E10C` |
+| Dónde vive el límite | `frontend/src/proxy.ts` | Es donde existe el visitante. Desde que `E10A` borró el rewrite, la API solo recibe peticiones de `127.0.0.1` sin cabecera de origen |
+| Números del límite | 120 lecturas y 10 mutaciones por minuto y por origen | Un uso humano no los toca: una visita completa son menos de treinta lecturas |
+| Techo de pedidos | **500** | 200 de margen sobre el corpus horneado. La curva de la falsación 3 muestra que a 3.500 la corrida ya cuesta once veces más |
+| Código del techo | `ORDER_LIMIT_REACHED`, 409, **no** error de formulario | No es un defecto del archivo: el mismo entraría en una instancia con lugar |
+
+### Comandos y resultados
+
+| Comprobación | Resultado |
+| --- | --- |
+| `./scripts/check.sh` | **Verde.** 117 + 179 tests .NET, 292 de frontend, build de producción sin warnings |
+| `./scripts/smoke-ui.sh` | **Verde.** 71 comprobaciones, 0 fallas |
+| `./scripts/contenedor.sh construir` | Imagen de 851 MB |
+| `./scripts/contenedor.sh medir-instancia` | La tabla de arriba |
+| `git status --porcelain` | Limpio |
+
+Tests nuevos: `CompiledModelIsCurrentTests` (1), `OrderCapacityTests` (4), `SystemCapabilitiesTests`
+(2 más), `layout.test.tsx` (6), `rate-limit.test.ts` (11), más los del techo en `messages.test.ts` y
+el marco con cartel en `accessibility.test.tsx`.
+
+### Riesgos y trabajo pendiente
+
+- **La medición sigue sin probar nada sobre la plataforma**, exactamente como dijo `E10A`. Un M1
+  dentro de la VM de Docker no es hardware compartido. Lo que `E10B` agrega es margen: donde antes
+  había 13 s de sobra sobre el umbral de 90, ahora hay 42.
+- **El límite de tasa cuenta por proceso.** Con réplicas, el límite efectivo se multiplica. La
+  Etapa 10 despliega una sola instancia por definición, y queda dicho en `lib/rate-limit.ts`.
+- **Sin cabecera de origen, todos los visitantes comparten cubo.** Es el caso conservador y elegido:
+  la instancia se protege igual, al precio de que dos visitantes se estorben. `E10C` debe confirmar
+  que la plataforma manda `x-forwarded-for`.
+- **La construcción cruzada emula.** La etapa de horneado corre la API publicada para
+  `linux-${TARGETARCH}`; construir para amd64 desde un M1 funciona y tarda más.
+- **Lo que la instancia pública pierde**: la divergencia entre el snapshot y la evaluación vigente,
+  porque el primer paso de la receta de `E9C2` importaba tres pedidos extra y eso daría 303 contra
+  los 300 que el README publica. La divergencia que el guion muestra es la otra —criterio local
+  contra externo— y esa sí queda horneada.
+- **Fuera de alcance y sin tocar**: `README.md`, `docs/**`, el Blueprint, el Workboard y el Progress.
+  El link, el artículo y la guía son `E10C`.
+
+### Imágenes y contenedores que quedaron
+
+| Imagen | Tamaño | Para qué |
+| --- | --- | --- |
+| `salvo:e10b` | 851 MB | **La buena.** La que sale de `./scripts/contenedor.sh construir` |
+| `salvo:e10b-sinmodelo` | 851 MB | Comparación sin `UseModel`. Se puede borrar |
+| `salvo:e10b-seeded` | 1,6 GB | La etapa de horneado sola, de la primera verificación. Se puede borrar |
+
+Quedaron además dos imágenes intermedias sin etiqueta (`598234351bce` y `bdab4942f0c5`), que son
+versiones previas de `salvo:e10b` con el `HEALTHCHECK` que se quitó.
+
+**35 contenedores, todos detenidos y ninguno corriendo.** Los prefijos son `salvo-med-`,
+`salvo-alerts-`, `salvo-fals1-`, `salvo-fals2-`, `salvo-fals3-`, `salvo-fals3b-`, `salvo-fals4-`,
+`salvo-fals4b-`, `salvo-f2b-`, `salvo-cartel-`, `salvo-edad-`, `salvo-reinicio-`, `salvo-sinbase-` y
+`salvo-e10b-b-`. Se listan con `docker ps -a --format '{{.Names}}' | grep '^salvo-'` y se borran con
+`docker rm`. **Este agente no borró ninguno**, por la misma regla que `E10A`.
+
+Ninguna base de datos del proyecto fue borrada ni modificada.
+
+### Integración
+
+- Orden sugerido: merge directo a `main`, **por merge y nunca por rebase**.
+- Migraciones o pasos manuales: **ninguno**. No hay migración nueva.
+- Contrato: `frontend/openapi/salvo-openapi.json` y `schema.d.ts` recapturados, por los tres campos
+  nuevos de `CapabilitiesResponse` y el 409 de la importación.
+- Verificación posterior al merge: `./scripts/check.sh`, `./scripts/smoke-ui.sh`, y
+  `./scripts/contenedor.sh construir` seguido de `medir-instancia` para confirmar que la imagen sale
+  del árbol integrado.
+- **Lo que el coordinador tiene que decidir antes de `E10C`**: si el modelo compilado se conserva o
+  se revierte, con los números de arriba en la mano.
