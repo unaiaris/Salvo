@@ -1,8 +1,10 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: **MVP cerrado; Etapa 10 en ejecución.** `E10A` verificada (merge `29677f6`): el contenedor
-> arranca en 77 s a 0,1 vCPU y en 3,3 s a 0,5. `E10B-INSTANCIA-COMPARTIDA` despachada.
-> Última actualización: 2026-09-08
+> Estado: **MVP cerrado; Etapa 10 en ejecución.** `E10B` verificada (merge `23a47cd`): la instancia
+> compartida arranca **con los datos ya puestos** en 41 s a 0,1 vCPU —eran 119,7 s en `E10A`— con
+> 103 MiB de 512, se reinicia sola por antigüedad y dice en pantalla lo que es. Queda
+> `E10C-PUBLICACION`, sin despachar.
+> Última actualización: 2026-09-09
 > Responsable: coordinador de la etapa
 
 ## Estados
@@ -22,8 +24,8 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 | `E9C1-IDIOMA` | `Verificada` (merge `0d65f9a`) | `Claude` | Opus 5 · `high` | `SALVO_LANGUAGE`, el idioma en la identidad de la explicación con su migración, dos diccionarios en el frontend, la plantilla del backend, `messages.ts`, `describeRecordError`, `format.ts`, `<html lang>`, las anclas del smoke, **y el décimo `ExplanationFailureCode`** en la misma migración. **La reserva completa vive en el brief; esta fila la resume.** |
 | `E9C2-ACCESIBILIDAD` | `Verificada` (merge `835a76a`) | `Claude` | Opus 5 · `high` | Linter y comprobaciones automáticas de accesibilidad, la lista de hallazgos con severidad **antes** de corregir, y las correcciones que el coordinador elija tras el recorrido con VoiceOver |
 | `E10A-CONTENEDOR-Y-MEDICION` | `Verificada` (merge `29677f6`) | `Claude` | Opus 5 · `high` | `Dockerfile` y `.dockerignore` nuevos, `scripts/**`, `frontend/next.config.ts` y el borde que lo describe, `Program.cs` y `appsettings*`, `Persistence/**` y el `csproj` **solo si** el camino de migración lo exige, `backend/tests/**`, `frontend/src/test/**` y `Salvo-Getting-Started.md`. **La reserva completa vive en el brief; esta fila la resume.** |
-| `E10B-INSTANCIA-COMPARTIDA` | `Asignada` | `Claude` | Opus 5 · `high` | **La base sembrada horneada en la imagen** y el modelo de EF compilado —las dos optimizaciones que la medición volvió obligatorias—, el reinicio como copia de ese archivo, el cartel en los dos idiomas, el límite en la capa de Next, el tope de pedidos por instancia, y la sonda de salud. **Desbloqueada**: la decisión 70 reemplazó a la 8 en sus seis lugares. **La reserva completa vive en el brief; esta fila la resume.** |
-| `E10C-PUBLICACION` | `Propuesta` | `Claude` | por acordar | Elegir plataforma con los números de `E10A`, desplegar, y el link en README, artículo y guía |
+| `E10B-INSTANCIA-COMPARTIDA` | `Verificada` (merge `23a47cd`) | `Claude` | Opus 5 · `high` | **La base sembrada horneada en la imagen** y el modelo de EF compilado —las dos que `E10A` creyó obligatorias; **la segunda se midió, no aportó nada y se revirtió**—, el reinicio como copia de ese archivo, el cartel en los dos idiomas, el límite en la capa de Next, el tope de pedidos por instancia, y la sonda de salud. **Desbloqueada**: la decisión 70 reemplazó a la 8 en sus seis lugares. **La reserva completa vive en el brief; esta fila la resume.** |
+| `E10C-PUBLICACION` | `Propuesta` | `Claude` | por acordar | Elegir plataforma con los números de `E10A` y `E10B` —41 s de arranque con datos y 103 MiB—, **confirmar los límites del tier gratuito en la documentación oficial el día del despliegue**, desplegar, y el link en README, artículo y guía |
 | `E9D-CIERRE` | `Verificada` (merge `c2e9a65`) | `Claude` | Opus 5 · `high` | Repaso final: las seis capturas regeneradas, las cifras del corpus en README y guion, `docs/muestras/`, el artículo para revisores, y la deuda dicha —contraste sin verificar, recorrido parcial, `glosario.mjs` dentro de `src/`, `MER_US_MARKET`, la tasa base de construcción y la lista de bases `.db`—. **La reserva completa vive en el brief; esta fila la resume.** |
 
 **El orden es obligatorio y está argumentado en el diseño v2**: la fixture primero y el motor
@@ -145,6 +147,16 @@ Notas para los briefs de la Etapa 8:
   Agregar commits a `main` no mueve el `merge-base`; rebasar sí. Le pasó a `E8B`.
 - **Una fila del tablero resume; el brief manda.** Cuando las dos declaraciones de paths no
   coinciden, la corrección es alinear el resumen y decir cuál gobierna.
+- **Una medición puede desmentir su propia premisa, y hay que dejarla desmentirla.** `E10A` midió
+  23,2 s del arranque y los atribuyó a construir el modelo de EF Core. `E10B` trajo el modelo
+  precompilado contra ese número y midió dos imágenes idénticas salvo esa línea: 41 s contra 39 s de
+  arranque, 6,28 contra 6,38 s de primer render, 20 contra 21 s de suite. Todo dentro del ruido,
+  porque el tramo era la infraestructura de migraciones —`Migrate()` construye el modelo que cada
+  `Designer` lleva dentro— y `UseModel` no lo toca. La optimización estaba bien implementada,
+  probada y guardada por un test de deriva, y aun así se revirtió: 2.081 líneas a cambio de nada
+  medible. Regla: una optimización que entra **contra una atribución** se mide contra esa
+  atribución, y si el número no aparece, sale. El resultado se guarda en el registro, no en un
+  camino de código que hay que dejar encendido para poder repetirlo.
 
 La **Etapa 8** quedó acotada al argumento del proyecto: README, diagramas, capturas y guion de
 demo. Todo lo demás pasó a la **Etapa 9**, que además hace el repaso final de documentos con las

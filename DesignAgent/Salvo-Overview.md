@@ -67,8 +67,9 @@ externas.
 | Blueprint e instrucciones Codex | Actualizados |
 | Kit Claude y coordinación paralela | Preparados |
 | Etapas 1 a 7 | Integradas y verificadas en `main` |
-| Etapa 8 — El argumento del proyecto | En ejecución: diseño v2 aprobado y tareas despachadas |
-| Etapa 9 — Corpus, idiomas y cierre | Completada |
+| Etapa 8 — El argumento del proyecto | Completada |
+| Etapa 9 — Corpus, idiomas y cierre | Completada. **Cierra el MVP** |
+| Etapa 10 — La instancia pública | En ejecución. `E10A` y `E10B` integradas y verificadas; falta publicarla |
 | Anthropic | Decisión aparte. Hoy `AI_PROVIDER=anthropic` se niega a arrancar |
 | Koin sandbox | Opcional, sujeto a onboarding |
 
@@ -77,7 +78,13 @@ externas.
 **El MVP está cerrado.** Las nueve etapas completadas y verificadas, con la compuerta y el smoke
 verdes sobre `main`.
 
-Lo que sigue es post-MVP y **ninguna capacidad se abre automáticamente**: cada una necesita su
+Lo que está en curso es la **Etapa 10, la instancia pública**: una sandbox compartida que se
+reinicia sola, con corpus sintético y sin un solo dato de una persona real (decisión 70). La imagen
+ya existe, arranca con los datos puestos en 41 s a 0,1 vCPU y avisa en pantalla lo que es. Falta
+`E10C-PUBLICACION`: elegir plataforma, desplegar, y poner el link en el README, en el artículo para
+revisores y en la guía.
+
+Lo que sigue después es post-MVP y **ninguna capacidad se abre automáticamente**: cada una necesita su
 propia aprobación, con su diseño y su brief, como todas las anteriores. En orden de lo que más
 enseñaría: el adaptador de Anthropic —que cambia quién redacta la explicación, no si el texto se
 verifica—, la integración con el sandbox de Koin, la autenticación, la observabilidad y el

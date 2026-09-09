@@ -174,13 +174,20 @@ Tres propiedades de la imagen que conviene conocer antes de tocarla:
 - **Si muere uno de los dos procesos, muere el contenedor**, y con código distinto de cero. Sin esa
   regla, una API caída deja la consola respondiendo `200` en todas sus rutas —con el aviso de que no
   se pudo contactar a la API, que es lo que corresponde— y una sonda que mire solo el puerto público
-  ve una instancia sana.
+  ve una instancia sana. Desde `E10B` hay además una sonda propia en `/health`, que mira **los dos**
+  procesos y no solo el que atiende el puerto.
+- **El reinicio deliberado y la caída se distinguen por el código de salida.** El reinicio por
+  antigüedad termina con **75**; una caída, con lo que haya fallado; un `SIGTERM` de afuera, con 0.
+  Un contenedor que se reinicia solo y otro que se murió no se pueden ver iguales desde la
+  plataforma.
 - **`./scripts/contenedor.sh` no borra nada**: ni imágenes, ni contenedores. Los deja y los nombra
   al terminar, igual que `demo.sh` deja sus bases.
 
-Lo que esta imagen todavía **no** tiene, y decide la tarea siguiente de la Etapa 10: el reinicio
-periódico, el cartel que avisa que la instancia es compartida y efímera, el límite de tasa y el tope
-de pedidos. Hasta que existan, no se publica en ninguna parte.
+Desde `E10B` la imagen trae además lo que hace publicable a una instancia compartida: la base
+sembrada **horneada adentro** —de ahí que arranque con los datos ya puestos en 41 s a 0,1 vCPU, con
+103 MiB de 512—, el reinicio periódico por antigüedad, el cartel que avisa que es compartida y
+efímera, el limitador de tasa en la capa de Next y el tope de pedidos en la API. Lo único que falta
+es elegir dónde publicarla, que es `E10C`.
 
 ## Restricciones operativas
 

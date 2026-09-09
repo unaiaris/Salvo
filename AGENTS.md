@@ -59,7 +59,13 @@ cambia alcance o arquitectura, actualizar primero su bitácora y después los do
   umbral de alerta es una política de negocio y no el resultado del barrido (decisión 63).
 - **Etapa 10 en ejecución: la instancia pública.** Una sandbox compartida que se reinicia sola, con
   corpus sintético. La invariante sobre despliegue **ya fue revisada** por el coordinador: es la
-  decisión 70, y reemplaza a la 8 conservando su motivo.
+  decisión 70, y reemplaza a la 8 conservando su motivo. `E10A` (`29677f6`) y `E10B` (`23a47cd`)
+  integradas y verificadas; queda `E10C-PUBLICACION`.
+- La imagen de la instancia compartida trae la base sembrada **horneada adentro** y la migración al
+  arrancar apagada: por eso llega al primer dato en 41 s a 0,1 vCPU en vez de 119,7 s. El reinicio
+  por antigüedad es el proceso terminando con **código 75** y la restauración es copiar ese archivo.
+  El tope de pedidos vive en la API y el limitador de tasa en la capa de Next: son dos defensas
+  distintas y ninguna reemplaza a la otra.
 - El orden de la Etapa 9 es obligatorio: la fixture primero y el motor después, porque el corpus
   actual dispara tres de las seis reglas y el extractor de `SignalFacts` es el único oráculo capaz
   de certificar los campos tipados de las otras tres.
