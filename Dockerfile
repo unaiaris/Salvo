@@ -163,6 +163,8 @@ ENV ASPNETCORE_URLS=http://127.0.0.1:5100 \
     DemoData__Enabled=true \
     DemoData__SeedEnabled=false \
     SALVO_BAKED_DB=/app/seed/salvo.db \
+    SharedInstance__Enabled=true \
+    SharedInstance__ResetMinutes=30 \
     SALVO_LANGUAGE=es \
     HOSTNAME=0.0.0.0 \
     PORT=3000 \
@@ -190,6 +192,16 @@ ENV ASPNETCORE_URLS=http://127.0.0.1:5100 \
 # visitante podía dejar la consola inservible para el siguiente: cargar el corpus sobre una base que
 # ya tiene esas referencias se rechaza, y cargarlo el doble de grande no. El reinicio acota ese daño
 # en el tiempo; quitar la ruta hace que no ocurra.
+#
+# `SharedInstance__Enabled=true`: enciende el cartel que dice lo que esta instancia es. La decisión
+# 70 pide que se anuncie **en pantalla** y no en un README, y una de las tres cosas que anuncia no
+# es opcional: la nota de una revisión es texto libre, anónimo y público hasta el próximo reinicio.
+#
+# `SharedInstance__ResetMinutes=30`: el tope de antigüedad. Media hora son tres recorridos completos
+# del guion de demostración, que dura diez minutos, y es lo que un visitante puede ensuciarle al
+# siguiente en el peor caso. **Una sola variable con dos lectores**: el punto de entrada programa el
+# reinicio con ella y la API la publica para el cartel, así que la pantalla no puede prometer un
+# número distinto del que se cumple.
 
 
 EXPOSE 3000

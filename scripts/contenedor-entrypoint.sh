@@ -26,6 +26,28 @@ startup_timeout="${SALVO_API_STARTUP_TIMEOUT_SECONDS:-90}"
 
 api_pid=""
 web_pid=""
+edad_pid=""
+
+# ------------------------------------------------------- el reinicio por antigüedad
+#
+# **El reinicio principal no es éste: es el de la plataforma.** Las tres candidatas duermen la
+# instancia cuando nadie la usa —Koyeb tras una hora, Render a los quince minutos—, y despertar es
+# un contenedor nuevo, que ya vuelve al estado horneado. Este temporizador cubre el caso contrario:
+# una instancia con tráfico continuo no duerme nunca, y sin él acumularía sin techo lo que los
+# visitantes escriban.
+#
+# `SharedInstance__ResetMinutes` es **una sola variable con dos lectores**, y por eso no pueden
+# disentir: este script la usa para actuar y la API para anunciarla en la pantalla. Es este script
+# el que lanza a la API, con este mismo entorno, así que el cartel no puede prometer un número
+# distinto del que se cumple. Vacía o cero, no hay temporizador y el cartel no promete un máximo.
+reset_minutes="${SharedInstance__ResetMinutes:-}"
+
+# 75 es `EX_TEMPFAIL` de `sysexits.h`: «fallo temporal, se invita a reintentar», que es exactamente
+# lo que este final significa. Lo que importa de verdad es que **no sea 0**: una plataforma con
+# política `on-failure` no reinicia un contenedor que anunció éxito, y la tercera falsación de
+# `E10A` encontró justo esa trampa por el lado de la API. Cuál código reinicia cada plataforma lo
+# confirma `E10C`; acá se elige uno y se dice por qué.
+restart_code="${SharedInstance__RestartExitCode:-75}"
 # Distingue las dos formas de terminar. Sin esto las dos se ven iguales desde afuera, y no lo son:
 # que la plataforma pida detener el contenedor es un final normal, y que uno de los dos procesos se
 # caiga solo no lo es nunca.
@@ -93,7 +115,7 @@ shutdown() {
   set +e
   trap - EXIT INT TERM
 
-  for pid in "$web_pid" "$api_pid"; do
+  for pid in "$edad_pid" "$web_pid" "$api_pid"; do
     if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
       kill "$pid" 2>/dev/null
     fi
@@ -156,16 +178,37 @@ log "levantando la consola en 0.0.0.0:${PORT:-3000}"
 node /app/web/server.js &
 web_pid=$!
 
+# ------------------------------------------------------------------ la antigüedad
+
+# Un `sleep` como tercer hijo, en vez de un reloj consultado en un bucle: así el mismo `wait -n` que
+# vigila a los dos procesos vigila también al tiempo, y no hay una tercera manera de terminar que
+# alguien tenga que mantener.
+if [[ -n "$reset_minutes" ]] && [[ "$reset_minutes" =~ ^[0-9]+$ ]] && ((reset_minutes > 0)); then
+  sleep "$((reset_minutes * 60))" &
+  edad_pid=$!
+  log "esta instancia se reiniciará sola a los ${reset_minutes} min, saliendo con ${restart_code}"
+elif [[ -n "$reset_minutes" ]]; then
+  fail "SharedInstance__ResetMinutes tiene que ser un entero de minutos, y vale '${reset_minutes}'."
+fi
+
 # ------------------------------------------------------------------ la supervisión
 
 # `wait -n` vuelve con el primero que termine, sea cual sea. A partir de ahí el contenedor está roto
-# por definición: media aplicación no es la aplicación.
-wait -n "$api_pid" "$web_pid"
+# por definición —media aplicación no es la aplicación—, salvo que el que terminó sea el
+# temporizador, que es el único final que este contenedor busca.
+wait -n "$api_pid" "$web_pid" ${edad_pid:+"$edad_pid"}
 first_exit=$?
 
 if ((detencion_pedida)); then
   # Llegó un SIGTERM y el hijo terminó por eso. Es la salida ordenada.
   exit 0
+fi
+
+# Quién terminó se pregunta después del `wait`, que ya cosechó exactamente a uno: los que siguen en
+# pie responden a `kill -0` y el que se fue no.
+if [[ -n "$edad_pid" ]] && ! kill -0 "$edad_pid" 2>/dev/null; then
+  log "se cumplieron ${reset_minutes} min: se reinicia la instancia y vuelve a los datos horneados"
+  exit "$restart_code"
 fi
 
 if kill -0 "$api_pid" 2>/dev/null; then
