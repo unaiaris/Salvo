@@ -4930,3 +4930,470 @@ Ninguna base de datos del proyecto fue borrada ni modificada.
   el test de deriva que existía solo para cuidar lo generado— a cambio de nada medible. La medición
   de `contenedor.sh` quedó de dos filas, sin base horneada y con ella, que es la comparación que
   sigue siendo cierta; la de tres filas está más arriba, con sus números, y ahí se queda.
+
+## `E10C-PUBLICACION` — todo lo que se puede preparar sin dar el alta, y el alta lista para ejecutar
+
+### Identificación
+
+- Estado de la rama: `Parcial`
+- Etapa: 10
+- Rama/worktree: `claude/e10c-publicacion`
+- Commit base: `3d2136d` (`merge-base` real con `main`)
+- Commit final de implementación: PENDIENTE-COMMIT-FINAL
+- Este handoff: PENDIENTE-COMMIT-HANDOFF
+- Fecha: 2026-09-09
+- Modelo y esfuerzo: Opus 5 · `high`
+
+### Por qué esto es `Parcial`, dicho antes que nada
+
+**La instancia todavía no existe, y no podía existir al terminar esta tarea.** El brief reserva el
+alta para el coordinador —«el agente no crea cuentas, no ingresa credenciales, no acepta términos y
+no conecta el repositorio»— y cinco de los diez criterios de aceptación describen mediciones contra
+una instancia publicada. Esta tarea entrega la mitad que se puede entregar antes del alta, y esa
+mitad incluye el alta lista para ejecutar.
+
+Lo que queda para después del alta, en una segunda vuelta de la misma tarea:
+
+- el arranque en frío medido desde afuera, con su fecha;
+- las tres cifras vistas por un visitante en la instancia real;
+- el reinicio comprobado en la plataforma;
+- la confirmación de `x-forwarded-for` contra la instancia;
+- **el link y las cuatro propiedades en los tres documentos**, que es lo que cierra la etapa.
+
+**El README y la guía no se tocaron, y es deliberado.** La URL de Render no se puede predecir: el
+nombre `salvo` en `onrender.com` es de espacio global y, si está tomado, Render asigna otro. Escribir
+un link inventado en el documento público de un proyecto cuya regla es no afirmar lo que no verificó
+sería justo lo contrario de lo que la Etapa 8 construyó. El texto exacto de los tres documentos está
+más abajo, listo para pegar con una sola sustitución.
+
+### Los límites del plan gratuito de Render, releídos el 2026-09-09
+
+D8 pide reabrir las páginas el día del despliegue. Se reabrieron hoy, una por una. **La tabla del
+brief se confirmó entera: ninguna cifra cambió.** Se agregan tres filas que el brief no tenía y que
+hicieron falta para contestar las comprobaciones.
+
+| Qué | Valor | Fuente oficial, leída el 2026-09-09 |
+| --- | --- | --- |
+| Plan Free para servicio web, con Dockerfile | Sí | https://render.com/docs/web-services |
+| RAM y CPU | 512 MB · 0,1 CPU | https://render.com/docs/compute-plans |
+| Horas de instancia incluidas | 750 por mes y por workspace | https://render.com/docs/free |
+| Duerme tras | 15 minutos sin tráfico entrante | https://render.com/docs/free |
+| Despertar tarda | «about one minute», con pantalla de carga | https://render.com/docs/free |
+| Tamaño máximo de imagen | 10 GB **comprimida** | https://render.com/docs/deploy-an-image |
+| Sin método de pago, el exceso | suspende, no cobra | https://render.com/docs/faq |
+| **Minutos de construcción incluidos** | **500 por mes**, workspace Hobby | https://render.com/docs/build-pipeline |
+| **Sistema de archivos** | **Efímero sin disco persistente** | https://render.com/docs/disks |
+| **Regiones del plan gratuito** | oregon, ohio, virginia, frankfurt, singapore | https://render.com/docs/blueprint-spec |
+
+Lo que el plan gratuito no soporta, textual de https://render.com/docs/free: «Scaling beyond a single
+instance», «Persistent disks», «Edge caching», «Running one-off jobs» y «Shell access via SSH or the
+Render Dashboard». No puede escuchar en los puertos 18012, 18013 y 19099, ni sacar tráfico por el 25,
+465 y 587.
+
+**Ninguna de esas ausencias nos limita, y una de ellas nos conviene.** La instancia es de una sola
+réplica por diseño, porque el contador del limitador de tasa vive en memoria del proceso y el tope de
+pedidos supone una base sola. No queremos disco persistente: la base viene horneada en la imagen y el
+reinicio es copiarla. Y el sistema de archivos efímero **es la mitad de la decisión 70**: «any changes
+you make to a service's local files are _lost_ every time the service redeploys or restarts»
+(https://render.com/docs/disks) es, dicho por la plataforma, la garantía de que nadie se queda con el
+estado que otro dejó.
+
+Salvo no escucha en ninguno de los tres puertos prohibidos ni manda correo.
+
+### Las cinco comprobaciones del punto 2
+
+Tres tienen respuesta, y dos no la tienen en documentación oficial. **Las dos que no la tienen se
+declaran como tales**, que es lo que el brief pide, y las dos se pueden medir contra la instancia.
+
+#### 1. El puerto — resuelta, y falsada con la imagen corriendo
+
+La documentación dice tres cosas y deja una sin decir:
+
+- «Every Render web service must bind to a port on host `0.0.0.0` to serve HTTP requests»
+  (https://render.com/docs/web-services). **La imagen ya cumple**: trae `HOSTNAME=0.0.0.0`.
+- «We recommend binding your HTTP server to the port defined by the `PORT` environment variable» y
+  «The default value of `PORT` is `10000` for all Render web services» (misma página).
+- «For web services, specify the port that your HTTP server binds to. The default port is `10000`»
+  (https://render.com/docs/environment-variables). O sea que `PORT` **se puede declarar**.
+- Lo que **ninguna página dice** es quién gana entre el `ENV PORT=3000` de la imagen y el `PORT` del
+  servicio.
+
+Como la documentación no lo contesta, se midió. Se corrió la imagen de `E10B` con el puerto inyectado
+desde afuera, que es exactamente lo que Render haría:
+
+```
+docker run -d -e PORT=10000 -p 3211:10000 salvo:e10b
+```
+
+| Qué se observó | Resultado |
+| --- | --- |
+| La consola responde en el puerto inyectado | **Sí**, `200` en `http://127.0.0.1:3211/` |
+| Qué dice el punto de entrada | `[entrypoint] levantando la consola en 0.0.0.0:10000` |
+| Qué escucha en el 3000 de la imagen | **Nada** — comprobado desde dentro del contenedor |
+| La API | Sigue en `127.0.0.1:5100`, intacta |
+
+**El valor del entorno gana sobre el `ENV` de la imagen, y todo el camino lo respeta**: el punto de
+entrada, `server.js` de Next y el enrutado. Así que el servicio funciona con cualquiera de los dos
+valores, y no hay defecto que obligue a tocar el `Dockerfile`.
+
+Aun así `render.yaml` declara `PORT: "3000"`, por una razón chica: sin declararlo, el camino bueno
+depende de que Render acierte con «Render is _usually_ able to detect and use it», y esa palabra no
+es una garantía. Declarándolo, los dos valores coinciden y la pregunta desaparece.
+
+#### 2. El código de salida 75 — **no se pudo verificar en documentación oficial**
+
+Se abrieron `/docs/deploys`, `/docs/uptime-best-practices`, `/docs/troubleshooting-deploys` y
+`/docs/health-checks`, más una búsqueda acotada a `render.com`. **Ninguna dice qué hace Render cuando
+el proceso principal de un servicio web termina con un código distinto de cero.** Lo más cercano que
+está documentado es otra cosa: «If an instance fails consecutive health checks for 60 seconds, Render
+automatically restarts the instance» (https://render.com/docs/health-checks), que exige tener
+configurado un health check y que la comprobación 3 desaconseja.
+
+**La mitad que sí se puede verificar, se verificó.** Corriendo la imagen con
+`-e SharedInstance__ResetMinutes=1`, el contenedor termina solo al minuto con `ExitCode=75` y lo
+anuncia: «se cumplieron 1 min: se reinicia la instancia y vuelve a los datos horneados». Nuestro lado
+del contrato funciona. Lo que no se sabe es si el otro lado lo escucha.
+
+**Consecuencia honesta: el reinicio por antigüedad puede no funcionar en Render, y hoy nadie puede
+afirmar que funcione.** Se mide contra la instancia, por el método del punto 4.
+
+**Lo que esto NO pone en riesgo es la decisión 70**, y conviene decirlo porque es la invariante que
+autoriza la publicación entera. El reinicio principal nunca fue el temporizador: es el sueño de la
+plataforma, y ése sí está documentado en las dos mitades que hacen falta.
+
+- Duerme sola: «Render spins down a Free web service that goes 15 minutes without receiving any
+  inbound traffic» (https://render.com/docs/free).
+- Y vuelve limpia: «without a persistent disk, any changes you make to a service's local files are
+  _lost_ every time the service redeploys or restarts» (https://render.com/docs/disks).
+
+Despertar es un contenedor nuevo, y un contenedor nuevo copia la base horneada. Las tres condiciones
+de la decisión 70 se cumplen con eso solo: datos sintéticos a los que vuelve, aviso en pantalla, y un
+reinicio que no depende de que nadie se acuerde. **El temporizador de 30 minutos es una segunda línea
+para el caso que el sueño no cubre**: una instancia con tráfico continuo, que nunca llega a estar 15
+minutos quieta.
+
+Si la medición muestra que Render no reinicia tras el 75, la mitigación no toca el producto: se pone
+`SharedInstance__ResetMinutes` vacío en el servicio y el temporizador se apaga. El punto de entrada ya
+lo contempla —«Vacía o cero, no hay temporizador»— y el cartel deja de prometer un máximo, sin
+inconsistencia, porque las dos cosas salen de la misma variable.
+
+#### 3. La sonda de salud contra el sueño — **no documentado, y por eso no se configura**
+
+Se abrieron `/docs/health-checks`, `/docs/free` y el changelog de WebSocket. **Ninguna dice si los
+sondeos de la plataforma cuentan como tráfico entrante a los efectos del sueño.** Lo que sí está
+escrito es qué mantiene despierta a una instancia: «an incoming HTTP request» o «an incoming WebSocket
+message from an existing connection»
+(https://render.com/changelog/free-web-services-now-remain-active-while-receiving-websocket-messages).
+Un sondeo de Render es una petición HTTP entrante. Si cuenta, la instancia no duerme nunca.
+
+Y si no duerme nunca, el mes tiene entre 720 y 744 horas contra **750 incluidas**: la instancia
+quedaría al borde del cupo todo el tiempo, y cualquier mes con un despliegue de más lo pasa. Pasarse
+es «Render instead disables your services for the duration of the current billing period»: la
+instancia apagada hasta el mes siguiente.
+
+**Decisión delegada, ejercida como el brief manda: ante la duda, no se configura.** El riesgo es
+asimétrico. No configurarla cuesta una etiqueta de estado en el panel; configurarla puede costar el
+link, que es lo único que esta etapa produce.
+
+Lo que la sonda vigilaría ya está vigilado por otro lado: el supervisor del punto de entrada termina
+el contenedor si cualquiera de los dos procesos se cae. `/health` no se borra ni se toca — sigue
+existiendo, sigue mirando los dos procesos y sirve para preguntarle a mano cómo está la instancia.
+
+**Esto arrastra una corrección**, que el brief autoriza por su nombre: el comentario del `Dockerfile`
+decía «la sonda de la plataforma contra `/health`, que `E10C` configura». `E10C` no la configura, así
+que la frase quedó falsa y se corrigió. Es edición de un comentario, no de comportamiento.
+
+#### 4. El tiempo de construcción — el cupo está verificado; el tiempo en Render, no
+
+- **Cupo**: 500 minutos de construcción por mes para un workspace Hobby
+  (https://render.com/docs/build-pipeline). El brief citaba la FAQ sobre el cobro del excedente; el
+  número estaba en otra página.
+- **Cota local**: una construcción **sin caché** de esta imagen tarda **63 s** en el M1
+  (`docker build --no-cache`, 2026-09-09), con las imágenes base ya descargadas. Los tramos caros son
+  `dotnet publish` con ReadyToRun (30,4 s) y `next build` (30,4 s); hornear la base cuesta 4,3 s.
+- **Lo que ese número NO dice**: cuánto tarda en Render. Allá hay que bajar las imágenes base —1,3 GB
+  el SDK y 368 MB el runtime—, el hardware de construcción es otro, y el destino es `linux-amd64` en
+  vez de `arm64`. **63 s es una cota inferior, no una predicción.** El número real lo da el primer
+  despliegue y se escribe entonces.
+
+Aun con un factor de diez, una construcción de diez minutos deja cincuenta construcciones al mes. El
+cupo no aprieta mientras el repositorio no vuelva a tener desarrollo activo. Si vuelve,
+`autoDeployTrigger` pasa a `off` y se despliega a mano; está dicho en `render.yaml`.
+
+#### 5. La cabecera de origen — resuelta, y favorable
+
+«Because traffic passes through Cloudflare and Render's load balancers, your app sees the proxy's IP
+by default. To get the real client IP, read the `x-forwarded-for` header»
+(https://render.com/articles/how-render-handles-ddos-attacks). Es exactamente lo que hace `originOf`
+en `frontend/src/lib/rate-limit.ts`: lee `x-forwarded-for`, toma el primero de la cadena, y solo cae a
+`x-real-ip` y después a un cubo compartido si no hay ninguna.
+
+**Así que el caso degradado que el handoff de `E10B` temía no ocurre en Render**: cada visitante tiene
+su propio cubo. Queda por confirmar contra la instancia publicada, que es donde se ve de verdad, y ese
+es el paso del punto 4.
+
+Una advertencia que corresponde decir y que no cambia la decisión: una cabecera `x-forwarded-for` la
+puede escribir el cliente. Quien la falsifique se saltea el limitador. No importa acá, porque el
+limitador no es la defensa del costo —ésa es `SharedInstance__MaxOrders`, en la API, que cuenta
+pedidos y no peticiones— y porque la instancia vuelve al estado horneado sola.
+
+### Lo que apareció y el brief no sabía
+
+**El repositorio es privado.** `gh repo view` dice `PRIVATE`. El brief argumenta el despliegue desde
+el Dockerfile diciendo que «un repositorio público que se despliega solo es además parte del argumento
+del proyecto», y esa mitad del argumento hoy no aplica.
+
+No impide nada: Render despliega desde repositorios privados conectando su aplicación de GitHub, y es
+parte del alta. Pero conviene saberlo por dos motivos. El primero es que hacer público el repositorio
+es una decisión del coordinador y no de esta tarea. El segundo es más práctico: **si el repositorio
+sigue privado, el link de la instancia es lo único que un revisor puede abrir**, y eso sube lo que la
+instancia tiene que aguantar.
+
+### El archivo de configuración: `render.yaml`
+
+Entra, y el brief lo condicionaba a que aportara algo que la consola no dé. Aporta dos cosas.
+
+La primera es que las decisiones quedan con su motivo escrito al lado y revisables en un diff. Un
+servicio creado a mano en un formulario es una configuración que nadie puede leer y que se pierde si
+hay que rehacerla.
+
+La segunda es lo que el archivo **no** declara: casi ninguna variable de entorno. Todas viven en el
+`ENV` del `Dockerfile` con su porqué al lado, y redeclararlas sería tener dos fuentes de verdad para
+lo mismo —el modo de fallo contra el que el punto de entrada ya se defiende cuando deriva la ruta de
+la base de la cadena de conexión en vez de declararla aparte—. La única excepción es `PORT`, por lo
+que dice la comprobación 1.
+
+Claves usadas, todas confirmadas contra https://render.com/docs/blueprint-spec el 2026-09-09:
+`services`, `name`, `type: web`, `runtime: docker` —que «replaces the deprecated `env` field»—,
+`dockerfilePath`, `plan: free`, `region`, `autoDeployTrigger` con valores `commit`/`checksPass`/`off`,
+y `envVars` con `key`/`value`.
+
+**Una salvedad que hay que decir**: la sintaxis se escribió contra la referencia oficial, pero **no se
+validó contra un despliegue real**, porque validarla es desplegar. Render valida el Blueprint al
+aplicarlo y falla ruidosamente si algo está mal, así que el modo de fallo es visible y barato.
+
+### El bloque de pasos para el coordinador
+
+**El orden importa y el primer paso no es el alta.**
+
+**Paso 0 — integrar antes de dar de alta.** Render lee `render.yaml` de una rama del repositorio. Si
+el archivo vive solo en `claude/e10c-publicacion`, hay que apuntar Render a esa rama, que no es donde
+va a quedar. Conviene integrar esta rama a `main` primero, con la compuerta y el smoke verdes, y dar
+de alta después contra `main`.
+
+**Paso 1 — la cuenta.** Crear cuenta en https://render.com o entrar con la que haya.
+**No cargar método de pago.** Es el criterio con el que se eligió Render: sin método de pago no puede
+cobrar, suspende. Si en algún momento el flujo pide una tarjeta, **parar** — eso invalida la elección
+y la decisión vuelve a estar abierta.
+
+**Paso 2 — conectar GitHub.** Autorizar la aplicación de Render sobre `unaiaris/Salvo`. El repositorio
+es privado, así que hay que darle acceso explícito a ese repositorio.
+
+**Paso 3 — aplicar el Blueprint.** En el panel: **New > Blueprint**, elegir `unaiaris/Salvo`, rama
+`main`. Render lee `render.yaml`, muestra el servicio `salvo` que va a crear y pide confirmar. Revisar
+que diga **plan Free**, **region Virginia** y **runtime Docker**, y confirmar.
+
+**Paso 4 — anotar la URL.** Render asigna `https://<nombre>.onrender.com`. El nombre `salvo` es de
+espacio global y puede estar tomado; si lo está, la URL lleva un sufijo. **Anotar la que quede: es el
+dato que falta para cerrar la tarea.**
+
+**Paso 5 — mirar la primera construcción.** Anotar cuánto tarda, que es la comprobación 4 y hoy es una
+cota inferior de 63 s medida en otra máquina. Si falla, el log dice por qué; el modo de fallo más
+probable es el puerto, y la comprobación 1 explica los dos caminos.
+
+**Paso 6 — la primera visita.** Abrir la URL. Lo que tiene que verse: el cartel de instancia
+compartida, y en `/alerts` la cola con **23 alertas abiertas**.
+
+**Variables de entorno que hay que cargar a mano: ninguna.** Todas viajan en la imagen, y `PORT` la
+declara el Blueprint. La lista completa, con el motivo de cada una, está en el `ENV` de la etapa final
+del `Dockerfile`, que es su única fuente de verdad:
+
+| Variable | Valor | Para qué |
+| --- | --- | --- |
+| `PORT` | `3000` | La declara `render.yaml`; el resto vienen en la imagen |
+| `ASPNETCORE_URLS` | `http://127.0.0.1:5100` | La API escucha solo en loopback: no es alcanzable desde afuera |
+| `SALVO_API_BASE_URL` | `http://127.0.0.1:5100` | Por dónde le habla la consola desde el proceso de Node |
+| `ConnectionStrings__SalvoDb` | `Data Source=/data/salvo.db` | La base de trabajo, que se reemplaza en cada arranque |
+| `SALVO_BAKED_DB` | `/app/seed/salvo.db` | La base horneada. Copiarla **es** el reinicio |
+| `Database__MigrateOnStartup` | `false` | Migrar una base ya migrada costaba 26 s del arranque |
+| `DemoData__Enabled` | `true` | Enciende métricas de calidad y disparadores del proveedor externo |
+| `DemoData__SeedEnabled` | `false` | Apaga solo la ruta de sembrado, que es la única con la que un visitante dejaba la consola inservible |
+| `SharedInstance__Enabled` | `true` | El cartel que la decisión 70 exige en pantalla |
+| `SharedInstance__ResetMinutes` | `30` | El tope de antigüedad. Una sola variable, dos lectores: programa el reinicio y escribe el cartel |
+| `SharedInstance__MaxOrders` | `500` | El techo de pedidos, que ningún limitador de tasa reemplaza |
+| `SALVO_RATE_LIMIT` | `on` | El límite de tasa, en la capa de Next, donde existe el visitante |
+| `SALVO_LANGUAGE` | `es` | El idioma del despliegue |
+| `HOSTNAME` | `0.0.0.0` | Render lo exige para enrutar |
+
+### Lo que hay que medir después del alta
+
+| Qué | Cómo | Para qué criterio |
+| --- | --- | --- |
+| Arranque en frío | Dejarla 15 min quieta y cronometrar `curl -s -o /dev/null -w '%{time_total}' <URL>/alerts` | El número que se publica, con su fecha |
+| Camino tibio | La misma ruta, ya despierta | Contraste |
+| Las tres cifras | `curl -s <URL>/alerts` y `<URL>/dashboard`, leyendo el HTML; la explicación de `ORD_000011` en el navegador | 23 alertas, 51 denegados, explicación escrita |
+| La API no se publica | `curl -s -o /dev/null -w '%{http_code}' <URL>/api/dashboard` | **404** es el acierto |
+| `x-forwarded-for` | Agotar el limitador desde el wifi y probar desde el teléfono | Comprobación 5 contra la instancia |
+| El reinicio | Dejar una nota de revisión escrita, darle tráfico cada menos de 15 min durante media hora, y volver | Comprobación 2 contra la instancia |
+
+### El texto para los tres documentos
+
+Listo para pegar. **`<URL>` es la única sustitución**, y no hay ninguna otra.
+
+#### README, al principio de «Cómo correrlo», antes de las tres terminales
+
+```markdown
+### Probarlo sin instalar nada
+
+**<URL>**
+
+Es una instancia de demostración, y conviene saber cuatro cosas antes de abrirla.
+
+Es **compartida**: lo que escribas ahí lo ve quien entre después. Una nota de revisión es texto
+libre, anónimo y público hasta el próximo reinicio. Es **efímera**: se reinicia sola y se lleva
+puesto lo que haya, incluido lo que hayas escrito. Es **sintética**: los mismos 300 pedidos
+generados que describe este README, y ni un dato de una persona real. Y es **lenta la primera
+vez**: duerme tras quince minutos sin visitas, así que la primera carga después de un silencio
+espera a que el contenedor arranque. Render muestra una pantalla de carga mientras tanto.
+
+Que tarde no es un defecto que se nos escapó: es lo que cuesta arrancar dos procesos con 0,1 de un
+núcleo, y está medido en `DesignAgent/Salvo-Getting-Started.md`.
+```
+
+#### README, en «Límites declarados», reemplazando el párrafo de autenticación
+
+El párrafo que empieza «**No hay autenticación**» ya está ahí desde la decisión 70. **No se duplica:
+se le enlaza el link** y se le agregan las dos deudas nuevas justo después.
+
+```markdown
+**No hay autenticación**, y por eso no se despliega nada que reciba datos de una persona real. La
+[instancia pública de demostración](<URL>) es la única excepción, y paga su precio: es **compartida
+y efímera**, lo que alguien escribe ahí lo ven los demás hasta el próximo reinicio, y el reinicio
+devuelve todo al corpus sintético.
+Tampoco hay observabilidad, ni Postgres, ni consulta en lenguaje natural: están fuera del MVP.
+**Anthropic sigue siendo una decisión aparte** y no tiene adaptador: `AI_PROVIDER=anthropic` se niega
+a arrancar, a propósito.
+
+**La instancia pública no tiene región sudamericana.** El plan gratuito de Render ofrece Oregon,
+Ohio, Virginia, Frankfurt y Singapur, y ninguna está en Sudamérica. Está en Virginia, que es la más
+cercana a Montevideo y a São Paulo, y esa distancia se suma a un arranque que ya es lento.
+
+**Mantenerla despierta se evaluó y se descartó.** Un pinger cada catorce minutos evitaría el sueño,
+pero consumiría unas 730 de las 750 horas mensuales del plan, dejando a la instancia al borde de la
+suspensión todos los meses. Y Render no documenta esa práctica como permitida. Un proyecto que
+verifica cada afirmación antes de publicarla no puede apoyar lo único que expone en un mecanismo que
+no verificó.
+```
+
+#### `DesignAgent/Salvo-Getting-Started.md`, al final de «El contenedor»
+
+Reemplaza el párrafo que hoy termina en «Lo único que falta es elegir dónde publicarla, que es
+`E10C`.»
+
+```markdown
+Desde `E10C` esa imagen corre publicada, en el plan gratuito de Render y en la región de Virginia:
+
+**<URL>**
+
+Es compartida —lo que un visitante escribe lo ve el siguiente—, efímera —se reinicia sola y se lleva
+puesto lo que haya—, sintética —los 300 pedidos del corpus, cero datos de una persona real— y lenta
+la primera vez, porque Render duerme un servicio gratuito tras quince minutos sin tráfico y
+despertarlo es arrancar el contenedor de nuevo.
+
+El reinicio tiene dos mecanismos y conviene no confundirlos. El principal es el de la plataforma: al
+dormirse y despertar, el contenedor es nuevo y el sistema de archivos es efímero, así que la base
+vuelve a la horneada sin que nadie haga nada. El segundo es el tope de antigüedad de treinta minutos
+del punto de entrada, que cubre el caso que el primero no cubre: una instancia con tráfico continuo,
+que nunca llega a estar quince minutos quieta.
+
+**No se configuró el health check de Render**, y es una decisión con motivo. La consola tiene
+`/health`, que mira los dos procesos, pero ninguna página oficial dice si los sondeos de la
+plataforma cuentan como tráfico entrante a los efectos del sueño. Si contaran, la instancia no
+dormiría nunca y consumiría las 750 horas mensuales del plan. Ante esa duda no se configura: dormir
+es parte del diseño.
+```
+
+#### El artículo para revisores
+
+Vive publicado en `claude.ai` y el agente no lo puede republicar. El texto exacto para agregarle:
+
+```markdown
+Se puede probar sin instalar nada, en <URL>.
+
+Es una instancia de demostración compartida y efímera: lo que escribas lo ve quien entre después, se
+reinicia sola y vuelve a los mismos 300 pedidos sintéticos. No hay un dato de una persona real, y no
+puede haberlo: no tiene autenticación, y por eso no recibe otra cosa.
+
+La primera carga después de un rato sin visitas es lenta, y vale la pena decir por qué en vez de
+disimularlo. Corre en un plan gratuito con 0,1 de un núcleo, duerme tras quince minutos sin tráfico y
+despertar es arrancar dos procesos desde cero. Que arranque **con los datos ya puestos** —23 alertas,
+51 pedidos denegados por el proveedor sin alerta local y una explicación escrita— es el resultado de
+hornear la base dentro de la imagen, que es lo que bajó ese arranque de 119,7 s a 41 s.
+```
+
+### Archivos tocados
+
+| Archivo | Qué cambió |
+| --- | --- |
+| `render.yaml` | **Nuevo.** El servicio declarado como código, con el motivo de cada decisión |
+| `Dockerfile` | Un comentario, y solo uno: el que prometía que `E10C` configuraría la sonda de la plataforma |
+| `Coordination/Tasks/E10C-PUBLICACION.md` | El campo «Commit base», que el brief dejaba para el primer commit de la rama |
+| `Coordination/Handoffs/Claude.md` | Esta entrada |
+
+**No se tocaron** `README.md` ni `DesignAgent/Salvo-Getting-Started.md`, que son los dos paths que el
+brief autorizaba para el link. El motivo está arriba: la URL no existe todavía.
+
+Tampoco se tocó `scripts/contenedor-entrypoint.sh` ni `frontend/src/app/health/route.ts`, que el
+brief autorizaba **solo si** una comprobación encontraba un defecto. Ninguna lo encontró.
+
+### Comandos y resultados
+
+Todo lo de esta tabla se corrió el **2026-09-09**, sobre `99dfc86`.
+
+| Comprobación | Resultado |
+| --- | --- |
+| `./scripts/check.sh` | **Verde**, salida 0 |
+| `./scripts/check-docs.sh` | **Verde**: 73 comprobaciones, 0 fallas |
+| `./scripts/smoke-ui.sh` | **Verde**: 71 comprobaciones, 0 fallas |
+| `./scripts/contenedor.sh medir-instancia`, a 0,1 vCPU | Arranque **52,74 s** con los datos puestos; 87,2 MiB en reposo y 102 MiB tras los renders |
+| — las tres cifras que imprime | **23** alertas abiertas, **51** denegados sin alerta local, explicación de `ORD_000011` en `READY` |
+| — fila de control, sin base horneada | 75,67 s contra los 77,49 s que midió `E10A`: la máquina mide lo mismo que entonces |
+| `docker build --no-cache` | **63 s** en el M1, imagen de 851 MB |
+| Falsación del puerto: `docker run -e PORT=10000` | La consola responde en el puerto inyectado; nada escucha en el 3000 |
+| Falsación del código de salida: `-e SharedInstance__ResetMinutes=1` | El contenedor termina solo con **`ExitCode=75`** y lo dice en el log |
+| `git status --porcelain` | Limpio |
+
+**Una diferencia con `E10B` que conviene no maquillar**: el arranque dio 52,74 s y `E10B` reportó
+41–48 s, con mediana de 41 sobre cinco corridas. Esta es **una sola corrida**, en una máquina que
+acababa de construir dos imágenes, y la fila de control salió donde tenía que salir —75,67 s contra
+77,49 s—, que es la señal de que la máquina no cambió. Lo más probable es ruido. Lo honesto es
+publicar el número que salió y decir de cuántas corridas viene: una.
+
+De cualquier modo el umbral de 90 s se cumple con holgura, y ninguno de estos números es el que va a
+publicarse: el que cuenta lo mide el punto 4 contra la instancia real, en hardware compartido de
+verdad.
+
+### Riesgos y trabajo pendiente
+
+- **El reinicio por antigüedad no está confirmado en Render**, porque la documentación no dice qué
+  hace la plataforma con una salida distinta de cero. La decisión 70 se cumple igual por el sueño, que
+  sí está documentado en sus dos mitades. Se mide tras el alta; si no reinicia, la mitigación es
+  apagar el temporizador y no toca el producto.
+- **El health check quedó sin configurar** por una duda que la documentación no despeja. Si Render
+  algún día la despeja, encenderlo es una línea en `render.yaml`.
+- **La sintaxis del Blueprint no se validó contra un despliegue**, porque validarla es desplegar.
+  Render la valida al aplicarla.
+- **El repositorio es privado**, así que el argumento del brief sobre un repositorio público que se
+  despliega solo no aplica hoy. Es decisión del coordinador.
+- **La URL no se pudo escribir en los tres documentos** porque no existe. Es lo que convierte esta
+  entrega en `Parcial`, y el texto está listo para pegar con una sola sustitución.
+- **63 s no predice el tiempo de construcción en Render.** Es otra arquitectura, otro hardware y con
+  las imágenes base por descargar.
+
+### Integración
+
+- Orden sugerido: **integrar a `main` primero, por merge y nunca por rebase, y dar el alta después**,
+  porque Render lee `render.yaml` de una rama y `main` es donde va a quedar.
+- Migraciones o pasos manuales: ninguno. No hay migración ni cambio de contrato.
+- Esta rama **no cierra la Etapa 10**. La cierra la segunda vuelta, con la URL y las mediciones.
+- Verificación posterior al merge: `./scripts/check.sh` y `./scripts/smoke-ui.sh`.
