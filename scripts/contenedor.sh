@@ -83,7 +83,7 @@ construir() {
 
 # Arranca un contenedor. Los argumentos que siguen al nombre se pasan tal cual a `docker run`, que
 # es como se apaga una optimización sin construir otra imagen: `-e SALVO_BAKED_DB=` deja al
-# arranque sin base horneada y mide lo que aporta el modelo compilado solo.
+# arranque sin base horneada, que es como se mide cuánto aporta hornearla.
 arrancar() {
   local name="$1"; shift
   docker run -d --name "$name" \
@@ -254,18 +254,19 @@ medir() {
 # ------------------------------------------------------------------ medir la instancia pública
 
 # Lo que `E10B` tiene que contestar y `E10A` no podía: cuánto tarda el arranque **con los datos ya
-# puestos**, y cuánto aporta cada una de las dos optimizaciones por separado.
+# puestos**, y cuánto aporta hornear la base.
 #
-# La separación se hace sobre una sola imagen y no sobre tres, porque una de las dos se puede apagar
-# desde afuera: con `SALVO_BAKED_DB` vacío el punto de entrada no copia nada y la API arranca contra
-# una base vacía, que es exactamente el camino que `E10A` midió. La otra vive en el código y no se
-# apaga, así que su aporte se lee contra el número que `E10A` dejó escrito.
+# Se mide sobre una sola imagen y no sobre dos, porque la optimización se puede apagar desde afuera:
+# con `SALVO_BAKED_DB` vacío el punto de entrada no copia nada y la API arranca contra una base
+# vacía, que es exactamente el camino que `E10A` midió.
 #
-#   E10A, ninguna de las dos ......... 77,49 s (medido entonces, mismo método y misma máquina)
-#   solo el modelo compilado ......... se mide acá, con SALVO_BAKED_DB vacío
-#   las dos .......................... se mide acá, con la imagen tal cual
+#   sin base horneada ................ se mide acá, con SALVO_BAKED_DB vacío
+#   con base horneada ................ se mide acá, con la imagen tal cual
 #
-# El aporte del modelo compilado es la primera diferencia; el de la base horneada, la segunda.
+# `E10B` midió también el modelo precompilado de EF Core, que era la otra optimización candidata. No
+# le encontró nada fuera del ruido y se revirtió, así que acá quedan dos filas y no tres. Los
+# números de esa falsación están en el handoff, que es donde una medición de una sola vez tiene que
+# vivir: en el registro, y no en un camino de código que hay que dejar encendido para repetirla.
 
 # Un contenedor nuevo, cronometrado hasta que la consola contesta. Devuelve los milisegundos.
 cronometrar_arranque() {
@@ -318,9 +319,9 @@ medir_instancia() {
   printf '  %-52s %s\n' "Denegados por el proveedor sin alerta local" "$denegados"
   printf '  %-52s %s\n' "Explicación de ORD_000011" "$explicacion"
 
-  # ---------------------------------------------------------------- solo el modelo compilado
+  # ---------------------------------------------------------------- sin la base horneada
   echo
-  echo "APORTE DE CADA OPTIMIZACIÓN — arranque en frío a ${cpus} vCPU"
+  echo "APORTE DE LA BASE HORNEADA — arranque en frío a ${cpus} vCPU"
   docker stop "$con_todo" >/dev/null 2>&1 || true
 
   local t_sin_base
@@ -329,12 +330,13 @@ medir_instancia() {
   t_sin_base="$(cronometrar_arranque "$sin_base" -e SALVO_BAKED_DB= -e Database__MigrateOnStartup=true)"
   docker stop "$sin_base" >/dev/null 2>&1 || true
 
-  printf '  %-52s %s\n' "E10A: ninguna de las dos (medido entonces)" "77,49 s"
-  printf '  %-52s %s\n' "Sin base horneada (solo el modelo compilado)" "$(human "$t_sin_base")"
-  printf '  %-52s %s\n' "Con base horneada (las dos)" "$(human "$t_completo")"
+  printf '  %-52s %s\n' "E10A: el mismo camino, medido entonces" "77,49 s"
+  printf '  %-52s %s\n' "Sin base horneada" "$(human "$t_sin_base")"
+  printf '  %-52s %s\n' "Con base horneada" "$(human "$t_completo")"
   echo
-  echo "  El modelo compilado no aporta nada medible: la diferencia entera está entre estas dos"
-  echo "  filas, y es la base horneada. El detalle y los números están en DependencyInjection.cs."
+  echo "  Las dos primeras filas tienen que dar parecido: es la misma imagen por el mismo camino,"
+  echo "  y si se separan, la máquina no está midiendo lo que midió E10A. La diferencia con la"
+  echo "  tercera es el aporte, y sale casi todo de poder apagar la migración al arrancar."
 
   echo
   echo "Contenedores que quedan en pie y **no se borran**:"

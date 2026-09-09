@@ -4924,5 +4924,9 @@ Ninguna base de datos del proyecto fue borrada ni modificada.
 - Verificación posterior al merge: `./scripts/check.sh`, `./scripts/smoke-ui.sh`, y
   `./scripts/contenedor.sh construir` seguido de `medir-instancia` para confirmar que la imagen sale
   del árbol integrado.
-- **Lo que el coordinador tiene que decidir antes de `E10C`**: si el modelo compilado se conserva o
-  se revierte, con los números de arriba en la mano.
+- **Decidido al integrar: se revierte.** El coordinador tomó la recomendación de arriba y revirtió
+  `772b4a1`, con la falsación ya escrita en este handoff. Se van 2.081 líneas en diecisiete archivos
+  —las generadas, los trece `HaveSentinel` que existían solo para que el generador pudiera correr, y
+  el test de deriva que existía solo para cuidar lo generado— a cambio de nada medible. La medición
+  de `contenedor.sh` quedó de dos filas, sin base horneada y con ella, que es la comparación que
+  sigue siendo cierta; la de tres filas está más arriba, con sus números, y ahí se queda.

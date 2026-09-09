@@ -180,10 +180,11 @@ ENV ASPNETCORE_URLS=http://127.0.0.1:5100 \
 # del arranque en frío a 0,1 vCPU**, sobre una base que ya viene migrada y donde `Migrate()` termina
 # diciendo «No migrations were applied».
 #
-# El costo no es construir el modelo del contexto —eso ya lo evita el modelo compilado— sino la
-# infraestructura de migraciones: `Migrate()` carga el ensamblado, instancia las siete migraciones y
-# **construye el modelo que cada una lleva en su `Designer`** para comparar. `UseModel` no alcanza
-# ahí, porque reemplaza el modelo del contexto y no los de las migraciones.
+# El costo no es construir el modelo del contexto sino la infraestructura de migraciones:
+# `Migrate()` carga el ensamblado, instancia las siete migraciones y **construye el modelo que cada
+# una lleva en su `Designer`** para comparar. Es el tramo que `E10A` atribuyó por error a construir
+# el modelo del contexto: por eso el modelo precompilado de EF Core —que reemplaza el del contexto y
+# no los de las migraciones— no bajó de acá ni un segundo, y por eso se revirtió.
 #
 # El caso malo sigue cubierto, y por una comprobación más barata y más ruidosa: el punto de entrada
 # **falla y lo dice** si el archivo horneado no está en la imagen, en vez de arrancar contra una base
