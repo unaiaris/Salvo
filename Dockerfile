@@ -159,7 +159,7 @@ USER app
 ENV ASPNETCORE_URLS=http://127.0.0.1:5100 \
     SALVO_API_BASE_URL=http://127.0.0.1:5100 \
     ConnectionStrings__SalvoDb="Data Source=/data/salvo.db" \
-    Database__MigrateOnStartup=true \
+    Database__MigrateOnStartup=false \
     DemoData__Enabled=true \
     DemoData__SeedEnabled=false \
     SALVO_BAKED_DB=/app/seed/salvo.db \
@@ -175,16 +175,23 @@ ENV ASPNETCORE_URLS=http://127.0.0.1:5100 \
     DOTNET_NOLOGO=1 \
     DOTNET_CLI_TELEMETRY_OPTOUT=1
 
-# `Database__MigrateOnStartup=true`: el contenedor arranca con un volumen vacío y nadie va a correr
-# `dotnet ef database update` por él, porque la imagen no lleva el SDK. Está apagado en todos los
-# demás modos de correr esta API, y `Program.MigrateIfAsked` explica por qué la diferencia se
-# declara en vez de heredarse.
+# `Database__MigrateOnStartup=false`, **y esto se midió antes de decidirlo**. La primera versión de
+# esta imagen lo dejaba encendido con el argumento de que hacía benigno el caso malo. Cuesta **26 s
+# del arranque en frío a 0,1 vCPU**, sobre una base que ya viene migrada y donde `Migrate()` termina
+# diciendo «No migrations were applied».
 #
-# `Database__MigrateOnStartup=true` **se conserva aunque la base venga horneada y migrada**, y no
-# es redundante: es lo que hace que el caso malo sea benigno. Si algún día la copia de la base
-# horneada no llegara, la API se encontraría con un archivo vacío; con la migración encendida crea
-# el esquema y la consola dice que no hay pedidos, en vez de contestar «no such table» a todo. El
-# punto de entrada, además, falla antes si el archivo horneado no está en la imagen.
+# El costo no es construir el modelo del contexto —eso ya lo evita el modelo compilado— sino la
+# infraestructura de migraciones: `Migrate()` carga el ensamblado, instancia las siete migraciones y
+# **construye el modelo que cada una lleva en su `Designer`** para comparar. `UseModel` no alcanza
+# ahí, porque reemplaza el modelo del contexto y no los de las migraciones.
+#
+# El caso malo sigue cubierto, y por una comprobación más barata y más ruidosa: el punto de entrada
+# **falla y lo dice** si el archivo horneado no está en la imagen, en vez de arrancar contra una base
+# vacía y dejar que la consola anuncie que no hay pedidos. Un contenedor que no arranca y explica
+# por qué es mejor que uno que arranca y miente.
+#
+# Para correr esta imagen sin la base horneada —lo hace la medición del aporte de cada
+# optimización— hay que encenderla a mano: `-e SALVO_BAKED_DB= -e Database__MigrateOnStartup=true`.
 #
 # `DemoData__Enabled=true`: enciende las métricas de calidad y los disparadores del proveedor
 # externo, que son la mitad del argumento del proyecto.
@@ -218,15 +225,25 @@ ENV ASPNETCORE_URLS=http://127.0.0.1:5100 \
 # smoke y las capturas hacen decenas de peticiones en segundos y un límite pensado para
 # desconocidos las volvería intermitentes; esta imagen lo enciende.
 
-# La sonda mira **los dos procesos**. `GET /health` de la consola le pregunta a la API por la suya y
-# contesta 503 si no responde, que es la diferencia entre una instancia sana y media aplicación
-# muerta: si la API cae y `server.js` sigue en pie, todas las rutas siguen contestando 200 con el
-# aviso de error puesto, y una sonda contra el puerto público vería todo bien.
+# La sonda mira **los dos procesos**, y la consulta la plataforma, no esta imagen.
 #
-# `node` y no `curl` por lo mismo que el punto de entrada: la imagen de runtime no trae `curl`.
-# `--start-period` cubre el arranque en frío completo, que a 0,1 vCPU es de decenas de segundos.
-HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=3 \
-    CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+# `GET /health` de la consola le pregunta a la API por la suya y contesta 503 si no responde. Esa es
+# la diferencia entre una instancia sana y media aplicación muerta: si la API cae y `server.js` sigue
+# en pie, todas las rutas siguen contestando 200 con el aviso de error puesto, y una sonda contra el
+# puerto público vería todo bien.
+#
+# **Y esta imagen no declara `HEALTHCHECK`, que es una decisión medida y no un olvido.** Tenerlo
+# costaba 43 de los 112 s del arranque en frío a 0,1 vCPU con el intervalo de 30 s que uno escribe
+# sin pensar, y **16 s incluso con el intervalo en cinco minutos**: durante `--start-period` Docker
+# no espera al intervalo, sondea cada cinco segundos —`--start-interval`, que vale 5 s por omisión—,
+# y a 0,1 vCPU cada comprobación levanta un proceso de Node entero que le roba CPU al arranque.
+# Medido en las dos direcciones sobre la misma imagen, con `--no-healthcheck`: 55,58 s contra
+# 39,53 s.
+#
+# Lo que se pierde es una etiqueta en `docker ps`. Lo que vigila de verdad no es eso: es la sonda de
+# la plataforma contra `/health`, que `E10C` configura, y el supervisor del punto de entrada, que
+# termina el contenedor si cualquiera de los dos procesos se cae. Quien quiera la etiqueta puede
+# pedirla al correr, con `--health-cmd` y un `--start-period` de cero.
 
 EXPOSE 3000
 ENTRYPOINT ["/app/entrypoint.sh"]

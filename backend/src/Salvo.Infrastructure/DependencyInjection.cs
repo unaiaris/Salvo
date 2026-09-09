@@ -31,11 +31,21 @@ public static class DependencyInjection
         var connectionString = configuration.GetConnectionString("SalvoDb")
             ?? "Data Source=salvo.db";
 
-        // `UseModel` es lo que evita construir el modelo por reflexión en el primer uso del
-        // contexto. No cambia una consulta ni un mapeo: cambia cuánto trabajo hay entre el arranque
-        // del proceso y la primera respuesta, y con 0,1 vCPU eso decide si la instancia pública es
-        // usable. Medido en `E10A` sobre el contenedor: **23,2 de los 77,5 s** de arranque en frío
-        // se iban construyendo el modelo, con la aplicación ya precompilada.
+        // `UseModel` evita construir el modelo por reflexión en el primer uso del contexto. No
+        // cambia una consulta ni un mapeo: cambia cuánto trabajo hay entre el arranque del proceso
+        // y la primera respuesta.
+        //
+        // **Y hay que decir que no se le midió ningún beneficio.** Se trajo en `E10B` contra los
+        // 23,2 s que `E10A` atribuyó a construir el modelo, y esa atribución resultó equivocada:
+        // ese tramo era la infraestructura de migraciones —`Migrate()` instancia las siete
+        // migraciones y construye el modelo que cada `Designer` lleva dentro—, que `UseModel` no
+        // toca, porque reemplaza el modelo del contexto y no los de las migraciones. Medido a
+        // 0,1 vCPU sobre dos imágenes idénticas salvo esta línea: arranque en frío 41 s contra
+        // 39 s, primer render con datos 6,28 s contra 6,38 s, suite de integración 20 s contra
+        // 21 s. Las tres diferencias están dentro del ruido.
+        //
+        // Lo que sí bajó el arranque de 77,5 s a 41 s fue la base horneada, y sobre todo poder
+        // apagar `Database:MigrateOnStartup` gracias a ella.
         //
         // El modelo compilado vive en `Persistence/CompiledModels/`, lo escribe
         // `dotnet ef dbcontext optimize`, y se pide **por su nombre** en vez de dejar que el
