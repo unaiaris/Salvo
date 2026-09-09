@@ -241,10 +241,19 @@ ENV ASPNETCORE_URLS=http://127.0.0.1:5100 \
 # Medido en las dos direcciones sobre la misma imagen, con `--no-healthcheck`: 55,58 s contra
 # 39,53 s.
 #
-# Lo que se pierde es una etiqueta en `docker ps`. Lo que vigila de verdad no es eso: es la sonda de
-# la plataforma contra `/health`, que `E10C` configura, y el supervisor del punto de entrada, que
-# termina el contenedor si cualquiera de los dos procesos se cae. Quien quiera la etiqueta puede
-# pedirla al correr, con `--health-cmd` y un `--start-period` de cero.
+# Lo que se pierde es una etiqueta en `docker ps`. Lo que vigila de verdad es el supervisor del punto
+# de entrada, que termina el contenedor si cualquiera de los dos procesos se cae. Quien quiera la
+# etiqueta puede pedirla al correr, con `--health-cmd` y un `--start-period` de cero.
+#
+# **Y la sonda de la plataforma tampoco se configuró, que es lo contrario de lo que este comentario
+# decía hasta `E10C`.** `/health` sigue acá y sigue mirando los dos procesos; lo que no se hizo es
+# declararla como *health check path* del servicio. El motivo es una duda que la documentación de
+# Render no despeja: sus sondeos llegan «every few seconds» y ninguna página dice si cuentan como
+# «inbound traffic» a los efectos del sueño. Si contaran, la instancia no dormiría nunca y gastaría
+# las 750 horas mensuales del plan, que son menos que las 720 o 744 que tiene un mes; quedarse sin
+# horas es la instancia apagada hasta el mes siguiente. El riesgo es asimétrico —no configurarla
+# cuesta una etiqueta de estado, configurarla puede costar el link—, así que ante la duda no se
+# configura. Encenderla, si Render alguna vez lo documenta, es una línea en `render.yaml`.
 
 EXPOSE 3000
 ENTRYPOINT ["/app/entrypoint.sh"]

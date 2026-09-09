@@ -9,16 +9,20 @@
 - Coordinador: Unai Arismendes
 - Fecha: 2026-09-09
 - Rama/worktree: `claude/e10c-publicacion`
-- Commit base: **lo escribe el primer commit de la rama**, con el SHA que devuelva
-  `git merge-base main HEAD`. Por construcción es la punta de `main` al crear la rama. No se escribe
-  acá de antemano, y el motivo es la lección de `E8B`: el commit que lo escribiera en `main` movería
-  la punta y volvería falso el campo que acaba de declarar. **La primera versión de este brief lo
-  intentó igual y el `brief-check` lo cazó**: declaraba `1ea0747` y el commit que lo declaraba dejó
-  la punta en otro lado.
-  **El coordinador acepta que este campo no lleve SHA**, y eso desplaza la verificación: el paso del
-  `brief-check` que comprueba el commit base no se puede ejecutar sobre este brief, y quien lo
-  comprueba es el primer commit de la rama y después el handoff. La regla es determinista mientras
-  la integración sea por merge, que este brief exige.
+- Commit base: **`3d2136d`**, el `merge-base` real de `claude/e10c-publicacion` con `main`. Lo
+  escribe este commit, que es el primero de la rama, con el SHA que devolvió
+  `git merge-base main HEAD`. El campo se dejó vacío a propósito y el motivo es la lección de `E8B`:
+  el commit que lo escribiera en `main` movería la punta y volvería falso el campo que acaba de
+  declarar. **La primera versión de este brief lo intentó igual y el `brief-check` lo cazó**:
+  declaraba `1ea0747`, y el commit que lo declaraba dejó la punta en `db204ac`.
+  **Y la regla se acaba de ganar un tercer ejemplo**: cuando la rama se cortó, la punta de `main` no
+  era `e879094` —el último commit que este brief-check vio— sino `3d2136d`, el commit de despacho
+  del coordinador, que llegó después. Cualquier SHA escrito de antemano habría estado mal por
+  tercera vez.
+  **El coordinador aceptó que el campo no llevara SHA**, y eso desplazó la verificación: el paso del
+  `brief-check` que comprueba el commit base no se pudo ejecutar sobre las tres primeras versiones
+  de este brief, y quien lo comprueba es este commit y después el handoff. La regla es determinista
+  mientras la integración sea por merge, que este brief exige.
 - Integración: **por merge, nunca por rebase.**
 - Modelo y esfuerzo acordados: **Opus 5 · `high`**.
 - Dependencias: `E10B` integrada y verificada (merge `23a47cd`). Ninguna tarea depende de ésta.
