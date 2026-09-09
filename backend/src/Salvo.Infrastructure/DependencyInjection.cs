@@ -17,6 +17,7 @@ using Salvo.Infrastructure.Explanations;
 using Salvo.Infrastructure.External;
 using Salvo.Infrastructure.Importing;
 using Salvo.Infrastructure.Persistence;
+using Salvo.Infrastructure.Persistence.CompiledModels;
 using Salvo.Infrastructure.Seed;
 
 namespace Salvo.Infrastructure;
@@ -30,7 +31,23 @@ public static class DependencyInjection
         var connectionString = configuration.GetConnectionString("SalvoDb")
             ?? "Data Source=salvo.db";
 
-        services.AddDbContext<SalvoDbContext>(options => options.UseSqlite(connectionString));
+        // `UseModel` es lo que evita construir el modelo por reflexión en el primer uso del
+        // contexto. No cambia una consulta ni un mapeo: cambia cuánto trabajo hay entre el arranque
+        // del proceso y la primera respuesta, y con 0,1 vCPU eso decide si la instancia pública es
+        // usable. Medido en `E10A` sobre el contenedor: **23,2 de los 77,5 s** de arranque en frío
+        // se iban construyendo el modelo, con la aplicación ya precompilada.
+        //
+        // El modelo compilado vive en `Persistence/CompiledModels/`, lo escribe
+        // `dotnet ef dbcontext optimize`, y se pide **por su nombre** en vez de dejar que el
+        // atributo de ensamblado que el generador escribe lo imponga en todas partes: el motivo
+        // está en `Salvo.Infrastructure.csproj`, junto a la exclusión.
+        //
+        // Un modelo compilado que se quedó atrás no falla, responde con el mapeo viejo. Lo que
+        // impide eso es `CompiledModelIsCurrentTests`, que compara esta representación con la que
+        // las configuraciones describen, y está en la compuerta.
+        services.AddDbContext<SalvoDbContext>(options => options
+            .UseModel(SalvoDbContextModel.Instance)
+            .UseSqlite(connectionString));
         AddLanguage(services, configuration);
         AddExternalProvider(services, configuration);
         AddExplanationProvider(services, configuration);

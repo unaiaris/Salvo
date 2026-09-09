@@ -15,4 +15,28 @@
   <ItemGroup>
     <EmbeddedResource Include="Seed/Fixtures/demo-orders.v2.json" />
   </ItemGroup>
+
+  <!--
+    El modelo compilado entra por `UseModel`, no por descubrimiento automático.
+
+    `dotnet ef dbcontext optimize` genera, junto al modelo, un `[assembly: DbContextModel(...)]` que
+    hace que EF Core lo tome solo, en todas partes y sin que nadie lo pida. Se excluye de la
+    compilación por un motivo, y conviene decir cuál **no** es: no ciega a la compuerta.
+    `dotnet ef migrations has-pending-model-changes` construye el modelo desde las configuraciones
+    y sigue viendo la deriva con el atributo puesto — comprobado en las dos direcciones renombrando
+    una columna.
+
+    El motivo es que el descubrimiento automático deja al proceso **sin manera de construir el
+    modelo por convención**, y entonces no hay contra qué comparar el compilado. `UseModel` explícito
+    en `DependencyInjection.AddInfrastructure` conserva las dos representaciones dentro del mismo
+    proceso, que es lo que `CompiledModelIsCurrentTests` necesita para afirmar que describen lo
+    mismo. Un modelo compilado que se quedó atrás no da error: da respuestas viejas.
+
+    El archivo se conserva tal como lo escribe el generador para que regenerarlo no produzca un
+    diff que nadie pidió.
+  -->
+  <ItemGroup>
+    <Compile Remove="Persistence/CompiledModels/SalvoDbContextAssemblyAttributes.cs" />
+    <None Include="Persistence/CompiledModels/SalvoDbContextAssemblyAttributes.cs" />
+  </ItemGroup>
 </Project>
