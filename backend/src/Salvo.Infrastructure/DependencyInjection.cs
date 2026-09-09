@@ -17,7 +17,6 @@ using Salvo.Infrastructure.Explanations;
 using Salvo.Infrastructure.External;
 using Salvo.Infrastructure.Importing;
 using Salvo.Infrastructure.Persistence;
-using Salvo.Infrastructure.Persistence.CompiledModels;
 using Salvo.Infrastructure.Seed;
 
 namespace Salvo.Infrastructure;
@@ -31,33 +30,7 @@ public static class DependencyInjection
         var connectionString = configuration.GetConnectionString("SalvoDb")
             ?? "Data Source=salvo.db";
 
-        // `UseModel` evita construir el modelo por reflexión en el primer uso del contexto. No
-        // cambia una consulta ni un mapeo: cambia cuánto trabajo hay entre el arranque del proceso
-        // y la primera respuesta.
-        //
-        // **Y hay que decir que no se le midió ningún beneficio.** Se trajo en `E10B` contra los
-        // 23,2 s que `E10A` atribuyó a construir el modelo, y esa atribución resultó equivocada:
-        // ese tramo era la infraestructura de migraciones —`Migrate()` instancia las siete
-        // migraciones y construye el modelo que cada `Designer` lleva dentro—, que `UseModel` no
-        // toca, porque reemplaza el modelo del contexto y no los de las migraciones. Medido a
-        // 0,1 vCPU sobre dos imágenes idénticas salvo esta línea: arranque en frío 41 s contra
-        // 39 s, primer render con datos 6,28 s contra 6,38 s, suite de integración 20 s contra
-        // 21 s. Las tres diferencias están dentro del ruido.
-        //
-        // Lo que sí bajó el arranque de 77,5 s a 41 s fue la base horneada, y sobre todo poder
-        // apagar `Database:MigrateOnStartup` gracias a ella.
-        //
-        // El modelo compilado vive en `Persistence/CompiledModels/`, lo escribe
-        // `dotnet ef dbcontext optimize`, y se pide **por su nombre** en vez de dejar que el
-        // atributo de ensamblado que el generador escribe lo imponga en todas partes: el motivo
-        // está en `Salvo.Infrastructure.csproj`, junto a la exclusión.
-        //
-        // Un modelo compilado que se quedó atrás no falla, responde con el mapeo viejo. Lo que
-        // impide eso es `CompiledModelIsCurrentTests`, que compara esta representación con la que
-        // las configuraciones describen, y está en la compuerta.
-        services.AddDbContext<SalvoDbContext>(options => options
-            .UseModel(SalvoDbContextModel.Instance)
-            .UseSqlite(connectionString));
+        services.AddDbContext<SalvoDbContext>(options => options.UseSqlite(connectionString));
         AddLanguage(services, configuration);
         AddExternalProvider(services, configuration);
         AddExplanationProvider(services, configuration);
