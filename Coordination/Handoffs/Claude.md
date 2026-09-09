@@ -4686,14 +4686,15 @@ usaron bases nuevas en el directorio temporal de la sesión.
 - Etapa: 10
 - Rama/worktree: `claude/e10b-instancia`
 - Commit base: `dc85350` (`merge-base` real con `main`)
-- Commit final: `73a1eee`
+- Commit final de implementación: `a3b522c`
+- Este handoff: `8ff16de`
 - Fecha: 2026-09-09
 - Modelo y esfuerzo: Opus 5 · `high`
 
-Nueve commits: `772b4a1` (modelo de EF precompilado), `6f99305` (la base horneada y el reinicio),
+Diez commits: `772b4a1` (modelo de EF precompilado), `6f99305` (la base horneada y el reinicio),
 `a7ebf38` (`DemoData:Enabled` partido), `d97f5f9` (reinicio por antigüedad), `cc6b6a0` (el cartel),
-`944a828` (el techo de pedidos), `1656fc0` (el límite de tasa), `e8988e5` (la sonda) y `97eeb7c`
-(los dos defectos que la medición encontró).
+`944a828` (el techo de pedidos), `1656fc0` (el límite de tasa), `e8988e5` (la sonda), `97eeb7c` (los
+dos defectos que la medición encontró) y `a3b522c` (el ajuste del script de medición).
 
 ### El resultado, en una línea
 
