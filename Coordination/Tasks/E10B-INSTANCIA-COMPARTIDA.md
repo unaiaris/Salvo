@@ -33,9 +33,13 @@ Sigue sin desplegarse nada. `E10C` publica.
   mecánica del reinicio, el supervisor y la sonda de salud.
 - `Coordination/Handoffs/Claude.md`, entrada de **`E10A`**: la tabla de mediciones, y el defecto del
   código de salida que encontró su tercera falsación.
-- `DesignAgent/Salvo-Blueprint.md`, **decisión 70** y la invariante de §5.3 que reemplazó a la
-  anterior.
-- `DesignAgent/Salvo-Progress.md`, checklist «Etapa 10»: el tercer ítem es el que esta tarea cierra.
+- `DesignAgent/Salvo-Blueprint.md`, **decisión 70**, y la invariante que reemplazó a la anterior en
+  el **§10 «Seguridad y privacidad»**, línea 650 — no en §5.3, que trata de los requisitos para
+  activar el sandbox de Koin.
+- `DesignAgent/Salvo-Progress.md`, checklist «Etapa 10»: el que esta tarea cierra es el **cuarto**
+  —«se reinicia sola, avisa en pantalla que es compartida y efímera, y tiene tope de pedidos»—. Los
+  tres primeros ya están marcados; el tercero era la revisión de la decisión 8, que hizo el
+  coordinador.
 - Código y configuración, abiertos antes de escribir nada:
   - `Dockerfile`, sobre todo el bloque `ENV` de la etapa final y los comentarios que explican
     `Database__MigrateOnStartup` y `DemoData__Enabled`.
@@ -68,8 +72,23 @@ copia a la imagen; el arranque solo lo copia a su lugar de trabajo.
 - **Al menos una explicación escrita**, para que un visitante vea una sin tener que pedirla y
   esperar.
 
-La receta está escrita: es la misma que la fase 1 de `E9C2` dejó en su handoff para el recorrido con
-lector de pantalla. **Se reutiliza, no se reinventa.**
+La receta está escrita en el handoff de la fase 1 de `E9C2`, **pero se reutiliza solo en parte, y
+la parte importa**. Esa receta tiene tres pasos, y el primero **importa tres pedidos extra**
+—`ORD_900201` a `ORD_900203`— y corre un segundo scoring para fabricar una divergencia de evaluación
+sobre `ORD_000219`.
+
+**Ese primer paso no entra**, y la razón es la que ordenó toda la Etapa 9: el README publica que el
+corpus tiene **300 pedidos, 28 fraudes y 23 alertas**, de una corrida fechada. Una instancia pública
+con 303 pedidos le mostraría a un visitante cifras que no coinciden con el documento que acaba de
+leer, que es exactamente la clase de contradicción que `E9D` existió para eliminar.
+
+Entran los pasos **2 y 3**: la explicación escrita y las evaluaciones externas con sus callbacks.
+
+Lo que se pierde con eso es la divergencia **entre el snapshot y la evaluación vigente**. Se acepta y
+se dice: la divergencia que el guion de demostración muestra es la otra, la **del criterio local
+contra el externo**, y ésa sí queda horneada porque depende de las evaluaciones externas. Un
+visitante que quiera ver la primera puede fabricarla importando, que es una de las cosas que la
+instancia le deja hacer.
 
 #### 2. El modelo de EF Core, precompilado
 
@@ -93,8 +112,10 @@ Dos disparadores:
 - **Por antigüedad**: si la instancia recibe tráfico continuo nunca duerme y el estado se acumula
   sin techo. Un temporizador que, pasados **N** minutos desde el arranque, termina el contenedor.
 
-**Y hay un detalle que `E10A` dejó servido**: su tercera falsación descubrió que un proceso muerto
-terminaba el contenedor con código **0**, y que una plataforma puede leer eso como «terminó su
+**Y hay un detalle que `E10A` dejó servido, y que la validación de este brief afinó**: el punto de
+entrada **ya sale con 1 cuando un hijo se cae**, pero **sale con 0 ante `SIGTERM`**. Un temporizador
+que le mande `SIGTERM` al proceso 1 caería justo en la trampa que la tercera falsación de `E10A`
+descubrió: un proceso muerto terminaba el contenedor con código **0**, y que una plataforma puede leer eso como «terminó su
 trabajo» en vez de «se cayó». El reinicio deliberado tiene el mismo problema: **tiene que salir con
 un código que la plataforma reinicie**, y cuál es eso se verifica en `E10C`. Acá se elige uno, se
 escribe el motivo, y se deja dicho que `E10C` lo confirma.
@@ -140,6 +161,10 @@ anónima y pública, y la decisión 70 exige que eso se anuncie en pantalla y no
 **El límite de tasa va en la capa de Next, no en la API.** Después de que `E10A` borró el rewrite,
 toda petición le llega a la API desde `127.0.0.1` sin ninguna cabecera de origen: limitar ahí sería
 limitar a la consola contra sí misma. El visitante existe en el servidor de Next.
+
+Un dato para no buscarlo a ciegas: **este Next no usa `middleware.ts` sino `proxy.ts`**, y hoy no
+existe ninguno de los dos en el árbol. La convención está documentada en la propia distribución del
+paquete, en `node_modules/next/dist/docs/01-app/01-getting-started/16-proxy.md`.
 
 **Y un tope de pedidos por instancia**, que ningún limitador de tasa reemplaza: el costo de una
 corrida de scoring depende de **cuántos pedidos hay**, no de cuántas veces se pida, y la importación
@@ -207,6 +232,8 @@ que el README cita exista, y el README está reservado. Si hay que renombrar un 
       compilado, y el número se compara con los 77,5 s de `E10A`.
 - [ ] Un contenedor recién arrancado **muestra las 23 alertas, el panel de denegados y una
       explicación escrita**, sin que nadie pida nada.
+- [ ] **Las cifras que la instancia muestra coinciden con las que el README publica**: 300
+      pedidos, 28 fraudes, 23 alertas. Nada de los tres pedidos extra de la receta de `E9C2`.
 - [ ] Terminar el contenedor y volver a arrancarlo **devuelve exactamente ese estado**, aunque antes
       se hayan emitido veredictos e importado pedidos.
 - [ ] El reinicio por antigüedad ocurre, y **sale con un código que una plataforma reinicia**.
@@ -227,7 +254,7 @@ que el README cita exista, y el README está reservado. Si hay que renombrar un 
 | Primer render de un contenedor nuevo | 23 alertas, denegados y una explicación, sin pedir nada |
 | Emitir veredictos, importar, reiniciar | El estado vuelve al horneado |
 | Reinicio por antigüedad | Ocurre, y con el código de salida elegido |
-| Cartel | En las cuatro pantallas y en `es` y `pt` |
+| Cartel | En las **cinco** rutas con página propia —`/`, `/import`, `/alerts`, `/alerts/[id]` y `/dashboard`— y en `es` y `pt` |
 | Límite de tasa | Actúa, demostrado |
 | Importar por encima del tope | Rechazo con código, en los dos idiomas |
 | Sonda con la API muerta | Falla |
