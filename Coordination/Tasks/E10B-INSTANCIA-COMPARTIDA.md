@@ -115,7 +115,7 @@ Dos disparadores:
 **Y hay un detalle que `E10A` dejó servido, y que la validación de este brief afinó**: el punto de
 entrada **ya sale con 1 cuando un hijo se cae**, pero **sale con 0 ante `SIGTERM`**. Un temporizador
 que le mande `SIGTERM` al proceso 1 caería justo en la trampa que la tercera falsación de `E10A`
-descubrió: un proceso muerto terminaba el contenedor con código **0**, y que una plataforma puede leer eso como «terminó su
+descubrió: un proceso muerto terminaba el contenedor con código **0**, y una plataforma puede leer eso como «terminó su
 trabajo» en vez de «se cayó». El reinicio deliberado tiene el mismo problema: **tiene que salir con
 un código que la plataforma reinicie**, y cuál es eso se verifica en `E10C`. Acá se elige uno, se
 escribe el motivo, y se deja dicho que `E10C` lo confirma.
