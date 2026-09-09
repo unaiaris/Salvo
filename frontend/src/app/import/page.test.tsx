@@ -18,14 +18,23 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-/** Answers per path, so a test can say what the deployment declares without ordering its mocks. */
+/**
+ * Answers per path, so a test can say what the deployment declares without ordering its mocks.
+ *
+ * `demoSeedEnabled` follows `demoDataEnabled` unless a test separates them, because that is the
+ * implication the API enforces: the seed switch narrows and never widens. A mock where the seed is
+ * on while the deployment does not declare itself a demonstration is a response no API can send,
+ * and a screen tested against it would be tested against nothing.
+ */
 function respondWith({
   demoDataEnabled = true,
+  demoSeedEnabled = demoDataEnabled,
   dashboard = wireDashboard(),
   seedPreview = wireSeedPreview(),
   language = "es",
 }: {
   demoDataEnabled?: boolean;
+  demoSeedEnabled?: boolean;
   dashboard?: unknown;
   seedPreview?: unknown;
   language?: "es" | "pt";
@@ -33,7 +42,9 @@ function respondWith({
   fetchMock.mockImplementation((url: URL) => {
     switch (url.pathname) {
       case "/api/system/capabilities":
-        return Promise.resolve(jsonResponse(wireCapabilities({ demoDataEnabled, language })));
+        return Promise.resolve(
+          jsonResponse(wireCapabilities({ demoDataEnabled, demoSeedEnabled, language })),
+        );
       case "/api/demo-data/seed-preview":
         return Promise.resolve(jsonResponse(seedPreview));
       default:
@@ -101,6 +112,20 @@ describe("pantalla de importación", () => {
     ).not.toBeInTheDocument();
     // El resto de la pantalla no depende de la demo y sigue entero.
     expect(screen.getByRole("button", { name: "Importar pedidos" })).toBeInTheDocument();
+  });
+
+  it("esconde el corpus de demostración y conserva el resto cuando solo el sembrado está apagado", async () => {
+    // Lo que la instancia pública declara: su corpus viene horneado en la imagen, así que no
+    // registra la ruta de sembrado, y todo lo demás sigue en pie.
+    respondWith({ demoDataEnabled: true, demoSeedEnabled: false });
+    await renderImport();
+
+    expect(
+      screen.queryByRole("button", { name: "Cargar corpus de demostración" }),
+    ).not.toBeInTheDocument();
+    expect(requestedPaths()).not.toContain("/api/demo-data/seed-preview");
+    expect(screen.getByRole("button", { name: "Importar pedidos" })).toBeInTheDocument();
+    expect(screen.getByText("Proveedor antifraude externo")).toBeInTheDocument();
   });
 
   it("no pregunta por las capacidades más de una vez ni consulta rutas de demo", async () => {

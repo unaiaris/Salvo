@@ -526,6 +526,7 @@ export interface components {
         };
         CapabilitiesResponse: {
             demoDataEnabled: boolean;
+            demoSeedEnabled: boolean;
             externalCallbackTriggerEnabled: boolean;
             language: string;
         };

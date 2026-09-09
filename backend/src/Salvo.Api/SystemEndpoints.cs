@@ -19,7 +19,8 @@ public static class SystemEndpoints
     {
         ArgumentNullException.ThrowIfNull(configuration);
 
-        var demoDataEnabled = configuration.GetValue<bool>("DemoData:Enabled");
+        var demoDataEnabled = DemoDataSwitches.Enabled(configuration);
+        var demoSeedEnabled = DemoDataSwitches.SeedEnabled(configuration);
 
         // Resolved rather than re-read from configuration: composition already parsed
         // SALVO_LANGUAGE and refused to start on a value this build cannot write, so what is
@@ -30,7 +31,11 @@ public static class SystemEndpoints
         endpoints.MapGet(
                 "/api/system/capabilities",
                 () => TypedResults.Ok(
-                    new CapabilitiesResponse(demoDataEnabled, demoDataEnabled, language)))
+                    new CapabilitiesResponse(
+                        demoDataEnabled,
+                        demoSeedEnabled,
+                        demoDataEnabled,
+                        language)))
             .WithName("GetCapabilities")
             .WithTags("System")
             .Produces<CapabilitiesResponse>(StatusCodes.Status200OK);
@@ -40,7 +45,14 @@ public static class SystemEndpoints
 }
 
 /// <param name="DemoDataEnabled">
-/// Whether <c>POST /api/demo-data/seed</c> and <c>GET /api/evaluation-metrics</c> are registered.
+/// Whether this deployment declares itself a demonstration: <c>GET /api/evaluation-metrics</c> and
+/// the provider triggers are registered.
+/// </param>
+/// <param name="DemoSeedEnabled">
+/// Whether <c>POST /api/demo-data/seed</c> and its preview are registered. Asked separately from
+/// <see cref="DemoDataEnabled"/> because the public instance turns this one off on its own: its
+/// database arrives baked into the image, so nobody there needs to seed, and the seed route was the
+/// only one with which a visitor could leave the console unusable for the next one.
 /// </param>
 /// <param name="ExternalCallbackTriggerEnabled">
 /// Whether the console may ask this API to deliver a provider callback on its own, through
@@ -65,5 +77,6 @@ public static class SystemEndpoints
 /// </param>
 public sealed record CapabilitiesResponse(
     bool DemoDataEnabled,
+    bool DemoSeedEnabled,
     bool ExternalCallbackTriggerEnabled,
     string Language);

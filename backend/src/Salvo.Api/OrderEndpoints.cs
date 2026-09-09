@@ -29,7 +29,7 @@ public static class OrderEndpoints
             .Produces<ListOrdersResult>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest);
 
-        if (configuration.GetValue<bool>("DemoData:Enabled"))
+        if (DemoDataSwitches.SeedEnabled(configuration))
         {
             endpoints.MapPost("/api/demo-data/seed", SeedDemoOrdersAsync)
                 .WithName("SeedDemoOrders")

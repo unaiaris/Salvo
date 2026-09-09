@@ -791,11 +791,13 @@ export function projectCapabilities(value: unknown): Capabilities | null {
   }
 
   const demoDataEnabled = flag(raw.demoDataEnabled);
+  const demoSeedEnabled = flag(raw.demoSeedEnabled);
   const externalCallbackTriggerEnabled = flag(raw.externalCallbackTriggerEnabled);
   const language = text(raw.language);
 
   if (
     demoDataEnabled === null
+    || demoSeedEnabled === null
     || externalCallbackTriggerEnabled === null
     || language === null
     || !isLanguage(language)
@@ -803,7 +805,7 @@ export function projectCapabilities(value: unknown): Capabilities | null {
     return null;
   }
 
-  return { demoDataEnabled, externalCallbackTriggerEnabled, language };
+  return { demoDataEnabled, demoSeedEnabled, externalCallbackTriggerEnabled, language };
 }
 
 export function projectExternalEvaluationRequest(

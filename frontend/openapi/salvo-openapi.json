@@ -1821,12 +1821,16 @@
       "CapabilitiesResponse": {
         "required": [
           "demoDataEnabled",
+          "demoSeedEnabled",
           "externalCallbackTriggerEnabled",
           "language"
         ],
         "type": "object",
         "properties": {
           "demoDataEnabled": {
+            "type": "boolean"
+          },
+          "demoSeedEnabled": {
             "type": "boolean"
           },
           "externalCallbackTriggerEnabled": {

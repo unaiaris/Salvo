@@ -18,7 +18,7 @@ public static class EvaluationMetricsEndpoints
     {
         ArgumentNullException.ThrowIfNull(configuration);
 
-        if (!configuration.GetValue<bool>("DemoData:Enabled"))
+        if (!DemoDataSwitches.Enabled(configuration))
         {
             return endpoints;
         }

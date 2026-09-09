@@ -46,11 +46,15 @@ export default async function ImportPage() {
   const [capabilities, dashboard] = await Promise.all([fetchCapabilities(), fetchDashboard()]);
   const language = languageOf(capabilities);
   const { t } = formatting(language);
-  // Asked for only where the route exists, like the quality metrics of the dashboard. It says
-  // what loading the corpus would do, so a database that cannot take it is announced here rather
-  // than discovered by pressing the button.
-  const demoEnabled = capabilities.ok && capabilities.value.demoDataEnabled;
-  const seedPreview = demoEnabled ? await fetchSeedPreview() : null;
+  // Two questions, not one. Whether this deployment is a demonstration decides the provider
+  // triggers below; whether it registers the seed route decides this section. The public instance
+  // says yes to the first and no to the second, because its corpus arrives baked into the image.
+  //
+  // The preview is asked for only where the route exists, like the quality metrics of the
+  // dashboard. It says what loading the corpus would do, so a database that cannot take it is
+  // announced here rather than discovered by pressing the button.
+  const seedEnabled = capabilities.ok && capabilities.value.demoSeedEnabled;
+  const seedPreview = seedEnabled ? await fetchSeedPreview() : null;
 
   return (
     <div className="flex flex-col gap-8">
@@ -73,7 +77,7 @@ export default async function ImportPage() {
         <FailureNotice failure={dashboard.failure} language={language} />
       )}
 
-      {demoEnabled && (
+      {seedEnabled && (
         <ActionSection
           id="seed"
           title={t.importPage.seedTitle}

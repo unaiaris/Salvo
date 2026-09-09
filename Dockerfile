@@ -161,6 +161,7 @@ ENV ASPNETCORE_URLS=http://127.0.0.1:5100 \
     ConnectionStrings__SalvoDb="Data Source=/data/salvo.db" \
     Database__MigrateOnStartup=true \
     DemoData__Enabled=true \
+    DemoData__SeedEnabled=false \
     SALVO_BAKED_DB=/app/seed/salvo.db \
     SALVO_LANGUAGE=es \
     HOSTNAME=0.0.0.0 \
@@ -183,6 +184,12 @@ ENV ASPNETCORE_URLS=http://127.0.0.1:5100 \
 #
 # `DemoData__Enabled=true`: enciende las métricas de calidad y los disparadores del proveedor
 # externo, que son la mitad del argumento del proyecto.
+#
+# `DemoData__SeedEnabled=false`: apaga **solo** la ruta de sembrado, y por eso el interruptor está
+# partido en dos. Con la base horneada nadie necesita sembrar acá, y era la única ruta con la que un
+# visitante podía dejar la consola inservible para el siguiente: cargar el corpus sobre una base que
+# ya tiene esas referencias se rechaza, y cargarlo el doble de grande no. El reinicio acota ese daño
+# en el tiempo; quitar la ruta hace que no ocurra.
 
 
 EXPOSE 3000

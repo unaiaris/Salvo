@@ -344,8 +344,14 @@ describe("guardas del dashboard, las métricas y la importación", () => {
       projectCapabilities(
         wireCapabilities({ demoDataEnabled: false, externalCallbackTriggerEnabled: false }),
       ),
-    ).toEqual({ demoDataEnabled: false, externalCallbackTriggerEnabled: false, language: "es" });
+    ).toEqual({
+      demoDataEnabled: false,
+      demoSeedEnabled: true,
+      externalCallbackTriggerEnabled: false,
+      language: "es",
+    });
     expect(projectCapabilities(wireCapabilities({ demoDataEnabled: "true" }))).toBeNull();
+    expect(projectCapabilities(wireCapabilities({ demoSeedEnabled: "true" }))).toBeNull();
     expect(
       projectCapabilities(wireCapabilities({ externalCallbackTriggerEnabled: "true" })),
     ).toBeNull();

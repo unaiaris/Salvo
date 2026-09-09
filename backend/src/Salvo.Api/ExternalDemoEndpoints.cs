@@ -28,7 +28,7 @@ public static class ExternalDemoEndpoints
     {
         ArgumentNullException.ThrowIfNull(configuration);
 
-        if (!configuration.GetValue<bool>("DemoData:Enabled"))
+        if (!DemoDataSwitches.Enabled(configuration))
         {
             return endpoints;
         }
