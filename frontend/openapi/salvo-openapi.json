@@ -1823,6 +1823,8 @@
           "demoDataEnabled",
           "demoSeedEnabled",
           "externalCallbackTriggerEnabled",
+          "sharedInstance",
+          "resetMinutes",
           "language"
         ],
         "type": "object",
@@ -1835,6 +1837,18 @@
           },
           "externalCallbackTriggerEnabled": {
             "type": "boolean"
+          },
+          "sharedInstance": {
+            "type": "boolean"
+          },
+          "resetMinutes": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           },
           "language": {
             "type": "string"

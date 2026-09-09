@@ -34,6 +34,20 @@ export const pt: Dictionary = {
     import: "Importação",
     dashboard: "Painel",
     disclaimer: "Dados sintéticos · sem autenticação · uso local",
+    disclaimerShared: "Dados sintéticos · sem autenticação · instância compartilhada",
+  },
+
+  sharedInstance: {
+    label: "Sobre esta instância",
+    title: "Instância de demonstração compartilhada.",
+    synthetic: "Os dados são sintéticos.",
+    everyoneSees:
+      "O que você escrever aqui todo mundo vê: as notas de revisão, os vereditos e os pedidos que "
+      + "você importar.",
+    resets: "Tudo é reiniciado quando a instância fica um tempo sem visitas.",
+    resetsWithMaximum: (minutes: string) =>
+      `Tudo é reiniciado quando a instância fica um tempo sem visitas, e no máximo a cada ${minutes} `
+      + "minutos.",
   },
 
   home: {

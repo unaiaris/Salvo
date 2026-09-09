@@ -33,6 +33,33 @@ export const es = {
     import: "Importación",
     dashboard: "Dashboard",
     disclaimer: "Datos sintéticos · sin autenticación · uso local",
+    // La misma línea, para un despliegue donde «uso local» sería falso.
+    disclaimerShared: "Datos sintéticos · sin autenticación · instancia compartida",
+  },
+
+  /**
+   * El cartel de la instancia pública, que la decisión 70 exige en pantalla y no en un README.
+   *
+   * Dice tres cosas y ninguna es decorativa. Que los datos son sintéticos, para que nadie crea que
+   * está mirando pedidos de alguien. Que **lo que escriba lo ve todo el mundo**, porque la nota de
+   * una revisión es texto libre, anónimo y público hasta el próximo reinicio. Y que todo vuelve a
+   * cero, que es lo que hace aceptable a las dos anteriores.
+   *
+   * Hay dos versiones de la última frase porque el reinicio principal es el de la plataforma, por
+   * inactividad, y no siempre hay además un máximo por antigüedad. Son frases enteras y no una
+   * armada con fragmentos: una cláusula pegada al final es gramatical en un idioma y no en el otro.
+   */
+  sharedInstance: {
+    label: "Sobre esta instancia",
+    title: "Instancia de demostración compartida.",
+    synthetic: "Los datos son sintéticos.",
+    everyoneSees:
+      "Lo que escribas acá lo ve todo el mundo: las notas de revisión, los veredictos y los pedidos "
+      + "que importes.",
+    resets: "Todo se reinicia cuando la instancia queda un rato sin visitas.",
+    resetsWithMaximum: (minutes: string) =>
+      `Todo se reinicia cuando la instancia queda un rato sin visitas, y como máximo cada ${minutes} `
+      + "minutos.",
   },
 
   home: {

@@ -8,7 +8,21 @@ import { formatting } from "@/lib/format";
  * They were linked here before either screen existed, for that reason; both have existed since
  * stage 5.
  */
-export function ConsoleHeader({ language }: { readonly language: Language }) {
+export function ConsoleHeader({
+  language,
+  isSharedInstance = false,
+}: {
+  readonly language: Language;
+  /**
+   * Whether this deployment is the shared public demonstration.
+   *
+   * It only changes the line on the right, and it has to: that line said «uso local», and on a
+   * public instance that is not a nuance, it is false. The adversarial review of stage 10 found it
+   * — the header was already making a claim about the deployment, in both languages, before there
+   * was a deployment it could be wrong about.
+   */
+  readonly isSharedInstance?: boolean;
+}) {
   const { t } = formatting(language);
   const links = [
     { href: "/alerts", label: t.nav.alerts },
@@ -39,7 +53,9 @@ export function ConsoleHeader({ language }: { readonly language: Language }) {
             ))}
           </ul>
         </nav>
-        <p className="ml-auto text-xs text-slate-500">{t.nav.disclaimer}</p>
+        <p className="ml-auto text-xs text-slate-500">
+          {isSharedInstance ? t.nav.disclaimerShared : t.nav.disclaimer}
+        </p>
       </div>
     </header>
   );

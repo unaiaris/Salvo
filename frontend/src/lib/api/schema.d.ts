@@ -528,6 +528,9 @@ export interface components {
             demoDataEnabled: boolean;
             demoSeedEnabled: boolean;
             externalCallbackTriggerEnabled: boolean;
+            sharedInstance: boolean;
+            /** Format: int32 */
+            resetMinutes: null | number | string;
             language: string;
         };
         ConfusionMatrixView: {
