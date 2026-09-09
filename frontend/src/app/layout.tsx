@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { ConsoleHeader } from "@/components/console-header";
-import { deploymentLanguage } from "@/lib/api/console";
+import { SharedInstanceNotice } from "@/components/shared-instance-notice";
+import { deploymentLanguage, fetchCapabilities, languageOf } from "@/lib/api/console";
 import { formatting } from "@/lib/format";
 import "./globals.css";
 
@@ -28,12 +29,20 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
-  const language = await deploymentLanguage();
+  // The same read the language already came from — `fetchCapabilities` is memoised for the render
+  // pass — so the notice costs no extra round trip. It is here and not in each page because a page
+  // added later would ship without it and nothing would look wrong.
+  const capabilities = await fetchCapabilities();
+  const language = languageOf(capabilities);
+  const shared = capabilities.ok && capabilities.value.sharedInstance;
 
   return (
     <html lang={language}>
       <body className="min-h-screen bg-slate-50 text-slate-900">
-        <ConsoleHeader language={language} />
+        {shared && capabilities.ok && (
+          <SharedInstanceNotice language={language} resetMinutes={capabilities.value.resetMinutes} />
+        )}
+        <ConsoleHeader language={language} isSharedInstance={shared} />
         <main className="mx-auto max-w-6xl px-6 py-10">{children}</main>
       </body>
     </html>

@@ -526,7 +526,11 @@ export interface components {
         };
         CapabilitiesResponse: {
             demoDataEnabled: boolean;
+            demoSeedEnabled: boolean;
             externalCallbackTriggerEnabled: boolean;
+            sharedInstance: boolean;
+            /** Format: int32 */
+            resetMinutes: null | number | string;
             language: string;
         };
         ConfusionMatrixView: {
@@ -947,6 +951,15 @@ export interface operations {
             };
             /** @description Bad Request */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

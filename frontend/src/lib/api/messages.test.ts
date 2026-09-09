@@ -41,6 +41,7 @@ const CONSOLE_CODES = [
   "UNSUPPORTED_MEDIA_TYPE",
   "UNSUPPORTED_FORMAT",
   "TOO_MANY_RECORDS",
+  "ORDER_LIMIT_REACHED",
   "EMPTY_FILE",
   "INVALID_ENCODING",
   "INVALID_CSV",
@@ -242,5 +243,18 @@ describe("mensajes de error", () => {
 
   it("nombra el límite real del archivo de importación", () => {
     expect(describeFailure(problem("FILE_TOO_LARGE", 413), "es").body).toContain("5 MiB");
+  });
+
+  /**
+   * El techo de pedidos no es un defecto del archivo y no se corrige en el formulario: el mismo
+   * archivo entra en una instancia con lugar. Por eso el mensaje va arriba de la pantalla, como el
+   * conflicto de corrida, y no al lado del campo.
+   */
+  it("no trata el techo de pedidos como un error del archivo", () => {
+    const message = describeFailure(problem("ORDER_LIMIT_REACHED", 409), "es");
+
+    expect(message.isFormError).toBe(false);
+    expect(message.body).toMatch(/no es un problema de tu archivo/i);
+    expect(message.recovery).toMatch(/reinicio/i);
   });
 });

@@ -18,7 +18,7 @@ dos idiomas.
 brasileño; «monto» es *valor*; «corrida» es *execução*; «veredicto» es *veredito*; «denegado» es
 *negado*; «etiqueta» es *rótulo*.
 
-Entradas: **528**.
+Entradas: **543**.
 
 | Clave | Castellano | Português |
 | --- | --- | --- |
@@ -34,6 +34,15 @@ Entradas: **528**.
 | `nav.import` | Importación | Importação |
 | `nav.dashboard` | Dashboard | Painel |
 | `nav.disclaimer` | Datos sintéticos · sin autenticación · uso local | Dados sintéticos · sem autenticação · uso local |
+| `nav.disclaimerShared` | Datos sintéticos · sin autenticación · instancia compartida | Dados sintéticos · sem autenticação · instância compartilhada |
+| `rateLimit.title` | Demasiadas peticiones. | Requisições demais. |
+| `rateLimit.body` | Esta es una instancia de demostración compartida y pequeña. Esperá unos segundos y volvé a intentarlo. | Esta é uma instância de demonstração compartilhada e pequena. Espere alguns segundos e tente de novo. |
+| `sharedInstance.label` | Sobre esta instancia | Sobre esta instância |
+| `sharedInstance.title` | Instancia de demostración compartida. | Instância de demonstração compartilhada. |
+| `sharedInstance.synthetic` | Los datos son sintéticos. | Os dados são sintéticos. |
+| `sharedInstance.everyoneSees` | Lo que escribas acá lo ve todo el mundo: las notas de revisión, los veredictos y los pedidos que importes. | O que você escrever aqui todo mundo vê: as notas de revisão, os vereditos e os pedidos que você importar. |
+| `sharedInstance.resets` | Todo se reinicia cuando la instancia queda un rato sin visitas. | Tudo é reiniciado quando a instância fica um tempo sem visitas. |
+| `sharedInstance.resetsWithMaximum` | Todo se reinicia cuando la instancia queda un rato sin visitas, y como máximo cada {minutes} minutos. | Tudo é reiniciado quando a instância fica um tempo sem visitas, e no máximo a cada {minutes} minutos. |
 | `home.eyebrow` | Consola antifraude | Console antifraude |
 | `home.title` | Salvo concentra el riesgo antifraude en un núcleo .NET auditable. | O Salvo concentra o risco antifraude em um núcleo .NET auditável. |
 | `home.lead` | Las reglas, el scoring y las transacciones viven en el backend. Esta interfaz lee un contrato OpenAPI y no calcula riesgo por su cuenta. | As regras, o scoring e as transações vivem no backend. Esta interface lê um contrato OpenAPI e não calcula risco por conta própria. |
@@ -138,6 +147,7 @@ Entradas: **528**.
 | `alertDetail.currentBelowThreshold` | Por debajo del umbral | Abaixo do limiar |
 | `alertDetail.currentEvaluatedAt` | Calculada por primera vez el {instant}. Una corrida posterior que no encuentra cambios reutiliza esta misma evaluación y conserva su fecha, así que este instante no es el de la corrida vigente. | Calculada pela primeira vez em {instant}. Uma execução posterior que não encontra mudanças reutiliza esta mesma avaliação e conserva sua data, então este instante não é o da execução vigente. |
 | `alertDetail.divergenceAdvisory` | La evaluación del pedido cambió ({from} → {to}) sin cambiar de banda. Las señales vigentes están en el bloque «Evaluación vigente». | A avaliação do pedido mudou ({from} → {to}) sem mudar de faixa. Os sinais vigentes estão no bloco «Avaliação vigente». |
+| `alertDetail.divergenceAdvisorySignals` | Las señales del pedido cambiaron, aunque el score sigue en {score} y la banda tampoco se movió. Las señales vigentes están en el bloque «Evaluación vigente». | Os sinais do pedido mudaram, embora o score continue em {score} e a faixa também não tenha mudado. Os sinais vigentes estão no bloco «Avaliação vigente». |
 | `alertDetail.divergenceOpenedAt` | {severity} con score {score} | {severity} com score {score} |
 | `alertDetail.divergenceNoCurrent` | La alerta se abrió en {from}, pero el pedido ya no tiene evaluación vigente, así que no hay nada con qué comparar el snapshot. | O alerta foi aberto em {from}, mas o pedido já não tem avaliação vigente, então não há nada com que comparar o snapshot. |
 | `alertDetail.divergenceBandless` | score {score}, por debajo del umbral de alerta y sin banda | score {score}, abaixo do limiar de alerta e sem faixa |
@@ -201,6 +211,7 @@ Entradas: **528**.
 | `alertDetail.reviewBlocked` | Marcá la casilla de arriba para poder enviar el veredicto. | Marque a caixa acima para poder enviar o veredito. |
 | `alertDetail.reviewSubmit` | Registrar veredicto | Registrar veredito |
 | `alertDetail.reviewSubmitPending` | Registrando… | Registrando… |
+| `alertDetail.verdictAnnounced` | La alerta quedó revisada y el formulario de veredicto ya no está. | O alerta ficou revisado e o formulário de veredito já não está. |
 | `alertDetail.verdictTitle` | Veredicto registrado: {status} | Veredito registrado: {status} |
 | `alertDetail.verdictNoAudit` | La alerta está cerrada, pero no hay una entrada de auditoría asociada. | O alerta está fechado, mas não há uma entrada de auditoria associada. |
 | `alertDetail.verdictTransition` | Pasó de {from} a {to} el {instant}. | Passou de {from} para {to} em {instant}. |
@@ -286,6 +297,7 @@ Entradas: **528**.
 | `dashboard.qualityRunFootnote` | Corrida #{sequence}, {instant}. | Execução nº {sequence}, {instant}. |
 | `dashboard.qualitySweepSummary` | Barrido de umbrales sobre la cohorte de calibración ({points} puntos) | Varredura de limiares sobre a coorte de calibração ({points} pontos) |
 | `dashboard.qualitySweepHint` | Solo los umbrales donde la matriz de confusión cambia. El umbral {threshold} es el que se eligió y el que se aplicó al holdout. | Apenas os limiares onde a matriz de confusão muda. O limiar {threshold} é o que foi escolhido e o que foi aplicado ao holdout. |
+| `dashboard.qualitySweepCaption` | Precisión, recall, F1 y tasa de falsos positivos en cada umbral de la cohorte de calibración | Precisão, recall, F1 e taxa de falsos positivos em cada limiar da coorte de calibração |
 | `dashboard.qualitySweepThreshold` | Umbral | Limiar |
 | `dashboard.qualitySweepChosen` |  · elegido |  · escolhido |
 | `importPage.title` | Importación y scoring | Importação e scoring |
@@ -448,6 +460,9 @@ Entradas: **528**.
 | `failures.TOO_MANY_RECORDS.title` | El archivo tiene demasiados registros | O arquivo tem registros demais |
 | `failures.TOO_MANY_RECORDS.body` | La importación acepta hasta 10.000 pedidos por archivo. Se rechaza el documento entero: no se importa una parte y se descarta el resto en silencio. | A importação aceita até 10.000 pedidos por arquivo. O documento inteiro é rejeitado: não se importa uma parte e se descarta o resto em silêncio. |
 | `failures.TOO_MANY_RECORDS.recovery` | Partí el archivo en tandas de hasta 10.000 registros. | Divida o arquivo em lotes de até 10.000 registros. |
+| `failures.ORDER_LIMIT_REACHED.title` | Esta instancia no acepta más pedidos | Esta instância não aceita mais pedidos |
+| `failures.ORDER_LIMIT_REACHED.body` | Es una instancia de demostración compartida y tiene un techo de pedidos, porque lo que cuesta una corrida de scoring depende de cuántos hay. No es un problema de tu archivo: el mismo entraría en una instancia con lugar. | É uma instância de demonstração compartilhada e tem um teto de pedidos, porque o custo de uma execução de scoring depende de quantos existem. Não é um problema do seu arquivo: o mesmo entraria em uma instância com espaço. |
+| `failures.ORDER_LIMIT_REACHED.recovery` | Probá con un archivo más chico, o esperá al próximo reinicio, que devuelve la base al corpus de demostración. | Tente com um arquivo menor, ou espere o próximo reinício, que devolve a base ao corpus de demonstração. |
 | `failures.UNSUPPORTED_MEDIA_TYPE.title` | La consola envió el formulario en un formato que la API no acepta | O console enviou o formulário em um formato que a API não aceita |
 | `failures.UNSUPPORTED_MEDIA_TYPE.body` | La importación viaja como `multipart/form-data`. Es un error interno: no debería ocurrir desde esta pantalla. | A importação viaja como `multipart/form-data`. É um erro interno: não deveria acontecer nesta tela. |
 | `failures.UNSUPPORTED_MEDIA_TYPE.recovery` | Recargá la página y volvé a intentarlo. Si vuelve a pasar, reportalo con la hora exacta. | Recarregue a página e tente de novo. Se acontecer outra vez, reporte com a hora exata. |

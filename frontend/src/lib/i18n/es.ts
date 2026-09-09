@@ -33,6 +33,47 @@ export const es = {
     import: "Importación",
     dashboard: "Dashboard",
     disclaimer: "Datos sintéticos · sin autenticación · uso local",
+    // La misma línea, para un despliegue donde «uso local» sería falso.
+    disclaimerShared: "Datos sintéticos · sin autenticación · instancia compartida",
+  },
+
+  /**
+   * El cartel de la instancia pública, que la decisión 70 exige en pantalla y no en un README.
+   *
+   * Dice tres cosas y ninguna es decorativa. Que los datos son sintéticos, para que nadie crea que
+   * está mirando pedidos de alguien. Que **lo que escriba lo ve todo el mundo**, porque la nota de
+   * una revisión es texto libre, anónimo y público hasta el próximo reinicio. Y que todo vuelve a
+   * cero, que es lo que hace aceptable a las dos anteriores.
+   *
+   * Hay dos versiones de la última frase porque el reinicio principal es el de la plataforma, por
+   * inactividad, y no siempre hay además un máximo por antigüedad. Son frases enteras y no una
+   * armada con fragmentos: una cláusula pegada al final es gramatical en un idioma y no en el otro.
+   */
+  /**
+   * Lo que el visitante lee cuando el límite de tasa lo frena.
+   *
+   * Vive en los diccionarios aunque lo sirva `proxy.ts` en texto plano y en los dos idiomas a la
+   * vez: componer la respuesta traducida costaría pedirle el idioma a la API y renderizar una
+   * página, que es justo el trabajo que el límite existe para no hacer.
+   */
+  rateLimit: {
+    title: "Demasiadas peticiones.",
+    body:
+      "Esta es una instancia de demostración compartida y pequeña. Esperá unos segundos y volvé a "
+      + "intentarlo.",
+  },
+
+  sharedInstance: {
+    label: "Sobre esta instancia",
+    title: "Instancia de demostración compartida.",
+    synthetic: "Los datos son sintéticos.",
+    everyoneSees:
+      "Lo que escribas acá lo ve todo el mundo: las notas de revisión, los veredictos y los pedidos "
+      + "que importes.",
+    resets: "Todo se reinicia cuando la instancia queda un rato sin visitas.",
+    resetsWithMaximum: (minutes: string) =>
+      `Todo se reinicia cuando la instancia queda un rato sin visitas, y como máximo cada ${minutes} `
+      + "minutos.",
   },
 
   home: {
@@ -810,6 +851,16 @@ export const es = {
       title: "El archivo tiene demasiados registros",
       body: "La importación acepta hasta 10.000 pedidos por archivo. Se rechaza el documento entero: no se importa una parte y se descarta el resto en silencio.",
       recovery: "Partí el archivo en tandas de hasta 10.000 registros.",
+    },
+    ORDER_LIMIT_REACHED: {
+      title: "Esta instancia no acepta más pedidos",
+      body:
+        "Es una instancia de demostración compartida y tiene un techo de pedidos, porque lo que "
+        + "cuesta una corrida de scoring depende de cuántos hay. No es un problema de tu archivo: "
+        + "el mismo entraría en una instancia con lugar.",
+      recovery:
+        "Probá con un archivo más chico, o esperá al próximo reinicio, que devuelve la base al "
+        + "corpus de demostración.",
     },
     UNSUPPORTED_MEDIA_TYPE: {
       title: "La consola envió el formulario en un formato que la API no acepta",

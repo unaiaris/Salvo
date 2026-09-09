@@ -791,19 +791,32 @@ export function projectCapabilities(value: unknown): Capabilities | null {
   }
 
   const demoDataEnabled = flag(raw.demoDataEnabled);
+  const demoSeedEnabled = flag(raw.demoSeedEnabled);
   const externalCallbackTriggerEnabled = flag(raw.externalCallbackTriggerEnabled);
+  const sharedInstance = flag(raw.sharedInstance);
+  const resetMinutes = nullableInteger(raw.resetMinutes);
   const language = text(raw.language);
 
   if (
     demoDataEnabled === null
+    || demoSeedEnabled === null
     || externalCallbackTriggerEnabled === null
+    || sharedInstance === null
+    || resetMinutes === undefined
     || language === null
     || !isLanguage(language)
   ) {
     return null;
   }
 
-  return { demoDataEnabled, externalCallbackTriggerEnabled, language };
+  return {
+    demoDataEnabled,
+    demoSeedEnabled,
+    externalCallbackTriggerEnabled,
+    sharedInstance,
+    resetMinutes,
+    language,
+  };
 }
 
 export function projectExternalEvaluationRequest(

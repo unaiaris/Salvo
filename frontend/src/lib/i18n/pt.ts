@@ -34,6 +34,27 @@ export const pt: Dictionary = {
     import: "Importação",
     dashboard: "Painel",
     disclaimer: "Dados sintéticos · sem autenticação · uso local",
+    disclaimerShared: "Dados sintéticos · sem autenticação · instância compartilhada",
+  },
+
+  rateLimit: {
+    title: "Requisições demais.",
+    body:
+      "Esta é uma instância de demonstração compartilhada e pequena. Espere alguns segundos e tente "
+      + "de novo.",
+  },
+
+  sharedInstance: {
+    label: "Sobre esta instância",
+    title: "Instância de demonstração compartilhada.",
+    synthetic: "Os dados são sintéticos.",
+    everyoneSees:
+      "O que você escrever aqui todo mundo vê: as notas de revisão, os vereditos e os pedidos que "
+      + "você importar.",
+    resets: "Tudo é reiniciado quando a instância fica um tempo sem visitas.",
+    resetsWithMaximum: (minutes: string) =>
+      `Tudo é reiniciado quando a instância fica um tempo sem visitas, e no máximo a cada ${minutes} `
+      + "minutos.",
   },
 
   home: {
@@ -781,6 +802,16 @@ export const pt: Dictionary = {
       title: "O arquivo tem registros demais",
       body: "A importação aceita até 10.000 pedidos por arquivo. O documento inteiro é rejeitado: não se importa uma parte e se descarta o resto em silêncio.",
       recovery: "Divida o arquivo em lotes de até 10.000 registros.",
+    },
+    ORDER_LIMIT_REACHED: {
+      title: "Esta instância não aceita mais pedidos",
+      body:
+        "É uma instância de demonstração compartilhada e tem um teto de pedidos, porque o custo de "
+        + "uma execução de scoring depende de quantos existem. Não é um problema do seu arquivo: o "
+        + "mesmo entraria em uma instância com espaço.",
+      recovery:
+        "Tente com um arquivo menor, ou espere o próximo reinício, que devolve a base ao corpus de "
+        + "demonstração.",
     },
     UNSUPPORTED_MEDIA_TYPE: {
       title: "O console enviou o formulário em um formato que a API não aceita",

@@ -12,6 +12,8 @@
 #   ./scripts/contenedor.sh construir     construye la imagen
 #   ./scripts/contenedor.sh correr        la levanta con los límites y espera a que responda
 #   ./scripts/contenedor.sh medir         camino frío y camino tibio, cronometrados
+#   ./scripts/contenedor.sh medir-instancia   el arranque con la base horneada, y el aporte de
+#                                             cada optimización por separado (E10B)
 #   ./scripts/contenedor.sh parar         detiene el contenedor de `correr`
 #
 # Reglas que este script se impone, heredadas de `demo.sh` y `smoke-ui.sh`:
@@ -79,12 +81,15 @@ construir() {
 
 # ------------------------------------------------------------------ correr
 
-# Arranca un contenedor y devuelve su nombre por stdout. El llamador decide si esperarlo.
+# Arranca un contenedor. Los argumentos que siguen al nombre se pasan tal cual a `docker run`, que
+# es como se apaga una optimización sin construir otra imagen: `-e SALVO_BAKED_DB=` deja al
+# arranque sin base horneada, que es como se mide cuánto aporta hornearla.
 arrancar() {
-  local name="$1"
+  local name="$1"; shift
   docker run -d --name "$name" \
     --memory="$memory" --memory-swap="$memory" --cpus="$cpus" \
     -p "${port}:3000" \
+    "$@" \
     "$image" >/dev/null || fail "no se pudo arrancar el contenedor ${name}."
 }
 
@@ -246,12 +251,124 @@ medir() {
   echo "  ${docker_bin} stop ${name} && ${docker_bin} rm ${name}"
 }
 
+# ------------------------------------------------------------------ medir la instancia pública
+
+# Lo que `E10B` tiene que contestar y `E10A` no podía: cuánto tarda el arranque **con los datos ya
+# puestos**, y cuánto aporta hornear la base.
+#
+# Se mide sobre una sola imagen y no sobre dos, porque la optimización se puede apagar desde afuera:
+# con `SALVO_BAKED_DB` vacío el punto de entrada no copia nada y la API arranca contra una base
+# vacía, que es exactamente el camino que `E10A` midió.
+#
+#   sin base horneada ................ se mide acá, con SALVO_BAKED_DB vacío
+#   con base horneada ................ se mide acá, con la imagen tal cual
+#
+# `E10B` midió también el modelo precompilado de EF Core, que era la otra optimización candidata. No
+# le encontró nada fuera del ruido y se revirtió, así que acá quedan dos filas y no tres. Los
+# números de esa falsación están en el handoff, que es donde una medición de una sola vez tiene que
+# vivir: en el registro, y no en un camino de código que hay que dejar encendido para repetirla.
+
+# Un contenedor nuevo, cronometrado hasta que la consola contesta. Devuelve los milisegundos.
+cronometrar_arranque() {
+  local name="$1"; shift
+  local started
+  started="$(now_ms)"
+  arrancar "$name" "$@"
+  esperar_consola "$name"
+  echo $(( $(now_ms) - started ))
+}
+
+medir_instancia() {
+  local sello; sello="$(date +%Y%m%d-%H%M%S)"
+  local con_todo="${container}-b-completo-${sello}"
+  local sin_base="${container}-b-sinbase-${sello}"
+  medicion_dir="$(mktemp -d "${TMPDIR:-/tmp}/salvo-medicion-XXXXXX")"
+
+  port_in_use "$port" && fail "el puerto ${port} ya está ocupado. Elegí otro con SALVO_PORT."
+
+  echo "Salvo — medición de la instancia pública (E10B)"
+  echo "Imagen ${image} · ${memory} de RAM · ${cpus} vCPU · puerto ${port}"
+  echo
+
+  # ---------------------------------------------------------------- las dos optimizaciones
+  local t_completo
+  t_completo="$(cronometrar_arranque "$con_todo")"
+
+  echo "CAMINO FRÍO — contenedor nuevo, con la base horneada"
+  printf '  %-52s %-11s %s\n' "Qué se mide" "Umbral" "Medido"
+  printf '  %-52s %-11s %s\n' "$(printf '%.0s-' {1..52})" "-----------" "----------"
+  printf '  %-52s %-11s %s\n' "Arranque: dos procesos, base restaurada y primer 200" "90 s" "$(human "$t_completo")"
+  printf '  %-52s %-11s %s\n' "RAM en reposo" "512 MiB" "$(memoria_mib "$con_todo")"
+
+  fila "Primer render de /alerts, ya con datos" "30 s" render "/alerts"
+  fila "Primer render de /dashboard, ya con datos" "30 s" render "/dashboard"
+  fila "Primer render de /" "30 s" render "/"
+  printf '  %-52s %-11s %s\n' "RAM tras los renders" "512 MiB" "$(memoria_mib "$con_todo")"
+
+  echo
+  echo "LO QUE UN VISITANTE VE SIN PEDIR NADA"
+  local alertas denegados explicacion
+  alertas="$(api "$con_todo" GET '/api/alerts?status=OPEN&pageSize=1' | campo_json 'return body.totalCount;')"
+  denegados="$(api "$con_todo" GET /api/dashboard | campo_json 'return body.externalDenialsWithoutAlert.total;')"
+  explicacion="$(
+    api "$con_todo" GET '/api/alerts?status=OPEN&pageSize=100' \
+      | campo_json 'const hit = body.items.find((i) => i.merchantReferenceId === "ORD_000011"); return hit ? hit.id : "";'
+  )"
+  explicacion="$(api "$con_todo" GET "/api/alerts/${explicacion}" | campo_json 'return body.explanation ? body.explanation.status : "sin explicación";')"
+  printf '  %-52s %s\n' "Alertas abiertas en la cola" "$alertas"
+  printf '  %-52s %s\n' "Denegados por el proveedor sin alerta local" "$denegados"
+  printf '  %-52s %s\n' "Explicación de ORD_000011" "$explicacion"
+
+  # ---------------------------------------------------------------- sin la base horneada
+  echo
+  echo "APORTE DE LA BASE HORNEADA — arranque en frío a ${cpus} vCPU"
+  docker stop "$con_todo" >/dev/null 2>&1 || true
+
+  local t_sin_base
+  # `Database__MigrateOnStartup` hay que encenderla a mano: la imagen la trae apagada justamente
+  # porque la base viene horneada, y sin base horneada la API se encontraría un archivo sin tablas.
+  t_sin_base="$(cronometrar_arranque "$sin_base" -e SALVO_BAKED_DB= -e Database__MigrateOnStartup=true)"
+  docker stop "$sin_base" >/dev/null 2>&1 || true
+
+  printf '  %-52s %s\n' "E10A: el mismo camino, medido entonces" "77,49 s"
+  printf '  %-52s %s\n' "Sin base horneada" "$(human "$t_sin_base")"
+  printf '  %-52s %s\n' "Con base horneada" "$(human "$t_completo")"
+  echo
+  echo "  Las dos primeras filas tienen que dar parecido: es la misma imagen por el mismo camino,"
+  echo "  y si se separan, la máquina no está midiendo lo que midió E10A. La diferencia con la"
+  echo "  tercera es el aporte, y sale casi todo de poder apagar la migración al arrancar."
+
+  echo
+  echo "Contenedores que quedan en pie y **no se borran**:"
+  echo "  ${con_todo}"
+  echo "  ${sin_base}"
+  echo "Respuestas guardadas en ${medicion_dir}"
+}
+
+# Lee un dato de una respuesta JSON. El argumento es el cuerpo de una función que recibe `body`.
+campo_json() {
+  node -e '
+    let raw = "";
+    process.stdin.on("data", (chunk) => (raw += chunk)).on("end", () => {
+      try {
+        const body = JSON.parse(raw);
+        const value = new Function("body", process.argv[1])(body);
+        process.stdout.write(value === undefined || value === null ? "" : String(value));
+      } catch (error) {
+        process.stderr.write(String(error) + "\n");
+        process.exit(1);
+      }
+    });
+  ' "$1"
+}
+
 # ------------------------------------------------------------------ despacho
 
 case "${1:-correr}" in
-  construir) construir ;;
-  correr)    correr ;;
-  medir)     medir ;;
-  parar)     parar ;;
-  *) fail "uso: $0 [construir|correr|medir|parar]" ;;
+  construir)        construir ;;
+  correr)           correr ;;
+  medir)            medir ;;
+  medir-instancia)  medir_instancia ;;
+  parar)            parar ;;
+  *) fail "uso: $0 [construir|correr|medir|medir-instancia|parar]" ;;
 esac

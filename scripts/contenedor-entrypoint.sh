@@ -26,12 +26,87 @@ startup_timeout="${SALVO_API_STARTUP_TIMEOUT_SECONDS:-90}"
 
 api_pid=""
 web_pid=""
+edad_pid=""
+
+# ------------------------------------------------------- el reinicio por antigüedad
+#
+# **El reinicio principal no es éste: es el de la plataforma.** Las tres candidatas duermen la
+# instancia cuando nadie la usa —Koyeb tras una hora, Render a los quince minutos—, y despertar es
+# un contenedor nuevo, que ya vuelve al estado horneado. Este temporizador cubre el caso contrario:
+# una instancia con tráfico continuo no duerme nunca, y sin él acumularía sin techo lo que los
+# visitantes escriban.
+#
+# `SharedInstance__ResetMinutes` es **una sola variable con dos lectores**, y por eso no pueden
+# disentir: este script la usa para actuar y la API para anunciarla en la pantalla. Es este script
+# el que lanza a la API, con este mismo entorno, así que el cartel no puede prometer un número
+# distinto del que se cumple. Vacía o cero, no hay temporizador y el cartel no promete un máximo.
+reset_minutes="${SharedInstance__ResetMinutes:-}"
+
+# 75 es `EX_TEMPFAIL` de `sysexits.h`: «fallo temporal, se invita a reintentar», que es exactamente
+# lo que este final significa. Lo que importa de verdad es que **no sea 0**: una plataforma con
+# política `on-failure` no reinicia un contenedor que anunció éxito, y la tercera falsación de
+# `E10A` encontró justo esa trampa por el lado de la API. Cuál código reinicia cada plataforma lo
+# confirma `E10C`; acá se elige uno y se dice por qué.
+restart_code="${SharedInstance__RestartExitCode:-75}"
 # Distingue las dos formas de terminar. Sin esto las dos se ven iguales desde afuera, y no lo son:
 # que la plataforma pida detener el contenedor es un final normal, y que uno de los dos procesos se
 # caiga solo no lo es nunca.
 detencion_pedida=0
 
 log() { printf '[entrypoint] %s\n' "$*"; }
+fail() { log "ERROR: $*"; exit 1; }
+
+# ------------------------------------------------------- la base, copiada de la imagen
+
+# **Esto es el reinicio de la instancia pública.** La imagen lleva una base ya sembrada, puntuada,
+# con las evaluaciones externas entregadas y una explicación escrita; copiarla encima de la de
+# trabajo devuelve la instancia al estado prístino con una sola primitiva.
+#
+# Se hace acá y no con una cirugía sobre el archivo en caliente porque acá **todavía no hay nadie
+# que lo tenga abierto**: la API arranca unas líneas más abajo. La revisión adversarial de la
+# Etapa 10 marcó que borrar y recrear un SQLite bajo conexiones agrupadas no es gratis, y con la
+# base horneada ese problema no llega a existir.
+#
+# Es incondicional, y esa es la propiedad. Un visitante que importó pedidos, emitió veredictos o
+# escribió notas no le deja nada al siguiente, y nadie tiene que acordarse de limpiar — que es la
+# tercera condición de la decisión 70.
+copiar_base_horneada() {
+  local baked="${SALVO_BAKED_DB:-}"
+
+  if [[ -z "$baked" ]]; then
+    log "SALVO_BAKED_DB vacío: la base de trabajo queda como esté"
+    return 0
+  fi
+
+  [[ -f "$baked" ]] || fail "no está la base horneada en ${baked}."
+
+  # La ruta de trabajo se saca de la cadena de conexión en vez de declararse aparte: dos
+  # declaraciones de la misma ruta es una manera de que la API abra un archivo y el arranque
+  # escriba otro, y eso se vería como una instancia que no reinicia nunca.
+  local conn="${ConnectionStrings__SalvoDb:-}"
+  [[ -n "$conn" ]] || fail "ConnectionStrings__SalvoDb no está definida y hay una base horneada que copiar."
+
+  local work="${conn#*Data Source=}"
+  work="${work%%;*}"
+  work="${work#"${work%%[![:space:]]*}"}"
+  work="${work%"${work##*[![:space:]]}"}"
+
+  [[ "$work" = /* ]] || fail "la cadena de conexión no da una ruta absoluta: '${conn}'."
+
+  # Los diarios de una ejecución anterior no se arrastran: describen transacciones de una base que
+  # está por dejar de existir, y aplicarlos sobre la copia nueva sería reintroducir justo lo que el
+  # reinicio quita. Se truncan en vez de borrarse porque `rm` está denegado en este repositorio.
+  local sufijo
+  for sufijo in -wal -shm -journal; do
+    [[ -e "${work}${sufijo}" ]] && : > "${work}${sufijo}"
+  done
+
+  mkdir -p "$(dirname "$work")"
+  cp "$baked" "$work"
+  log "base restaurada desde ${baked} ($(wc -c < "$work" | tr -d ' ') bytes)"
+}
+
+copiar_base_horneada
 
 # Baja a los dos hijos. Se llama tanto en la salida normal como ante SIGTERM/SIGINT: la plataforma
 # manda SIGTERM al detener el contenedor y sin esto los hijos se quedarían hasta el SIGKILL.
@@ -40,7 +115,7 @@ shutdown() {
   set +e
   trap - EXIT INT TERM
 
-  for pid in "$web_pid" "$api_pid"; do
+  for pid in "$edad_pid" "$web_pid" "$api_pid"; do
     if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
       kill "$pid" 2>/dev/null
     fi
@@ -103,16 +178,37 @@ log "levantando la consola en 0.0.0.0:${PORT:-3000}"
 node /app/web/server.js &
 web_pid=$!
 
+# ------------------------------------------------------------------ la antigüedad
+
+# Un `sleep` como tercer hijo, en vez de un reloj consultado en un bucle: así el mismo `wait -n` que
+# vigila a los dos procesos vigila también al tiempo, y no hay una tercera manera de terminar que
+# alguien tenga que mantener.
+if [[ -n "$reset_minutes" ]] && [[ "$reset_minutes" =~ ^[0-9]+$ ]] && ((reset_minutes > 0)); then
+  sleep "$((reset_minutes * 60))" &
+  edad_pid=$!
+  log "esta instancia se reiniciará sola a los ${reset_minutes} min, saliendo con ${restart_code}"
+elif [[ -n "$reset_minutes" ]]; then
+  fail "SharedInstance__ResetMinutes tiene que ser un entero de minutos, y vale '${reset_minutes}'."
+fi
+
 # ------------------------------------------------------------------ la supervisión
 
 # `wait -n` vuelve con el primero que termine, sea cual sea. A partir de ahí el contenedor está roto
-# por definición: media aplicación no es la aplicación.
-wait -n "$api_pid" "$web_pid"
+# por definición —media aplicación no es la aplicación—, salvo que el que terminó sea el
+# temporizador, que es el único final que este contenedor busca.
+wait -n "$api_pid" "$web_pid" ${edad_pid:+"$edad_pid"}
 first_exit=$?
 
 if ((detencion_pedida)); then
   # Llegó un SIGTERM y el hijo terminó por eso. Es la salida ordenada.
   exit 0
+fi
+
+# Quién terminó se pregunta después del `wait`, que ya cosechó exactamente a uno: los que siguen en
+# pie responden a `kill -0` y el que se fue no.
+if [[ -n "$edad_pid" ]] && ! kill -0 "$edad_pid" 2>/dev/null; then
+  log "se cumplieron ${reset_minutes} min: se reinicia la instancia y vuelve a los datos horneados"
+  exit "$restart_code"
 fi
 
 if kill -0 "$api_pid" 2>/dev/null; then

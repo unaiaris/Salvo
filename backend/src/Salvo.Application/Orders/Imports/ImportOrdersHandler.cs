@@ -8,7 +8,8 @@ public sealed partial class ImportOrdersHandler(
     IOrderImportParser parser,
     IOrderDataStore store,
     IOrderIdGenerator idGenerator,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider,
+    OrderCapacity capacity)
 {
     public const int MaximumRecords = 10_000;
     public const int MaximumDetailedErrors = 1_000;
@@ -132,6 +133,29 @@ public sealed partial class ImportOrdersHandler(
 
             errors.Add(CreateReferenceConflict(candidate.Record));
             invalidRecords.Add(candidate.Record.RecordNumber);
+        }
+
+        // El techo se comprueba acá y no al recibir el archivo, porque hasta este punto no se sabe
+        // cuántos pedidos entrarían de verdad: un archivo de diez mil filas puede traer cero pedidos
+        // nuevos si son todos duplicados. Preguntar antes rechazaría importaciones que no agregan
+        // nada, y aceptar sin preguntar dejaría pasar la única que importa.
+        //
+        // Se rechaza el documento entero en vez de insertar hasta llenar. Una importación parcial
+        // silenciosa dejaría al analista sin saber qué quedó adentro, y este contrato ya distingue
+        // el rechazo por registro del rechazo por documento.
+        if (capacity.Maximum is { } maximum && ordersToInsert.Count > 0)
+        {
+            var stored = await store.CountOrdersAsync(cancellationToken);
+
+            if (stored + ordersToInsert.Count > maximum)
+            {
+                throw new OrderImportDocumentException(
+                    "ORDER_LIMIT_REACHED",
+                    $"This instance holds at most {maximum.ToString(CultureInfo.InvariantCulture)} "
+                    + $"orders: it has {stored.ToString(CultureInfo.InvariantCulture)} and the file "
+                    + $"would add {ordersToInsert.Count.ToString(CultureInfo.InvariantCulture)}.",
+                    OrderImportDocumentFailure.CapacityReached);
+            }
         }
 
         if (ordersToInsert.Count > 0)

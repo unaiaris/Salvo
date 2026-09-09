@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ConsoleHeader } from "@/components/console-header";
+import { SharedInstanceNotice } from "@/components/shared-instance-notice";
 import type { Language } from "@/lib/api/contract";
 import { accessibilityReport } from "@/test/axe";
 import {
@@ -71,17 +72,25 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-/** Lo que `layout.tsx` renderiza dentro de `<body>`, con la página adentro. */
+/**
+ * Lo que `layout.tsx` renderiza dentro de `<body>`, con la página adentro.
+ *
+ * `sharedInstance` reconstruye además el cartel de la instancia pública, que es una región más en
+ * el árbol y por lo tanto algo que `region` y `landmark-unique` sí miran. Se pide en vez de estar
+ * siempre porque las dos formas son despliegues reales y la de todos los días no lo lleva.
+ */
 async function consoleScreen(
   page: ReactNode | Promise<ReactNode>,
   language: Language = "es",
+  { sharedInstance = false }: { sharedInstance?: boolean } = {},
 ): Promise<HTMLElement> {
   // La página se resuelve primero y el marco después. Anidar la promesa dentro del `<main>` no
   // compila: `ReactNode` admite una promesa, pero no una que a su vez resuelva a otra.
   const body = await renderableServerTree(page);
   const tree = await renderableServerTree(
     <>
-      <ConsoleHeader language={language} />
+      {sharedInstance && <SharedInstanceNotice language={language} resetMinutes={30} />}
+      <ConsoleHeader language={language} isSharedInstance={sharedInstance} />
       <main>{body}</main>
     </>,
   );
@@ -99,6 +108,23 @@ function respondWith(body: unknown, capabilities = wireCapabilities()) {
     ),
   );
 }
+
+describe("la consola de la instancia compartida", () => {
+  /**
+   * El cartel agrega una región al marco, y una región que no está rotulada deja de ser navegable:
+   * `region` y `landmark-unique` son justamente las reglas que un fragmento sin marco declara
+   * inaplicables, así que medirlo aparte es la única forma de que cuenten.
+   */
+  it("el marco con el cartel, sobre la cola de alertas", async () => {
+    respondWith(wireAlertList(), wireCapabilities({ sharedInstance: true, resetMinutes: 30 }));
+
+    expect(
+      await accessibilityReport(
+        await consoleScreen(AlertsPage(), "es", { sharedInstance: true }),
+      ),
+    ).toBe("");
+  });
+});
 
 describe("las cinco pantallas, con su marco", () => {
   it("la entrada", async () => {

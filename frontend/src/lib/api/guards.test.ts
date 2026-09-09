@@ -344,8 +344,21 @@ describe("guardas del dashboard, las métricas y la importación", () => {
       projectCapabilities(
         wireCapabilities({ demoDataEnabled: false, externalCallbackTriggerEnabled: false }),
       ),
-    ).toEqual({ demoDataEnabled: false, externalCallbackTriggerEnabled: false, language: "es" });
+    ).toEqual({
+      demoDataEnabled: false,
+      demoSeedEnabled: true,
+      externalCallbackTriggerEnabled: false,
+      sharedInstance: false,
+      resetMinutes: null,
+      language: "es",
+    });
     expect(projectCapabilities(wireCapabilities({ demoDataEnabled: "true" }))).toBeNull();
+    expect(projectCapabilities(wireCapabilities({ demoSeedEnabled: "true" }))).toBeNull();
+    expect(projectCapabilities(wireCapabilities({ sharedInstance: "true" }))).toBeNull();
+    // El máximo del cartel es un número o su ausencia declarada; «30 minutos» no es ninguno de los
+    // dos, y una consola que lo dejara pasar prometería una cifra que nadie cumple.
+    expect(projectCapabilities(wireCapabilities({ resetMinutes: "treinta" }))).toBeNull();
+    expect(projectCapabilities(wireCapabilities({ resetMinutes: 30 }))?.resetMinutes).toBe(30);
     expect(
       projectCapabilities(wireCapabilities({ externalCallbackTriggerEnabled: "true" })),
     ).toBeNull();

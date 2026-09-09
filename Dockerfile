@@ -87,6 +87,29 @@ RUN dotnet publish backend/src/Salvo.Api/Salvo.Api.csproj \
       -p:PublishReadyToRun=true \
       --output /app/api
 
+# ---------------------------------------------------------------- la base, ya sembrada
+
+# Sembrar y puntuar cuestan 24,68 s y 17,50 s a 0,1 vCPU, medidos en `E10A`. Hacerlo al arrancar
+# pondría al primer visitante a esperar dos minutos frente a una consola vacía; hacerlo acá lo paga
+# quien construye, una sola vez, y el arranque solo copia el archivo.
+#
+# Esta etapa **corre la API** para producir la base, en vez de escribir SQL a mano: el corpus, la
+# corrida, el proveedor mock y la plantilla de explicación son los mismos casos de uso que la
+# aplicación ejecuta, así que el archivo horneado no puede describir un estado que la aplicación no
+# sepa producir. `scripts/hornear-base.sh` dice qué deja montado y afirma las cantidades.
+#
+# Se hace sobre el SDK y no sobre la imagen de runtime por una razón práctica: Node hace de cliente
+# HTTP, y acá ya está a mano. Correr la API publicada para `linux-${TARGETARCH}` en esta etapa exige
+# que la arquitectura de construcción y la de destino coincidan; una construcción cruzada la emula,
+# que funciona y tarda más.
+FROM ${DOTNET_SDK_IMAGE} AS seeded
+COPY --from=node-dist /opt/node /opt/node
+ENV PATH=/opt/node/bin:${PATH}
+COPY --from=backend /app/api /app/api
+COPY scripts/hornear-base.sh /usr/local/bin/hornear-base.sh
+RUN chmod +x /usr/local/bin/hornear-base.sh \
+    && /usr/local/bin/hornear-base.sh /seed/salvo.db /app/api
+
 # ---------------------------------------------------------------- la consola
 
 FROM ${DOTNET_SDK_IMAGE} AS frontend
@@ -122,15 +145,28 @@ COPY --from=frontend /web/.next/static ./web/.next/static
 COPY scripts/contenedor-entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
-# La base vive en un directorio propio para que un volumen se monte ahí sin tapar la aplicación.
+# La base sembrada, tal como la dejó la etapa `seeded`. El punto de entrada la copia a `/data` en
+# cada arranque, y **esa copia es el reinicio de la instancia**: no hay cirugía sobre un SQLite que
+# la API tiene abierto, porque cuando se copia todavía no hay nadie que lo tenga abierto.
+COPY --from=seeded /seed/salvo.db /app/seed/salvo.db
+
+# La base de trabajo vive en un directorio propio para que un volumen se monte ahí sin tapar la
+# aplicación. **Esta imagen es efímera por construcción**: lo que haya en `/data` se reemplaza en
+# cada arranque, así que montar un volumen ahí no da persistencia.
 RUN mkdir -p /data && chown -R app:app /data /app
 USER app
 
 ENV ASPNETCORE_URLS=http://127.0.0.1:5100 \
     SALVO_API_BASE_URL=http://127.0.0.1:5100 \
     ConnectionStrings__SalvoDb="Data Source=/data/salvo.db" \
-    Database__MigrateOnStartup=true \
+    Database__MigrateOnStartup=false \
     DemoData__Enabled=true \
+    DemoData__SeedEnabled=false \
+    SALVO_BAKED_DB=/app/seed/salvo.db \
+    SharedInstance__Enabled=true \
+    SharedInstance__ResetMinutes=30 \
+    SharedInstance__MaxOrders=500 \
+    SALVO_RATE_LIMIT=on \
     SALVO_LANGUAGE=es \
     HOSTNAME=0.0.0.0 \
     PORT=3000 \
@@ -139,16 +175,76 @@ ENV ASPNETCORE_URLS=http://127.0.0.1:5100 \
     DOTNET_NOLOGO=1 \
     DOTNET_CLI_TELEMETRY_OPTOUT=1
 
-# `Database__MigrateOnStartup=true`: el contenedor arranca con un volumen vacío y nadie va a correr
-# `dotnet ef database update` por él, porque la imagen no lleva el SDK. Está apagado en todos los
-# demás modos de correr esta API, y `Program.MigrateIfAsked` explica por qué la diferencia se
-# declara en vez de heredarse.
+# `Database__MigrateOnStartup=false`, **y esto se midió antes de decidirlo**. La primera versión de
+# esta imagen lo dejaba encendido con el argumento de que hacía benigno el caso malo. Cuesta **26 s
+# del arranque en frío a 0,1 vCPU**, sobre una base que ya viene migrada y donde `Migrate()` termina
+# diciendo «No migrations were applied».
 #
-# `DemoData__Enabled=true`: en `appsettings.json` vale `false`, y sin encenderlo la API ni registra
-# el sembrado, ni las métricas de calidad, ni los disparadores del proveedor externo — es decir, la
-# mitad del producto. Se enciende acá, para esta imagen, y **`E10B` decide si eso sobrevive a una
-# instancia pública**: encender la demostración expone la ruta de sembrado a cualquiera, y lo que la
-# vuelve aceptable es el reinicio que esta tarea todavía no construyó.
+# El costo no es construir el modelo del contexto sino la infraestructura de migraciones:
+# `Migrate()` carga el ensamblado, instancia las siete migraciones y **construye el modelo que cada
+# una lleva en su `Designer`** para comparar. Es el tramo que `E10A` atribuyó por error a construir
+# el modelo del contexto: por eso el modelo precompilado de EF Core —que reemplaza el del contexto y
+# no los de las migraciones— no bajó de acá ni un segundo, y por eso se revirtió.
+#
+# El caso malo sigue cubierto, y por una comprobación más barata y más ruidosa: el punto de entrada
+# **falla y lo dice** si el archivo horneado no está en la imagen, en vez de arrancar contra una base
+# vacía y dejar que la consola anuncie que no hay pedidos. Un contenedor que no arranca y explica
+# por qué es mejor que uno que arranca y miente.
+#
+# Para correr esta imagen sin la base horneada —lo hace la medición del aporte de cada
+# optimización— hay que encenderla a mano: `-e SALVO_BAKED_DB= -e Database__MigrateOnStartup=true`.
+#
+# `DemoData__Enabled=true`: enciende las métricas de calidad y los disparadores del proveedor
+# externo, que son la mitad del argumento del proyecto.
+#
+# `DemoData__SeedEnabled=false`: apaga **solo** la ruta de sembrado, y por eso el interruptor está
+# partido en dos. Con la base horneada nadie necesita sembrar acá, y era la única ruta con la que un
+# visitante podía dejar la consola inservible para el siguiente: cargar el corpus sobre una base que
+# ya tiene esas referencias se rechaza, y cargarlo el doble de grande no. El reinicio acota ese daño
+# en el tiempo; quitar la ruta hace que no ocurra.
+#
+# `SharedInstance__Enabled=true`: enciende el cartel que dice lo que esta instancia es. La decisión
+# 70 pide que se anuncie **en pantalla** y no en un README, y una de las tres cosas que anuncia no
+# es opcional: la nota de una revisión es texto libre, anónimo y público hasta el próximo reinicio.
+#
+# `SharedInstance__ResetMinutes=30`: el tope de antigüedad. Media hora son tres recorridos completos
+# del guion de demostración, que dura diez minutos, y es lo que un visitante puede ensuciarle al
+# siguiente en el peor caso. **Una sola variable con dos lectores**: el punto de entrada programa el
+# reinicio con ella y la API la publica para el cartel, así que la pantalla no puede prometer un
+# número distinto del que se cumple.
+#
+# `SharedInstance__MaxOrders=500`: el techo de pedidos, que **ningún limitador de tasa reemplaza**.
+# Lo que cuesta una corrida de scoring depende de cuántos pedidos hay, no de cuántas veces se pida,
+# y la importación acepta 10.000 registros por archivo tantas veces como uno quiera. 500 deja 200
+# de margen sobre el corpus horneado —muchísimo más de lo que un visitante importa para probar— y
+# acota el peor caso de una corrida a algo cercano al doble de lo que hoy tarda.
+#
+# `SALVO_RATE_LIMIT=on`: el límite de tasa, que vive en la capa de Next y **no** en la API. Después
+# de que la Etapa 10 borró el rewrite, toda petición le llega a la API desde `127.0.0.1` sin
+# cabecera de origen: limitar ahí sería limitar a la consola contra sí misma. El visitante existe en
+# el proceso de Node, que es donde llega su conexión. Apagado por omisión, porque la compuerta, el
+# smoke y las capturas hacen decenas de peticiones en segundos y un límite pensado para
+# desconocidos las volvería intermitentes; esta imagen lo enciende.
+
+# La sonda mira **los dos procesos**, y la consulta la plataforma, no esta imagen.
+#
+# `GET /health` de la consola le pregunta a la API por la suya y contesta 503 si no responde. Esa es
+# la diferencia entre una instancia sana y media aplicación muerta: si la API cae y `server.js` sigue
+# en pie, todas las rutas siguen contestando 200 con el aviso de error puesto, y una sonda contra el
+# puerto público vería todo bien.
+#
+# **Y esta imagen no declara `HEALTHCHECK`, que es una decisión medida y no un olvido.** Tenerlo
+# costaba 43 de los 112 s del arranque en frío a 0,1 vCPU con el intervalo de 30 s que uno escribe
+# sin pensar, y **16 s incluso con el intervalo en cinco minutos**: durante `--start-period` Docker
+# no espera al intervalo, sondea cada cinco segundos —`--start-interval`, que vale 5 s por omisión—,
+# y a 0,1 vCPU cada comprobación levanta un proceso de Node entero que le roba CPU al arranque.
+# Medido en las dos direcciones sobre la misma imagen, con `--no-healthcheck`: 55,58 s contra
+# 39,53 s.
+#
+# Lo que se pierde es una etiqueta en `docker ps`. Lo que vigila de verdad no es eso: es la sonda de
+# la plataforma contra `/health`, que `E10C` configura, y el supervisor del punto de entrada, que
+# termina el contenedor si cualquiera de los dos procesos se cae. Quien quiera la etiqueta puede
+# pedirla al correr, con `--health-cmd` y un `--start-period` de cero.
 
 EXPOSE 3000
 ENTRYPOINT ["/app/entrypoint.sh"]

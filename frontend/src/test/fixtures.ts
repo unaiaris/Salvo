@@ -217,7 +217,12 @@ export function problemResponse(status: number, code: string, detail: string): R
 export function wireCapabilities(overrides: WirePayload = {}): WirePayload {
   return {
     demoDataEnabled: true,
+    demoSeedEnabled: true,
     externalCallbackTriggerEnabled: true,
+    // Un despliegue local por defecto: la instancia compartida es la excepción, y las pantallas
+    // que no hablan de ella no deberían tener que declararlo.
+    sharedInstance: false,
+    resetMinutes: null,
     language: "es",
     ...overrides,
   };
