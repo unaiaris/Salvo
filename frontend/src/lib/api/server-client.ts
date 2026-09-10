@@ -1,5 +1,6 @@
 import "server-only";
 
+import { COLD_START_GRACE_MS, COLD_START_RETRY_GAP_MS, isSharedInstance } from "./deployment";
 import { type ApiFailure, type ApiResult, fail, readProblem, succeed } from "./failures";
 import { taintApiPayload } from "./taint";
 
@@ -78,6 +79,73 @@ function buildUrl(request: ApiRequest): URL {
  * accidental hand-off to a client component fail loudly instead of silently shipping the payload.
  */
 export async function requestJson(request: ApiRequest): Promise<ApiResult<unknown>> {
+  const first = await attempt(request);
+
+  if (!shouldWaitForColdStart(request, first)) {
+    return first;
+  }
+
+  return retryWhileStarting(request, first);
+}
+
+/**
+ * Si este fallo es «la API todavía no está» y no «la API está rota».
+ *
+ * Los dos casos no se pueden distinguir desde acá, y no hace falta: en la instancia compartida
+ * terminan igual. O la API está terminando de arrancar, o el supervisor del punto de entrada va a
+ * matar el contenedor y la plataforma lo va a rehacer. En los dos la respuesta honesta es esperar
+ * un momento.
+ *
+ * Tres condiciones, y las tres son necesarias:
+ *
+ * - **Solo en la instancia compartida.** En una máquina de desarrollo una API que no contesta es
+ *   una avería y quien la corre necesita enterarse ya, no dentro de medio minuto.
+ * - **Solo en `GET`.** `AGENTS.md` pide que los reintentos existan únicamente donde sean
+ *   semánticamente seguros. Una lectura es idempotente; reintentar la importación de un archivo o
+ *   la emisión de un veredicto podría duplicar un efecto que la API ya aplicó y cuya respuesta se
+ *   perdió.
+ * - **Solo por transporte.** Un `problem` es la API contestando, y una respuesta que no cumple el
+ *   contrato no mejora porque se la vuelva a pedir.
+ */
+function shouldWaitForColdStart(request: ApiRequest, result: ApiResult<unknown>): boolean {
+  if (result.ok || (request.method ?? "GET") !== "GET") {
+    return false;
+  }
+
+  const kind = result.failure.kind;
+
+  return (kind === "timeout" || kind === "unreachable") && isSharedInstance();
+}
+
+/**
+ * Vuelve a pedir mientras la API termina de arrancar, hasta agotar el presupuesto.
+ *
+ * El presupuesto se cuenta sobre el reloj y no en número de intentos, porque cada intento consume
+ * su propio plazo y un contador de intentos escondería cuánto llega a esperar el visitante de
+ * verdad. Al agotarse devuelve **el último fallo**, no el primero: si la API pasó de inalcanzable a
+ * lenta, lo segundo describe mejor en qué estado quedó.
+ */
+async function retryWhileStarting(
+  request: ApiRequest,
+  first: ApiResult<unknown>,
+): Promise<ApiResult<unknown>> {
+  const deadline = Date.now() + COLD_START_GRACE_MS;
+  let last = first;
+
+  while (Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, COLD_START_RETRY_GAP_MS));
+
+    last = await attempt(request);
+
+    if (!shouldWaitForColdStart(request, last)) {
+      return last;
+    }
+  }
+
+  return last;
+}
+
+async function attempt(request: ApiRequest): Promise<ApiResult<unknown>> {
   const url = buildUrl(request);
   const method = request.method ?? "GET";
 

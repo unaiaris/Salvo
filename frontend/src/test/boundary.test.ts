@@ -348,6 +348,12 @@ describe("módulos server-only", () => {
       "src/lib/api/console.ts",
       "src/lib/api/external.ts",
       "src/lib/api/explanations.ts",
+      // Lee `process.env` del proceso de Next, que en un bundle de navegador no existe: si esta
+      // declaración se cayera, `isSharedInstance()` devolvería `false` en el cliente y la pantalla
+      // de arranque no se vería nunca, sin que nada fallara.
+      "src/lib/api/deployment.ts",
+      // No habla con la API, pero decide entre dos pantallas leyendo el entorno del despliegue.
+      "src/components/failure-notice.tsx",
     ]) {
       expect(readFileSync(path, "utf8"), path).toMatch(/^import "server-only";$/m);
     }
