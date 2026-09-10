@@ -5397,3 +5397,283 @@ verdad.
 - Migraciones o pasos manuales: ninguno. No hay migración ni cambio de contrato.
 - Esta rama **no cierra la Etapa 10**. La cierra la segunda vuelta, con la URL y las mediciones.
 - Verificación posterior al merge: `./scripts/check.sh` y `./scripts/smoke-ui.sh`.
+
+## `E10C-PUBLICACION`, segunda vuelta — la instancia medida, y la primera impresión arreglada
+
+### Identificación
+
+- Estado de la rama: `Lista para integrar`
+- Etapa: 10
+- Rama/worktree: `claude/e10c-arranque-y-medicion`
+- Commit base: `b6369d2` (`merge-base` real con `main`)
+- Commit final de implementación: `1d54057`
+- Este handoff: PENDIENTE-HANDOFF
+- Fecha: 2026-09-10
+- Modelo y esfuerzo: Opus 5 · `high`
+- **Cierra la Etapa 10.**
+
+### El resultado, en una línea
+
+**La instancia está publicada, medida desde afuera y ya no recibe a nadie con un mensaje de error**:
+mientras la API termina de arrancar, la consola espera del lado del servidor y, si esa espera se
+agota, explica qué está pasando en vez de reportar una avería.
+
+### El hallazgo, reproducido antes de tocar nada
+
+La primera petición de esta tarea contra la instancia —dormida, a las 00:25:34 UTC del 2026-09-10—
+devolvió **`200` en 5,81 s con un error adentro**:
+
+> La API tardó demasiado en responder. La consulta se canceló para no dejar la pantalla colgada.
+
+Repetida cinco veces con la instancia ya despierta, la misma ruta contestó entre **0,35 s y 0,61 s**,
+siempre con las 23 alertas. Así que el defecto es exactamente el que describe la ampliación del
+brief y no otro: **es la ventana del arranque**, no una consulta lenta. La diferencia de escalas es
+que la consola le da 5 s a la API y la API tarda decenas de segundos en estar lista con 0,1 vCPU,
+mientras Next atiende desde el primer momento.
+
+**Y el arreglo se probó contra las dos imágenes, en el mismo momento del arranque.** Cada una en un
+contenedor nuevo a 0,1 vCPU, pidiendo `/alerts` apenas Next empieza a atender, que es exactamente lo
+que hace quien abre el link:
+
+| Imagen | `/alerts` contestó | Qué mostró |
+| --- | --- | --- |
+| Sin el arreglo | a los 68,2 s | **Un error de API** |
+| Con el arreglo | a los 71,6 s | **La cola con sus 23 alertas** |
+
+La diferencia de tres segundos en el reloj es ruido; la diferencia que importa es la última columna.
+La espera del servidor cubrió una ventana de unos 30 s y la petición terminó devolviendo datos.
+
+### Lo que se hizo, y las dos decisiones que hubo que tomar
+
+#### El reintento vive en el servidor, no en el navegador
+
+`requestJson` reintenta mientras la API arranca, con un presupuesto contado sobre el reloj. Tres
+condiciones lo acotan, y ninguna es decorativa:
+
+- **Solo en la instancia compartida.** En una máquina de desarrollo una API que no contesta es una
+  avería, y quien la corre necesita enterarse ya. Es también lo que mantiene verde el escenario 3 de
+  `scripts/smoke-ui.sh`, que apaga la API a propósito y espera ver el mensaje de fallo: ese escenario
+  **no declara la bandera**, así que no cambió ni una línea del smoke.
+- **Solo en `GET`.** `AGENTS.md` pide reintentos únicamente donde sean semánticamente seguros.
+  Reintentar una importación o un veredicto podría duplicar un efecto que la API ya aplicó y cuya
+  respuesta se perdió.
+- **Solo ante fallos de transporte.** Un `problem` es la API contestando; volver a pedirlo da lo
+  mismo. Disfrazar un 409 de «estamos arrancando» sería mentir sobre algo que el visitante puede
+  corregir.
+
+La bandera se lee del **entorno del proceso de Next** y no de `capabilities`, y eso merece
+explicación porque `layout.tsx` argumenta justo lo contrario para el idioma. El motivo es que acá hay
+una circularidad: esta bandera existe para decidir qué mostrar **cuando la API no contesta**, que es
+exactamente cuando `capabilities` tampoco contesta. Y no es una segunda fuente de verdad sobre el
+valor: el `Dockerfile` pone `SharedInstance__Enabled` una sola vez y de ahí la leen los dos procesos,
+igual que `SALVO_API_BASE_URL`. Los dos caminos no pueden discrepar en pantalla, porque si la API
+contesta esta bandera no se usa para nada.
+
+#### El `meta refresh` se descartó, y la comprobación es lo interesante
+
+El brief lo ofrecía como opción. Se midió antes de elegir, y el resultado es incómodo:
+
+| Dónde corre `axe-core` | Qué reporta sobre un `<meta http-equiv="refresh">` |
+| --- | --- |
+| Sobre el **contenedor**, que es como lo corre este proyecto | **Ninguna violación** |
+| Sobre el **documento** entero | **`meta-refresh`**, violación de WCAG 2.2.1 |
+
+La diferencia es que React iza los `<meta>` al `<head>`, y el `<head>` queda fuera del contenedor. O
+sea: **el test del proyecto habría pasado en verde sin ver nunca la violación.** Aprovechar eso es
+exactamente lo que `src/test/axe.ts` llama una comprobación silenciosamente incompleta, así que la
+opción se descartó por lo que es y no por lo que el test alcanza a ver. Hay un test que fija la
+decisión: `no usa un meta refresh, que axe-core marca como violación`, y mira el `<head>`.
+
+El reintento manual de la pantalla es un formulario sin `action` ni `method`: reemite un `GET` contra
+la URL actual, funciona sin una línea de JavaScript de cliente y no cuenta contra el cubo de
+mutaciones del limitador de tasa.
+
+#### La pantalla no es un error de otro color
+
+`role="status"` con `aria-live="polite"`, no `role="alert"`. Un lector de pantalla anuncia una alerta
+interrumpiendo lo que esté diciendo, y que la instancia esté despertando no merece interrumpir a
+nadie. Es la diferencia de marcado que separa esta pantalla de un fallo, y hay un test que la afirma.
+
+La bifurcación vive en `FailureNotice` y no en cada página, por el mismo motivo por el que el cartel
+de instancia compartida vive en el layout: una pantalla que se agregue mañana la hereda sin que nadie
+se acuerde.
+
+### Las dos comprobaciones que solo se podían hacer contra la instancia
+
+#### La cabecera de origen — **confirmada, y el caso degradado no ocurre**
+
+El handoff de `E10B` dejó este encargo con todas las letras, porque sin `x-forwarded-for` todos los
+visitantes comparten un solo cubo de diez mutaciones por minuto. Medido contra la instancia el
+2026-09-10 a las 00:45:14 UTC, mandando mutaciones con dos valores distintos de esa cabecera:
+
+| Origen | Peticiones | Resultado |
+| --- | --- | --- |
+| `1.1.1.1` | 12 | Las diez primeras `200`; la **11ª y la 12ª, `429`** |
+| `2.2.2.2` | 1 | `200` a la primera |
+
+O sea: el límite es exactamente diez por minuto, y **un origen distinto estrena su propio cubo**. La
+consola está viendo al visitante y no al proxy, así que el caso degradado que `E10B` temía no ocurre
+en Render.
+
+Dos precisiones que corresponden. La primera es de método: la prueba usó **dos valores de cabecera
+desde una sola red**, no dos redes físicas, porque el proxy de Render antepone el valor del cliente y
+`originOf` toma el primero de la cadena. Es la misma discriminación que hace el limitador, medida por
+el mismo camino. La segunda se sigue de la primera: **la cabecera la puede escribir cualquiera**, así
+que quien quiera saltarse el limitador puede. No cambia la decisión, porque el limitador nunca fue la
+defensa del costo — ésa es `SharedInstance__MaxOrders`, que cuenta pedidos y no peticiones — y porque
+la instancia vuelve sola al estado horneado.
+
+#### El código de salida 75 — **Render sí reinicia, y está capturado en el acto**
+
+La primera vuelta dejó esto sin contestar porque **ninguna página oficial de Render dice qué hace con
+una salida distinta de cero**. La única forma de saberlo era mirar la instancia, y el método es el
+que el brief describe: darle tráfico cada menos de quince minutos para que no se duerma, y esperar a
+que el tope de antigüedad de treinta dispare.
+
+Un sondeo de cincuenta minutos, con una petición cada veintiséis segundos, el 2026-09-10. Capturó
+**dos reinicios**:
+
+| Hora UTC | HTTP | Qué devolvió |
+| --- | --- | --- |
+| 00:55:23 | 200 | Error de API — la consola en pie, la API todavía no |
+| … 29 min 54 s después … | | |
+| 01:24:51 | 200 | ok, 23 alertas |
+| **01:25:17** | **502** | **El contenedor no existe: salió con 75 y Render lo está rehaciendo** |
+| 01:25:50 | 200 | Error de API — Next ya atiende, la API todavía no |
+| 01:26:16 | 200 | **ok, 23 alertas** |
+
+**El intervalo entre los dos eventos es de 29 minutos y 54 segundos**, contra los 30 que declara
+`SharedInstance__ResetMinutes`. No es una coincidencia que se pueda leer de otra manera.
+
+Y el segundo se ve entero, que es lo que lo vuelve concluyente. El `502` es la firma de que **no
+había proceso escuchando**: la plataforma no tenía a quién enrutar. Veintiséis segundos más tarde
+Next ya atendía y la API no —la ventana del defecto, medida en la instancia real y no en un M1—, y a
+los **59 segundos** del `502` la cola volvía a mostrar sus 23 alertas.
+
+Tres conclusiones, y las tres importan:
+
+- **Render reinicia un contenedor que sale con código distinto de cero.** El reinicio por antigüedad
+  funciona en esta plataforma. La duda que quedó abierta en la primera vuelta se cierra con una
+  observación, no con una suposición.
+- **La instancia vuelve con los datos puestos.** Las 23 alertas están del otro lado del reinicio, que
+  es la tercera condición de la decisión 70: nadie tiene que acordarse de limpiar.
+- **La ventana en que la consola atendía y la API no duraba hasta veintiséis segundos**, y el
+  presupuesto de espera de 40 s la cubre con margen. El número que la eligió no era una corazonada.
+
+### Los tres documentos
+
+El link entró en los tres, y en los tres **junto al link** van las cuatro propiedades: compartida,
+efímera, sintética y lenta la primera vez.
+
+- **`README.md`** gana una sección «Probarlo sin instalar nada» al principio de «Cómo correrlo», y lo
+  que había pasa a titularse «En tu máquina». El orden importa: quien llega desde un CV no quiere
+  instalar .NET.
+- **`README.md`, «Límites declarados»**: el párrafo de autenticación **no se duplicó**, se le enlazó
+  el link, como pedía el brief. Y se agregaron las dos deudas nuevas: que no hay región sudamericana
+  en el plan gratuito, y que mantenerla despierta con un pinger se evaluó y se descartó.
+- **`DesignAgent/Salvo-Getting-Started.md`** gana una subsección «Publicada» dentro de «El
+  contenedor», con el link, los dos mecanismos de reinicio y por qué no se configuró el health check.
+  Y la sección de estado nombra la instancia.
+- **El artículo para revisores** no lo puede republicar un agente. Su texto exacto está al final de
+  esta entrada, listo para pegar.
+
+`scripts/check-docs.sh` sigue verde, con la precisión que el brief pidió que se dijera: ese script
+**descarta los enlaces con esquema y no toca la red**, así que no comprueba —ni puede— que la URL
+funcione. Eso lo comprueban las mediciones de esta entrada, a mano y con fecha.
+
+### Comandos y resultados
+
+Todo lo local se corrió sobre `1d54057`; todo lo remoto, contra
+`https://salvo-k6wk.onrender.com`. **Fecha de todas las corridas: 2026-09-10.**
+
+| Comprobación | Resultado |
+| --- | --- |
+| `./scripts/check.sh` | **Verde**, salida 0 |
+| — tests | 117 de dominio, 178 de integración, **309 de frontend** |
+| — `check-docs.sh` dentro de la compuerta | 73 comprobaciones, 0 fallas |
+| `./scripts/smoke-ui.sh` | **Verde**: 71 comprobaciones, 0 fallas. **El escenario 3 sin tocar** |
+| `git status --porcelain` | Limpio |
+
+Contra la instancia publicada:
+
+| Comprobación | Resultado |
+| --- | --- |
+| `curl <URL>/alerts`, leyendo el HTML | **23 alertas abiertas** |
+| `curl <URL>/dashboard`, leyendo el HTML | «Denegados por el proveedor sin alerta local» y **300 pedidos** en la corrida |
+| `curl -o /dev/null -w '%{http_code}' <URL>/api/dashboard` | **404**, que es el acierto: la API no se publica |
+| `curl … <URL>/api/alerts` | **404** |
+| Camino tibio, `/alerts` | **0,26 s a 0,70 s**, sobre 45 muestras del sondeo largo |
+| El cartel en pantalla | Dice compartida, sintética, que lo escrito lo ve todo el mundo, y **«como máximo cada 30 minutos»** |
+| Limitador, dos orígenes | 10 y luego `429`; el segundo origen entra a la primera |
+
+Tests nuevos: `cold-start.test.ts` (5), `starting-up-notice.test.tsx` (10) y dos casos más en
+`accessibility.test.tsx`.
+
+**Las dos falsaciones del reintento**, cada una quitando una condición y comprobando que el test la
+caza:
+
+| Qué se rompió a propósito | Qué test falló |
+| --- | --- |
+| Quitar `isSharedInstance()` de la guarda | «fuera de la instancia compartida, un fallo de transporte se reporta en el acto» |
+| Permitir que las escrituras se reintenten | «no reintenta una escritura, ni siquiera en la instancia compartida» |
+
+### Riesgos y trabajo pendiente
+
+- **La instancia no se durmió cuando debía, y eso rompió la primera medición.** Se la dejó quieta
+  desde las 00:26:18 hasta las 00:42:33 —dieciséis minutos, uno más que los quince que Render
+  documenta— y contestó en **0,9 s con los datos puestos**: seguía despierta. Puede ser que otra
+  persona la visitara —es pública— o que el sueño no sea tan puntual. **No se pudo cronometrar el
+  despertar completo desde afuera**, y por eso ningún documento de esta entrega afirma ese número
+  como medición propia. Lo que el README y la guía dicen sobre la espera sale de la documentación de
+  Render y de la medición local de `E10B`, con la fuente escrita al lado.
+- **El plazo de 5 s se queda corto de vez en cuando, incluso en caliente.** Una de 45 peticiones del
+  sondeo largo devolvió el error de API con la instancia despierta y en pleno uso. Con el arreglo ese
+  caso ahora se reintenta en vez de mostrar un error, así que la solución cubre más de lo que se
+  propuso cubrir; pero conviene saber que la causa no es solo el arranque.
+- **El script del sondeo largo hace dos peticiones por fila** —una para el cuerpo y otra para el
+  tiempo—, así que el tiempo de una fila no es el de la petición cuyo cuerpo se leyó. No afecta a las
+  conclusiones, que son sobre qué devolvió cada una, pero la columna de tiempos hay que leerla como
+  una muestra del camino tibio y no como el cronómetro de esa fila.
+- **La comprobación del limitador usó dos valores de cabecera, no dos redes.** Está dicho arriba con
+  su motivo.
+- **El presupuesto de 40 s es un tope elegido, no un óptimo medido.** Si el arranque en Render fuera
+  sistemáticamente más largo, la pantalla aparecería más seguido; el visitante puede pulsar el botón
+  y seguir. Cambiarlo es una constante en `deployment.ts`.
+
+### El texto para el artículo de revisores
+
+Vive publicado en `claude.ai` y un agente no lo puede republicar. Va listo para pegar, sin ninguna
+sustitución pendiente:
+
+---
+
+Se puede probar sin instalar nada, en https://salvo-k6wk.onrender.com.
+
+Es una instancia de demostración compartida y efímera: lo que escribas lo ve quien entre después, se
+reinicia sola y vuelve a los mismos 300 pedidos sintéticos. No hay un dato de una persona real, y no
+puede haberlo: no tiene autenticación, y por eso no recibe otra cosa.
+
+La primera carga después de un rato sin visitas es lenta, y vale la pena decir por qué en vez de
+disimularlo. Corre en un plan gratuito con 0,1 de un núcleo, duerme tras quince minutos sin tráfico y
+despertar es arrancar dos procesos desde cero: **59 segundos** hasta ver la cola con sus veintitrés
+alertas, cronometrados desde afuera sobre un reinicio real el 2026-09-10.
+
+Que llegue **con los datos ya puestos** —23 alertas, 51 pedidos denegados por el proveedor sin alerta
+local y una explicación escrita— es el resultado de hornear la base dentro de la imagen, que es lo que
+bajó ese arranque de 119,7 s a 41 s en la máquina donde se construyó.
+
+Y mientras la API termina de levantarse, la consola dice que está levantando en vez de dar un error.
+Eso salió de abrir el link recién publicado y encontrarse con lo que encuentra cualquiera: la consola
+atiende enseguida, la API tarda cerca de un minuto, y en esa ventana la pantalla mostraba un fallo de
+timeout. Un error que describe un comportamiento normal es un error igual.
+
+---
+
+### Integración
+
+- Orden sugerido: merge directo a `main`, **por merge y nunca por rebase**.
+- Migraciones o pasos manuales: ninguno. No hay migración ni cambio de contrato.
+- **Al integrar a `main` se dispara un despliegue**, porque `render.yaml` declara
+  `autoDeployTrigger: commit`. Es lo que pone la pantalla de arranque en la instancia real.
+- Verificación posterior al merge: `./scripts/check.sh`, `./scripts/smoke-ui.sh`, y abrir el link
+  tras quince minutos de silencio para ver la pantalla nueva en vivo.
