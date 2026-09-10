@@ -86,6 +86,74 @@ cuatro meses cuya dirección legal registrada dice «SR.NO.43 Privet Drive», no
 ninguna página, y sus propias páginas se contradicen sobre cuántos despliegues permite. Es la segunda
 vez que este diseño publica una candidata sin verificarla de verdad. **No se la vuelve a nombrar.**
 
+## Ampliación del alcance — 2026-09-10, con la instancia ya en pie
+
+**La instancia existe: https://salvo-k6wk.onrender.com.** El alta la hizo el coordinador y el
+primer despliegue falló por un defecto real, ya corregido en `main`: `global.json` exigía el SDK
+`10.0.400` con `rollForward: disable` y el `Dockerfile` pedía la imagen por la etiqueta flotante
+`sdk:10.0`, que hoy trae `10.0.401`. Funcionaba por caché de la máquina de desarrollo. Se pide por
+versión exacta.
+
+Verificado desde afuera, sin sesión: **23 alertas abiertas** (6 `CRÍTICA`, 6 `ALTA`, 11 `MEDIA`),
+**51 denegados sin alerta local** sobre **300 pedidos**, F1 **63,2 %** y **68,8 %**, y el cartel de
+instancia compartida en pantalla.
+
+### El hallazgo, y lo que el coordinador decidió
+
+**Las dos primeras peticiones contra el contenedor recién arrancado devolvieron un error de la
+consola**, no de la plataforma: «La consulta se canceló para no dejar la pantalla colgada.»
+
+La causa es una diferencia de escalas que en una máquina de desarrollo no se ve: la consola le da
+**5 segundos** a la API (`DEFAULT_TIMEOUT_MS` en `frontend/src/lib/api/server-client.ts`) y la API
+tarda **unos 40 segundos** en estar lista con 0,1 vCPU. Next atiende enseguida, así que durante esa
+ventana la consola está en pie, contesta `200`, y **muestra un error**. La pantalla de carga de
+Render cubre solo hasta que el puerto responde; a partir de ahí lo que se ve es nuestro.
+
+Es la primera impresión de cualquiera que abra el link desde un CV, y por eso se arregla en vez de
+declararse.
+
+**Decisión: la espera se explica, no se disimula ni se esconde.** En la instancia compartida, cuando
+la API no contesta, la consola muestra que se está levantando, cuánto suele tardar, y vuelve a
+intentar sola. **No se toca el arranque**: ni el punto de entrada, ni el orden de los procesos, ni
+el momento en que Next abre el puerto. Retrasar el puerto se evaluó y se descartó, porque si Render
+exige que el servicio ligue dentro de un plazo, un arranque de 40 s puede marcar el deploy como
+fallido y eso cuesta el link.
+
+**Por qué el estado es correcto aunque no se pueda distinguir «todavía no arrancó» de «se cayó»**:
+en esta instancia las dos cosas terminan igual. O la API está levantando, o el supervisor va a matar
+el contenedor y la plataforma lo va a rehacer. En ambos casos la respuesta honesta es «volvé en un
+momento», y por eso no hace falta adivinar cuál de las dos es.
+
+**Solo en la instancia compartida.** Fuera de ella —desarrollo, y el escenario 3 del smoke, que
+apaga la API a propósito— el mensaje actual se conserva tal cual: ahí un fallo de API **es** un
+fallo, y decirlo es lo correcto. La condición es la misma bandera que enciende el cartel.
+
+### Paths que se agregan a la reserva
+
+- `frontend/src/lib/api/server-client.ts`, si hace falta distinguir el vencimiento del plazo de otro
+  fallo, o ajustar el plazo cuando la bandera de instancia compartida está encendida.
+- La superficie que hoy renderiza el fallo de API en las rutas de datos, y solo eso.
+- `frontend/src/lib/i18n/es.ts` y `pt.ts`: las claves nuevas van en **un commit anterior** al código
+  que las usa, que es la lección de `E9C2`.
+- `frontend/src/**/*.test.*` y `frontend/src/test/**`.
+- `scripts/smoke-ui.sh`, **solo** si el escenario 3 necesita un ancla nueva. Ese escenario tiene que
+  seguir comprobando lo que comprueba hoy.
+
+### Criterios de aceptación que se agregan
+
+- [ ] Con la instancia dormida, la primera visita **no muestra un error**: muestra que se está
+      levantando, dice cuánto suele tardar, y se resuelve sola sin que el visitante toque nada.
+- [ ] La misma pantalla, en castellano y en portugués, con las claves en los dos diccionarios.
+- [ ] El escenario 3 del smoke —la API apagada, fuera de la instancia compartida— **sigue mostrando
+      el mensaje de fallo de siempre**, y su ancla sigue verde.
+- [ ] La pantalla nueva pasa las 31 reglas de accesibilidad y `axe-core`, como cualquier otra.
+- [ ] El reintento **no requiere JavaScript de cliente** si se puede evitar: ningún componente del
+      dashboard es de cliente y `boundary.test.ts` lo exige. Un `meta refresh` es una opción; la
+      elección es delegada, y se escribe.
+- [ ] Medido contra la instancia real: cuántos segundos dura esa ventana, con fecha.
+
+---
+
 ## Alcance
 
 ### Dentro
