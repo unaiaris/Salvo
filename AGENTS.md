@@ -57,10 +57,13 @@ cambia alcance o arquitectura, actualizar primero su bitácora y después los do
 - Etapa 9 completada: corpus, idiomas y cierre. El corpus de demostración se construye para que
   las reglas **se equivoquen** (decisión 65); el idioma es del despliegue (decisión 62); y el
   umbral de alerta es una política de negocio y no el resultado del barrido (decisión 63).
-- **Etapa 10 en ejecución: la instancia pública.** Una sandbox compartida que se reinicia sola, con
-  corpus sintético. La invariante sobre despliegue **ya fue revisada** por el coordinador: es la
-  decisión 70, y reemplaza a la 8 conservando su motivo. `E10A` (`29677f6`) y `E10B` (`23a47cd`)
-  integradas y verificadas; queda `E10C-PUBLICACION`.
+- **Etapa 10 completada: la instancia pública existe.** https://salvo-k6wk.onrender.com, en el plan gratuito de Render: una
+  sandbox compartida que se reinicia sola, con corpus sintético. La invariante sobre despliegue es la
+  decisión 70, que reemplazó a la 8 conservando su motivo. `E10A` (`29677f6`), `E10B` (`23a47cd`) y
+  `E10C` (`51eec4c`) integradas y verificadas. **No hay etapa abierta**: lo que venga es post-MVP.
+- El SDK se pide **por versión exacta** en el `Dockerfile`, porque `global.json` lo fija con
+  `rollForward: disable`. Una exigencia fija no se apoya en una etiqueta móvil: la de `sdk:10.0`
+  cambió de parche y rompió el primer build en una máquina sin caché.
 - La imagen de la instancia compartida trae la base sembrada **horneada adentro** y la migración al
   arrancar apagada: por eso llega al primer dato en 41 s a 0,1 vCPU en vez de 119,7 s. El reinicio
   por antigüedad es el proceso terminando con **código 75** y la restauración es copiar ese archivo.

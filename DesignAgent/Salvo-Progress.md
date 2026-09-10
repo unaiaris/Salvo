@@ -9,15 +9,15 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado del proyecto | **MVP cerrado.** Las nueve etapas completadas y verificadas. **Etapa 10 en ejecución**: la instancia pública |
-| Etapa completada | Etapa 9 — Corpus, idiomas y cierre (`E9A`, `E9B`, `E9C1`, `E9C2` y `E9D` integradas) |
-| Próxima etapa | Etapa 10 — La instancia pública. Es la primera fuera del núcleo local |
-| Estado de la próxima etapa | En ejecución. `E10A` (`29677f6`) y `E10B` (`23a47cd`) verificadas; `E10C-PUBLICACION` despachada |
+| Estado del proyecto | **MVP cerrado y publicado.** Las nueve etapas completadas y verificadas, y la Etapa 10 también: https://salvo-k6wk.onrender.com |
+| Etapa completada | Etapa 10 — La instancia pública (`E10A`, `E10B` y `E10C` integradas y verificadas) |
+| Próxima etapa | **Ninguna abierta.** Lo que sigue es post-MVP y cada capacidad necesita su propia aprobación |
+| Estado de la próxima etapa | — |
 | Bloqueo actual | Ninguno |
 | Dependencias externas | Ninguna para el núcleo local |
 | Anthropic | Previsto para después del núcleo; decisión aparte, preparada por D11 |
 | Koin sandbox | Post-MVP; sujeto a onboarding y credenciales |
-| Coordinación Codex–Claude | `E10B-INSTANCIA-COMPARTIDA` integrada y verificada; `E10C-PUBLICACION` asignada a Opus 5 · `high` |
+| Coordinación Codex–Claude | Sin tareas en vuelo. `E10C-PUBLICACION` fue la última, verificada en `51eec4c` |
 
 **Este bloque se actualiza en cada cierre de etapa y en cada alta de tarea.** Quedó desfasado
 durante toda la Etapa 7 porque los cierres actualizaron el registro de actividad y los checklists
@@ -49,7 +49,7 @@ Solo puede existir una etapa `En curso` a la vez.
 | 7 | Explicabilidad | Completada | Funciona sin red; el texto verificado sobre la salida no cambia ninguna superficie de decisión | Merges `82f2487`, `ac11015`, `0d117dd` y `b4aac6b`; compuerta y smoke verdes sobre `main` |
 | 8 | El argumento del proyecto | Completada | README, diagramas, capturas y guion de demo; cada afirmación contrastada contra el código | Merges `1243d54` y `6ae7750`; `check-docs.sh` incorporado a la compuerta; seis capturas revisadas una por una |
 | 9 | Corpus, idiomas y cierre | Completada | Seis reglas y tres bandas alcanzables; F1 deja de valer 1,00 | Merges `41343c1` y `4f7daf9`. F1 holdout 0,632 y calibración 0,688; las seis reglas disparan y las tres bandas existen; el motor escribe campos y el extractor de prosa ya no existe. y `0d65f9a`. El idioma es del despliegue y entra en la identidad de la explicación; el castellano sigue siendo el valor por defecto. La consola pasa de 6 a 31 reglas de accesibilidad más `axe-core` en la compuerta. `E9D` despachada |
-| 10 | La instancia pública | En ejecución | Cualquiera la usa desde el navegador, gratis, sin instalar nada | Merges `29677f6` y `23a47cd`. **Arranca con los datos ya puestos en 41 s a 0,1 vCPU**, contra 119,7 s en `E10A`, con 103 MiB de 512; un contenedor recién levantado ya muestra 23 alertas, 51 denegados sin alerta local y una explicación escrita. Se reinicia sola por antigüedad. Decisión 70 escrita. Falta publicarla: `E10C` |
+| 10 | La instancia pública | **Completada** | Cualquiera la usa desde el navegador, gratis, sin instalar nada | Merges `29677f6` y `23a47cd`. **Arranca con los datos ya puestos en 41 s a 0,1 vCPU**, contra 119,7 s en `E10A`, con 103 MiB de 512; un contenedor recién levantado ya muestra 23 alertas, 51 denegados sin alerta local y una explicación escrita. Se reinicia sola por antigüedad. Decisión 70 escrita. Falta publicarla: `E10C` |
 | Post-MVP | Koin sandbox, auth, observabilidad | Pendiente | Aprobación independiente por capacidad | Pendiente |
 
 ## Etapa 1 — Resultado verificado
@@ -280,7 +280,20 @@ tercera. (Sección histórica de la Etapa 4: las Etapas 5, 6 y 7 se completaron 
       puede apagar la migración al arrancar, que costaba 26 s sobre una base ya migrada. El
       `HEALTHCHECK` de Docker costaba otros 43 s, porque sondea cada 5 s durante el `start-period`;
       salió. **El modelo precompilado de EF Core se midió y no aportó nada**, y se revirtió.
-- [ ] Publicada, con el link en el README, en el artículo y en la guía.
+- [x] Publicada: **https://salvo-k6wk.onrender.com**, en Render, plan gratuito. El link está en el README y en la guía, con
+      las cuatro propiedades al lado —compartida, efímera, sintética, y lenta la primera vez—.
+- [x] Verificado desde afuera y sin sesión: 23 alertas abiertas (6 `CRÍTICA`, 6 `ALTA`, 11 `MEDIA`),
+      51 denegados por el proveedor sin alerta local sobre 300 pedidos, y F1 63,2 % / 68,8 %.
+- [x] **El reinicio por antigüedad, observado en la plataforma y no supuesto**: un sondeo de 115
+      peticiones a lo largo de cincuenta minutos capturó dos reinicios separados por 29 min 54 s
+      contra los 30 configurados, con un 502 de por medio que prueba que no había proceso
+      escuchando. Render **sí** reinicia tras el código de salida 75, que era la duda que `E10B`
+      dejó abierta y de la que dependía la promesa del cartel.
+- [x] El limitador distingue orígenes: `x-forwarded-for` llega, así que el caso degradado que temía
+      `E10B` no ocurre.
+- [ ] **No medido, y dicho**: el despertar tras el sueño. La instancia no se durmió tras dieciséis
+      minutos de silencio, así que ningún documento afirma ese número. Los 59 s publicados salen del
+      reinicio real observado.
 
 ### Etapa 9 — Corpus, idiomas y cierre
 
@@ -445,6 +458,8 @@ desempate de la cola por identificador aleatorio, y pintar `explanationId` en el
 | 2026-09-07 | 9 | Integración de `E9B-SENALES-TIPADAS` | Merge `4f7daf9` + compuerta y smoke verdes (52 comprobaciones). Verificado por el coordinador contra el árbol: cero referencias a `Parse`, `ExplanationGoldenTests` y `divergence.ts` sin un byte de diferencia, el redondeo en el constructor con `AwayFromZero` y la escala escrita con `F{n}`, y el dorado escribiendo a `Path.GetTempPath()` en vez de sobre sí mismo | Completada |
 | 2026-09-07 | 9 | Integración de `E9A-FIXTURE` | Merge `41343c1` + compuerta y smoke verdes. F1 holdout 0,632 y calibración 0,688, verificados por el coordinador contra las matrices que los tests fijan | Completada |
 | 2026-09-09 | 10 | `E10B-INSTANCIA-COMPARTIDA` | Once commits. **119,7 s a 41 s** hasta el primer dato y 145 a 103 MiB de RAM. La medición encontró dos defectos propios que nadie había previsto: el `HEALTHCHECK` de Docker costaba 43 s sondeando cada 5 s durante el `start-period`, y migrar una base ya migrada costaba 26 s. Y **falsó la premisa de una de sus dos optimizaciones**: los 23,2 s que `E10A` atribuyó a construir el modelo de EF Core eran la infraestructura de migraciones, que `UseModel` no toca, así que el modelo precompilado no aportó nada fuera del ruido | Lista para integrar |
+| 2026-09-10 | 10 | `E10C-PUBLICACION`, segunda vuelta e integración | Merge `51eec4c` + compuerta y smoke verdes. **Salvo queda publicado en https://salvo-k6wk.onrender.com.** La medición desde afuera encontró un defecto que ninguna máquina de desarrollo puede mostrar: la consola le daba 5 s a la API y la API tarda unos 40 en levantar con 0,1 vCPU, así que la primera visita veía un error en vez de la cola. Se arregló explicando la espera —`role="status"`, no `role="alert"`— y el `meta refresh` se descartó **con la comprobación hecha**: `axe-core` lo marca sobre el documento y no sobre el contenedor, así que el test habría pasado en verde sin ver la violación. Y una afirmación propia se retiró: con media muestra, un error aislado se había leído como un problema en caliente, y con las 115 peticiones resultó ser el reinicio anterior | Completada |
+| 2026-09-09 | 10 | `E10C-PUBLICACION`, primera vuelta y alta en Render | El primer despliegue falló, y el fallo era real: `global.json` exige el SDK 10.0.400 con `rollForward: disable` y el `Dockerfile` pedía la imagen por la etiqueta flotante `sdk:10.0`, que había pasado a 10.0.401. Funcionaba hacía nueve días **por la imagen cacheada en la máquina de desarrollo**. El mismo archivo explicaba tres líneas más abajo por qué Node sí se bajaba por versión exacta: el principio estaba escrito y aplicado a medias | Completada |
 | 2026-09-09 | 10 | Despacho de `E10C-PUBLICACION` | **Tres vueltas de `brief-check`** con Fable · `xhigh`. La primera encontró cinco fallas, y dos eran reglas que el propio brief enuncia: la tabla de verificación le pedía datos a la API por el puerto público —un camino que el brief mismo dice que se borró en `E10A`— y faltaba el encargo de `x-forwarded-for` que el handoff de `E10B`, declarado de lectura obligatoria, le dejaba a esta tarea. La segunda encontró dos restos de la corrección. El campo del commit base quedó sin SHA a propósito, porque cualquier commit que lo declare en `main` mueve la punta y lo vuelve falso; la verificación se desplaza al primer commit de la rama | Despachada |
 | 2026-09-09 | 10 | Integración de `E10B` y reversión del modelo precompilado | Merge `23a47cd` + compuerta y smoke verdes. El coordinador tomó la recomendación del handoff y revirtió `772b4a1`: 2.081 líneas en diecisiete archivos —las generadas, los trece `HaveSentinel` que existían solo para que el generador corriera, y el test de deriva que existía solo para cuidarlas— a cambio de nada medible. La reversión dio conflicto en `DependencyInjection.cs`, resuelto a mano, y arrastró una limpieza: la medición de `contenedor.sh` quedó de dos filas. Los números de la falsación se conservan en el handoff | Completada |
 
