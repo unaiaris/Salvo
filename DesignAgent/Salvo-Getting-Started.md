@@ -12,8 +12,9 @@
 - Etapas 2 a 8 integradas y verificadas con la compuerta full-stack y, desde la Etapa 5, con
   `scripts/smoke-ui.sh` sobre el estado integrado.
 - Etapa 9 completada: el MVP quedó cerrado con las nueve etapas verificadas.
-- Etapa 10 en ejecución, la primera fuera del núcleo local: la instancia pública. El estado vigente
-  y los propietarios están en `../Coordination/Workboard.md`; ninguna etapa comienza sin
+- Etapa 10 en ejecución, la primera fuera del núcleo local: la instancia pública, que ya está en pie
+  en **https://salvo-k6wk.onrender.com** — compartida, efímera y con corpus sintético. El estado
+  vigente y los propietarios están en `../Coordination/Workboard.md`; ninguna etapa comienza sin
   autorización explícita.
 
 ## Herramientas
@@ -186,8 +187,44 @@ Tres propiedades de la imagen que conviene conocer antes de tocarla:
 Desde `E10B` la imagen trae además lo que hace publicable a una instancia compartida: la base
 sembrada **horneada adentro** —de ahí que arranque con los datos ya puestos en 41 s a 0,1 vCPU, con
 103 MiB de 512—, el reinicio periódico por antigüedad, el cartel que avisa que es compartida y
-efímera, el limitador de tasa en la capa de Next y el tope de pedidos en la API. Lo único que falta
-es elegir dónde publicarla, que es `E10C`.
+efímera, el limitador de tasa en la capa de Next y el tope de pedidos en la API.
+
+### Publicada
+
+Desde `E10C` esa imagen corre publicada, en el plan gratuito de Render y en la región de Virginia:
+
+**https://salvo-k6wk.onrender.com**
+
+Es compartida —lo que un visitante escribe lo ve el siguiente—, efímera —se reinicia sola y se lleva
+puesto lo que haya—, sintética —los 300 pedidos del corpus, cero datos de una persona real— y lenta
+la primera vez: Render duerme un servicio gratuito tras quince minutos sin tráfico, y volver a estar
+lista le lleva **59 segundos**, cronometrados desde afuera sobre un reinicio real el 2026-09-10.
+
+El reinicio tiene dos mecanismos y conviene no confundirlos. El principal es el de la plataforma: al
+dormirse y despertar, el contenedor es nuevo y el sistema de archivos es efímero, así que la base
+vuelve a la horneada sin que nadie haga nada. El segundo es el tope de antigüedad de treinta minutos
+del punto de entrada, que cubre el caso que el primero no cubre: una instancia con tráfico continuo,
+que nunca llega a estar quince minutos quieta.
+
+**El segundo está verificado en la plataforma, y no era obvio que funcionara.** El punto de entrada
+termina el proceso con código 75, y ninguna página de Render dice qué hace con una salida distinta de
+cero. Un sondeo de cincuenta minutos con tráfico cada veintiséis segundos, el 2026-09-10, capturó dos
+reinicios separados por **29 minutos y 54 segundos**, que es el tope de treinta configurado. El
+segundo se ve entero: un `502` mientras el contenedor no existe, la consola atendiendo sin API
+veintiséis segundos después, y la cola con sus 23 alertas a los 59 segundos. Render lo rehace, y la
+instancia vuelve al corpus horneado.
+
+**No se configuró el health check de Render**, y es una decisión con motivo. La consola tiene
+`/health`, que mira los dos procesos, pero ninguna página oficial dice si los sondeos de la
+plataforma cuentan como tráfico entrante a los efectos del sueño. Si contaran, la instancia no
+dormiría nunca y consumiría las 750 horas mensuales del plan. Ante esa duda no se configura: dormir
+es parte del diseño.
+
+**Y la consola dice que está arrancando en vez de dar un error.** Mientras la API termina de
+levantarse, `server-client.ts` reintenta las lecturas del lado del servidor, y si ese presupuesto se
+agota la pantalla explica la espera en vez de reportar una avería. Solo ocurre cuando
+`SharedInstance__Enabled` está encendida: en una máquina de desarrollo una API que no contesta sigue
+diciéndose como el fallo que es.
 
 ## Restricciones operativas
 

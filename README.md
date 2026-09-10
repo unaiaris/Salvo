@@ -422,13 +422,23 @@ aleatorio, así que dos alertas del mismo score aparecen en cualquier orden entr
 de revisión no muestra qué explicación tenía delante quien decidió, aunque la base lo guarde y sea
 una clave foránea real.
 
-**No hay autenticación**, y por eso no se despliega nada que reciba datos de una persona real. Una
-instancia pública de demostración es la única excepción, y paga su precio: es **compartida y
-efímera**, lo que alguien escribe ahí lo ven los demás hasta el próximo reinicio, y el reinicio
-devuelve todo al corpus sintético.
+**No hay autenticación**, y por eso no se despliega nada que reciba datos de una persona real. La
+[instancia pública de demostración](https://salvo-k6wk.onrender.com) es la única excepción, y paga
+su precio: es **compartida y efímera**, lo que alguien escribe ahí lo ven los demás hasta el próximo
+reinicio, y el reinicio devuelve todo al corpus sintético.
 Tampoco hay observabilidad, ni Postgres, ni consulta en lenguaje natural: están fuera del MVP.
 **Anthropic sigue siendo una decisión aparte** y no tiene adaptador: `AI_PROVIDER=anthropic` se niega
 a arrancar, a propósito.
+
+**La instancia pública no tiene región sudamericana.** El plan gratuito de Render ofrece Oregon,
+Ohio, Virginia, Frankfurt y Singapur, y ninguna está en Sudamérica. Está en Virginia, que es la más
+cercana a Montevideo y a São Paulo, y esa distancia se suma a un arranque que ya es lento.
+
+**Mantenerla despierta se evaluó y se descartó.** Un pinger cada catorce minutos evitaría el sueño,
+pero consumiría unas 730 de las 750 horas mensuales del plan, dejando a la instancia al borde de la
+suspensión todos los meses. Y Render no documenta esa práctica como permitida. Un proyecto que
+verifica cada afirmación antes de publicarla no puede apoyar lo único que expone en un mecanismo que
+no verificó.
 
 <!-- corpus:inicio -->
 
@@ -477,6 +487,26 @@ termine una demo.
 <!-- corpus:fin -->
 
 ## Cómo correrlo
+
+### Probarlo sin instalar nada
+
+**https://salvo-k6wk.onrender.com**
+
+Es una instancia de demostración, y conviene saber cuatro cosas antes de abrirla.
+
+Es **compartida**: lo que escribas ahí lo ve quien entre después. Una nota de revisión es texto
+libre, anónimo y público hasta el próximo reinicio. Es **efímera**: se reinicia sola y se lleva
+puesto lo que haya, incluido lo que hayas escrito. Es **sintética**: los mismos 300 pedidos
+generados que describe este README, y ni un dato de una persona real. Y es **lenta la primera vez**:
+duerme tras quince minutos sin visitas, y volver a estar lista le lleva cerca de un minuto. El
+número exacto es **59 segundos**, cronometrados desde afuera sobre un reinicio real el 2026-09-10:
+del instante en que dejó de responder al instante en que la cola volvió a mostrar sus 23 alertas.
+
+Que tarde no es un descuido: es lo que cuesta arrancar dos procesos con 0,1 de un núcleo, en el plan
+gratuito donde corre. Render muestra su propia pantalla de carga mientras el contenedor sube, y la
+consola muestra la suya mientras la API termina de arrancar.
+
+### En tu máquina
 
 Con .NET 10.0.400, Node.js 24.20.0 y npm 11.19.0 en `PATH`. Hacen falta **tres terminales**: las dos
 primeras quedan ocupadas mientras los procesos corren.
