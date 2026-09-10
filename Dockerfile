@@ -8,9 +8,14 @@
 #
 # Las versiones no se eligen acá: las clava el repositorio y esta imagen las obedece.
 #
-#   - `global.json` fija el SDK en 10.0.400 con `rollForward: disable`. La imagen
-#     `mcr.microsoft.com/dotnet/sdk:10.0` trae exactamente 10.0.400 — comprobado con
-#     `dotnet --list-sdks` dentro del contenedor—, así que el build no arranca con otro.
+#   - `global.json` fija el SDK en 10.0.400 con `rollForward: disable`, y por eso la imagen del SDK
+#     se pide **por su versión exacta** —`sdk:10.0.400`— y no por la etiqueta `10.0`, que se mueve
+#     sola. **Esto ya falló una vez, y conviene que quede escrito**: `E10A` comprobó con
+#     `dotnet --list-sdks` que `sdk:10.0` traía 10.0.400 y lo dejó afirmado acá; nueve días después
+#     esa etiqueta traía 10.0.401, y el primer build en una máquina sin caché —la de Render— murió
+#     en `dotnet restore` con «Requested SDK version: 10.0.400 / Installed SDKs: 10.0.401». La
+#     exigencia fija estaba apoyada en una etiqueta móvil y funcionaba por caché. Es exactamente el
+#     criterio que el bloque de Node explica más abajo, y que acá faltaba.
 #   - `frontend/package.json` fija Node en 24.20.0 y npm en 11.19.0. Se baja el tarball oficial de
 #     esa versión exacta en vez de usar una imagen `node:24` que se mueve sola.
 #
@@ -20,8 +25,14 @@
 # configuraciones de reglas antes de construir el host, así que una base sin husos horarios —una
 # variante `alpine` o `-chiseled`, por ejemplo— no arranca, y falla en un lugar donde el error no se
 # lee como lo que es. Queda dicho para quien cambie la base.
+#
+# **La de runtime sí se pide por etiqueta flotante, y es a propósito.** Nada en el repositorio fija
+# su parche, así que no hay ninguna exigencia que una etiqueta móvil pueda incumplir; y es la única
+# de las dos que **viaja en la imagen final**, así que conviene que siga recibiendo parches de
+# seguridad. La del SDK es lo contrario en los dos puntos: hay algo que la fija, y nada de ella
+# llega al contenedor que corre.
 
-ARG DOTNET_SDK_IMAGE=mcr.microsoft.com/dotnet/sdk:10.0
+ARG DOTNET_SDK_IMAGE=mcr.microsoft.com/dotnet/sdk:10.0.400
 ARG DOTNET_RUNTIME_IMAGE=mcr.microsoft.com/dotnet/aspnet:10.0
 ARG NODE_VERSION=24.20.0
 
