@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ConsoleHeader } from "@/components/console-header";
 import { SharedInstanceNotice } from "@/components/shared-instance-notice";
+import { StartingUpNotice } from "@/components/starting-up-notice";
 import type { Language } from "@/lib/api/contract";
 import { accessibilityReport } from "@/test/axe";
 import {
@@ -132,23 +133,32 @@ describe("la consola de la instancia compartida", () => {
    * una región más al lado del cartel y de la cabecera, y la pregunta que contesta esta prueba es
    * si alguien que navega por regiones puede llegar a ella y saber qué es.
    *
+   * <h4>Por qué se compone a mano en vez de dejar que la página falle</h4>
+   *
+   * Porque el camino real pasa por el reintento de `server-client.ts`, que en la instancia
+   * compartida espera decenas de segundos a que la API arranque —esa espera **es** la
+   * funcionalidad—, y una prueba que la viva de verdad se cuelga contra el plazo de la suite. Así
+   * que la separación es deliberada: acá se mide **el árbol**, y que la página llegue a esta
+   * pantalla y no a un `FailureNotice` lo miden `starting-up-notice.test.tsx` y
+   * `cold-start.test.ts`, que para eso mueven un reloj falso.
+   *
    * Los dos idiomas, porque el texto entero cambia y con él los rótulos accesibles.
    */
-  it("la pantalla de arranque, cuando la API todavía no contesta", async () => {
-    vi.stubEnv("SharedInstance__Enabled", "true");
-    fetchMock.mockImplementation((url: URL) =>
-      url.pathname === "/api/system/capabilities"
-        ? Promise.resolve(jsonResponse(wireCapabilities({ sharedInstance: true, resetMinutes: 30 })))
-        : Promise.reject(new TypeError("fetch failed")),
+  it.each(["es", "pt"] as const)("la pantalla de arranque, con su marco (%s)", async (language) => {
+    // Un idioma por caso y no un bucle dentro de uno: dos renders sin desmontar dejan dos `header`
+    // y dos `main` en el documento, y `landmark-no-duplicate-banner` los cuenta. La limpieza entre
+    // pruebas la hace Testing Library sola.
+    respondWith(wireAlertList(), wireCapabilities({ sharedInstance: true, resetMinutes: 30 }));
+
+    const screenTree = await consoleScreen(
+      <StartingUpNotice language={language} />,
+      language,
+      { sharedInstance: true },
     );
 
-    for (const language of ["es", "pt"] as const) {
-      const screenTree = await consoleScreen(AlertsPage(), language, { sharedInstance: true });
-
-      expect(await accessibilityReport(screenTree), language).toBe("");
-      expect(screenTree.querySelector('[role="status"]'), language).not.toBeNull();
-      expect(screenTree.querySelector('[role="alert"]'), language).toBeNull();
-    }
+    expect(await accessibilityReport(screenTree)).toBe("");
+    expect(screenTree.querySelector('[role="status"]')).not.toBeNull();
+    expect(screenTree.querySelector('[role="alert"]')).toBeNull();
   });
 });
 
