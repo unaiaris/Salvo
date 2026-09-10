@@ -124,6 +124,32 @@ describe("la consola de la instancia compartida", () => {
       ),
     ).toBe("");
   });
+
+  /**
+   * La pantalla que ve la primera visita después de que la instancia se durmió, con su marco.
+   *
+   * Medirla dentro del marco y no sola es lo que hace que cuenten `region` y `landmark-unique`: es
+   * una región más al lado del cartel y de la cabecera, y la pregunta que contesta esta prueba es
+   * si alguien que navega por regiones puede llegar a ella y saber qué es.
+   *
+   * Los dos idiomas, porque el texto entero cambia y con él los rótulos accesibles.
+   */
+  it("la pantalla de arranque, cuando la API todavía no contesta", async () => {
+    vi.stubEnv("SharedInstance__Enabled", "true");
+    fetchMock.mockImplementation((url: URL) =>
+      url.pathname === "/api/system/capabilities"
+        ? Promise.resolve(jsonResponse(wireCapabilities({ sharedInstance: true, resetMinutes: 30 })))
+        : Promise.reject(new TypeError("fetch failed")),
+    );
+
+    for (const language of ["es", "pt"] as const) {
+      const screenTree = await consoleScreen(AlertsPage(), language, { sharedInstance: true });
+
+      expect(await accessibilityReport(screenTree), language).toBe("");
+      expect(screenTree.querySelector('[role="status"]'), language).not.toBeNull();
+      expect(screenTree.querySelector('[role="alert"]'), language).toBeNull();
+    }
+  });
 });
 
 describe("las cinco pantallas, con su marco", () => {
