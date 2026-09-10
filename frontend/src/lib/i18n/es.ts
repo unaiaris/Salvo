@@ -76,6 +76,24 @@ export const es = {
       + "minutos.",
   },
 
+  /**
+   * La pantalla que ve quien llega mientras la API todavía está arrancando, y **solo** en la
+   * instancia compartida. Fuera de ella un fallo de la API es un fallo y se dice como tal.
+   *
+   * No es un mensaje de error con otro color: no dice que algo salió mal, porque no salió mal.
+   * Dice qué está pasando, cuánto suele durar y que no hay que hacer nada.
+   */
+  startingUp: {
+    title: "Salvo se está levantando",
+    body: (seconds: string) =>
+      "Esta instancia se apaga sola cuando pasa un rato sin visitas, para no gastar el plan "
+      + `gratuito en el que corre. Volver a levantarla lleva cerca de ${seconds} segundos: los datos `
+      + "ya vienen dentro de la imagen, así que lo único que falta es que el proceso termine de "
+      + "arrancar.",
+    reassurance: "No hay nada que hacer. Esta pantalla se actualiza sola en cuanto esté lista.",
+    retryNow: "Reintentar ahora",
+  },
+
   home: {
     eyebrow: "Consola antifraude",
     title: "Salvo concentra el riesgo antifraude en un núcleo .NET auditable.",

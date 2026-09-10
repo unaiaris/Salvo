@@ -57,6 +57,16 @@ export const pt: Dictionary = {
       + "minutos.",
   },
 
+  startingUp: {
+    title: "O Salvo está subindo",
+    body: (seconds: string) =>
+      "Esta instância se desliga sozinha quando fica um tempo sem visitas, para não gastar o plano "
+      + `gratuito em que ela roda. Subir de novo leva cerca de ${seconds} segundos: os dados já vêm `
+      + "dentro da imagem, então só falta o processo terminar de iniciar.",
+    reassurance: "Não há nada a fazer. Esta tela se atualiza sozinha assim que estiver pronta.",
+    retryNow: "Tentar de novo agora",
+  },
+
   home: {
     eyebrow: "Console antifraude",
     title: "O Salvo concentra o risco antifraude em um núcleo .NET auditável.",
