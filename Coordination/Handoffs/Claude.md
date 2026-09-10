@@ -5602,7 +5602,7 @@ Contra la instancia publicada:
 | `curl <URL>/dashboard`, leyendo el HTML | «Denegados por el proveedor sin alerta local» y **300 pedidos** en la corrida |
 | `curl -o /dev/null -w '%{http_code}' <URL>/api/dashboard` | **404**, que es el acierto: la API no se publica |
 | `curl … <URL>/api/alerts` | **404** |
-| Camino tibio, `/alerts` | **0,26 s a 0,70 s**, sobre 45 muestras del sondeo largo |
+| Camino tibio, `/alerts` | **0,25 s a 1,20 s, mediana 0,37 s**, sobre las 112 muestras sanas de las 115 del sondeo largo |
 | El cartel en pantalla | Dice compartida, sintética, que lo escrito lo ve todo el mundo, y **«como máximo cada 30 minutos»** |
 | Limitador, dos orígenes | 10 y luego `429`; el segundo origen entra a la primera |
 
@@ -5626,10 +5626,15 @@ caza:
   despertar completo desde afuera**, y por eso ningún documento de esta entrega afirma ese número
   como medición propia. Lo que el README y la guía dicen sobre la espera sale de la documentación de
   Render y de la medición local de `E10B`, con la fuente escrita al lado.
-- **El plazo de 5 s se queda corto de vez en cuando, incluso en caliente.** Una de 45 peticiones del
-  sondeo largo devolvió el error de API con la instancia despierta y en pleno uso. Con el arreglo ese
-  caso ahora se reintenta en vez de mostrar un error, así que la solución cubre más de lo que se
-  propuso cubrir; pero conviene saber que la causa no es solo el arranque.
+- **Una corrección a este mismo handoff, hecha cuando el sondeo terminó.** Con datos parciales había
+  escrito acá que el plazo de 5 s «se queda corto de vez en cuando, incluso en caliente», tomando el
+  error de las 00:55:23 por un hipo de una instancia despierta. **No lo era**: cuando llegó el
+  segundo evento, 29 min 54 s más tarde, quedó claro que el primero era el reinicio anterior del
+  mismo ciclo. El sondeo completo tiene **115 peticiones, y sus únicas tres anomalías son los dos
+  reinicios**; ninguna ocurrió con la instancia estable. Así que no hay evidencia de que el plazo se
+  quede corto en caliente, y la afirmación se retira en vez de dejarse escrita a medias. Queda el
+  ejemplo: una muestra parcial de una serie temporal admite la explicación equivocada, y la que la
+  descarta es la muestra siguiente.
 - **El script del sondeo largo hace dos peticiones por fila** —una para el cuerpo y otra para el
   tiempo—, así que el tiempo de una fila no es el de la petición cuyo cuerpo se leyó. No afecta a las
   conclusiones, que son sobre qué devolvió cada una, pero la columna de tiempos hay que leerla como
