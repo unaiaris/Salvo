@@ -61,6 +61,10 @@ cambia alcance o arquitectura, actualizar primero su bitácora y después los do
   sandbox compartida que se reinicia sola, con corpus sintético. La invariante sobre despliegue es la
   decisión 70, que reemplazó a la 8 conservando su motivo. `E10A` (`29677f6`), `E10B` (`23a47cd`) y
   `E10C` (`51eec4c`) integradas y verificadas. **No hay etapa abierta**: lo que venga es post-MVP.
+- **Etapa 11 abierta el 2026-09-30: la IA de verdad.** `E11A-INTEGRACION-CONTINUA` primero; el
+  adaptador de Anthropic (`E11B`) espera su diseño y su revisión adversarial. Lo que no cambia: la IA
+  redacta explicaciones de decisiones ya tomadas y **nunca decide fraude, severidad ni bloqueo**, y
+  todo texto de un modelo pasa por el mismo verificador que la plantilla antes de persistirse.
 - El SDK se pide **por versión exacta** en el `Dockerfile`, porque `global.json` lo fija con
   `rollForward: disable`. Una exigencia fija no se apoya en una etiqueta móvil: la de `sdk:10.0`
   cambió de parche y rompió el primer build en una máquina sin caché.

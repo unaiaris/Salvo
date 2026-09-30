@@ -1,10 +1,12 @@
 # Salvo — Workboard Codex–Claude
 
-> Estado: **MVP cerrado y publicado. La Etapa 10 está completa.** Salvo se usa desde cualquier
-> navegador, gratis y sin instalar nada, en https://salvo-k6wk.onrender.com — compartida, efímera y
-> con corpus sintético. `E10C` verificada (merge `51eec4c`). **No hay etapa siguiente abierta**:
-> lo que venga es post-MVP y necesita aprobación explícita, como todas las anteriores.
-> Última actualización: 2026-09-10
+> Estado: **MVP cerrado y publicado; Etapa 11 abierta — la IA de verdad.** El coordinador la
+> aprobó el 2026-09-30, con el criterio de que el puesto al que apunta valora el conocimiento y la
+> aplicación de IA. `E11A-INTEGRACION-CONTINUA` tiene brief y espera `brief-check`: va primero porque
+> la etapa toca el camino por el que un texto escrito por un modelo llega a la base, y la compuerta
+> tiene que correr sola antes de tocarlo. `E11B`, el adaptador de Anthropic, espera su diseño.
+> Instancia pública: https://salvo-k6wk.onrender.com
+> Última actualización: 2026-09-30
 > Responsable: coordinador de la etapa
 
 ## Estados
@@ -26,6 +28,8 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 | `E10A-CONTENEDOR-Y-MEDICION` | `Verificada` (merge `29677f6`) | `Claude` | Opus 5 · `high` | `Dockerfile` y `.dockerignore` nuevos, `scripts/**`, `frontend/next.config.ts` y el borde que lo describe, `Program.cs` y `appsettings*`, `Persistence/**` y el `csproj` **solo si** el camino de migración lo exige, `backend/tests/**`, `frontend/src/test/**` y `Salvo-Getting-Started.md`. **La reserva completa vive en el brief; esta fila la resume.** |
 | `E10B-INSTANCIA-COMPARTIDA` | `Verificada` (merge `23a47cd`) | `Claude` | Opus 5 · `high` | **La base sembrada horneada en la imagen** y el modelo de EF compilado —las dos que `E10A` creyó obligatorias; **la segunda se midió, no aportó nada y se revirtió**—, el reinicio como copia de ese archivo, el cartel en los dos idiomas, el límite en la capa de Next, el tope de pedidos por instancia, y la sonda de salud. **Desbloqueada**: la decisión 70 reemplazó a la 8 en sus seis lugares. **La reserva completa vive en el brief; esta fila la resume.** |
 | `E10C-PUBLICACION` | `Verificada` (merge `51eec4c`) | `Claude` | Opus 5 · `high` | **La plataforma ya está elegida en el brief**: Render, plan Free, por su modo de falla —sin método de pago suspende en vez de cobrar—. Queda confirmar los límites en documentación oficial el día del despliegue, resolver las cinco comprobaciones que no la tienen, desplegar, medir el arranque en frío desde afuera, y el link en README, artículo y guía. **La reserva completa vive en el brief; esta fila la resume.** |
+| `E11A-INTEGRACION-CONTINUA` | `Propuesta` | `Claude` | Opus 5.5 · `high` | `.github/workflows/**`, el cartel del README, y `autoDeployTrigger` en `render.yaml` **solo** si la documentación oficial de Render confirma un despliegue condicionado a los checks. **La reserva completa vive en el brief; esta fila la resume.** |
+| `E11B-ADAPTADOR-ANTHROPIC` | `Propuesta` | `Claude` | por acordar en el diseño | El adaptador real detrás de `IExplanationProvider`. La Etapa 7 dejó preparadas las columnas de costo, los códigos de fallo del proveedor y el timeout en el puerto. **Espera `E11-DISENO` y su revisión adversarial.** |
 | `E9D-CIERRE` | `Verificada` (merge `c2e9a65`) | `Claude` | Opus 5 · `high` | Repaso final: las seis capturas regeneradas, las cifras del corpus en README y guion, `docs/muestras/`, el artículo para revisores, y la deuda dicha —contraste sin verificar, recorrido parcial, `glosario.mjs` dentro de `src/`, `MER_US_MARKET`, la tasa base de construcción y la lista de bases `.db`—. **La reserva completa vive en el brief; esta fila la resume.** |
 
 **El orden es obligatorio y está argumentado en el diseño v2**: la fixture primero y el motor
