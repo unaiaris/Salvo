@@ -1,10 +1,26 @@
 # Salvo — Mapa de contenido
 
 > Estado del documento: vigente
-> Última actualización: 2026-09-06
+> Última actualización: 2026-09-30
 > Fuente de verdad: [[Salvo-Blueprint]]
 
 Índice principal de la documentación de diseño y ejecución.
+
+## Por dónde empezar
+
+Cuatro recorridos, según qué quieras entender. Ninguno pide leerlos todos.
+
+- **El producto, en veinte minutos.** La [instancia pública](https://salvo-k6wk.onrender.com) con el
+  `../docs/guion-demo.md` al lado, y después `../README.md`. El guion dice qué mirar y en qué orden;
+  el README explica por qué está hecho así.
+- **Las decisiones, y por qué.** La bitácora del Blueprint (sección 13) es la lista completa. Para
+  ver cómo se tomaron, `../Coordination/Tasks/E<N>-DISENO.md` junto a su
+  `E<N>-revision-adversarial.md`: el diseño y el modelo que lo atacó, uno al lado del otro.
+- **Cómo se construyó.** `../Coordination/Workboard.md`, sección de lecciones — es lo más denso del
+  repositorio por línea. Después, la entrada de una tarea cualquiera en
+  `../Coordination/Handoffs/Claude.md`, con sus mediciones y sus falsaciones.
+- **Cómo se verifica lo que se afirma.** `../scripts/check.sh` y `../scripts/check-docs.sh`, con la
+  sección «Límites declarados» del README, que es la lista de lo que el proyecto decidió no hacer.
 
 ## Documentos
 
@@ -14,6 +30,8 @@
 - [[Salvo-Getting-Started|Getting Started]] — requisitos y flujo operativo.
 - [[Salvo-Portability|Portabilidad]] — separación entre agente, IA y proveedor antifraude.
 - [[Salvo-Project-Instructions|Project Instructions]] — instrucciones opcionales para una sala de diseño.
+- `../docs/guion-demo.md` — el recorrido de demostración, paso a paso, con qué mirar en cada pantalla.
+- `../docs/capturas/` — las seis capturas del README, regeneradas desde una base nueva.
 - `../AGENTS.md` — reglas permanentes de implementación. Rigen a los dos agentes, porque
   `../CLAUDE.md` las importa.
 - `../CLAUDE.md` — memoria raíz de Claude Code; importa las reglas y el estado compartidos.
@@ -63,9 +81,12 @@
 7. Explicabilidad determinista. Cerró con plantilla propia; Anthropic quedó como decisión aparte.
 8. El argumento del proyecto: README, diagramas, capturas y guion de demo.
 9. Corpus, idiomas y cierre: fixture enriquecida, señales estructuradas, portugués y accesibilidad.
+10. La instancia pública: un contenedor con los dos procesos, la base sembrada horneada adentro, el
+    reinicio por antigüedad, y el despliegue en un plan gratuito.
 
-Las Etapas 1 a 7 están integradas y verificadas. El estado vigente vive en [[Salvo-Progress]]; esta
-lista solo dice qué es cada etapa.
+**Las diez etapas están integradas y verificadas**, y el MVP está publicado en
+https://salvo-k6wk.onrender.com. El estado vigente vive en [[Salvo-Progress]]; esta lista solo dice
+qué es cada etapa.
 
 ### Post-MVP
 
