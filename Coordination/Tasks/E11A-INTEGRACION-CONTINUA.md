@@ -7,7 +7,7 @@
 - Tipo: `implementación`
 - Propietario: `Claude`
 - Coordinador: Unai Arismendes
-- Fecha: 2026-09-30
+- Fecha: 2026-09-30 · revisado el 2026-10-01 tras cuatro rondas de `brief-check`
 - Rama/worktree: `claude/e11a-ci`
 - Commit base: **lo escribe el primer commit de la rama**, con lo que devuelva
   `git merge-base main HEAD`. No se declara de antemano: el commit que lo escribiera en `main`
@@ -18,7 +18,9 @@
   `ClaudeAgent/Claude-Model-Policy.md`: la primera ejecución en Linux puede pedir ajustes del flujo
   que no se pueden prever desde acá. El `brief-check` ya vio dos candidatos —ver «Lo que
   probablemente falle la primera vez»—. El `brief-check`, con un modelo distinto.
-- Dependencias: ninguna. `E11B` —el adaptador de Anthropic— depende de ésta.
+- Dependencias: **`E11A0-HUSO-HORARIO`, integrada en `main` antes de darle a esta.** El runner corre
+  en UTC, y con el defecto de fechas que corrige `E11A0` la suite del frontend sale roja por un motivo
+  de producto, no de entorno. `E11B` —el adaptador de Anthropic— depende de ésta.
 
 ## Resultado esperado
 
@@ -28,9 +30,16 @@ sin ningún secreto. Y `render.yaml` declara que `main` solo se despliega en Ren
 está en verde.
 
 **Lo que esta tarea verifica es el valor declarado; que la plataforma lo cumple lo observa el
-coordinador al integrar**, porque solo se puede ver después del merge a `main` y desde el panel de
-Render. La tarea entrega los pasos de esa observación, y el coordinador la registra en la fila de
-integración del Progress.
+coordinador después de integrar**, porque solo se puede ver con el flujo en `main` y desde el panel de
+Render. La tarea entrega los pasos de esa observación, y el coordinador la registra en el Progress.
+
+**La observación no se hace sobre el commit de merge.** Ese commit modifica `render.yaml`, y la
+documentación de Render dice que «Each push to the linked branch that modifies your Blueprint file
+triggers a deploy of any added or modified resources»
+(https://render.com/docs/infrastructure-as-code), sin decir si esa sincronización respeta
+`checksPass`. Puede desplegar sin esperar, y eso no probaría nada. **La que cuenta es el primer commit
+a `main` posterior al merge que no toque `render.yaml`** —en la práctica, el cierre del estado
+canónico—: ese despliegue tiene que esperar la corrida verde antes de empezar.
 
 ### Por qué va primero, y por qué dentro de esta etapa
 
@@ -105,14 +114,18 @@ adaptador.
      construcciones en Render», leídas del panel de despliegues.
      La caché de capas de Docker hace que un commit de documentos reconstruya en medio minuto. El
      riesgo real no es el cupo: es **desplegar un `main` en rojo**.
-   - **Se usa `checksPass`**: la documentación de Render lo describe como desplegar solo cuando todos
-     los checks pasan, y el `brief-check` lo encontró documentado el 2026-10-01. Con la compuerta
-     corriendo en cada push, `main` solo se despliega en verde. La tarea vuelve a abrir esa página el
-     día que ejecute; si cambió, se detiene y consulta.
-   - **Una consecuencia que el comentario tiene que decir**: según la misma documentación, Render no
-     despliega un commit en el que no detecta ningún check. Hoy no pasa, porque todo push corre la
-     compuerta. Pero si algún día el flujo deja de correr para ciertos cambios —un filtro por
-     carpetas, por ejemplo—, esos commits a `main` **no se despliegan nunca**, y nada avisa.
+   - **Se usa `checksPass`.** La especificación del Blueprint
+     (https://render.com/docs/blueprint-spec) lo describe así, leído el 2026-10-01: «Trigger a deploy
+     only if the linked branch's CI checks pass». Con la compuerta corriendo en cada push, `main` solo
+     se despliega en verde.
+   - **Una consecuencia que el comentario tiene que decir.** La página de despliegues
+     (https://render.com/docs/deploys) dice que con ese valor Render no despliega si «Zero checks are
+     detected for the new commit». Hoy no pasa, porque todo push corre la compuerta. Pero si algún día
+     el flujo deja de correr para ciertos cambios —un filtro por carpetas, por ejemplo—, esos commits
+     a `main` **no se despliegan nunca**, y nada avisa.
+   - **Las citas se vuelven a comprobar el día que se ejecute**: el agente abre esas dos páginas, y la
+     de infraestructura como código citada en «Resultado esperado», y compara con estas citas. Si alguna cambió o desapareció, se detiene y consulta. El comentario
+     de `render.yaml` lleva las dos URL.
    - **Nunca `off`**: con la compuerta corriendo sola, un despliegue a mano es un paso más que alguien
      tiene que recordar, y la medición no lo justifica.
    - **Se reescribe el comentario**, con las cifras medidas y la decisión tomada, para
@@ -127,11 +140,18 @@ son certezas: son lo primero que hay que mirar si el primer push sale rojo.
   en el runner es **entorno, no una dependencia del proyecto**, y está permitido.
 - **Los proyectos de test nunca se restauraron en modo bloqueado fuera de macOS**: el `Dockerfile` solo
   restaura el proyecto de la API. Si un lockfile difiere entre plataformas, es hallazgo y consulta.
+- **El npm que trae Node no tiene por qué ser el que declara `packageManager`** (`npm@11.19.0`).
+  El flujo instala la versión declarada, leída del archivo, y la comprueba con `npm --version` antes de
+  correr los scripts.
+- **Un test de fechas que sale corrido un día** no es un problema del runner: es el defecto que corrige
+  `E11A0`, y significa que esa tarea no está integrada en la base de la rama. Se detiene y consulta.
 
 ### Fuera
 
 - Cambiar `check.sh` o `smoke-ui.sh`. Si algo falla en CI por el entorno, se ajusta el flujo; si
   hace falta cambiar un script, es hallazgo y consulta.
+- **Fijar la zona horaria** (`TZ`) en el flujo, el `Dockerfile` o `render.yaml` para que un test
+  pase. Esconde el defecto en vez de corregirlo; la corrección es de producto y es `E11A0`.
 - Dependabot, CodeQL, publicación de artefactos, matrices de sistemas operativos.
 - Cualquier cambio de producto.
 
@@ -187,8 +207,9 @@ Ninguno. `E11B` todavía no tiene brief.
 - [ ] El cartel de estado en el README, y `./scripts/check-docs.sh` verde.
 - [ ] El punto 8: `autoDeployTrigger: checksPass`, con el comentario reescrito —cifras medidas,
       decisión tomada, y la consecuencia de los commits sin checks— y la URL oficial que lo sostiene.
-- [ ] Los pasos para que el coordinador observe en Render, al integrar, que el despliegue del merge
-      **esperó** a los checks y que el servicio tomó el valor nuevo.
+- [ ] Los pasos para que el coordinador observe en Render, **en el primer commit a `main` posterior al
+      merge que no toque `render.yaml`**, que el despliegue **esperó** a los checks, y que el servicio
+      tomó el valor nuevo.
 
 ## Verificación y evidencia
 
@@ -197,7 +218,7 @@ Ninguno. `E11B` todavía no tiene brief.
 | `./scripts/check.sh` en local | Verde |
 | El push de `claude/e11a-ci` | `check.sh` y `smoke-ui.sh` verdes, con la duración de cada job |
 | El push de `claude/e11a-falsacion` | **Roja**, y el log de `check.sh` nombra el test invertido |
-| **Al integrar**, en el panel de Render —lo observa el coordinador— | El servicio muestra el disparo condicionado a los checks, y el despliegue del merge esperó la corrida verde antes de empezar |
+| **Después de integrar**, en el panel de Render —lo observa el coordinador— | El servicio muestra el disparo condicionado a los checks, y el despliegue del primer commit posterior al merge que no toca `render.yaml` esperó la corrida verde antes de empezar |
 | `./scripts/check-docs.sh` | Verde con el cartel agregado |
 
 ## Decisiones delegadas
@@ -211,6 +232,9 @@ Ninguno. `E11B` todavía no tiene brief.
 - la restauración bloqueada (`--locked-mode`) falla en Linux por un lockfile: cambiar lockfiles está
   fuera de esta tarea;
 - `check.sh` o `smoke-ui.sh` fallan en CI por algo que exige cambiar el script;
+- un test falla en el runner y arreglarlo exige tocar código de producto o un test: eso no es entorno,
+  y queda fuera de esta tarea;
+- alguna de las tres citas de Render del punto 8 y de «Resultado esperado» cambió o ya no está;
 - el flujo necesita un secreto para algo;
 - la documentación de Render sobre el punto 8 es ambigua;
 - aparece cualquier paso que exija crear una cuenta, una credencial o aceptar términos.
@@ -220,8 +244,9 @@ Ninguno. `E11B` todavía no tiene brief.
 - Resumen, archivos tocados, y las dos corridas —la verde de `claude/e11a-ci` y la roja de la
   falsación— con su enlace y la duración de cada job.
 - Qué se decidió sobre el punto 8, con la fuente oficial.
-- **Los pasos de la observación en Render**, escritos para que el coordinador los siga al integrar: dónde
-  mirar en el panel que el servicio tomó el valor, y cómo se ve un despliegue que espera a los checks.
+- **Los pasos de la observación en Render**, escritos para que el coordinador los siga después de
+  integrar: dónde mirar en el panel que el servicio tomó el valor, cómo se ve un despliegue que espera
+  a los checks, y por qué se mira el primer commit posterior al merge y no el merge.
 - Supuestos, riesgos y pendientes.
 - Estado: `Lista para integrar | Parcial | Bloqueada`.
 - Handoff en `Coordination/Handoffs/Claude.md`.

@@ -12,12 +12,12 @@
 | Estado del proyecto | **MVP cerrado y publicado.** Las nueve etapas completadas y verificadas, y la Etapa 10 también: https://salvo-k6wk.onrender.com |
 | Etapa completada | Etapa 10 — La instancia pública (`E10A`, `E10B` y `E10C` integradas y verificadas) |
 | Próxima etapa | **Etapa 11 — la IA de verdad**: integración continua y el adaptador de Anthropic |
-| Estado de la próxima etapa | Abierta el 2026-09-30. `E11A` con brief, en `brief-check`; `E11B` con diseño v2, esperando su brief |
+| Estado de la próxima etapa | Abierta el 2026-09-30. `E11A0` —el huso horario de las fechas del dashboard— con brief, en `brief-check`, y va primero; `E11A` con brief, en `brief-check`, depende de ella; `E11B` con diseño v2, esperando su brief |
 | Bloqueo actual | Ninguno |
 | Dependencias externas | Ninguna para el núcleo local |
 | Anthropic | Previsto para después del núcleo; decisión aparte, preparada por D11 |
 | Koin sandbox | Post-MVP; sujeto a onboarding y credenciales |
-| Coordinación Codex–Claude | `E11A-INTEGRACION-CONTINUA` propuesta para Opus 5.5 · `high`; `E11B-ADAPTADOR-ANTHROPIC` propuesta |
+| Coordinación Codex–Claude | `E11A0-HUSO-HORARIO` propuesta para Sonnet 5.5 · `high`; `E11A-INTEGRACION-CONTINUA` propuesta para Opus 5.5 · `high`; `E11B-ADAPTADOR-ANTHROPIC` propuesta |
 
 **Este bloque se actualiza en cada cierre de etapa y en cada alta de tarea.** Quedó desfasado
 durante toda la Etapa 7 porque los cierres actualizaron el registro de actividad y los checklists
@@ -50,7 +50,7 @@ Solo puede existir una etapa `En curso` a la vez.
 | 8 | El argumento del proyecto | Completada | README, diagramas, capturas y guion de demo; cada afirmación contrastada contra el código | Merges `1243d54` y `6ae7750`; `check-docs.sh` incorporado a la compuerta; seis capturas revisadas una por una |
 | 9 | Corpus, idiomas y cierre | Completada | Seis reglas y tres bandas alcanzables; F1 deja de valer 1,00 | Merges `41343c1` y `4f7daf9`. F1 holdout 0,632 y calibración 0,688; las seis reglas disparan y las tres bandas existen; el motor escribe campos y el extractor de prosa ya no existe. y `0d65f9a`. El idioma es del despliegue y entra en la identidad de la explicación; el castellano sigue siendo el valor por defecto. La consola pasa de 6 a 31 reglas de accesibilidad más `axe-core` en la compuerta. `E9D` despachada |
 | 10 | La instancia pública | **Completada** | Cualquiera la usa desde el navegador, gratis, sin instalar nada | Merges `29677f6` y `23a47cd`. **Arranca con los datos ya puestos en 41 s a 0,1 vCPU**, contra 119,7 s en `E10A`, con 103 MiB de 512; un contenedor recién levantado ya muestra 23 alertas, 51 denegados sin alerta local y una explicación escrita. Se reinicia sola por antigüedad. Decisión 70 escrita. Falta publicarla: `E10C` |
-| 11 | La IA de verdad | **Abierta** | El adaptador de Anthropic escribe la explicación, y el verificador de la Etapa 7 lo gobierna igual que a la plantilla | `E11A` —la compuerta en cada push— primero; `E11B` espera su diseño |
+| 11 | La IA de verdad | **Abierta** | El adaptador de Anthropic escribe la explicación, y el verificador de la Etapa 7 lo gobierna igual que a la plantilla | `E11A0` —las fechas del dashboard en UTC— primero, `E11A` —la compuerta en cada push— después; `E11B` espera su brief |
 | Post-MVP | Koin sandbox, auth, observabilidad | Pendiente | Aprobación independiente por capacidad | Pendiente |
 
 ## Etapa 1 — Resultado verificado
@@ -263,9 +263,14 @@ tercera. (Sección histórica de la Etapa 4: las Etapas 5, 6 y 7 se completaron 
 
 ### Etapa 11 — La IA de verdad
 
+- [ ] **`E11A0`**: `formatCalendarDate` deja de depender de la zona de la máquina. Un test que falla
+      con el defecto —falsado en la Mac del coordinador—, la suite corriendo en una zona declarada
+      distinta de la de negocio, y **la tabla del dashboard publicado mostrando los mismos lunes que
+      el eje**, comprobado desde afuera después del despliegue.
 - [ ] **`E11A`**: la compuerta corre sola en cada push, con las versiones exactas del repositorio y
       las acciones fijadas por SHA. Una corrida verde con la compuerta y el recorrido, y una
-      falsación roja. Y el despliegue condicionado a los checks, **observado en Render al integrar**.
+      falsación roja. Y el despliegue condicionado a los checks, **observado en Render en el primer commit
+      a `main` posterior al merge que no toque `render.yaml`**, porque el merge sí lo toca.
 - [ ] **`E11B`**: el adaptador de Anthropic, gobernado por el verificador existente, con la consola
       diciendo quién escribió cada párrafo.
 - [ ] **`E11C`**: la corrida real, con la evidencia publicada — los textos aceptados, y el código y la
@@ -470,6 +475,7 @@ desempate de la cola por identificador aleatorio, y pintar `explanationId` en el
 | 2026-09-07 | 9 | Integración de `E9A-FIXTURE` | Merge `41343c1` + compuerta y smoke verdes. F1 holdout 0,632 y calibración 0,688, verificados por el coordinador contra las matrices que los tests fijan | Completada |
 | 2026-09-09 | 10 | `E10B-INSTANCIA-COMPARTIDA` | Once commits. **119,7 s a 41 s** hasta el primer dato y 145 a 103 MiB de RAM. La medición encontró dos defectos propios que nadie había previsto: el `HEALTHCHECK` de Docker costaba 43 s sondeando cada 5 s durante el `start-period`, y migrar una base ya migrada costaba 26 s. Y **falsó la premisa de una de sus dos optimizaciones**: los 23,2 s que `E10A` atribuyó a construir el modelo de EF Core eran la infraestructura de migraciones, que `UseModel` no toca, así que el modelo precompilado no aportó nada fuera del ruido | Lista para integrar |
 | 2026-09-30 | 11 | Apertura de la Etapa 11 | El coordinador la aprobó porque el puesto al que apunta valora la aplicación de IA, y eso invirtió el orden de `Mejoras para Salvo`: el adaptador de Anthropic pasa antes que la regla de dispositivo. La integración continua va primero dentro de la etapa, porque la etapa toca el camino más delicado del proyecto y la compuerta tiene que correr sola antes de tocarlo. **El estado canónico se abre antes de despachar**, que es la lección de la apertura de la Etapa 10 | Abierta |
+| 2026-10-01 | 11 | Cuatro rondas de `brief-check` de `E11A`, y un defecto en producción | Fable · `xhigh` frenó el despacho cuatro veces. Las tres primeras fueron del brief: disparadores que no producían la evidencia pedida, `workflow_dispatch` imposible antes del merge, un runner por etiqueta móvil, una promesa sobre Render sin documentar. **La cuarta encontró un defecto de producto vivo en la instancia pública**: `formatCalendarDate` construye la fecha en la hora local de la máquina y la formatea en la de negocio, así que en un servidor en UTC la tabla del dashboard muestra domingos debajo de un eje de lunes. El comentario de la función dice exactamente que evita eso. Un runner en UTC lo habría mostrado como rojo de entorno, y la tentación habría sido fijar `TZ`: se corrige en el producto, con su propia tarea, `E11A0`, antes de `E11A`. La misma ronda vio que el merge de `E11A` modifica `render.yaml` y que Render sincroniza el Blueprint en ese push, así que la observación de `checksPass` se mueve al primer commit posterior | Registrada |
 | 2026-09-10 | 10 | Duración de las primeras construcciones en Render | Leídas por el coordinador en el panel de despliegues de Render, y registradas acá el 2026-10-01 porque hasta entonces vivían solo en una captura: **11,9 s** —falló, por la etiqueta móvil del SDK—, **2 min 10 s** —la primera completa, sin caché—, **28,3 s** —un commit de documentos, con la caché de capas— y **1 min 15 s**. Unos cuatro minutos del cupo mensual de 500 | Registrada |
 | 2026-09-10 | 10 | `E10C-PUBLICACION`, segunda vuelta e integración | Merge `51eec4c` + compuerta y smoke verdes. **Salvo queda publicado en https://salvo-k6wk.onrender.com.** La medición desde afuera encontró un defecto que ninguna máquina de desarrollo puede mostrar: la consola le daba 5 s a la API y la API tarda unos 40 en levantar con 0,1 vCPU, así que la primera visita veía un error en vez de la cola. Se arregló explicando la espera —`role="status"`, no `role="alert"`— y el `meta refresh` se descartó **con la comprobación hecha**: `axe-core` lo marca sobre el documento y no sobre el contenedor, así que el test habría pasado en verde sin ver la violación. Y una afirmación propia se retiró: con media muestra, un error aislado se había leído como un problema en caliente, y con las 115 peticiones resultó ser el reinicio anterior | Completada |
 | 2026-09-09 | 10 | `E10C-PUBLICACION`, primera vuelta y alta en Render | El primer despliegue falló, y el fallo era real: `global.json` exige el SDK 10.0.400 con `rollForward: disable` y el `Dockerfile` pedía la imagen por la etiqueta flotante `sdk:10.0`, que había pasado a 10.0.401. Funcionaba hacía nueve días **por la imagen cacheada en la máquina de desarrollo**. El mismo archivo explicaba tres líneas más abajo por qué Node sí se bajaba por versión exacta: el principio estaba escrito y aplicado a medias | Completada |
