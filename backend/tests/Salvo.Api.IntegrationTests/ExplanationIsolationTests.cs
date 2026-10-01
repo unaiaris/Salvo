@@ -285,34 +285,23 @@ public sealed partial class ExplanationIsolationTests
     }
 
     /// <summary>
-    /// Naming a provider this build cannot supply stops the process.
+    /// Naming a provider this build does not know stops the process, and the supported value starts.
     /// </summary>
     /// <remarks>
-    /// A key changes nothing, and that is the point: falling back to the template in silence would
-    /// let a deployment believe a model wrote a paragraph a template wrote, which is the one claim
-    /// this project must never make by accident.
+    /// Falling back to the template in silence would let a deployment believe a model wrote a
+    /// paragraph a template wrote, which is the one claim this project must never make by accident.
+    /// What <c>anthropic</c> needs to start, and where it never starts, is
+    /// <see cref="AnthropicConfigurationTests"/>.
     /// </remarks>
     [Fact]
-    public async Task AProviderThisBuildDoesNotHaveRefusesToStart()
+    public async Task AProviderThisBuildDoesNotKnowRefusesToStart()
     {
-        await using var withKey = new SalvoApiFactory();
-        withKey.Settings["AI_PROVIDER"] = "anthropic";
-        withKey.Settings["ANTHROPIC_API_KEY"] = "sk-ant-whatever";
-        var keyed = Assert.Throws<InvalidOperationException>(() => withKey.CreateClient());
-
-        await using var withoutKey = new SalvoApiFactory();
-        withoutKey.Settings["AI_PROVIDER"] = "anthropic";
-        var unkeyed = Assert.Throws<InvalidOperationException>(() => withoutKey.CreateClient());
-
         await using var nonsense = new SalvoApiFactory();
         nonsense.Settings["AI_PROVIDER"] = "cualquier-cosa";
         var unknown = Assert.Throws<InvalidOperationException>(() => nonsense.CreateClient());
 
-        Assert.Contains("AI_PROVIDER=anthropic is not supported", keyed.Message, StringComparison.Ordinal);
-        Assert.Contains("AI_PROVIDER=anthropic is not supported", unkeyed.Message, StringComparison.Ordinal);
         Assert.Contains("cualquier-cosa", unknown.Message, StringComparison.Ordinal);
 
-        // And the supported value starts and explains.
         await using var mock = new SalvoApiFactory();
         mock.Settings["AI_PROVIDER"] = "mock";
         using var client = await mock.CreateMigratedClientAsync();
