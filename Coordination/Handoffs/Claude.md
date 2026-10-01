@@ -5682,3 +5682,142 @@ timeout. Un error que describe un comportamiento normal es un error igual.
   `autoDeployTrigger: commit`. Es lo que pone la pantalla de arranque en la instancia real.
 - Verificación posterior al merge: `./scripts/check.sh`, `./scripts/smoke-ui.sh`, y abrir el link
   tras quince minutos de silencio para ver la pantalla nueva en vivo.
+
+## `E11A0-HUSO-HORARIO` — `formatCalendarDate` deja de depender del huso del proceso
+
+### Identificación
+
+- Estado de la rama: `Lista para integrar`
+- Etapa: 11
+- Rama/worktree: `claude/e11a0-huso`
+- Commit base: `01e6cff3faacf92d8cc5b84b726e14ac31894d85` (`git merge-base main HEAD` al cortar la rama)
+- Commit final: el commit de este handoff, que sigue a `c7117bb`; un commit no puede citar su propio
+  hash. Los de código son `17d20b6` y `c7117bb`.
+- Fecha: 2026-10-01
+
+### Resultado
+
+Una fecha de calendario se construye y se formatea en la misma zona —UTC, con `Date.UTC` y un
+`calendarFormatter` nuevo en `build()`—, así que dice el mismo día con el proceso en cualquier huso.
+La suite del frontend corre ahora con `TZ=UTC`, declarado en `vitest.config.mts`. El comentario de la
+función deja escrita la ironía: razonaba contra parsear como UTC y su propia solución solo era
+correcta en una máquina en Montevideo.
+
+### Archivos modificados
+
+- `frontend/src/lib/format.ts` — `formatCalendarDate`, su comentario y `calendarFormatter`; los
+  formateadores existentes no se tocaron.
+- `frontend/src/lib/format.test.ts` — `describe("formatCalendarDate")`, con `it.each` sobre `UTC`,
+  `America/Montevideo`, `Pacific/Kiritimati` y `America/Los_Angeles`.
+- `frontend/vitest.config.mts` — `process.env.TZ = "UTC"`.
+- `Coordination/Tasks/E11A0-HUSO-HORARIO.md` — solo el campo «Commit base» (`bc7ef1f`).
+
+### Verificación
+
+| Comando | Resultado |
+| --- | --- |
+| `npx vitest run` con la corrección y `TZ=UTC` declarado | 24 archivos, 313 tests, verde |
+| `npm run test` con **solo** `format.ts` revertido a `bc7ef1f`, en esta máquina (`America/Montevideo`, `TZ` sin definir) | **Rojo: 3 tests** — ver la falsación completa |
+| `git checkout HEAD -- frontend/src/lib/format.ts`, y `git status` limpio | Corrección restaurada |
+| `./scripts/check.sh` | Verde: 117 + 178 tests .NET, 313 de frontend, `check-docs.sh` y build de producción |
+| `./scripts/smoke-ui.sh` | «Recorrido verde: 71 comprobaciones, 0 fallas» |
+
+#### Falsación
+
+Con `frontend/src/lib/format.ts` revertido al de `bc7ef1f` y el resto de la rama intacto. Salida de
+`npm run test`, sin los códigos de color y **abreviada solo en el volcado del DOM** que Testing
+Library imprime dentro del segundo error (unas 250 líneas de `<table>`):
+
+```
+> salvo-frontend@0.1.0 test
+> vitest run
+
+ RUN  v4.1.11 /Users/unai/Proyectos/Salvo/frontend
+
+ ❯ src/app/dashboard/page.test.tsx (25 tests | 1 failed) 1620ms
+     × dibuja el riesgo temporal como SVG con título, descripción y tabla equivalente 170ms
+ ❯ src/lib/format.test.ts (13 tests | 2 failed) 47ms
+     × dice el mismo día con el proceso en UTC 7ms
+     × dice el mismo día con el proceso en Pacific/Kiritimati 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/lib/format.test.ts > formatCalendarDate > dice el mismo día con el proceso en UTC
+ FAIL  src/lib/format.test.ts > formatCalendarDate > dice el mismo día con el proceso en Pacific/Kiritimati
+AssertionError: expected '9 ago. 2026' to be '10 ago. 2026' // Object.is equality
+
+Expected: "10 ago. 2026"
+Received: "9 ago. 2026"
+
+ ❯ src/lib/format.test.ts:174:63
+    172|     process.env.TZ = zone;
+    173|
+    174|     expect(formatting("es").formatCalendarDate("2026-08-10")).toBe("10…
+       |                                                               ^
+    175|     expect(formatting("es").formatCalendarDate("2026-08-24")).toBe("24…
+    176|     expect(formatting("pt").formatCalendarDate("2026-08-10")).toBe("10…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/app/dashboard/page.test.tsx > dashboard operativo > dibuja el riesgo temporal como SVG con título, descripción y tabla equivalente
+TestingLibraryElementError: Unable to find an accessible element with the role "rowheader" and name `/24 ago/`
+
+[... volcado del DOM y de los roles accesibles de la tabla; la fila de la semana dice «23 ago. 2026» ...]
+
+ ❯ src/app/dashboard/page.test.tsx:134:26
+    132|     });
+    133|     expect(within(table).getAllByRole("row")).toHaveLength(4);
+    134|     expect(within(table).getByRole("rowheader", { name: /24 ago/ })).t…
+       |                          ^
+    135|   });
+    136|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+
+ Test Files  2 failed | 22 passed (24)
+      Tests  3 failed | 310 passed (313)
+   Start at  03:56:12
+   Duration  4.53s (transform 2.81s, setup 2.54s, import 3.21s, tests 9.86s, environment 12.82s)
+```
+
+Qué prueba cada rojo:
+
+- **`page.test.tsx`, «dibuja el riesgo temporal…»** no fija su huso y la máquina está en Montevideo,
+  donde el defecto no se ve. Que caiga prueba que **la declaración de la suite surte efecto**: sin
+  `TZ=UTC` en `vitest.config.mts` esa misma corrida habría dado verde. Antes de la corrección, con la
+  declaración puesta, fue además el único test que cayó (308 de 309).
+- **Los dos del unitario** (`UTC` y `Pacific/Kiritimati`) prueban que el test detecta el defecto,
+  fijando su propio huso. `America/Montevideo` y `America/Los_Angeles` pasan con el defecto, como el
+  brief predice, y no figuran como rojos.
+- No cayó ningún otro test.
+
+### Decisiones y supuestos
+
+- **Forma de la corrección:** un `calendarFormatter` en UTC y `Date.UTC(...)`. `dateFormatter` queda
+  como está, porque `formatDate` lo usa y es correcto.
+- **Dónde se declara el huso:** en `vitest.config.mts`, a nivel de módulo y no en `vitest.setup.ts`:
+  los workers heredan el entorno con el que se lanzan, y el setup corre cuando los módulos ya se
+  cargaron. La falsación lo demuestra, no el razonamiento. Depende del pool por defecto (`forks`); con
+  `threads` el cambio de `process.env.TZ` dentro de un worker no tendría efecto, y el test de
+  `page.test.tsx` es la alarma.
+- El test unitario restaura `process.env.TZ` en un `afterEach`, pase o falle, y lo borra si no estaba
+  definido.
+- Las cadenas esperadas salen de ICU (`10 ago. 2026`, con punto), no de memoria; la primera versión
+  del test las escribió sin él y falló.
+
+### Riesgos o pendientes
+
+- **Pendiente para el coordinador, y es un criterio de aceptación:** tras el merge y el despliegue,
+  comprobar en `/dashboard` de la instancia pública que la tabla rotula las semanas en **lunes**, igual
+  que el eje. No lo puedo observar: no hay push ni red en esta tarea.
+- El eje del SVG sigue mostrando `weekStart.slice(5)` (`MM-DD`), fuera de alcance por el brief.
+- `TZ` no se fijó en `Dockerfile`, `render.yaml` ni CI.
+
+### Integración
+
+- Orden sugerido: merge a `main`, **por merge y nunca por rebase**. `E11A` depende de ésta.
+- Migraciones o pasos manuales: ninguno.
+- Posibles conflictos: ninguno con `E11A`, que reserva `.github/workflows/**`, el README y `render.yaml`.
+- Verificación posterior al merge: `./scripts/check.sh`, `./scripts/smoke-ui.sh` y la comprobación de
+  `/dashboard` en la instancia pública.

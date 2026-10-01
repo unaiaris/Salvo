@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { projectSignal } from "@/lib/api/guards";
 import { formatting } from "@/lib/format";
@@ -141,5 +141,38 @@ describe("la frase de una señal", () => {
     expect(formatting("es").signalSentence(projected!)).toBe(
       "Algo que este build no sabe componer.",
     );
+  });
+});
+
+/**
+ * A calendar date is the same day wherever the process runs.
+ *
+ * It was built as midnight in the process zone and written in the business zone, so it was right
+ * only on a machine in Montevideo and a day early everywhere east of it. The zone is set here, per
+ * case, and put back afterwards: this test must neither depend on the machine's zone nor leak its
+ * own into the tests that follow in the same process.
+ */
+describe("formatCalendarDate", () => {
+  const original = process.env.TZ;
+
+  afterEach(() => {
+    if (original === undefined) {
+      delete process.env.TZ;
+    } else {
+      process.env.TZ = original;
+    }
+  });
+
+  it.each([
+    "UTC",
+    "America/Montevideo",
+    "Pacific/Kiritimati",
+    "America/Los_Angeles",
+  ])("dice el mismo día con el proceso en %s", (zone) => {
+    process.env.TZ = zone;
+
+    expect(formatting("es").formatCalendarDate("2026-08-10")).toBe("10 ago. 2026");
+    expect(formatting("es").formatCalendarDate("2026-08-24")).toBe("24 ago. 2026");
+    expect(formatting("pt").formatCalendarDate("2026-08-10")).toBe("10 de ago. de 2026");
   });
 });

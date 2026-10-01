@@ -103,6 +103,12 @@ function build(language: Language): Formatting {
     timeZone: BUSINESS_TIME_ZONE,
     dateStyle: "medium",
   });
+  // A calendar date has no zone, so it is built and written in the same one. UTC is chosen because
+  // `Date.UTC` and this formatter then agree by construction, whatever zone the process is in.
+  const calendarFormatter = new Intl.DateTimeFormat(locale, {
+    timeZone: "UTC",
+    dateStyle: "medium",
+  });
   // Rates carry one decimal because the corpus is small enough that whole points would collapse
   // distinct runs onto the same figure.
   const percentFormatter = new Intl.NumberFormat(locale, {
@@ -146,14 +152,15 @@ function build(language: Language): Formatting {
     formatPercent: (ratio) => percentFormatter.format(ratio),
 
     /**
-     * `DateOnly` has no time and no zone; parsing it as a `Date` would place it at midnight UTC and
-     * the business time zone would then shift it a day back for anybody west of Greenwich, which is
-     * exactly where this console lives. Splitting the string keeps the day the API meant.
+     * `DateOnly` has no time and no zone, so it is built and formatted in one zone, UTC, and never
+     * goes through an instant. This used to build local midnight and format it in the business zone,
+     * which only agrees on a machine that sits in that zone — the very reasoning it cites against
+     * parsing as UTC, applied to itself — so on a server in UTC every date moved a day back.
      */
     formatCalendarDate: (calendarDate) => {
       const [year, month, day] = calendarDate.split("-").map(Number);
 
-      return dateFormatter.format(new Date(year ?? 0, (month ?? 1) - 1, day ?? 1));
+      return calendarFormatter.format(new Date(Date.UTC(year ?? 0, (month ?? 1) - 1, day ?? 1)));
     },
 
     /**
