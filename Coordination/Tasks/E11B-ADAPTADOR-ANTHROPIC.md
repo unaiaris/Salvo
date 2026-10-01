@@ -236,7 +236,9 @@ El orden es obligatorio: pone las protecciones **antes** que lo que protegen.
     - **Todo texto de la consola que nombra a la plantilla como escritora** pasa a depender del
       escritor —el pie, el botón, y el título que aparece después de pulsarlo, «Redactada de nuevo con
       la plantilla vigente» en `es.ts` y su par en `pt.ts`—. Con la plantilla, cada uno queda **igual,
-      letra por letra**; con el modelo, nombra al modelo.
+      letra por letra**. Con el modelo: **el pie y el título** nombran al modelo, porque los dos
+      aparecen después de una respuesta y `ProviderVersion` ya existe; **el botón** dice «modelo de
+      Anthropic» sin el nombre, porque puede aparecer antes de cualquier respuesta.
     - **Qué pide el botón en cada caso de D11**, porque hoy el caso 2 queda sin efecto: con una `READY`
       de otro escritor y una `FAILED` del vigente, la consola pide sin `regenerate`, el caso de uso
       encuentra la fila `FAILED` del vigente, no la retoma y contesta que ya tenía su explicación. Es
@@ -245,8 +247,18 @@ El orden es obligatorio: pone las protecciones **antes** que lo que protegen.
         el mismo pedido que hoy hace «Volver a intentar», y el rótulo lo dice. Con los intentos
         agotados, no hay botón y se muestra `AttemptLimitReached`.
       - **Caso 3 y caso 5**, sin fila del vigente: el botón **crea** la fila del vigente.
-      - Cada caso tiene un test que pulsa el botón y afirma que el pedido **aplicó** —`applied: true`
-        y un intento más—, no solo que el botón existe.
+      - **Con una fila `PENDING` en curso no hay botón**, sea del vigente —junto a una `READY` de
+        otro— o de otro escritor **del mismo proveedor** en el caso 5. El índice parcial
+        `ux_alert_explanations_pending_evaluation` es único por evaluación, proveedor e idioma mientras
+        la fila esté pendiente, así que crear la del vigente chocaría. Se muestra el estado en curso,
+        como hoy; con una `PENDING` de otro proveedor, el botón sí crea la fila.
+      - **La afirmación tiene dos mitades, y cada una vive en su capa**, unidas por el pedido que viaja:
+        - **Frontend**: un test por caso afirma **qué pedido** arma el botón —con o sin
+          `regenerate`— o que no hay botón, a partir de la vista del caso. No puede afirmar `applied`:
+          la respuesta la escribiría el propio test.
+        - **Backend**: un test de integración por caso arma en la base el estado del caso, manda
+          **exactamente ese pedido**, y afirma `applied: true` y un intento más —o el conflicto, si el
+          caso no tiene botón—. Es el que ve el defecto de hoy, que está en lo que contesta la API.
 11. **El script de la corrida real**, `scripts/explicar-con-anthropic.sh`, para `E11C`:
     - Es el **único** script que carga un archivo de entorno: `set -a; . "$archivo"; set +a`, con el
       archivo en `SALVO_ENV_FILE` y **sin valor por omisión**: si la variable falta, se niega. Así
@@ -378,8 +390,9 @@ Ninguno en uso. `E11C` no tiene brief y empieza cuando ésta esté integrada.
 - [ ] D12: el test del bloque de explicación cubre la oración de la plantilla y la del modelo, en los
       dos idiomas; la de la plantilla, sin una letra cambiada; y lo mismo para el botón y para el
       título posterior.
-- [ ] El botón de los casos 2, 3 y 5 de D11 **aplica**: un test por caso afirma `applied: true` y un
-      intento más.
+- [ ] El botón de D11, en sus dos mitades: en el frontend, el pedido que arma cada caso —o la
+      ausencia de botón con una `PENDING` en curso—; en el backend, ese mismo pedido sobre el estado de
+      cada caso, con `applied: true` y un intento más donde hay botón.
 - [ ] El contrato recapturado y `OpenApiDriftTests` verde.
 - [ ] El script se niega sin clave y pasa `bash -n`; **no se corrió contra Anthropic**.
 - [ ] `./scripts/check.sh` y `./scripts/smoke-ui.sh` verdes, **sin clave en el entorno**.
