@@ -86,7 +86,7 @@ encuentre es hallazgo y consulta, no una elección:
 | D3 | `enum` de las reglas que dispararon | `enum` constante de todas las reglas (abajo, 3; decisión 81) |
 | D6 | Tipo y `request-id` a `FailureDetail` | Solo valores de una lista cerrada, o con forma de `request-id` (abajo, 4) |
 | D10 | El test de propiedad cubre la hoja | Propiedad **y** un test explícito de las tres prohibiciones (punto 7) |
-| D11 | Tres pasos | Cinco casos, y la revisión registra la mostrada (punto 9) |
+| D11 | Tres pasos | Cinco casos, la revisión registra la mostrada, y qué pide el botón en cada caso (puntos 9 y 10) |
 | D12 | El botón dice «escritor vigente» | Con la plantilla conserva su rótulo exacto, por el smoke (punto 10) |
 | D15 | Cuatro scripts; `. ./.env` | Cinco scripts y la fábrica de tests; `SALVO_ENV_FILE` sin valor por omisión (puntos 2 y 11) |
 
@@ -193,10 +193,9 @@ El orden es obligatorio: pone las protecciones **antes** que lo que protegen.
    - La taxonomía de D6, entera, a `FailureDetail`. Se leen `error.type`, `error.details.error_code` y
      la presencia de `retry-after`; **nunca `message`**. Un log `Warning` para toda respuesta que no
      sea `2xx`, sin cuerpo y sin cabeceras.
-   - **Lo que el proveedor escribe no entra crudo a la base.** `error.type`, la categoría de un
-     rechazo y el `request-id` llegan a `FailureDetail` —y de ahí a la pantalla— **solo** si cumplen
-     un patrón conservador —minúsculas, dígitos, guion bajo y guion, con un tope de largo—; si no, se
-     escribe `unrecognized`. Un test lo afirma con un valor que no cumple el patrón.
+   - **Lo que el proveedor escribe** entra a `FailureDetail` según «Correcciones», punto 4, y solo
+     así: lista cerrada para los tipos, códigos, `stop_reason` y categorías; forma `req_` para el
+     `request-id`. Es la **única** regla; no hay otra en este brief.
 8. **D8 y D9 — el secreto y la instancia pública.** Un solo lector de `ANTHROPIC_API_KEY`, en
    `AddExplanationProvider`. Falla al arrancar sin clave o sin modelo. `SharedInstance:Enabled=true`
    con `AI_PROVIDER=anthropic` detiene el arranque **aunque la clave esté**. La documentación de
@@ -230,8 +229,24 @@ El orden es obligatorio: pone las protecciones **antes** que lo que protegen.
     vigente**: cuando es la plantilla, sigue diciendo exactamente «Redactar con la plantilla vigente»
     —las anclas del bloque 1d del smoke, `expect_text` y `expect_no_text` sobre ese rótulo, lo exigen
     y lo prohíben donde corresponde, y no se tocan—; cuando
-    es el modelo, nombra al modelo. El intento vigente se muestra junto al texto aceptado de otro
-    escritor cuando D11 lo pide, con su código y su `FailureDetail`.
+    es el modelo, dice «modelo de Anthropic» **sin el nombre del modelo**: el nombre sale de
+    `ProviderVersion`, que solo existe después de una respuesta, y el botón puede aparecer antes. El
+    intento vigente se muestra junto al texto aceptado de otro escritor cuando D11 lo pide, con su
+    código y su `FailureDetail`.
+    - **Todo texto de la consola que nombra a la plantilla como escritora** pasa a depender del
+      escritor —el pie, el botón, y el título que aparece después de pulsarlo, «Redactada de nuevo con
+      la plantilla vigente» en `es.ts` y su par en `pt.ts`—. Con la plantilla, cada uno queda **igual,
+      letra por letra**; con el modelo, nombra al modelo.
+    - **Qué pide el botón en cada caso de D11**, porque hoy el caso 2 queda sin efecto: con una `READY`
+      de otro escritor y una `FAILED` del vigente, la consola pide sin `regenerate`, el caso de uso
+      encuentra la fila `FAILED` del vigente, no la retoma y contesta que ya tenía su explicación. Es
+      el defecto de `E7D` en el escenario que D11 crea. La regla:
+      - **Caso 2**, `FAILED` del vigente con intentos disponibles: el botón **reintenta esa fila**, con
+        el mismo pedido que hoy hace «Volver a intentar», y el rótulo lo dice. Con los intentos
+        agotados, no hay botón y se muestra `AttemptLimitReached`.
+      - **Caso 3 y caso 5**, sin fila del vigente: el botón **crea** la fila del vigente.
+      - Cada caso tiene un test que pulsa el botón y afirma que el pedido **aplicó** —`applied: true`
+        y un intento más—, no solo que el botón existe.
 11. **El script de la corrida real**, `scripts/explicar-con-anthropic.sh`, para `E11C`:
     - Es el **único** script que carga un archivo de entorno: `set -a; . "$archivo"; set +a`, con el
       archivo en `SALVO_ENV_FILE` y **sin valor por omisión**: si la variable falta, se niega. Así
@@ -250,7 +265,9 @@ El orden es obligatorio: pone las protecciones **antes** que lo que protegen.
 12. **Los documentos que esta tarea vuelve falsos**, y solo ésos: `.env.example`
     (`ANTHROPIC_MODEL=claude-sonnet-5-5`), las afirmaciones del `README.md` sobre el redactor, sobre
     `AI_PROVIDER=anthropic` y sus «Límites declarados» —con el agujero de D13 dicho como clase—, y las
-    menciones a Anthropic de `Salvo-Getting-Started.md` y `Salvo-Portability.md`. El Blueprint, el
+    menciones a Anthropic de `Salvo-Getting-Started.md` y `Salvo-Portability.md`, **y la descripción
+    del puerto en `Salvo-Portability.md`** —`Task<ExplanationDraft>` con un resumen nulo para el
+    rechazo—, que D1 reemplaza. El Blueprint, el
     Overview, el Progress, el Workboard, `AGENTS.md`, `Salvo-MOC.md` y
     `Salvo-Project-Instructions.md` los cierra el coordinador al integrar.
 
@@ -265,7 +282,7 @@ protege, viendo el rojo con el nombre del test, y restaurando:
 | Un `ILogger` registra `HttpRequestMessage.ToString()` | El espía de logs a nivel `Trace`, en el camino que funciona (D8) |
 | Se quita la guarda de `SharedInstance` | El test que arranca con la bandera **y** con una clave presente (D9) |
 | La hoja de hechos lleva el monto en centavos | El test explícito de las tres prohibiciones (D10) |
-| La hoja de hechos lleva los segundos del instante del pedido | El test de propiedad: todo número de la hoja está fundamentado (D10) |
+| La hoja de hechos lleva un número que ningún hecho respalda. El test **elige** ese número y antes **afirma** que no está entre los `ExplanationFacts` de esa entrada: los segundos del corpus son siempre 0, y el 0 puede estar respaldado por un campo en cero, que es la lección de `E9B` sobre los minutos enteros | El test de propiedad: todo número de la hoja está fundamentado (D10) |
 | La regla de selección vuelve a elegir la fila más recientemente pedida, donde sea que viva | El test con una `READY` de la plantilla y una `FAILED` del modelo (D11) |
 | La fábrica de tests deja de fijar `AI_PROVIDER=mock` | Los tests de integración corridos con **solo** `AI_PROVIDER=anthropic` exportado, sin clave ni modelo: el arranque se niega y los tests caen, sin una sola petición (D15) |
 | `Retake` vuelve a borrar los tokens | El test de acumulación entre intentos (D7) |
@@ -359,7 +376,10 @@ Ninguno en uso. `E11C` no tiene brief y empieza cuando ésta esté integrada.
 - [ ] D11: los cinco casos de la regla, cada uno con su test, y la revisión que cita la mostrada y
       no el intento; con su falsación.
 - [ ] D12: el test del bloque de explicación cubre la oración de la plantilla y la del modelo, en los
-      dos idiomas; la de la plantilla, sin una letra cambiada.
+      dos idiomas; la de la plantilla, sin una letra cambiada; y lo mismo para el botón y para el
+      título posterior.
+- [ ] El botón de los casos 2, 3 y 5 de D11 **aplica**: un test por caso afirma `applied: true` y un
+      intento más.
 - [ ] El contrato recapturado y `OpenApiDriftTests` verde.
 - [ ] El script se niega sin clave y pasa `bash -n`; **no se corrió contra Anthropic**.
 - [ ] `./scripts/check.sh` y `./scripts/smoke-ui.sh` verdes, **sin clave en el entorno**.
