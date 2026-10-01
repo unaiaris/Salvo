@@ -123,8 +123,10 @@ cambia alcance o arquitectura, actualizar primero su bitácora y después los do
   que redacta no puede escribir en ninguna superficie de decisión.
 - Que una explicación use solo las señales suministradas se verifica sobre la salida y se rechaza
   el texto que no lo cumple; no se confía al prompt.
-- Anthropic es el proveedor de IA previsto, pero su integración se difiere hasta que el núcleo
-  funcione sin IA.
+- Anthropic redacta explicaciones desde la Etapa 11 (decisiones 73 a 80), gobernado por el mismo
+  verificador que la plantilla. **Si el modelo no pasa el verificador, se cambia el prompt, nunca el
+  verificador.** La clave nunca entra a la CI, a la instancia pública, a un archivo versionado ni a
+  un agente.
 - El MVP usa `IAntifraudProvider` con implementación mock. Koin sandbox es post-MVP y requiere
   aprobación, onboarding y credenciales.
 - El score local, la evaluación externa y la alerta son entidades/conceptos separados.

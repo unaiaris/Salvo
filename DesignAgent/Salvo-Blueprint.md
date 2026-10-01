@@ -613,8 +613,13 @@ la leyera, prometiendo una configuración que no existe; se sacó.
 ```dotenv
 AI_PROVIDER="mock"
 ANTHROPIC_API_KEY=""
-ANTHROPIC_MODEL=""
+ANTHROPIC_MODEL="claude-sonnet-5-5"
 ```
+
+`claude-sonnet-5-5`, verificado el 2026-10-01: activo, con compromiso de disponibilidad hasta el
+2027-09-28, y desde la generación 4.6 el ID sin fecha es un snapshot fijo (decisión 74). La clave
+vive en el `.env` de la máquina del coordinador y en ningún otro lugar: ni en la CI ni en la
+instancia pública (decisión 77).
 
 ### Koin posterior
 
@@ -874,6 +879,14 @@ completo el MVP local.
 | 70 | Una instancia pública de demostración es admisible sin autenticación | **Reemplaza a la 8 conservando su motivo.** El aislamiento que la 8 exigía lo da el reinicio: nadie queda con el estado que otro dejó porque el estado no sobrevive. Tres condiciones a la vez: datos sintéticos a los que vuelve en cada reinicio, aviso en pantalla de que es compartida y efímera, y un reinicio que no depende de que nadie se acuerde. Lo que **no** cambia: sin auth no se despliega nada que reciba datos de una persona real | 2026-09-08 |
 | 71 | Se abre la Etapa 11: integración continua primero, y después el adaptador de Anthropic | El coordinador la aprobó porque el puesto al que apunta valora la aplicación de IA. La integración continua va primero porque la etapa toca el camino más delicado del proyecto, y la compuerta tiene que correr sola antes. Anthropic y la CI remota salen de la lista de diferidos del §2 | 2026-09-30 |
 | 72 | `E11A0` va antes que la integración continua, y un defecto que depende del huso se corrige en el producto | La cuarta revisión del brief de `E11A` encontró que `formatCalendarDate` construye la fecha en el huso del proceso y la formatea en el del negocio: en UTC, la tabla del dashboard publicado muestra domingos bajo un eje de lunes. El runner habría dado rojo, y la salida fácil —fijar `TZ` en el flujo, el `Dockerfile` o `render.yaml`— lo habría escondido para siempre. Fijar el huso del entorno para que un test pase queda prohibido; la suite del frontend corre en un huso distinto del del negocio para que esta clase de defecto no vuelva a esconderse. **Ajusta el orden de la 71 sin cambiar su motivo** | 2026-10-01 |
+| 73 | El puerto de explicaciones devuelve un desenlace cerrado, por valor | `ProviderCall` descarta la excepción antes de clasificarla, así que un adaptador que avisara lanzando terminaría como «el proveedor no estaba disponible», que sería falso para un texto cortado o un rechazo. `Drafted`, `Refused`, `Malformed` o `Unavailable`, con los tokens y un diagnóstico sin texto del modelo; el código lo asigna el intercambio, no el adaptador. `ProviderCall` y el antifraude no cambian (diseño de la Etapa 11, D1) | 2026-10-01 |
+| 74 | El adaptador usa `claude-sonnet-5-5`, y el modelo **sigue fuera de la identidad** | Se conserva la decisión de la Etapa 7: la identidad lleva la versión del prompt, `anthropic-p1`, y el modelo va a `ProviderVersion`, tomado de la respuesta. Con un modelo, «el texto cambió» no sirve como criterio de versión: escribe distinto cada vez. Sonnet 5.5 y no Haiku 4.5 porque el compromiso de disponibilidad de Haiku vencía dos semanas después del diseño (D4) | 2026-10-01 |
+| 75 | Ningún reintento invisible | Una petición HTTP por intento, afirmada por un test que cuenta peticiones. Los reintentos son los de la fila: tres, cada uno visible y con su código. El costo por evaluación queda acotado a tres llamadas (D5) | 2026-10-01 |
+| 76 | Los tokens se guardan en todo desenlace, acumulados entre intentos | Guardarlos solo cuando el texto se acepta mide el costo del subconjunto barato. El costo de una explicación es lo que se pagó por ella (D7) | 2026-10-01 |
+| 77 | La clave tiene un solo lector, y la instancia pública no arranca con un proveedor pago | Falla al arrancar sin clave o sin modelo, nombrando la variable y nunca su valor. `SharedInstance:Enabled` junto con `AI_PROVIDER=anthropic` detiene el arranque aunque la clave esté. Ni la CI ni la instancia pública la tienen, y los scripts fijan `AI_PROVIDER=mock` para no heredarla de la terminal (D8, D9, D15) | 2026-10-01 |
+| 78 | Al modelo le entra una hoja de hechos renderizada, no los datos crudos | La plantilla nunca copia su entrada; un modelo copia lo que ve, y en la entrada cruda ve centavos, instantes ISO y versiones que el verificador no puede fundamentar. Las cifras van en dígitos, y un test afirma que todo número de la hoja está fundamentado (D10) | 2026-10-01 |
+| 79 | La consola nunca esconde un texto aceptado detrás de un intento fallido, y dice quién lo escribió | Con un escritor que puede fallar, mostrar la fila más reciente escondería un párrafo correcto que sigue en la base. Una oración por proveedor; la de la plantilla no cambia (D11, D12) | 2026-10-01 |
+| 80 | El agujero semántico del verificador se fija como clase, no se cierra | El verificador comprueba que una cifra exista, no que la oración sea verdadera. Inversión, atribución cruzada y cifras en palabras pasan, y tests de caracterización lo afirman para que nadie lo cierre sin corregir lo que el README dice. La lectura humana es observación, no compuerta. Si el modelo no pasa el verificador, se cambia el prompt, nunca el verificador (D13) | 2026-10-01 |
 
 ## 14. Mapa de documentación
 

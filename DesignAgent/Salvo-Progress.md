@@ -12,7 +12,7 @@
 | Estado del proyecto | **MVP cerrado y publicado.** Las nueve etapas completadas y verificadas, y la Etapa 10 también: https://salvo-k6wk.onrender.com |
 | Etapa completada | Etapa 10 — La instancia pública (`E10A`, `E10B` y `E10C` integradas y verificadas) |
 | Próxima etapa | **Etapa 11 — la IA de verdad**: integración continua y el adaptador de Anthropic |
-| Estado de la próxima etapa | Abierta el 2026-09-30. `E11A0` verificada (merge `1f76429`). `E11A` verificada (merge `d3d3408`): la compuerta corre sola en GitHub Actions y Render solo despliega `main` en verde, observado en `084e44f`. Sigue `E11B`, con diseño v2, esperando su brief |
+| Estado de la próxima etapa | Abierta el 2026-09-30. `E11A0` verificada (merge `1f76429`). `E11A` verificada (merge `d3d3408`): la compuerta corre sola en GitHub Actions y Render solo despliega `main` en verde. `E11B` con brief escrito y las decisiones 73 a 80 en el Blueprint, en `brief-check` |
 | Bloqueo actual | Ninguno |
 | Dependencias externas | Ninguna para el núcleo local |
 | Anthropic | Previsto para después del núcleo; decisión aparte, preparada por D11 |
