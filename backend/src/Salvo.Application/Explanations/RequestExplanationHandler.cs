@@ -70,14 +70,14 @@ public sealed class RequestExplanationHandler(
             // free rather than merely harmless.
             return new(
                 false,
-                ExplanationProjection.ToView(existing!, outdated, provider.TemplateVersion));
+                ExplanationProjection.ToView(existing!, outdated, ExplanationWriter.Of(provider)));
         }
 
         await GenerateAsync(reserved, target, cancellationToken);
 
         return new(
             true,
-            ExplanationProjection.ToView(reserved, outdated, provider.TemplateVersion));
+            ExplanationProjection.ToView(reserved, outdated, ExplanationWriter.Of(provider)));
     }
 
     /// <summary>

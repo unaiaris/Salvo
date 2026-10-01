@@ -53,9 +53,10 @@ internal static class ExplanationTestCorpus
     /// </summary>
     public sealed class SwitchableProvider : IExplanationProvider
     {
-        public ExplanationProvider Provider => ExplanationProvider.Mock;
+        /// <summary>Who it claims to be. A test of the console's choice of writer makes it a model.</summary>
+        public ExplanationProvider Provider { get; init; } = ExplanationProvider.Mock;
 
-        public string TemplateVersion => "e7-v1";
+        public string TemplateVersion { get; init; } = "e7-v1";
 
         /// <summary>What the next call does.</summary>
         public ProviderBehaviour Behaviour { get; set; } = ProviderBehaviour.Succeed;

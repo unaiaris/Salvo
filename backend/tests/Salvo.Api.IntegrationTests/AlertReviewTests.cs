@@ -115,7 +115,8 @@ public sealed class AlertReviewTests
             new GatedAlertStore(
                 new EfAlertStore(
                     provider.GetRequiredService<SalvoDbContext>(),
-                    provider.GetRequiredService<DeploymentLanguage>()),
+                    provider.GetRequiredService<DeploymentLanguage>(),
+                    provider.GetRequiredService<IExplanationProvider>()),
                 gate));
         using var client = await factory.CreateMigratedClientAsync();
         var alertId = await OpenOneAlertAsync(client);

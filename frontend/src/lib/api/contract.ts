@@ -28,6 +28,7 @@ export type AlertList = ApiView<Schemas["ListAlertsResult"]>;
 export type AlertDetail = ApiView<Schemas["AlertDetail"]>;
 export type AlertExternalEvaluation = ApiView<Schemas["AlertExternalEvaluationView"]>;
 export type AlertExplanation = ApiView<Schemas["AlertExplanationView"]>;
+export type ExplanationAttempt = ApiView<Schemas["ExplanationAttemptView"]>;
 export type AlertReviewOutcome = ApiView<Schemas["AlertReviewResult"]>;
 export type OrderList = ApiView<Schemas["ListOrdersResult"]>;
 

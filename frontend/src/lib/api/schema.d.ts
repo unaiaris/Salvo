@@ -378,15 +378,18 @@ export interface components {
             summary: null | string;
             referencedRules: string[];
             failureCode: null | string;
+            failureDetail: null | string;
             /** Format: int32 */
             attemptCount: number | string;
             attemptsExhausted: boolean;
             isOutdated: boolean;
             writtenByAnotherTemplate: boolean;
+            currentWriterProvider: string;
             /** Format: date-time */
             requestedAt: string;
             /** Format: date-time */
             settledAt: null | string;
+            currentWriterAttempt: null | components["schemas"]["ExplanationAttemptView"];
         };
         AlertExternalEvaluationView: {
             /** Format: uuid */
@@ -679,6 +682,22 @@ export interface components {
             falsePositiveRate: null | number | string;
             /** Format: double */
             flagRate: null | number | string;
+        };
+        ExplanationAttemptView: {
+            /** Format: uuid */
+            id: string;
+            provider: string;
+            templateVersion: string;
+            status: string;
+            failureCode: null | string;
+            failureDetail: null | string;
+            /** Format: int32 */
+            attemptCount: number | string;
+            attemptsExhausted: boolean;
+            /** Format: date-time */
+            requestedAt: string;
+            /** Format: date-time */
+            settledAt: null | string;
         };
         ExternalCallbackResponse: {
             receiptStatus: string;

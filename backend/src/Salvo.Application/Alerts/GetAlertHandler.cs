@@ -3,10 +3,10 @@ using Salvo.Application.Explanations;
 namespace Salvo.Application.Alerts;
 
 /// <remarks>
-/// The provider is here for one string: which template explanations are written with today. Reading
-/// it from the port rather than from a constant is what keeps the console and the writer agreeing
-/// about which explanation is the current one — the disagreement that made a wording fix invisible
-/// once already.
+/// The provider is here for one fact: who writes explanations today, and with which template or
+/// prompt. Reading it from the port rather than from a constant is what keeps the console and the
+/// writer agreeing about which explanation is the current one — the disagreement that made a wording
+/// fix invisible once already.
 /// </remarks>
 public sealed class GetAlertHandler(IAlertStore store, IExplanationProvider explanationProvider)
 {
@@ -20,6 +20,6 @@ public sealed class GetAlertHandler(IAlertStore store, IExplanationProvider expl
 
         return context is null
             ? null
-            : AlertProjection.ToDetail(context, explanationProvider.TemplateVersion);
+            : AlertProjection.ToDetail(context, ExplanationWriter.Of(explanationProvider));
     }
 }

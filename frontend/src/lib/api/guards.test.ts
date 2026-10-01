@@ -8,6 +8,7 @@ import {
   wireDashboard,
   wireEvaluationMetrics,
   wireExplanation,
+  wireExplanationAttempt,
   wireImportResult,
   wireOrder,
   wireScoringRunSummary,
@@ -477,6 +478,52 @@ describe("la guarda de la explicación mira el estado antes que el texto", () =>
     const withoutTheFlag: Record<string, unknown> = { ...wireExplanation() };
     delete withoutTheFlag.writtenByAnotherTemplate;
     expect(projectAlertDetail(wireAlertDetail({ explanation: withoutTheFlag }))).toBeNull();
+  });
+
+  /**
+   * Decision 79: the attempt of the current writer travels beside somebody else's text, with its
+   * code and its detail, and never with a text of its own — a failed text is never stored, and the
+   * guard does not even look for one.
+   */
+  it("proyecta el intento del escritor vigente junto al texto de otro, sin dejar cruzar un texto", () => {
+    const projected = projectAlertDetail(
+      wireAlertDetail({
+        explanation: wireExplanation({
+          writtenByAnotherTemplate: true,
+          currentWriterProvider: "ANTHROPIC",
+          currentWriterAttempt: wireExplanationAttempt({ summary: "un texto que nunca debió cruzar" }),
+        }),
+      }),
+    );
+
+    const attempt = projected?.explanation?.currentWriterAttempt;
+    expect(projected?.explanation?.currentWriterProvider).toBe("ANTHROPIC");
+    expect(attempt?.failureCode).toBe("PROVIDER_REFUSED");
+    expect(attempt?.failureDetail).toBe("cyber; req_011CSHoEeqs5C35K2UUqR7Fy");
+    expect(Object.keys(attempt ?? {})).not.toContain("summary");
+  });
+
+  it("proyecta el detalle de un fallo, y rechaza el payload sin el escritor vigente", () => {
+    const projected = projectAlertDetail(
+      wireAlertDetail({
+        explanation: wireExplanation({
+          status: "FAILED",
+          summary: null,
+          referencedRules: [],
+          failureCode: "NOT_GROUNDED_NUMBER",
+          failureDetail: "48",
+        }),
+      }),
+    );
+
+    expect(projected?.explanation?.failureDetail).toBe("48");
+
+    const withoutTheWriter: Record<string, unknown> = { ...wireExplanation() };
+    delete withoutTheWriter.currentWriterProvider;
+    expect(projectAlertDetail(wireAlertDetail({ explanation: withoutTheWriter }))).toBeNull();
+
+    const withABrokenAttempt = wireExplanation({ currentWriterAttempt: wireExplanationAttempt({ status: 7 }) });
+    expect(projectAlertDetail(wireAlertDetail({ explanation: withABrokenAttempt }))).toBeNull();
   });
 
   it("registra en la revisión qué explicación tenía delante", () => {

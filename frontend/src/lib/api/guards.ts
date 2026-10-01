@@ -27,6 +27,7 @@ import type {
   DashboardExternalDenials,
   DashboardSignal,
   EvaluationMetrics,
+  ExplanationAttempt,
   ExplanationOutcome,
   ExternalEvaluationRequest,
   ImportRecordError,
@@ -459,12 +460,15 @@ export function projectExplanation(value: unknown): AlertExplanation | null {
   const summary = nullableText(raw.summary);
   const referencedRules = projectList(raw.referencedRules, text);
   const failureCode = nullableText(raw.failureCode);
+  const failureDetail = nullableText(raw.failureDetail);
   const attemptCount = integer(raw.attemptCount);
   const attemptsExhausted = flag(raw.attemptsExhausted);
   const isOutdated = flag(raw.isOutdated);
   const writtenByAnotherTemplate = flag(raw.writtenByAnotherTemplate);
+  const currentWriterProvider = text(raw.currentWriterProvider);
   const requestedAt = instant(raw.requestedAt);
   const settledAt = nullableInstant(raw.settledAt);
+  const currentWriterAttempt = projectNullable(raw.currentWriterAttempt, projectExplanationAttempt);
 
   if (
     id === null ||
@@ -475,12 +479,15 @@ export function projectExplanation(value: unknown): AlertExplanation | null {
     summary === undefined ||
     referencedRules === null ||
     failureCode === undefined ||
+    failureDetail === undefined ||
     attemptCount === null ||
     attemptsExhausted === null ||
     isOutdated === null ||
     writtenByAnotherTemplate === null ||
+    currentWriterProvider === null ||
     requestedAt === null ||
-    settledAt === undefined
+    settledAt === undefined ||
+    currentWriterAttempt === undefined
   ) {
     return null;
   }
@@ -499,10 +506,65 @@ export function projectExplanation(value: unknown): AlertExplanation | null {
     summary,
     referencedRules,
     failureCode,
+    failureDetail,
     attemptCount,
     attemptsExhausted,
     isOutdated,
     writtenByAnotherTemplate,
+    currentWriterProvider,
+    requestedAt,
+    settledAt,
+    currentWriterAttempt,
+  };
+}
+
+/**
+ * The attempt of the current writer that is shown beside somebody else's text (decision 79).
+ *
+ * It carries no `summary` field at all, by construction: an attempt in this position is pending or
+ * failed, and a failed text is never stored. The guard does not look for one, so none can cross.
+ */
+function projectExplanationAttempt(value: unknown): ExplanationAttempt | null {
+  const raw = asRecord(value);
+  if (raw === null) {
+    return null;
+  }
+
+  const id = text(raw.id);
+  const provider = text(raw.provider);
+  const templateVersion = text(raw.templateVersion);
+  const status = text(raw.status);
+  const failureCode = nullableText(raw.failureCode);
+  const failureDetail = nullableText(raw.failureDetail);
+  const attemptCount = integer(raw.attemptCount);
+  const attemptsExhausted = flag(raw.attemptsExhausted);
+  const requestedAt = instant(raw.requestedAt);
+  const settledAt = nullableInstant(raw.settledAt);
+
+  if (
+    id === null ||
+    provider === null ||
+    templateVersion === null ||
+    status === null ||
+    failureCode === undefined ||
+    failureDetail === undefined ||
+    attemptCount === null ||
+    attemptsExhausted === null ||
+    requestedAt === null ||
+    settledAt === undefined
+  ) {
+    return null;
+  }
+
+  return {
+    id,
+    provider,
+    templateVersion,
+    status,
+    failureCode,
+    failureDetail,
+    attemptCount,
+    attemptsExhausted,
     requestedAt,
     settledAt,
   };
