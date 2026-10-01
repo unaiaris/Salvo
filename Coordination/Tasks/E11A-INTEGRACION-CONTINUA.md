@@ -16,7 +16,7 @@
 - Integración: **por merge, nunca por rebase.**
 - Modelo y esfuerzo acordados: **Opus 5.5 · `high`**, la fila «ambigüedad real dentro del alcance» de
   `ClaudeAgent/Claude-Model-Policy.md`: la primera ejecución en Linux puede pedir ajustes del flujo
-  que no se pueden prever desde acá. El `brief-check` ya vio dos candidatos —ver «Lo que
+  que no se pueden prever desde acá. Los `brief-check` ya vieron cuatro candidatos —ver «Lo que
   probablemente falle la primera vez»—. El `brief-check`, con un modelo distinto.
 - Dependencias: **`E11A0-HUSO-HORARIO`, integrada en `main` antes de darle a esta.** El runner corre
   en UTC, y con el defecto de fechas que corrige `E11A0` la suite del frontend sale roja por un motivo
@@ -33,13 +33,17 @@ está en verde.
 coordinador después de integrar**, porque solo se puede ver con el flujo en `main` y desde el panel de
 Render. La tarea entrega los pasos de esa observación, y el coordinador la registra en el Progress.
 
-**La observación no se hace sobre el commit de merge.** Ese commit modifica `render.yaml`, y la
-documentación de Render dice que «Each push to the linked branch that modifies your Blueprint file
-triggers a deploy of any added or modified resources»
-(https://render.com/docs/infrastructure-as-code), sin decir si esa sincronización respeta
-`checksPass`. Puede desplegar sin esperar, y eso no probaría nada. **La que cuenta es el primer commit
-a `main` posterior al merge que no toque `render.yaml`** —en la práctica, el cierre del estado
-canónico—: ese despliegue tiene que esperar la corrida verde antes de empezar.
+**La observación no se hace sobre el push del merge.** La unidad de Render es el push, no el commit:
+la documentación dice que «Each push to the linked branch that modifies your Blueprint file triggers
+a deploy of any added or modified resources» (https://render.com/docs/infrastructure-as-code), sin
+decir si esa sincronización respeta `checksPass`. El merge modifica `render.yaml`, así que el push que
+lo lleva puede desplegar sin esperar, y eso no probaría nada.
+
+**La que cuenta es el primer push a `main` posterior al del merge en el que ningún commit toque
+`render.yaml`.** Para que exista, **el coordinador sube el merge solo, en su propio push**, y el
+cierre del estado canónico en un push aparte: si los dos viajan juntos, ese push modifica el
+Blueprint y la observación queda tan confundida como la del merge. El despliegue de ese segundo push
+tiene que esperar la corrida verde antes de empezar.
 
 ### Por qué va primero, y por qué dentro de esta etapa
 
@@ -54,9 +58,10 @@ adaptador.
 ## Contexto obligatorio
 
 - `DesignAgent/Salvo-Blueprint.md`, §11, «Etapa 11 — La IA de verdad», y la **decisión 71** de la
-  bitácora, que saca la CI remota de la lista de diferidos del §2.
+  bitácora, que saca la CI remota de la lista de diferidos del §2, y la **decisión 72**, que pone
+  `E11A0` antes que esta tarea y prohíbe fijar `TZ` en el entorno para que un test pase.
 - `DesignAgent/Salvo-Progress.md`, checklist «Etapa 11 — La IA de verdad»: el que esta tarea cierra
-  es el **primero**.
+  es el **segundo**, el de `E11A`. El primero es el de `E11A0`.
 - `scripts/check.sh` y `scripts/smoke-ui.sh`, **enteros**: qué asumen que ya está instalado y qué
   instalan ellos. El flujo instala exactamente lo que los scripts asumen, y nada más.
 - `global.json`, `.nvmrc` y el campo `packageManager` de `frontend/package.json`: son las tres
@@ -133,13 +138,17 @@ adaptador.
 
 ### Lo que probablemente falle la primera vez
 
-El `brief-check` leyó los scripts pensando en una máquina Linux limpia y encontró dos candidatos. No
-son certezas: son lo primero que hay que mirar si el primer push sale rojo.
+Los `brief-check` leyeron los scripts pensando en una máquina Linux limpia y encontraron estos
+candidatos. No son certezas: son lo primero que hay que mirar si el primer push sale rojo.
 
 - **`smoke-ui.sh` exige `lsof`** para comprobar los puertos, y un runner puede no traerlo. Instalarlo
   en el runner es **entorno, no una dependencia del proyecto**, y está permitido.
 - **Los proyectos de test nunca se restauraron en modo bloqueado fuera de macOS**: el `Dockerfile` solo
-  restaura el proyecto de la API. Si un lockfile difiere entre plataformas, es hallazgo y consulta.
+  restaura el proyecto de la API. Y en el runner la restauración **va bloqueada sí o sí**:
+  `Directory.Build.props` enciende `RestoreLockedMode` cuando `CI=true`, que GitHub define, y eso
+  alcanza también a la restauración implícita de `smoke-ui.sh`. El último `brief-check` vio que los
+  lockfiles de .NET no tienen entradas por plataforma, lo que baja el riesgo sin eliminarlo. Si un
+  lockfile difiere entre plataformas, es hallazgo y consulta.
 - **El npm que trae Node no tiene por qué ser el que declara `packageManager`** (`npm@11.19.0`).
   El flujo instala la versión declarada, leída del archivo, y la comprueba con `npm --version` antes de
   correr los scripts.
@@ -167,7 +176,8 @@ son certezas: son lo primero que hay que mirar si el primer push sale rojo.
 
 ### Paths reservados por otros trabajos
 
-Ninguno. `E11B` todavía no tiene brief.
+Ninguno en uso. `E11A0` reserva `frontend/src/lib/format.ts`, su test y la configuración de Vitest,
+y termina antes de que empiece ésta: no hay solapamiento. `E11B` todavía no tiene brief.
 
 ## Acciones autorizadas
 
@@ -206,10 +216,11 @@ Ninguno. `E11B` todavía no tiene brief.
       probado.
 - [ ] El cartel de estado en el README, y `./scripts/check-docs.sh` verde.
 - [ ] El punto 8: `autoDeployTrigger: checksPass`, con el comentario reescrito —cifras medidas,
-      decisión tomada, y la consecuencia de los commits sin checks— y la URL oficial que lo sostiene.
-- [ ] Los pasos para que el coordinador observe en Render, **en el primer commit a `main` posterior al
-      merge que no toque `render.yaml`**, que el despliegue **esperó** a los checks, y que el servicio
-      tomó el valor nuevo.
+      decisión tomada, y la consecuencia de los commits sin checks— y las dos URL oficiales del
+      punto 8.
+- [ ] Los pasos para que el coordinador observe en Render, **en el primer push a `main` posterior al
+      del merge en el que ningún commit toque `render.yaml`**, que el despliegue **esperó** a los
+      checks, y que el servicio tomó el valor nuevo. Los pasos dicen que el merge se sube solo.
 
 ## Verificación y evidencia
 
@@ -218,7 +229,7 @@ Ninguno. `E11B` todavía no tiene brief.
 | `./scripts/check.sh` en local | Verde |
 | El push de `claude/e11a-ci` | `check.sh` y `smoke-ui.sh` verdes, con la duración de cada job |
 | El push de `claude/e11a-falsacion` | **Roja**, y el log de `check.sh` nombra el test invertido |
-| **Después de integrar**, en el panel de Render —lo observa el coordinador— | El servicio muestra el disparo condicionado a los checks, y el despliegue del primer commit posterior al merge que no toca `render.yaml` esperó la corrida verde antes de empezar |
+| **Después de integrar**, en el panel de Render —lo observa el coordinador— | El servicio muestra el disparo condicionado a los checks, y el despliegue del primer push posterior al del merge en el que ningún commit toca `render.yaml` esperó la corrida verde antes de empezar |
 | `./scripts/check-docs.sh` | Verde con el cartel agregado |
 
 ## Decisiones delegadas
@@ -236,7 +247,10 @@ Ninguno. `E11B` todavía no tiene brief.
   y queda fuera de esta tarea;
 - alguna de las tres citas de Render del punto 8 y de «Resultado esperado» cambió o ya no está;
 - el flujo necesita un secreto para algo;
-- la documentación de Render sobre el punto 8 es ambigua;
+- la documentación de Render **contradice** el punto 8, o calla sobre algo que el flujo necesita y que
+  este brief no declaró. **Los silencios ya conocidos no son motivo de parada**: si la sincronización
+  del Blueprint respeta `checksPass`, cuánto espera Render a los checks y cuándo decide que hay
+  «zero checks». Esos se escriben en el comentario y en la entrega como lo que son, sin afirmar nada;
 - aparece cualquier paso que exija crear una cuenta, una credencial o aceptar términos.
 
 ## Entrega requerida
@@ -246,7 +260,7 @@ Ninguno. `E11B` todavía no tiene brief.
 - Qué se decidió sobre el punto 8, con la fuente oficial.
 - **Los pasos de la observación en Render**, escritos para que el coordinador los siga después de
   integrar: dónde mirar en el panel que el servicio tomó el valor, cómo se ve un despliegue que espera
-  a los checks, y por qué se mira el primer commit posterior al merge y no el merge.
+  a los checks, y por qué se mira el primer push posterior al del merge, con el merge subido solo.
 - Supuestos, riesgos y pendientes.
 - Estado: `Lista para integrar | Parcial | Bloqueada`.
 - Handoff en `Coordination/Handoffs/Claude.md`.
