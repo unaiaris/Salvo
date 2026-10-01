@@ -45,7 +45,7 @@ credenciales reales.
 
 ## Fuera del MVP inicial
 
-- Anthropic real.
+- Anthropic real. **Entró en la Etapa 11**, después del MVP y con su propia aprobación.
 - Sandbox, fingerprint o certificación Koin.
 - Autenticación. La publicación con rutas mutables entró en la Etapa 10, acotada por la decisión 70
   a una instancia compartida, efímera y con corpus sintético.
@@ -71,7 +71,7 @@ externas.
 | Etapa 9 — Corpus, idiomas y cierre | Completada. **Cierra el MVP** |
 | Etapa 10 — La instancia pública | **Completada y publicada**: https://salvo-k6wk.onrender.com |
 | Etapa 11 — La IA de verdad | **Abierta** el 2026-09-30 (decisiones 71 y 72): `E11A0`, `E11A`, `E11B`, `E11C` |
-| Anthropic | Dentro de la Etapa 11 (`E11B`). Hasta que se integre, `AI_PROVIDER=anthropic` se niega a arrancar |
+| Anthropic | Adaptador integrado (`E11B`, merge `e9dda5a`), gobernado por el mismo verificador; nunca en la instancia pública. Falta la corrida real (`E11C`) |
 | Koin sandbox | Opcional, sujeto a onboarding |
 
 ## Próximo paso
@@ -88,7 +88,8 @@ compartida que se reinicia sola, con corpus sintético y sin un solo dato de una
 corrige un defecto de huso horario que corre un día las fechas de la tabla del dashboard publicado;
 `E11A` hace que la compuerta corra sola en cada push; `E11B` trae el adaptador de Anthropic, que
 cambia quién redacta la explicación y no si el texto se verifica; y `E11C` es una corrida real, con
-la evidencia publicada.
+la evidencia publicada. **Las tres primeras están verificadas**; `E11C` necesita una clave del
+coordinador, en un espacio de trabajo dedicado con tope de gasto.
 
 Lo que sigue después es post-MVP y **ninguna capacidad se abre automáticamente**: cada una necesita su
 propia aprobación, con su diseño y su brief, como todas las anteriores. En orden de lo que más

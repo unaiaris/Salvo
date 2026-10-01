@@ -1,7 +1,7 @@
 # Salvo — Seguimiento de implementación
 
 > Estado del documento: activo
-> Última actualización: 2026-09-08
+> Última actualización: 2026-10-01
 > Fuente de alcance: [[Salvo-Blueprint]]
 > Regla: actualizar este archivo al comenzar y cerrar cada etapa
 
@@ -12,12 +12,12 @@
 | Estado del proyecto | **MVP cerrado y publicado.** Las nueve etapas completadas y verificadas, y la Etapa 10 también: https://salvo-k6wk.onrender.com |
 | Etapa completada | Etapa 10 — La instancia pública (`E10A`, `E10B` y `E10C` integradas y verificadas) |
 | Próxima etapa | **Etapa 11 — la IA de verdad**: integración continua y el adaptador de Anthropic |
-| Estado de la próxima etapa | Abierta el 2026-09-30. `E11A0` verificada (merge `1f76429`). `E11A` verificada (merge `d3d3408`): la compuerta corre sola en GitHub Actions y Render solo despliega `main` en verde. `E11B` con brief válido en la quinta ronda de `brief-check`, asignada a Opus 5.5 · `high` y en ejecución |
+| Estado de la próxima etapa | Abierta el 2026-09-30. `E11A0` (merge `1f76429`), `E11A` (merge `d3d3408`) y `E11B` (merge `e9dda5a`) verificadas: la compuerta corre sola, Render solo despliega `main` en verde, y el adaptador de Anthropic está integrado y probado contra un simulador, sin una sola llamada real. Falta `E11C`, la corrida real |
 | Bloqueo actual | Ninguno |
 | Dependencias externas | Ninguna para el núcleo local |
-| Anthropic | Previsto para después del núcleo; decisión aparte, preparada por D11 |
+| Anthropic | Adaptador integrado (`E11B`, merge `e9dda5a`); nunca llamado todavía. La corrida real es `E11C`, con una clave del coordinador en un espacio de trabajo dedicado con tope |
 | Koin sandbox | Post-MVP; sujeto a onboarding y credenciales |
-| Coordinación Codex–Claude | `E11A0-HUSO-HORARIO` verificada (merge `1f76429`); `E11A-INTEGRACION-CONTINUA` verificada (merge `d3d3408`); `E11B-ADAPTADOR-ANTHROPIC` asignada a Opus 5.5 · `high` |
+| Coordinación Codex–Claude | `E11A0-HUSO-HORARIO`, `E11A-INTEGRACION-CONTINUA` y `E11B-ADAPTADOR-ANTHROPIC` verificadas; `E11C-CORRIDA-REAL` sin brief |
 
 **Este bloque se actualiza en cada cierre de etapa y en cada alta de tarea.** Quedó desfasado
 durante toda la Etapa 7 porque los cierres actualizaron el registro de actividad y los checklists
@@ -50,7 +50,7 @@ Solo puede existir una etapa `En curso` a la vez.
 | 8 | El argumento del proyecto | Completada | README, diagramas, capturas y guion de demo; cada afirmación contrastada contra el código | Merges `1243d54` y `6ae7750`; `check-docs.sh` incorporado a la compuerta; seis capturas revisadas una por una |
 | 9 | Corpus, idiomas y cierre | Completada | Seis reglas y tres bandas alcanzables; F1 deja de valer 1,00 | Merges `41343c1` y `4f7daf9`. F1 holdout 0,632 y calibración 0,688; las seis reglas disparan y las tres bandas existen; el motor escribe campos y el extractor de prosa ya no existe. y `0d65f9a`. El idioma es del despliegue y entra en la identidad de la explicación; el castellano sigue siendo el valor por defecto. La consola pasa de 6 a 31 reglas de accesibilidad más `axe-core` en la compuerta. `E9D` despachada |
 | 10 | La instancia pública | **Completada** | Cualquiera la usa desde el navegador, gratis, sin instalar nada | Merges `29677f6` y `23a47cd`. **Arranca con los datos ya puestos en 41 s a 0,1 vCPU**, contra 119,7 s en `E10A`, con 103 MiB de 512; un contenedor recién levantado ya muestra 23 alertas, 51 denegados sin alerta local y una explicación escrita. Se reinicia sola por antigüedad. Decisión 70 escrita. Falta publicarla: `E10C` |
-| 11 | La IA de verdad | **Abierta** | El adaptador de Anthropic escribe la explicación, y el verificador de la Etapa 7 lo gobierna igual que a la plantilla | `E11A0` —las fechas del dashboard en UTC— primero, `E11A` —la compuerta en cada push— después, las dos verificadas; `E11B` con brief válido, en ejecución |
+| 11 | La IA de verdad | **Abierta** | El adaptador de Anthropic escribe la explicación, y el verificador de la Etapa 7 lo gobierna igual que a la plantilla | `E11A0`, `E11A` y `E11B` verificadas (merges `1f76429`, `d3d3408` y `e9dda5a`); falta `E11C`, la corrida real |
 | Post-MVP | Koin sandbox, auth, observabilidad | Pendiente | Aprobación independiente por capacidad | Pendiente |
 
 ## Etapa 1 — Resultado verificado
@@ -242,7 +242,7 @@ tercera. (Sección histórica de la Etapa 4: las Etapas 5, 6 y 7 se completaron 
 - [x] La consola ofrece redactar con la plantilla vigente cuando el texto lo escribió una anterior,
       sin alarma y conservando la fila previa.
 
-- [ ] Decidir aparte si se activa Anthropic.
+- [x] Decidir aparte si se activa Anthropic. **Decidido el 2026-09-30**: se activa en la Etapa 11 (decisión 71), y el adaptador quedó integrado con `E11B`.
 
 ### Etapa 8 — El argumento del proyecto
 
@@ -274,8 +274,9 @@ tercera. (Sección histórica de la Etapa 4: las Etapas 5, 6 y 7 se completaron 
       toca, y por eso se sube solo. **Verificada** (merge `d3d3408`): el despliegue de `084e44f` empezó
       a las 02:44, con los checks terminados a las 02:44:18, contra uno del merge que salió en el
       mismo minuto del push.
-- [ ] **`E11B`**: el adaptador de Anthropic, gobernado por el verificador existente, con la consola
-      diciendo quién escribió cada párrafo.
+- [x] **`E11B`**: el adaptador de Anthropic, gobernado por el verificador existente, con la consola
+      diciendo quién escribió cada párrafo. Merge `e9dda5a`, con la CI verde sin clave (run
+      `36909908368`). **Sin una sola llamada real**: eso es `E11C`.
 - [ ] **`E11C`**: la corrida real, con la evidencia publicada — los textos aceptados, y el código y la
       cifra de los rechazados.
 
@@ -363,7 +364,7 @@ desempate de la cola por identificador aleatorio, y pintar `explanationId` en el
 | SDK .NET y versiones exactas de dependencias | Resuelta | Etapa 1 | .NET 10.0.400 y dependencias directas fijadas; locks verificados |
 | Schema y contratos E2 | Resuelta | Preparación de Etapa 2 | Decisiones 15–20 del Blueprint + brief `E2-CONTRACT-DATA` |
 | Baseline, reglas y calibración E3 | Resuelta | Preparación de Etapa 3 | Decisiones 21–27 del Blueprint + brief `E3-MOTOR-DETERMINISTA` |
-| Anthropic real | Diferida | Decisión aparte | La Etapa 7 cerró con proveedor determinista. Hoy `AI_PROVIDER=anthropic` se niega a arrancar, con o sin clave |
+| Anthropic real | Resuelta | Etapa 11 | Decisión 71. El adaptador entró con `E11B` (merge `e9dda5a`), decisiones 73 a 82; la corrida real es `E11C` |
 | Acceso Koin sandbox | Diferida | Post-MVP | Requiere onboarding, private key y `org_id` |
 | Auth/multi-tenant | Diferida | Post-MVP | Necesaria antes de recibir datos de una persona real; la instancia pública de la Etapa 10 no los recibe (decisión 70) |
 | Deploy/Postgres | Diferida | Post-MVP | No condiciona la demo local |
@@ -487,6 +488,8 @@ desempate de la cola por identificador aleatorio, y pintar `explanationId` en el
 | 2026-10-01 | 11 | Integración de `E11A-INTEGRACION-CONTINUA` | Merge `d3d3408` + compuerta y smoke verdes en local, **subido solo** porque toca `render.yaml` y Render sincroniza el Blueprint en ese push. Es la primera corrida del flujo en `main` y estrena la caché. La observación de `checksPass` se hace sobre el push de este cierre, que no toca `render.yaml`, comparando el `completedAt` de los jobs con el inicio del despliegue | Integrada |
 | 2026-10-01 | 11 | Observación de `checksPass` en Render | Leída por el coordinador. **Settings** dice «After CI Checks Pass»: el servicio tomó el valor. **El push que cuenta, `084e44f`** —el cierre, que no toca `render.yaml`—: los dos jobs terminaron a las 05:44:11 y 05:44:18 UTC (02:44:11 y 02:44:18 en Montevideo) y el despliegue empezó a las **02:44**, unos dos minutos y medio después del push, que es lo que tarda la corrida. **El push del merge, `d3d3408`, se registra y no cuenta**: el despliegue empezó a las **02:37**, en el mismo minuto del push, y los checks terminaron a las 02:39:28; no esperó. No se puede atribuir: en ese push cambiaba el propio `autoDeployTrigger`, y es la sincronización del Blueprint que la documentación no describe. **La resolución del panel es de minuto**, así que el inicio del despliegue y el fin del último job caen en el mismo minuto; lo que separa a los dos casos es el contraste: con `commit`, el despliegue sale con el push, y con `checksPass` salió con el fin de la corrida | Completada |
 | 2026-10-01 | 11 | Despacho de `E11B-ADAPTADOR-ANTHROPIC` | **Cinco rondas de `brief-check`** con Fable · `xhigh`, con la gravedad bajando en cada una. La primera encontró un cambio de la API que el diseño no conocía: **Sonnet 5.5 razona por defecto y `disabled` devuelve 400**, lo que cambiaba el costo y el `max_tokens`; se resolvió con `between_tools` y quedó como decisión 81. Además, que la fábrica de tests heredaba `AI_PROVIDER` del entorno —medido: 4 de 4 tests caen— y que la reserva de D11 no cubría a quienes consumen la selección. La segunda, que el test de propiedad de la hoja no podía ver los centavos porque **son** un hecho, y que el patrón de `FailureDetail` rechazaba todo `request-id` real. La tercera encontró **un defecto que el producto tendría con el modelo**: con una `READY` de la plantilla y una `FAILED` del modelo, el botón no reintentaba nada, el defecto de `E7D` en el escenario nuevo. La cuarta, que ningún test podía afirmar a la vez el pedido del botón y la respuesta real, y lo partió en dos capas. La quinta lo dio por válido. Límite dicho y no empeorado: una `PENDING` abandonada de otro escritor del mismo proveedor deja la alerta sin botón hasta que alguien la retome | Despachada |
+| 2026-10-01 | 11 | `E11B-ADAPTADOR-ANTHROPIC` | **Trece commits** con Opus 5.5 · `high`: los doce del brief, en su orden y cada uno con la compuerta verde, y uno más que salió de la corrida con el entorno contaminado. Esa corrida existía para eso y lo encontró: con `AI_PROVIDER=anthropic`, el modelo y una clave ficticia exportados, dos tests del commit 8 tomaban la clave de la terminal. Se arregló en la fábrica de tests, en un commit aparte y sin reescribir la historia. **Las ocho falsaciones** dieron rojo con el nombre del test; dos parches no compilaron la primera vez y esos verdes no se contaron. **Diffs vacíos** sobre `ProviderCall`, el antifraude, `ExplanationGrounding`, `ExplanationFacts`, migraciones y dependencias. Rehízo la tabla de datos con la documentación del día y encontró dos cosas nuevas: en Sonnet 5.5, un `temperature` distinto del de omisión devuelve 400, y `between_tools` solo existe en ese modelo. Y corrigió su propio prompt: una primera versión traía cifras de ejemplo que el modelo podía copiar a una evaluación donde no son hechos. Un corte de internet a mitad del commit 8 no perdió nada: lo hecho estaba commiteado y lo pendiente se retomó desde `git status` | Lista para integrar |
+| 2026-10-01 | 11 | Integración de `E11B-ADAPTADOR-ANTHROPIC` | Merge `e9dda5a` + compuerta y smoke verdes en local, y **la CI verde en un runner sin ninguna variable de Anthropic** (run `36909908368`: `check.sh` 2 min 49 s, `smoke-ui.sh` 1 min 50 s). Las decisiones que la tarea tomó en ejecución quedan como decisión 82. El coordinador aceptó el commit 13 | Completada |
 | 2026-09-10 | 10 | Duración de las primeras construcciones en Render | Leídas por el coordinador en el panel de despliegues de Render, y registradas acá el 2026-10-01 porque hasta entonces vivían solo en una captura: **11,9 s** —falló, por la etiqueta móvil del SDK—, **2 min 10 s** —la primera completa, sin caché—, **28,3 s** —un commit de documentos, con la caché de capas— y **1 min 15 s**. Unos cuatro minutos del cupo mensual de 500 | Registrada |
 | 2026-09-10 | 10 | `E10C-PUBLICACION`, segunda vuelta e integración | Merge `51eec4c` + compuerta y smoke verdes. **Salvo queda publicado en https://salvo-k6wk.onrender.com.** La medición desde afuera encontró un defecto que ninguna máquina de desarrollo puede mostrar: la consola le daba 5 s a la API y la API tarda unos 40 en levantar con 0,1 vCPU, así que la primera visita veía un error en vez de la cola. Se arregló explicando la espera —`role="status"`, no `role="alert"`— y el `meta refresh` se descartó **con la comprobación hecha**: `axe-core` lo marca sobre el documento y no sobre el contenedor, así que el test habría pasado en verde sin ver la violación. Y una afirmación propia se retiró: con media muestra, un error aislado se había leído como un problema en caliente, y con las 115 peticiones resultó ser el reinicio anterior | Completada |
 | 2026-09-09 | 10 | `E10C-PUBLICACION`, primera vuelta y alta en Render | El primer despliegue falló, y el fallo era real: `global.json` exige el SDK 10.0.400 con `rollForward: disable` y el `Dockerfile` pedía la imagen por la etiqueta flotante `sdk:10.0`, que había pasado a 10.0.401. Funcionaba hacía nueve días **por la imagen cacheada en la máquina de desarrollo**. El mismo archivo explicaba tres líneas más abajo por qué Node sí se bajaba por versión exacta: el principio estaba escrito y aplicado a medias | Completada |

@@ -32,8 +32,9 @@ repositorio, que lo verifica antes de despacharlo.
 > decide fraude, severidad ni bloqueo: como máximo redacta explicaciones. La evaluación de un
 > proveedor externo se guarda como fuente separada y nunca se mezcla con el score local. El backend
 > es ASP.NET Core con C# y EF Core/SQLite; el frontend es Next.js con TypeScript estricto sobre un
-> contrato OpenAPI. El MVP usa datos 100% sintéticos y un proveedor antifraude mock. Anthropic está
-> previsto para una etapa posterior y el sandbox de Koin es post-MVP, sujeto a onboarding y
+> contrato OpenAPI. El MVP usa datos 100% sintéticos y un proveedor antifraude mock. Desde la Etapa 11,
+> un adaptador de Anthropic puede redactar la explicación, gobernado por el mismo verificador que la
+> plantilla y nunca en la instancia pública; el sandbox de Koin es post-MVP, sujeto a onboarding y
 > credenciales.
 >
 > **No tenés acceso al repositorio.** Los archivos adjuntos son una foto fechada, no el estado

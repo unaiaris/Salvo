@@ -1,7 +1,7 @@
 # Salvo — Mapa de contenido
 
 > Estado del documento: vigente
-> Última actualización: 2026-09-30
+> Última actualización: 2026-10-01
 > Fuente de verdad: [[Salvo-Blueprint]]
 
 Índice principal de la documentación de diseño y ejecución.
@@ -78,7 +78,8 @@ Cuatro recorridos, según qué quieras entender. Ninguno pide leerlos todos.
 4. Alertas y casos de uso.
 5. UI y dashboard.
 6. Proveedor antifraude mock.
-7. Explicabilidad determinista. Cerró con plantilla propia; Anthropic quedó como decisión aparte.
+7. Explicabilidad determinista. Cerró con plantilla propia; Anthropic quedó como decisión aparte, y
+   entró en la Etapa 11.
 8. El argumento del proyecto: README, diagramas, capturas y guion de demo.
 9. Corpus, idiomas y cierre: fixture enriquecida, señales estructuradas, portugués y accesibilidad.
 10. La instancia pública: un contenedor con los dos procesos, la base sembrada horneada adentro, el

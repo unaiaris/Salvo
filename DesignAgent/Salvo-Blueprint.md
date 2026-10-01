@@ -322,8 +322,10 @@ Tabla de transiciones:
 - Generar es idempotente y no puede quedar trabado: la fila se reserva y se persiste antes de
   llamar, el asentamiento no depende de que el cliente siga esperando, `FAILED` se reintenta sobre
   la misma fila, una solicitud pendiente vencida es retomable y hay tope de intentos.
-- Sin clave el sistema funciona con un proveedor determinista. Un `AI_PROVIDER` que nombre un
-  adaptador inexistente falla al arrancar.
+- Sin clave el sistema funciona con un proveedor determinista, que es el de omisión y el único de la
+  instancia pública. `AI_PROVIDER=anthropic` registra el adaptador de la Etapa 11, gobernado por el
+  mismo verificador; sin clave o sin modelo, o en la instancia compartida aunque haya clave, el
+  arranque falla nombrando la variable y nunca su valor. Cualquier otro valor también falla.
 
 ## 5. Alineación con Koin
 
@@ -888,6 +890,7 @@ completo el MVP local.
 | 79 | La consola nunca esconde un texto aceptado detrás de un intento fallido, y dice quién lo escribió | Con un escritor que puede fallar, mostrar la fila más reciente escondería un párrafo correcto que sigue en la base. Una oración por proveedor; la de la plantilla no cambia (D11, D12) | 2026-10-01 |
 | 80 | El agujero semántico del verificador se fija como clase, no se cierra | El verificador comprueba que una cifra exista, no que la oración sea verdadera. Inversión, atribución cruzada y cifras en palabras pasan, y tests de caracterización lo afirman para que nadie lo cierre sin corregir lo que el README dice. La lectura humana es observación, no compuerta. Si el modelo no pasa el verificador, se cambia el prompt, nunca el verificador (D13) | 2026-10-01 |
 | 81 | El adaptador apaga el razonamiento por adelantado y usa un esquema constante | Sonnet 5.5 razona por defecto, con esfuerzo `high`; `disabled` devuelve 400, y el razonamiento cuenta contra `max_tokens` y se cobra como salida. `thinking: between_tools` —sin herramientas, la respuesta es solo texto— y esfuerzo `medium` mantienen válidos `max_tokens` y el costo estimado. El `enum` de reglas es constante, con todas las del motor, para compilar una sola gramática; que la regla citada haya disparado lo sigue comprobando el verificador. Lo encontró el `brief-check` de `E11B` | 2026-10-01 |
+| 82 | El escritor de una explicación es el par proveedor y versión, y la consola lo sabe | Decisiones de `E11B` en ejecución, aceptadas al integrar. `WrittenByAnotherTemplate` compara el par y no solo la versión; la vista lleva el proveedor vigente, porque sin él la consola no puede rotular el botón cuando el vigente no tiene fila; el botón del caso en que el modelo falló reintenta esa fila. `ProviderVersion` solo entra si tiene forma de ID de modelo: es el único texto de la respuesta que llega a la pantalla, con la misma lógica que la lista cerrada de `FailureDetail`. Y `between_tools` existe solo en Sonnet 5.5: cambiar de modelo exige cambiar el cuerpo de la petición | 2026-10-01 |
 
 ## 14. Mapa de documentación
 
