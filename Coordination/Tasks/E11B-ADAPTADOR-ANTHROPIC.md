@@ -9,9 +9,10 @@
 - Coordinador: Unai Arismendes
 - Fecha: 2026-10-01
 - Rama/worktree: `claude/e11b-anthropic`
-- Commit base: **lo escribe el primer commit de la rama**, con lo que devuelva
-  `git merge-base main HEAD`. El coordinador acepta que este campo no lleve SHA, por la lección de
-  `E8B`: el commit que lo escribiera en `main` movería la punta y lo volvería falso.
+- Commit base: `0b04d3bf5f7381c59177f3c54fef9244ee1cd6c9` (`0b04d3b`, «docs(e11): despacho de
+  E11B»), lo que devolvió `git merge-base main HEAD` al cortar `claude/e11b-anthropic`. Lo escribe el
+  primer commit de la rama, por la lección de `E8B`: el commit que lo escribiera en `main` movería la
+  punta y lo volvería falso.
 - Integración: **por merge, nunca por rebase.**
 - Modelo y esfuerzo acordados: **Opus 5.5 · `high`**, la fila «Implementación con ambigüedad real
   dentro del alcance» de `ClaudeAgent/Claude-Model-Policy.md`: el diseño fija las decisiones, pero
