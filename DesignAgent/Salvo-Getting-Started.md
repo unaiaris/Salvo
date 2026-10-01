@@ -37,8 +37,11 @@
 
 El núcleo local no necesita cuentas externas.
 
-- Anthropic: decisión aparte, todavía no tomada. La Etapa 7 cerró con una plantilla determinista, y
-  hoy `AI_PROVIDER=anthropic` hace fallar el arranque con o sin clave.
+- Anthropic: hace falta solo para que un modelo redacte las explicaciones, y nunca para el núcleo
+  local. Con `AI_PROVIDER=anthropic`, la API exige `ANTHROPIC_API_KEY` y `ANTHROPIC_MODEL` o no
+  arranca, y no arranca en la instancia pública aunque la clave esté. La clave sale de un espacio de
+  trabajo dedicado con tope de gasto —el espacio por defecto no admite topes— y vive solo en el
+  `.env` de quien corre `scripts/explicar-con-anthropic.sh`, el único script que la carga.
 - Koin: el sandbox requiere onboarding, private key y `org_id`; no bloquea el MVP. `KOIN_MODE=sandbox`
   también hace fallar el arranque, a propósito.
 - Ninguna clave se copia en chats, documentación, fixtures o Git.
@@ -64,7 +67,7 @@ El núcleo local no necesita cuentas externas.
 4. Alertas y revisión.
 5. UI y dashboard.
 6. Proveedor antifraude mock y callback.
-7. Explicabilidad determinista; Anthropic solo tras aprobación, que no se pidió.
+7. Explicabilidad determinista. Anthropic llegó en la Etapa 11, detrás del mismo verificador.
 8. El argumento del proyecto: README, diagramas, capturas y guion de demo.
 9. Corpus, idiomas y cierre: fixture enriquecida, señales estructuradas, portugués y accesibilidad.
 10. La instancia pública: el contenedor y su medición, la instancia compartida que se reinicia, y la
@@ -232,4 +235,5 @@ diciéndose como el fallo que es.
 - Tests y demo usan proveedores mock y no hacen red.
 - No se usan versiones NuGet flotantes ni `@latest`; se fijan tras los smoke tests de la Etapa 1.
 - No se mueve ni elimina `DesignAgent/` para ejecutar `create-next-app`.
-- No se activa Koin sandbox ni Anthropic sin aprobación y credenciales server-side.
+- No se activa Koin sandbox sin aprobación y credenciales server-side. Anthropic se activa solo con
+  credenciales server-side, nunca en la integración continua ni en la instancia pública.
