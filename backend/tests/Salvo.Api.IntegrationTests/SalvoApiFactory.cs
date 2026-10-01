@@ -129,6 +129,13 @@ public sealed class SalvoApiFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         sharedConnection?.Open();
+
+        // The provider is fixed here rather than inherited, because the host reads the environment
+        // of whoever runs the tests. With `AI_PROVIDER=anthropic` exported — the terminal in which
+        // the real run of `E11C` happens — every test of this suite would start against the paid
+        // adapter, or refuse to start at all. Set before `Settings`, so a test that asks for another
+        // provider on purpose still gets it.
+        builder.UseSetting("AI_PROVIDER", "mock");
         builder.UseSetting("DemoData:Enabled", DemoDataEnabled ? "true" : "false");
         builder.UseSetting(ExternalCallbackEndpoints.SecretConfigurationKey, CallbackSecret ?? string.Empty);
         foreach (var setting in Settings)

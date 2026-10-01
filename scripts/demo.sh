@@ -44,6 +44,11 @@ web_base="http://localhost:${web_port}"
 
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
 export DOTNET_NOLOGO=1
+# El proveedor de explicaciones se fija y no se hereda. Sin esta línea, una terminal con
+# `AI_PROVIDER=anthropic` exportado —la de la corrida real de `E11C`— levantaría la API contra el
+# adaptador pago: el ensayo gastaría dinero y la
+# demo mostraría un escritor distinto del que el guion describe.
+export AI_PROVIDER=mock
 
 # La base vive junto a la que usa `dotnet run`, para que se vean todas juntas y se note cuántos
 # ensayos hubo. `*.db` está en `.gitignore`, así que ninguna de ellas se versiona.

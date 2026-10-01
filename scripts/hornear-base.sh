@@ -51,6 +51,12 @@ expected_alerts=23
 log() { printf '[hornear] %s\n' "$*"; }
 fail() { printf '[hornear] ERROR: %s\n' "$*" >&2; exit 1; }
 
+# El proveedor de explicaciones se fija y no se hereda. **Dentro de `docker build` esta línea no
+# protege nada**: el entorno de la terminal no entra en la construcción, y el `Dockerfile` no declara
+# `AI_PROVIDER`. Es defensa para quien corra este script fuera de Docker con `AI_PROVIDER=anthropic`
+# exportado, que hornearía texto de un modelo en la base de la instancia pública.
+export AI_PROVIDER=mock
+
 # ------------------------------------------------------------------ la API, en segundo plano
 
 mkdir -p "$(dirname "$db_path")"

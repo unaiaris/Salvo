@@ -47,6 +47,11 @@ sample="${repository_root}/docs/muestras/import-con-errores.csv"
 
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
 export DOTNET_NOLOGO=1
+# El proveedor de explicaciones se fija y no se hereda. Sin esta línea, una terminal con
+# `AI_PROVIDER=anthropic` exportado —la de la corrida real de `E11C`— levantaría la API contra el
+# adaptador pago: las capturas del README
+# mostrarían texto de un modelo donde el pie dice «no por un modelo».
+export AI_PROVIDER=mock
 
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/salvo-capturas-XXXXXX")"
 database="${work_dir}/capturas.db"

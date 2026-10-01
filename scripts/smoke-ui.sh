@@ -55,6 +55,11 @@ web_base="http://127.0.0.1:${web_port}"
 
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
 export DOTNET_NOLOGO=1
+# El proveedor de explicaciones se fija y no se hereda. Sin esta línea, una terminal con
+# `AI_PROVIDER=anthropic` exportado —la de la corrida real de `E11C`— levantaría la API contra el
+# adaptador pago: el recorrido gastaría dinero y
+# caería en «no por un modelo» sin explicar por qué.
+export AI_PROVIDER=mock
 
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/salvo-smoke-XXXXXX")"
 db_with_data="${work_dir}/with-data.db"
