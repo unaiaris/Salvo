@@ -21,10 +21,9 @@
 
 ## Resultado esperado
 
-**La compuerta se corre sola.** Cada push, a cualquier rama, corre `scripts/check.sh` en GitHub
-Actions; cada push a `main` corre además `scripts/smoke-ui.sh`; y el flujo completo se puede lanzar a
-mano sobre cualquier rama. Con las mismas versiones exactas que el repositorio fija y sin ningún
-secreto.
+**La compuerta se corre sola.** Cada push, a cualquier rama, corre `scripts/check.sh` y
+`scripts/smoke-ui.sh` en GitHub Actions, con las mismas versiones exactas que el repositorio fija y
+sin ningún secreto. Y `main` solo se despliega en Render cuando esa corrida está en verde.
 
 ### Por qué va primero, y por qué dentro de esta etapa
 
@@ -60,15 +59,23 @@ adaptador.
 
 ### Dentro
 
-1. **El flujo** en `.github/workflows/`, con cuatro disparadores, cada uno con su motivo:
-   - **`push` a cualquier rama** corre `check.sh`. Es lo que produce la evidencia de esta tarea —la
-     corrida verde de la rama y la roja de la falsación— sin abrir pull requests, porque este proyecto
-     integra por merge local.
-   - **`push` a `main`** corre además `smoke-ui.sh`. Lo que queda en `main` es lo que se despliega, y
-     ahí el recorrido importa.
-   - **`workflow_dispatch`** corre el flujo completo a mano, desde la pestaña Actions, sobre cualquier
-     rama. Es como el coordinador ve el recorrido verde **antes** de integrar.
-   - **`pull_request`** corre los dos, por si algún día se usan. No es el camino de este proyecto.
+1. **El flujo** en `.github/workflows/`. **Cada `push`, a cualquier rama, corre `check.sh` y
+   `smoke-ui.sh`**; `pull_request` corre lo mismo, por si algún día se usan.
+   - **Por qué en cualquier rama**: es lo que produce la evidencia de esta tarea —la corrida verde de
+     la rama y la roja de la falsación— sin abrir pull requests, porque este proyecto integra por
+     merge local.
+   - **Por qué el recorrido en cada push, y no solo en `main`**: la única otra forma de verlo antes de
+     integrar sería `workflow_dispatch`, y **no sirve para eso**. La documentación de GitHub dice que
+     ese evento solo dispara si el archivo del flujo existe en la rama por defecto
+     (https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows),
+     y mientras el flujo viva en la rama no está en `main`. El costo es tiempo de corrida por push: la
+     entrega reporta la duración de cada job, y si el recorrido resulta caro, correrlo solo en `main`
+     es una decisión posterior, tomada con ese número.
+   - **`workflow_dispatch` se agrega igual**, para relanzar el flujo a mano sobre `main` una vez
+     integrado. No es evidencia de esta tarea.
+   - **El runner se fija por versión** —la etiqueta con número que la documentación de GitHub liste
+     vigente el día—, **nunca `ubuntu-latest`**: es una etiqueta que se mueve sola, la misma clase de
+     referencia que el punto 3 prohíbe.
 2. **Versiones exactas, por archivo.** El SDK desde `global.json`, Node desde `.nvmrc`, npm en la
    versión que declara `packageManager`. Ninguna versión escrita a mano en el flujo si ya existe en
    un archivo del repositorio: dos declaraciones de lo mismo terminan discrepando.
@@ -87,14 +94,17 @@ adaptador.
 
    - **La premisa del `off` ya no se sostiene, y lo dice una medición.** Las cuatro construcciones de
      la Etapa 10 tardaron 11,9 s, 2 min 10 s, 28,3 s y 1 min 15 s: unos cuatro minutos de quinientos.
+     Están en `DesignAgent/Salvo-Progress.md`, registro de actividad, fila «Duración de las primeras
+     construcciones en Render», leídas del panel de despliegues.
      La caché de capas de Docker hace que un commit de documentos reconstruya en medio minuto. El
      riesgo real no es el cupo: es **desplegar un `main` en rojo**.
-   - **Si la documentación oficial de Render** confirma un valor que despliegue solo con los checks en
-     verde, se usa.
-   - **Si no lo confirma**, se queda `commit`.
+   - **Se usa `checksPass`**: la documentación de Render lo describe como desplegar solo cuando todos
+     los checks pasan, y el `brief-check` lo encontró documentado el 2026-10-01. Con la compuerta
+     corriendo en cada push, `main` solo se despliega en verde. La tarea vuelve a abrir esa página el
+     día que ejecute; si cambió, se detiene y consulta.
    - **Nunca `off`**: con la compuerta corriendo sola, un despliegue a mano es un paso más que alguien
      tiene que recordar, y la medición no lo justifica.
-   - **En los dos casos se reescribe el comentario**, con las cifras medidas y la decisión tomada, para
+   - **Se reescribe el comentario**, con las cifras medidas y la decisión tomada, para
      que deje de prescribir algo que el proyecto decidió no hacer.
 
 ### Fuera
@@ -124,25 +134,29 @@ Ninguno. `E11B` todavía no tiene brief.
 - Dependencias: **no** se agrega ninguna al proyecto.
 - Red: leer documentación oficial de GitHub y de Render, y resolver el SHA de cada acción.
 - Escrituras externas: **no**. El agente **no hace push**: la configuración lo deniega a propósito.
-  El coordinador sube las ramas, lanza el flujo a mano, y pega los resultados.
+  El coordinador sube las ramas y pega los resultados.
 - **La falsación la prepara el agente**: una segunda rama local, `claude/e11a-falsacion`, cortada de
-  `claude/e11a-ci` después del último commit de la tarea, con **un solo commit** que invierte un
+  `claude/e11a-ci` después del último commit de código, con **un solo commit** que invierte un
   assert de un test existente y lo nombra en el mensaje. El coordinador la sube, ve el rojo, y la
   borra local y remota: **el borrado es suyo**.
+- **La tarea termina en dos tiempos.** Primero el agente deja el flujo, el cartel, el punto 8 y la rama
+  de falsación, y **se detiene**. Después de que el coordinador suba las dos ramas y pegue los
+  enlaces de las corridas, el agente escribe el handoff con ellos, en un último commit sobre
+  `claude/e11a-ci`.
 - Acciones destructivas: **no**.
 
 ## Criterios de aceptación
 
-- [ ] Los cuatro disparadores del punto 1, cada uno con lo que corre.
+- [ ] Los disparadores del punto 1: `push` a cualquier rama y `pull_request` corren `check.sh` y
+      `smoke-ui.sh`; `workflow_dispatch` existe para relanzar sobre `main`.
+- [ ] El runner fijado por versión, nunca `ubuntu-latest`.
 - [ ] SDK, Node y npm salen de `global.json`, `.nvmrc` y `packageManager`, sin versiones repetidas en
       el flujo.
 - [ ] Cada acción está fijada por SHA completo con su versión en un comentario.
 - [ ] `permissions: contents: read`, y ningún secreto referenciado.
-- [ ] **Una corrida verde de `check.sh`** al subir la rama `claude/e11a-ci`.
-- [ ] **Una corrida verde del flujo completo** —`check.sh` y `smoke-ui.sh`— lanzada a mano sobre esa
-      misma rama.
+- [ ] **Una corrida verde**, `check.sh` y `smoke-ui.sh`, al subir la rama `claude/e11a-ci`.
 - [ ] **Una falsación**: la rama `claude/e11a-falsacion`, con un assert invertido, tiene que dar
-      **rojo**, en el paso de los tests, nombrando ese test. Un flujo que nunca se vio fallar no está
+      **rojo**, y el log de `check.sh` nombra ese test. Un flujo que nunca se vio fallar no está
       probado.
 - [ ] El cartel de estado en el README, y `./scripts/check-docs.sh` verde.
 - [ ] El punto 8 resuelto en una de sus dos formas, con la URL oficial que lo sostiene.
@@ -152,9 +166,8 @@ Ninguno. `E11B` todavía no tiene brief.
 | Comprobación | Resultado esperado |
 | --- | --- |
 | `./scripts/check.sh` en local | Verde |
-| El push de `claude/e11a-ci` | `check.sh` verde, con la duración de cada paso |
-| El flujo lanzado a mano sobre `claude/e11a-ci` | `check.sh` y `smoke-ui.sh` verdes |
-| El push de `claude/e11a-falsacion` | **Roja**, en el paso de los tests, nombrando el test invertido |
+| El push de `claude/e11a-ci` | `check.sh` y `smoke-ui.sh` verdes, con la duración de cada job |
+| El push de `claude/e11a-falsacion` | **Roja**, y el log de `check.sh` nombra el test invertido |
 | `./scripts/check-docs.sh` | Verde con el cartel agregado |
 
 ## Decisiones delegadas
@@ -172,7 +185,8 @@ Ninguno. `E11B` todavía no tiene brief.
 
 ## Entrega requerida
 
-- Resumen, archivos tocados, y las dos corridas —la verde y la roja— con su enlace.
+- Resumen, archivos tocados, y las dos corridas —la verde de `claude/e11a-ci` y la roja de la
+  falsación— con su enlace y la duración de cada job.
 - Qué se decidió sobre el punto 8, con la fuente oficial.
 - Supuestos, riesgos y pendientes.
 - Estado: `Lista para integrar | Parcial | Bloqueada`.

@@ -59,7 +59,7 @@ hacer.
 | Sonnet 5.5 | $2 / $10 | 1M | Mejor equilibrio velocidad/inteligencia |
 | Haiku 4.5 | $1 / $5 | 200K | Lo más rápido y económico. **Compromiso de disponibilidad hasta el 2026-10-15** |
 
-Verificado el 2026-10-01 en las páginas oficiales de precios, de modelos y de retiro. Opus 5.5 y
+Verificado el 2026-09-30 en las páginas oficiales de precios, de modelos y de retiro. Opus 5.5 y
 Sonnet 5.5 reemplazan en esta tabla a Opus 5 y Sonnet 5, y la matriz de abajo usa la versión vigente
 de cada familia.
 
