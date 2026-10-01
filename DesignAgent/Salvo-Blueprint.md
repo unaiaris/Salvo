@@ -1,8 +1,9 @@
 # Salvo — Blueprint del MVP
 
 > Estado del documento: vigente
-> Estado del proyecto: Etapas 1 a 8 integradas y verificadas; Etapa 9 en ejecución. Es la última
-> Última actualización: 2026-09-07
+> Estado del proyecto: Etapas 1 a 10 integradas y verificadas; el MVP está publicado en
+> https://salvo-k6wk.onrender.com. **Etapa 11 abierta — la IA de verdad.**
+> Última actualización: 2026-10-01
 > Seguimiento operativo: [[Salvo-Progress]]
 
 Fuente de verdad del producto, alcance y arquitectura. Salvo es una consola antifraude B2B para un
@@ -80,13 +81,15 @@ scores ni se presenta uno como si fuera el otro.
 
 ### Diferido hasta después del núcleo
 
-- Anthropic para redactar explicaciones; el MVP inicial usa explicación determinista/mock.
+- Anthropic para redactar explicaciones; el MVP inicial usa explicación determinista/mock. **Sale
+  de esta lista con la Etapa 11** (decisión 71).
 - Cliente real del sandbox de Koin.
 - Device fingerprint oficial de Koin.
 - Callback público en Internet.
 - Autenticación y multi-tenant real.
 - Prometheus, Grafana y alertas operativas.
-- PostgreSQL, despliegue y CI remoto.
+- PostgreSQL. El despliegue salió de esta lista con la Etapa 10, y la **CI remota sale con la Etapa
+  11** (decisión 71).
 - Consulta en lenguaje natural o NL→SQL.
 
 ### Fuera de alcance
@@ -752,6 +755,29 @@ campos tipados de las otras tres.
 Verificación: las seis reglas y las tres bandas alcanzables desde la fixture; la matriz de confusión
 publicada con sus conteos y su `n`; compuertas verdes y documentos coherentes con los datos.
 
+### Etapa 10 — La instancia pública
+
+- Un contenedor con los dos procesos, la API en loopback y la base sembrada **horneada en la imagen**.
+- Una sandbox compartida que se reinicia sola, con corpus sintético y aviso en pantalla (decisión 70).
+- Publicada en el plan gratuito de Render, elegido por su modo de falla: sin método de pago suspende
+  en vez de cobrar.
+
+Verificación: medida desde afuera, sin sesión, contra la instancia real; el reinicio por antigüedad
+observado en la plataforma.
+
+### Etapa 11 — La IA de verdad
+
+- **Integración continua primero** (`E11A`): la compuerta corre sola en cada push, antes de tocar el
+  camino por el que un texto escrito por un modelo llega a la base.
+- **El adaptador de Anthropic** (`E11B`), gobernado por el mismo verificador que gobierna a la
+  plantilla. La IA sigue redactando decisiones ya tomadas y **nunca decide**.
+- **Una corrida real** (`E11C`), desde la máquina del coordinador, con una clave dedicada a un espacio
+  de trabajo con tope de gasto. Ni la integración continua ni la instancia pública tienen la clave.
+
+El diseño y su revisión adversarial viven en `Coordination/Tasks/E11-DISENO.md` y
+`Coordination/Tasks/E11-revision-adversarial.md`. **Si el modelo no pasa el verificador, se cambia el
+prompt, nunca el verificador.**
+
 ### Post-MVP — Koin sandbox, auth, observabilidad y deploy
 
 Cada capacidad se aprueba por separado. Activar el sandbox nunca es una condición para considerar
@@ -843,6 +869,7 @@ completo el MVP local.
 | 68 | El idioma es una columna de la identidad de la explicación y **no** una versión de plantilla | La misma plantilla escribe los dos, y llamarlas `e7-v2` y `e7-v3` volvería «redactar con la plantilla vigente» un botón que ofrece cambiar de idioma. Es la decisión 64 aplicada: sin cambio de texto no hay versión nueva | 2026-09-07 |
 | 69 | Un bloque de cifras de un documento público declara de qué corrida salió y de qué fecha | La decisión 60 comprueba por script las rutas y los nombres de test de un documento, y **no puede comprobar una cifra**: se verificó cambiando una por otra falsa y viendo la compuerta entera en verde. Lo que no se puede detectar se fecha, para que un lector sepa qué parte del documento envejece sin avisar | 2026-09-07 |
 | 70 | Una instancia pública de demostración es admisible sin autenticación | **Reemplaza a la 8 conservando su motivo.** El aislamiento que la 8 exigía lo da el reinicio: nadie queda con el estado que otro dejó porque el estado no sobrevive. Tres condiciones a la vez: datos sintéticos a los que vuelve en cada reinicio, aviso en pantalla de que es compartida y efímera, y un reinicio que no depende de que nadie se acuerde. Lo que **no** cambia: sin auth no se despliega nada que reciba datos de una persona real | 2026-09-08 |
+| 71 | Se abre la Etapa 11: integración continua primero, y después el adaptador de Anthropic | El coordinador la aprobó porque el puesto al que apunta valora la aplicación de IA. La integración continua va primero porque la etapa toca el camino más delicado del proyecto, y la compuerta tiene que correr sola antes. Anthropic y la CI remota salen de la lista de diferidos del §2 | 2026-09-30 |
 
 ## 14. Mapa de documentación
 

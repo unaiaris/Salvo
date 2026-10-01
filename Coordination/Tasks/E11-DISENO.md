@@ -353,7 +353,7 @@ imprime ni exporta más de lo que la API necesita.
 La v1 listaba cuatro. Abriendo los archivos, lo que afirma «no hay adaptador» o «no por un modelo» está
 en todos estos lugares, y la lección de cerrar el estado canónico **por lista** pide recorrerlos todos:
 
-1. **Blueprint, bitácora**, desde la 71: el desenlace cerrado del puerto (D1), el modelo y la identidad
+1. **Blueprint, bitácora**, desde la 72 —la 71 es la apertura de la etapa—: el desenlace cerrado del puerto (D1), el modelo y la identidad
    conservada (D4), ningún reintento invisible (D5), los tokens en todo desenlace (D7), la instancia
    pública sin clave (D9), la hoja de hechos (D10), la selección de la consola (D11) y el agujero
    fijado como clase (D13).

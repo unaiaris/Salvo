@@ -1,7 +1,7 @@
 # Salvo — Política de modelo y esfuerzo
 
 > Estado del documento: vigente
-> Última actualización: 2026-09-06
+> Última actualización: 2026-10-01
 > Aplicación: toda sesión de Claude Code o Claude.ai que trabaje sobre este repositorio
 
 Elegir modelo y esfuerzo es una decisión de coordinación, no una preferencia de la sesión. Este
@@ -55,9 +55,13 @@ hacer.
 | Modelo | Costo (in/out por MTok) | Contexto | Perfil |
 | --- | --- | --- | --- |
 | Fable 5.1 | $10 / $50 | 1M | Razonamiento exigente y trabajo agéntico de horizonte largo |
-| Opus 5 | $5 / $25 | 1M | Coding agéntico complejo; punto de partida recomendado por defecto |
-| Sonnet 5 | $2 / $10 | 1M | Mejor equilibrio velocidad/inteligencia |
-| Haiku 4.5 | $1 / $5 | 200K | Lo más rápido y económico |
+| Opus 5.5 | $4 / $20 | 1M | Coding agéntico de horizonte largo; punto de partida recomendado por defecto |
+| Sonnet 5.5 | $2 / $10 | 1M | Mejor equilibrio velocidad/inteligencia |
+| Haiku 4.5 | $1 / $5 | 200K | Lo más rápido y económico. **Compromiso de disponibilidad hasta el 2026-10-15** |
+
+Verificado el 2026-10-01 en las páginas oficiales de precios, de modelos y de retiro. Opus 5.5 y
+Sonnet 5.5 reemplazan en esta tabla a Opus 5 y Sonnet 5, y la matriz de abajo usa la versión vigente
+de cada familia.
 
 Niveles de esfuerzo: `low`, `medium`, `high`, `xhigh`, `max`. El default es `high`. La documentación
 advierte que `max` puede presentar rendimientos decrecientes.
@@ -71,10 +75,10 @@ criterio de asignación no cambia.
 | --- | --- | --- | --- |
 | Diseño de etapa: invariantes, concurrencia, idempotencia, consistencia transaccional | Fable 5.1 | `high` | Un invariante mal razonado se paga en todas las etapas siguientes |
 | Revisión adversarial de un handoff o búsqueda de fuga temporal | Fable 5.1 | `xhigh` | Buscar el caso que rompe la invariante es razonamiento exigente por definición |
-| Implementación con brief cerrado | Sonnet 5 | `high` | El brief no deja decisiones abiertas; es ejecución fiel |
-| Implementación con ambigüedad real dentro del alcance | Opus 5 | `high` | Hay criterio que aplicar sin salir del brief |
+| Implementación con brief cerrado | Sonnet 5.5 | `high` | El brief no deja decisiones abiertas; es ejecución fiel |
+| Implementación con ambigüedad real dentro del alcance | Opus 5.5 | `high` | Hay criterio que aplicar sin salir del brief |
 | Etapa completa de punta a punta en una sesión | `opusplan` | `high` | Planifica con Opus y ejecuta con Sonnet automáticamente |
-| Documentación, tooling y correcciones acotadas | Sonnet 5 | `medium` | Alcance cerrado y verificable |
+| Documentación, tooling y correcciones acotadas | Sonnet 5.5 | `medium` | Alcance cerrado y verificable |
 | Mecánico: correr la compuerta, leer logs, formatear un handoff | Haiku 4.5 | `low` | Sin decisiones que tomar |
 
 ## Cómo se aplica

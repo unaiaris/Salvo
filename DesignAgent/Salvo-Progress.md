@@ -261,6 +261,15 @@ tercera. (Sección histórica de la Etapa 4: las Etapas 5, 6 y 7 se completaron 
       mismo que se probó.
 
 
+### Etapa 11 — La IA de verdad
+
+- [ ] **`E11A`**: la compuerta corre sola en cada push, con las versiones exactas del repositorio y
+      las acciones fijadas por SHA. Una corrida verde, una con el recorrido, y una falsación roja.
+- [ ] **`E11B`**: el adaptador de Anthropic, gobernado por el verificador existente, con la consola
+      diciendo quién escribió cada párrafo.
+- [ ] **`E11C`**: la corrida real, con la evidencia publicada — los textos aceptados, y el código y la
+      cifra de los rechazados.
+
 ### Etapa 10 — La instancia pública
 
 - [x] El contenedor corre consola y API, y el camino frío está medido: **77,5 s de 90 a 0,1 vCPU**,
