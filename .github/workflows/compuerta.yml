@@ -1,0 +1,144 @@
+# Salvo — la compuerta, corrida sola en cada push.
+#
+# Corre los dos scripts que el coordinador corría a mano: `scripts/check.sh`, la compuerta, y
+# `scripts/smoke-ui.sh`, el recorrido de la consola con la API y `next start` de verdad. No los
+# reemplaza ni los reescribe: instala lo que ellos asumen que ya está y los llama. Si algo tiene que
+# cambiar en lo que verifican, cambia en el script, y este archivo no se entera.
+#
+# ## Lo que este flujo deliberadamente no hace
+#
+# - **No arregla nada.** No formatea, no commitea, no actualiza dependencias. Reporta.
+# - **No usa ningún secreto.** Sin `AI_PROVIDER` ni `KOIN_MODE` el backend arranca con los
+#   simuladores, que es exactamente lo que la compuerta prueba.
+# - **No fija `TZ`.** El runner corre en UTC, y la suite del frontend declara su propio huso en
+#   `vitest.config.mts`, distinto del del negocio a propósito (decisión 72). Fijar el huso del
+#   entorno para que un test pase esconde el defecto en vez de corregirlo.
+# - **No escribe ninguna versión a mano.** El SDK sale de `global.json`, Node de `.nvmrc` y npm del
+#   campo `packageManager` de `frontend/package.json`. Dos declaraciones de lo mismo terminan
+#   discrepando, y el paso «Versiones» comprueba que lo instalado es lo declarado antes de correr nada.
+#
+# ## Referencias fijas, nunca etiquetas que se mueven solas
+#
+# Cada acción va por su SHA completo, con la versión legible al lado. Una acción pedida por `@v7` es
+# una etiqueta que su dueño puede mover, y es la misma clase de referencia que rompió el primer
+# despliegue de la Etapa 10: `global.json` exigía 10.0.400 y el `Dockerfile` pedía `sdk:10.0`, que un
+# día pasó a traer 10.0.401. El runner también va por número —`ubuntu-24.04`— y no por
+# `ubuntu-latest`, por el mismo motivo; es además la misma base que la imagen de runtime del
+# `Dockerfile`. Los SHA se resolvieron el 2026-10-01 con `git ls-remote --tags` contra cada repositorio.
+
+name: Compuerta
+
+on:
+  # Cualquier rama, no solo `main`: es lo que deja ver el verde de una rama —y el rojo de una
+  # falsación— antes de integrar, sin abrir pull requests, porque este proyecto integra por merge
+  # local. Las etiquetas quedan fuera: no son ramas y no traen código nuevo.
+  push:
+    branches: ["**"]
+  pull_request:
+  # Para relanzar a mano sobre `main`. Solo existe una vez que este archivo está en la rama por
+  # defecto: «This event will only trigger a workflow run if the workflow file exists on the default
+  # branch» (https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows).
+  workflow_dispatch:
+
+# El flujo lee el repositorio y nada más.
+permissions:
+  contents: read
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+  NEXT_TELEMETRY_DISABLED: "1"
+
+# `bash` declarado, y no el que GitHub elige por defecto: así cada paso corre con `-eo pipefail`.
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  # Un job por script, de la misma definición. Dos y no uno porque son dos veredictos distintos y
+  # cada uno tiene que poder ponerse rojo sin tapar al otro: con `fail-fast: false`, un test roto en
+  # la compuerta no cancela el recorrido, y la corrida dice exactamente cuál de los dos falló. Y en
+  # paralelo y no encadenados porque ninguno usa lo que construye el otro: cada script compila lo
+  # que necesita.
+  compuerta:
+    name: ${{ matrix.script }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        script:
+          - scripts/check.sh
+          - scripts/smoke-ui.sh
+
+    steps:
+      # Sin credenciales persistidas: después del checkout ningún paso necesita el token.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # La caché de NuGet sí, porque no puede cambiar qué se instala: `Directory.Build.props` enciende
+      # `RestoreLockedMode` cuando `CI=true`, que GitHub define, y la restauración bloqueada compara
+      # cada paquete contra el `contentHash` del lockfile. La caché ahorra la descarga, no la decisión.
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
+
+      # La de npm también, por la misma razón: `npm ci` instala lo que dice `package-lock.json` y
+      # comprueba el `integrity` de cada paquete, venga de la red o de la caché.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # El npm que trae Node no tiene por qué ser el que declara el repositorio.
+      - name: npm de packageManager
+        timeout-minutes: 5
+        run: |
+          declared="$(node -p 'require("./frontend/package.json").packageManager')"
+          [[ "$declared" == npm@* ]] || { echo "packageManager no declara npm: ${declared}" >&2; exit 1; }
+          npm install --global "$declared"
+
+      - name: Versiones
+        run: |
+          expected_sdk="$(node -p 'require("./global.json").sdk.version')"
+          expected_node="v$(tr -d '[:space:]' < .nvmrc)"
+          expected_npm="$(node -p 'require("./frontend/package.json").packageManager.split("@")[1]')"
+
+          actual_sdk="$(dotnet --version)"
+          actual_node="$(node --version)"
+          actual_npm="$(npm --version)"
+
+          printf 'SDK   %s (global.json: %s)\n' "$actual_sdk" "$expected_sdk"
+          printf 'Node  %s (.nvmrc: %s)\n' "$actual_node" "$expected_node"
+          printf 'npm   %s (packageManager: %s)\n' "$actual_npm" "$expected_npm"
+
+          if [[ "$actual_sdk" != "$expected_sdk" || "$actual_node" != "$expected_node" || "$actual_npm" != "$expected_npm" ]]; then
+            echo "Lo instalado no es lo que el repositorio declara." >&2
+            exit 1
+          fi
+
+      # `smoke-ui.sh` comprueba los puertos con `lsof` y se niega a arrancar sin él. Es entorno, no una
+      # dependencia del proyecto: se instala solo si la imagen del runner no lo trae.
+      - name: lsof
+        if: matrix.script == 'scripts/smoke-ui.sh'
+        timeout-minutes: 5
+        run: |
+          if command -v lsof >/dev/null; then
+            echo "lsof ya está en la imagen: $(command -v lsof)"
+          else
+            sudo apt-get update
+            sudo apt-get install --yes --no-install-recommends lsof
+          fi
+
+      # Lo único que los dos scripts asumen instalado sin instalarlo ellos: las dependencias del
+      # frontend. Las de .NET y el tooling de EF los restauran los propios scripts.
+      - name: Dependencias del frontend
+        timeout-minutes: 10
+        run: npm ci --prefix frontend
+
+      - name: ${{ matrix.script }}
+        run: ./${{ matrix.script }}
