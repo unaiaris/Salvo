@@ -12,12 +12,12 @@
 | Estado del proyecto | **MVP cerrado y publicado.** Las nueve etapas completadas y verificadas, y la Etapa 10 también: https://salvo-k6wk.onrender.com |
 | Etapa completada | Etapa 10 — La instancia pública (`E10A`, `E10B` y `E10C` integradas y verificadas) |
 | Próxima etapa | **Etapa 11 — la IA de verdad**: integración continua y el adaptador de Anthropic |
-| Estado de la próxima etapa | Abierta el 2026-09-30. `E11A0` verificada (merge `1f76429`). `E11A` verificada (merge `d3d3408`): la compuerta corre sola en GitHub Actions y Render solo despliega `main` en verde. `E11B` con brief escrito y las decisiones 73 a 80 en el Blueprint, en `brief-check` |
+| Estado de la próxima etapa | Abierta el 2026-09-30. `E11A0` verificada (merge `1f76429`). `E11A` verificada (merge `d3d3408`): la compuerta corre sola en GitHub Actions y Render solo despliega `main` en verde. `E11B` con brief escrito y las decisiones 73 a 81 en el Blueprint, en `brief-check` |
 | Bloqueo actual | Ninguno |
 | Dependencias externas | Ninguna para el núcleo local |
 | Anthropic | Previsto para después del núcleo; decisión aparte, preparada por D11 |
 | Koin sandbox | Post-MVP; sujeto a onboarding y credenciales |
-| Coordinación Codex–Claude | `E11A0-HUSO-HORARIO` verificada (merge `1f76429`); `E11A-INTEGRACION-CONTINUA` verificada (merge `d3d3408`); `E11B-ADAPTADOR-ANTHROPIC` propuesta |
+| Coordinación Codex–Claude | `E11A0-HUSO-HORARIO` verificada (merge `1f76429`); `E11A-INTEGRACION-CONTINUA` verificada (merge `d3d3408`); `E11B-ADAPTADOR-ANTHROPIC` propuesta, con brief en `brief-check` |
 
 **Este bloque se actualiza en cada cierre de etapa y en cada alta de tarea.** Quedó desfasado
 durante toda la Etapa 7 porque los cierres actualizaron el registro de actividad y los checklists
@@ -50,7 +50,7 @@ Solo puede existir una etapa `En curso` a la vez.
 | 8 | El argumento del proyecto | Completada | README, diagramas, capturas y guion de demo; cada afirmación contrastada contra el código | Merges `1243d54` y `6ae7750`; `check-docs.sh` incorporado a la compuerta; seis capturas revisadas una por una |
 | 9 | Corpus, idiomas y cierre | Completada | Seis reglas y tres bandas alcanzables; F1 deja de valer 1,00 | Merges `41343c1` y `4f7daf9`. F1 holdout 0,632 y calibración 0,688; las seis reglas disparan y las tres bandas existen; el motor escribe campos y el extractor de prosa ya no existe. y `0d65f9a`. El idioma es del despliegue y entra en la identidad de la explicación; el castellano sigue siendo el valor por defecto. La consola pasa de 6 a 31 reglas de accesibilidad más `axe-core` en la compuerta. `E9D` despachada |
 | 10 | La instancia pública | **Completada** | Cualquiera la usa desde el navegador, gratis, sin instalar nada | Merges `29677f6` y `23a47cd`. **Arranca con los datos ya puestos en 41 s a 0,1 vCPU**, contra 119,7 s en `E10A`, con 103 MiB de 512; un contenedor recién levantado ya muestra 23 alertas, 51 denegados sin alerta local y una explicación escrita. Se reinicia sola por antigüedad. Decisión 70 escrita. Falta publicarla: `E10C` |
-| 11 | La IA de verdad | **Abierta** | El adaptador de Anthropic escribe la explicación, y el verificador de la Etapa 7 lo gobierna igual que a la plantilla | `E11A0` —las fechas del dashboard en UTC— primero, `E11A` —la compuerta en cada push— después; `E11B` espera su brief |
+| 11 | La IA de verdad | **Abierta** | El adaptador de Anthropic escribe la explicación, y el verificador de la Etapa 7 lo gobierna igual que a la plantilla | `E11A0` —las fechas del dashboard en UTC— primero, `E11A` —la compuerta en cada push— después, las dos verificadas; `E11B` con brief, en `brief-check` |
 | Post-MVP | Koin sandbox, auth, observabilidad | Pendiente | Aprobación independiente por capacidad | Pendiente |
 
 ## Etapa 1 — Resultado verificado

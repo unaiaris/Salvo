@@ -62,8 +62,8 @@ cambia alcance o arquitectura, actualizar primero su bitácora y después los do
   decisión 70, que reemplazó a la 8 conservando su motivo. `E10A` (`29677f6`), `E10B` (`23a47cd`) y
   `E10C` (`51eec4c`) integradas y verificadas. **No hay etapa abierta**: lo que venga es post-MVP.
 - **Etapa 11 abierta el 2026-09-30: la IA de verdad.** `E11A0-HUSO-HORARIO` primero, después
-  `E11A-INTEGRACION-CONTINUA` (decisión 72); el adaptador de Anthropic (`E11B`) tiene su diseño v2
-  y espera su brief. **Fijar `TZ` en el entorno para que un test pase está prohibido**: un defecto que
+  `E11A-INTEGRACION-CONTINUA` (decisión 72); el adaptador de Anthropic (`E11B`) tiene su brief,
+  en `brief-check`. **Fijar `TZ` en el entorno para que un test pase está prohibido**: un defecto que
   depende del huso se corrige en el producto. Lo que no cambia: la IA
   redacta explicaciones de decisiones ya tomadas y **nunca decide fraude, severidad ni bloqueo**, y
   todo texto de un modelo pasa por el mismo verificador que la plantilla antes de persistirse.
@@ -123,7 +123,7 @@ cambia alcance o arquitectura, actualizar primero su bitácora y después los do
   que redacta no puede escribir en ninguna superficie de decisión.
 - Que una explicación use solo las señales suministradas se verifica sobre la salida y se rechaza
   el texto que no lo cumple; no se confía al prompt.
-- Anthropic redacta explicaciones desde la Etapa 11 (decisiones 73 a 80), gobernado por el mismo
+- Anthropic redacta explicaciones desde la Etapa 11 (decisiones 73 a 81), gobernado por el mismo
   verificador que la plantilla. **Si el modelo no pasa el verificador, se cambia el prompt, nunca el
   verificador.** La clave nunca entra a la CI, a la instancia pública, a un archivo versionado ni a
   un agente.
