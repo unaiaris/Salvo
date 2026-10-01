@@ -8,6 +8,7 @@ import {
   INITIAL_EXPLANATION_STATE,
   type ExplanationActionState,
   type ExplanationAsk,
+  type ExplanationWriterKind,
 } from "./explanation-state";
 
 /**
@@ -31,24 +32,35 @@ import {
 export function ExplanationActions({
   alertId,
   ask,
+  writer,
   language,
 }: {
   readonly alertId: string;
   readonly ask: ExplanationAsk;
+  readonly writer: ExplanationWriterKind;
   readonly language: Language;
 }) {
   const [state, action, running] = useActionState(explainEvaluation, INITIAL_EXPLANATION_STATE);
   const { alertDetail } = messagesFor(language);
 
   /**
-   * "Volver a intentar" is not offered for a template that changed: nothing failed, and a reader
-   * who is told to retry looks for the error that is not there. Writing the paragraph again with
-   * the current template is a different act and says so.
+   * "Volver a intentar" is not offered for a writer that changed: nothing failed, and a reader who
+   * is told to retry looks for the error that is not there. Writing the paragraph again with the
+   * current writer is a different act and says so — naming the writer, because with a model it is
+   * no longer a template, and without the model's name, because nothing has answered yet to give it.
+   * With the template every label stays exactly what it was: the smoke reads them.
    */
   const labels: Readonly<Record<Exclude<ExplanationAsk, "none">, string>> = {
     first: alertDetail.explanationAskFirst,
     retry: alertDetail.explanationAskRetry,
-    currentTemplate: alertDetail.explanationAskCurrentTemplate,
+    currentTemplate:
+      writer === "model"
+        ? alertDetail.explanationAskCurrentModel
+        : alertDetail.explanationAskCurrentTemplate,
+    retryCurrentWriter:
+      writer === "model"
+        ? alertDetail.explanationAskRetryCurrentModel
+        : alertDetail.explanationAskRetryCurrentTemplate,
   };
 
   return (

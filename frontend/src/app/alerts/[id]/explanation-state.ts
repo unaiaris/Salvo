@@ -1,13 +1,24 @@
 /**
  * Which question the button asks, or that there is none to ask.
  *
- * A string rather than a pair of flags, because the three questions are not combinations of one
- * another: `first` has no row at all, `retry` reuses the row that failed, and `currentTemplate`
- * writes beside a row a previous template wrote. Only `retry` is a regeneration — the API is asked
- * to replace something — and the action is what turns this into that flag, so no caller can send a
+ * A string rather than a pair of flags, because the questions are not combinations of one another:
+ * `first` has no row at all, `retry` reuses the row that failed and is on screen,
+ * `currentTemplate` writes the row of the current writer beside a text somebody else wrote, and
+ * `retryCurrentWriter` reuses the failed row of the current writer that is shown <em>beside</em>
+ * somebody else's text (decision 79). Only the two retries are a regeneration — the API is asked to
+ * retake a row — and the action is what turns this into that flag, so no caller can send a
  * regeneration by describing the situation wrongly.
+ *
+ * `currentTemplate` keeps its name from when the only writer was a template: what it writes is the
+ * row of whoever writes today.
  */
-export type ExplanationAsk = "none" | "first" | "retry" | "currentTemplate";
+export type ExplanationAsk = "none" | "first" | "retry" | "currentTemplate" | "retryCurrentWriter";
+
+/**
+ * Who writes today, as the button needs to say it: the template, or a model of Anthropic. The name
+ * of the model is never on the button, because the button can appear before any answer named it.
+ */
+export type ExplanationWriterKind = "template" | "model";
 
 /**
  * The result of asking for an explanation, flattened to primitives.

@@ -139,6 +139,20 @@ export const EXPLANATION_STATUS = {
   failed: "FAILED",
 } as const;
 
+/**
+ * Wire values of `ExplanationProvider`, mirrored from
+ * `Salvo.Domain.Explanations.ExplanationWireNames`.
+ *
+ * The console reads them for one decision: whether a paragraph was written by the template or by a
+ * model, which changes the sentence that says who wrote it (decision 79). The template's sentence
+ * says «no por un modelo», and that sentence under a model's text would be the false claim this
+ * console exists not to make.
+ */
+export const EXPLANATION_PROVIDER = {
+  template: "MOCK",
+  anthropic: "ANTHROPIC",
+} as const;
+
 export type DashboardScoringRun = ApiView<Schemas["DashboardScoringRunView"]>;
 export type DashboardSeverityCount = ApiView<Schemas["DashboardSeverityCountView"]>;
 export type DashboardOpenAlerts = ApiView<Schemas["DashboardOpenAlertsView"]>;
