@@ -210,15 +210,19 @@ public sealed class RequestExplanationHandler(
             options.RequestTimeout,
             cancellationToken);
 
-        if (attempt.FailureCode is { } failure)
+        if (attempt.Draft is not { } draft)
         {
-            await SettleAsync(explanation, failure, null, attempt.InputTokens, attempt.OutputTokens);
+            await SettleAsync(
+                explanation,
+                attempt.FailureCode ?? ExplanationFailureCode.ProviderUnavailable,
+                attempt.Detail,
+                attempt.InputTokens,
+                attempt.OutputTokens);
 
             return;
         }
 
-        var draft = attempt.Draft!;
-        var verdict = ExplanationGrounding.Verify(draft.Summary!, draft.ReferencedRules, input, facts);
+        var verdict = ExplanationGrounding.Verify(draft.Summary, draft.ReferencedRules, input, facts);
         if (!verdict.IsGrounded)
         {
             // The offending token, never the sentence that carried it. The tokens, though, are
@@ -227,18 +231,18 @@ public sealed class RequestExplanationHandler(
                 explanation,
                 verdict.FailureCode!.Value,
                 verdict.Offender,
-                draft.InputTokens,
-                draft.OutputTokens);
+                attempt.InputTokens,
+                attempt.OutputTokens);
 
             return;
         }
 
         explanation.Complete(
-            draft.Summary!,
+            draft.Summary,
             draft.ReferencedRules,
-            draft.ProviderVersion,
-            draft.InputTokens,
-            draft.OutputTokens,
+            attempt.ProviderVersion,
+            attempt.InputTokens,
+            attempt.OutputTokens,
             timeProvider.GetUtcNow());
 
         await store.SaveAsync(explanation, CancellationToken.None);

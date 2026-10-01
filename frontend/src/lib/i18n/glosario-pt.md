@@ -95,7 +95,7 @@ Entradas: **543**.
 | `explanationFailure.PROVIDER_UNAVAILABLE` | No se pudo redactar: el proveedor falló antes de responder | Não foi possível redigir: o provedor falhou antes de responder |
 | `explanationFailure.PROVIDER_TIMEOUT` | El proveedor no respondió dentro del tiempo permitido | O provedor não respondeu dentro do tempo permitido |
 | `explanationFailure.PROVIDER_REFUSED` | El proveedor respondió sin texto | O provedor respondeu sem texto |
-| `explanationFailure.MALFORMED_OUTPUT` | El texto devuelto no era utilizable: vino vacío o con marcado | O texto devolvido não era utilizável: veio vazio ou com marcação |
+| `explanationFailure.MALFORMED_OUTPUT` | El texto devuelto no era utilizable: vino vacío, cortado, ilegible o con marcado | O texto devolvido não era utilizável: veio vazio, cortado, ilegível ou com marcação |
 | `explanationFailure.NOT_GROUNDED_NUMBER` | El texto traía una cifra que la evaluación no respalda, así que se descartó entero | O texto trazia um número que a avaliação não sustenta, então foi descartado inteiro |
 | `explanationFailure.NOT_GROUNDED_RULE` | El texto nombraba una regla que esta evaluación no disparó, así que se descartó entero | O texto citava uma regra que esta avaliação não disparou, então foi descartado inteiro |
 | `explanationFailure.TOO_LONG` | El texto superó el largo máximo admitido | O texto passou do comprimento máximo admitido |

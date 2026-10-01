@@ -27,7 +27,15 @@ public enum ExplanationFailureCode
     /// <summary>The provider answered without text. A model may decline; a template may not.</summary>
     ProviderRefused = 3,
 
-    /// <summary>The answer was structurally unusable: empty, or carrying markup or links.</summary>
+    /// <summary>
+    /// The answer was structurally unusable: empty, cut short, unreadable, or carrying markup or
+    /// links.
+    /// </summary>
+    /// <remarks>
+    /// «Cut short» and «unreadable» joined with the model (decision 73): a text stopped at the output
+    /// budget, a body that does not parse as the schema asked, and a stop reason nobody expected are
+    /// all an answer that is not a draft, and none of them is the provider being unavailable.
+    /// </remarks>
     MalformedOutput = 4,
 
     /// <summary>A figure in the text is backed by no fact of the evaluation.</summary>

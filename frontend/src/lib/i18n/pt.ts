@@ -181,7 +181,7 @@ export const pt: Dictionary = {
     PROVIDER_UNAVAILABLE: "Não foi possível redigir: o provedor falhou antes de responder",
     PROVIDER_TIMEOUT: "O provedor não respondeu dentro do tempo permitido",
     PROVIDER_REFUSED: "O provedor respondeu sem texto",
-    MALFORMED_OUTPUT: "O texto devolvido não era utilizável: veio vazio ou com marcação",
+    MALFORMED_OUTPUT: "O texto devolvido não era utilizável: veio vazio, cortado, ilegível ou com marcação",
     NOT_GROUNDED_NUMBER:
       "O texto trazia um número que a avaliação não sustenta, então foi descartado inteiro",
     NOT_GROUNDED_RULE:

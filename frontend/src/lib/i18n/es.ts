@@ -226,7 +226,7 @@ export const es = {
     PROVIDER_UNAVAILABLE: "No se pudo redactar: el proveedor falló antes de responder",
     PROVIDER_TIMEOUT: "El proveedor no respondió dentro del tiempo permitido",
     PROVIDER_REFUSED: "El proveedor respondió sin texto",
-    MALFORMED_OUTPUT: "El texto devuelto no era utilizable: vino vacío o con marcado",
+    MALFORMED_OUTPUT: "El texto devuelto no era utilizable: vino vacío, cortado, ilegible o con marcado",
     NOT_GROUNDED_NUMBER:
       "El texto traía una cifra que la evaluación no respalda, así que se descartó entero",
     NOT_GROUNDED_RULE:
