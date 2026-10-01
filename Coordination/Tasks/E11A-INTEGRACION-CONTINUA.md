@@ -7,7 +7,7 @@
 - Tipo: `implementación`
 - Propietario: `Claude`
 - Coordinador: Unai Arismendes
-- Fecha: 2026-09-30 · revisado el 2026-10-01 tras cuatro rondas de `brief-check`
+- Fecha: 2026-09-30 · revisado el 2026-10-01 tras seis rondas de `brief-check`; la sexta lo dio por válido
 - Rama/worktree: `claude/e11a-ci`
 - Commit base: **lo escribe el primer commit de la rama**, con lo que devuelva
   `git merge-base main HEAD`. No se declara de antemano: el commit que lo escribiera en `main`

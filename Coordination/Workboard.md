@@ -2,11 +2,12 @@
 
 > Estado: **MVP cerrado y publicado; Etapa 11 abierta — la IA de verdad.** El coordinador la
 > aprobó el 2026-09-30, con el criterio de que el puesto al que apunta valora el conocimiento y la
-> aplicación de IA. `E11A-INTEGRACION-CONTINUA` tiene brief y espera `brief-check`: va primero porque
-> la etapa toca el camino por el que un texto escrito por un modelo llega a la base, y la compuerta
-> tiene que correr sola antes de tocarlo. **Antes que ella va `E11A0-HUSO-HORARIO`**: la cuarta ronda
-> de `brief-check` encontró un defecto de producto que el runner, en UTC, iba a mostrar como rojo —el
-> dashboard publicado corre un día las fechas de la tabla— y se corrige en el producto, no en el entorno. `E11B`, el adaptador de Anthropic, tiene su diseño v2 escrito
+> aplicación de IA. `E11A-INTEGRACION-CONTINUA` tiene brief válido en la sexta ronda y está asignada:
+> va antes que el adaptador porque la etapa toca el camino por el que un texto escrito por un modelo
+> llega a la base, y la compuerta tiene que correr sola antes de tocarlo. **Antes que ella fue
+> `E11A0-HUSO-HORARIO`, ya verificada** (merge `1f76429`): la cuarta ronda de `brief-check` de `E11A`
+> encontró un defecto de producto que el runner, en UTC, iba a mostrar como rojo —el dashboard
+> publicado corría un día las fechas de la tabla— y se corrigió en el producto, no en el entorno. `E11B`, el adaptador de Anthropic, tiene su diseño v2 escrito
 > tras la revisión adversarial y espera su brief.
 > Instancia pública: https://salvo-k6wk.onrender.com
 > Última actualización: 2026-10-01
@@ -31,8 +32,8 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 | `E10A-CONTENEDOR-Y-MEDICION` | `Verificada` (merge `29677f6`) | `Claude` | Opus 5 · `high` | `Dockerfile` y `.dockerignore` nuevos, `scripts/**`, `frontend/next.config.ts` y el borde que lo describe, `Program.cs` y `appsettings*`, `Persistence/**` y el `csproj` **solo si** el camino de migración lo exige, `backend/tests/**`, `frontend/src/test/**` y `Salvo-Getting-Started.md`. **La reserva completa vive en el brief; esta fila la resume.** |
 | `E10B-INSTANCIA-COMPARTIDA` | `Verificada` (merge `23a47cd`) | `Claude` | Opus 5 · `high` | **La base sembrada horneada en la imagen** y el modelo de EF compilado —las dos que `E10A` creyó obligatorias; **la segunda se midió, no aportó nada y se revirtió**—, el reinicio como copia de ese archivo, el cartel en los dos idiomas, el límite en la capa de Next, el tope de pedidos por instancia, y la sonda de salud. **Desbloqueada**: la decisión 70 reemplazó a la 8 en sus seis lugares. **La reserva completa vive en el brief; esta fila la resume.** |
 | `E10C-PUBLICACION` | `Verificada` (merge `51eec4c`) | `Claude` | Opus 5 · `high` | **La plataforma ya está elegida en el brief**: Render, plan Free, por su modo de falla —sin método de pago suspende en vez de cobrar—. Queda confirmar los límites en documentación oficial el día del despliegue, resolver las cinco comprobaciones que no la tienen, desplegar, medir el arranque en frío desde afuera, y el link en README, artículo y guía. **La reserva completa vive en el brief; esta fila la resume.** |
-| `E11A0-HUSO-HORARIO` | `Asignada` | `Claude` | Sonnet 5.5 · `high` | `frontend/src/lib/format.ts` —**solo** `formatCalendarDate`, su comentario y, si hace falta, un formateador nuevo en `build()`; los existentes no se tocan—, su test, y la zona declarada de la suite en `vitest.config.mts` o `vitest.setup.ts`. **Prohibido** fijar `TZ` en el `Dockerfile`, `render.yaml` o la CI. **La reserva completa vive en el brief; esta fila la resume.** |
-| `E11A-INTEGRACION-CONTINUA` | `Propuesta` | `Claude` | Opus 5.5 · `high` | **Depende de `E11A0`, integrada antes de darle.** `.github/workflows/**`, el cartel del README, `autoDeployTrigger: checksPass` en `render.yaml` con su comentario reescrito, y la rama de falsación con un solo assert invertido. **La reserva completa vive en el brief; esta fila la resume.** |
+| `E11A0-HUSO-HORARIO` | `Verificada` (merge `1f76429`) | `Claude` | Sonnet 5.5 · `high` | `frontend/src/lib/format.ts` —**solo** `formatCalendarDate`, su comentario y, si hace falta, un formateador nuevo en `build()`; los existentes no se tocan—, su test, y la zona declarada de la suite en `vitest.config.mts` o `vitest.setup.ts`. **Prohibido** fijar `TZ` en el `Dockerfile`, `render.yaml` o la CI. **La reserva completa vive en el brief; esta fila la resume.** |
+| `E11A-INTEGRACION-CONTINUA` | `Asignada` | `Claude` | Opus 5.5 · `high` | **Depende de `E11A0`, integrada antes de darle.** `.github/workflows/**`, el cartel del README, `autoDeployTrigger: checksPass` en `render.yaml` con su comentario reescrito, y la rama de falsación con un solo assert invertido. **La reserva completa vive en el brief; esta fila la resume.** |
 | `E11B-ADAPTADOR-ANTHROPIC` | `Propuesta` | `Claude` | Opus 5.5 · `high` | El adaptador real detrás de `IExplanationProvider`, con `claude-sonnet-5-5`: el desenlace cerrado del puerto, la hoja de hechos, los tokens en todo desenlace, la selección de la consola, la oración por proveedor en los dos idiomas, y los cuatro scripts fijando `AI_PROVIDER=mock`. **Diseño v2 escrito tras la revisión adversarial; espera su brief.** |
 | `E9D-CIERRE` | `Verificada` (merge `c2e9a65`) | `Claude` | Opus 5 · `high` | Repaso final: las seis capturas regeneradas, las cifras del corpus en README y guion, `docs/muestras/`, el artículo para revisores, y la deuda dicha —contraste sin verificar, recorrido parcial, `glosario.mjs` dentro de `src/`, `MER_US_MARKET`, la tasa base de construcción y la lista de bases `.db`—. **La reserva completa vive en el brief; esta fila la resume.** |
 

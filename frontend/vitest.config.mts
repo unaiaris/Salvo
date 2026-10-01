@@ -5,8 +5,9 @@ import { defineConfig } from "vitest/config";
 // The suite runs in UTC, which is not the business zone (`America/Montevideo`) and is the zone of the
 // CI runners and of the public instance. A developer machine in Montevideo would otherwise hide every
 // defect that only appears when the process zone and the business zone differ. Set here, before any
-// worker starts, because a worker inherits the environment it is spawned with: setting it in the
-// setup file would run after modules had already been loaded.
+// worker starts, so every worker inherits it. The setup file and `test.env` were measured to work as
+// well; this is just the earliest place. The alarm that it still takes effect is the dashboard test,
+// which never sets its own zone: with the defect back, it fails on a machine in Montevideo.
 process.env.TZ = "UTC";
 
 export default defineConfig({
