@@ -1,7 +1,7 @@
 # Salvo — Resumen ejecutivo
 
 > Estado del documento: vigente
-> Última actualización: 2026-09-06
+> Última actualización: 2026-10-01
 > Fuente de verdad: [[Salvo-Blueprint]]
 > Seguimiento: [[Salvo-Progress]] · Navegación: [[Salvo-MOC]]
 
@@ -70,7 +70,8 @@ externas.
 | Etapa 8 — El argumento del proyecto | Completada |
 | Etapa 9 — Corpus, idiomas y cierre | Completada. **Cierra el MVP** |
 | Etapa 10 — La instancia pública | **Completada y publicada**: https://salvo-k6wk.onrender.com |
-| Anthropic | Decisión aparte. Hoy `AI_PROVIDER=anthropic` se niega a arrancar |
+| Etapa 11 — La IA de verdad | **Abierta** el 2026-09-30 (decisiones 71 y 72): `E11A0`, `E11A`, `E11B`, `E11C` |
+| Anthropic | Dentro de la Etapa 11 (`E11B`). Hasta que se integre, `AI_PROVIDER=anthropic` se niega a arrancar |
 | Koin sandbox | Opcional, sujeto a onboarding |
 
 ## Próximo paso
@@ -83,10 +84,15 @@ compartida que se reinicia sola, con corpus sintético y sin un solo dato de una
 (decisión 70). El reinicio no se supone: se observó dos veces en la plataforma, separados por
 29 min 54 s contra los 30 configurados.
 
-Lo que sigue es post-MVP y **ninguna capacidad se abre automáticamente**: cada una necesita su
+**La Etapa 11 —la IA de verdad— está abierta desde el 2026-09-30.** Va en este orden: `E11A0`
+corrige un defecto de huso horario que corre un día las fechas de la tabla del dashboard publicado;
+`E11A` hace que la compuerta corra sola en cada push; `E11B` trae el adaptador de Anthropic, que
+cambia quién redacta la explicación y no si el texto se verifica; y `E11C` es una corrida real, con
+la evidencia publicada.
+
+Lo que sigue después es post-MVP y **ninguna capacidad se abre automáticamente**: cada una necesita su
 propia aprobación, con su diseño y su brief, como todas las anteriores. En orden de lo que más
-enseñaría: el adaptador de Anthropic —que cambia quién redacta la explicación, no si el texto se
-verifica—, la integración con el sandbox de Koin, la autenticación, la observabilidad y el
+enseñaría: la integración con el sandbox de Koin, la autenticación, la observabilidad y el
 despliegue.
 
 Y hay una lista de deuda declarada en «Límites declarados» del README: nueve entradas que la Etapa 9

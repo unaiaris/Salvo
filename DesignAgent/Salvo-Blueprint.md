@@ -767,8 +767,11 @@ observado en la plataforma.
 
 ### Etapa 11 — La IA de verdad
 
-- **Integración continua primero** (`E11A`): la compuerta corre sola en cada push, antes de tocar el
-  camino por el que un texto escrito por un modelo llega a la base.
+- **Primero, las fechas del dashboard** (`E11A0`, decisión 72): `formatCalendarDate` deja de depender
+  del huso de la máquina. Un defecto de producto vivo en la instancia pública, que un runner en UTC
+  habría mostrado como rojo de entorno. Se corrige en el producto, nunca fijando `TZ`.
+- **Después, la integración continua** (`E11A`): la compuerta corre sola en cada push, antes de tocar
+  el camino por el que un texto escrito por un modelo llega a la base.
 - **El adaptador de Anthropic** (`E11B`), gobernado por el mismo verificador que gobierna a la
   plantilla. La IA sigue redactando decisiones ya tomadas y **nunca decide**.
 - **Una corrida real** (`E11C`), desde la máquina del coordinador, con una clave dedicada a un espacio
@@ -870,6 +873,7 @@ completo el MVP local.
 | 69 | Un bloque de cifras de un documento público declara de qué corrida salió y de qué fecha | La decisión 60 comprueba por script las rutas y los nombres de test de un documento, y **no puede comprobar una cifra**: se verificó cambiando una por otra falsa y viendo la compuerta entera en verde. Lo que no se puede detectar se fecha, para que un lector sepa qué parte del documento envejece sin avisar | 2026-09-07 |
 | 70 | Una instancia pública de demostración es admisible sin autenticación | **Reemplaza a la 8 conservando su motivo.** El aislamiento que la 8 exigía lo da el reinicio: nadie queda con el estado que otro dejó porque el estado no sobrevive. Tres condiciones a la vez: datos sintéticos a los que vuelve en cada reinicio, aviso en pantalla de que es compartida y efímera, y un reinicio que no depende de que nadie se acuerde. Lo que **no** cambia: sin auth no se despliega nada que reciba datos de una persona real | 2026-09-08 |
 | 71 | Se abre la Etapa 11: integración continua primero, y después el adaptador de Anthropic | El coordinador la aprobó porque el puesto al que apunta valora la aplicación de IA. La integración continua va primero porque la etapa toca el camino más delicado del proyecto, y la compuerta tiene que correr sola antes. Anthropic y la CI remota salen de la lista de diferidos del §2 | 2026-09-30 |
+| 72 | `E11A0` va antes que la integración continua, y un defecto que depende del huso se corrige en el producto | La cuarta revisión del brief de `E11A` encontró que `formatCalendarDate` construye la fecha en el huso del proceso y la formatea en el del negocio: en UTC, la tabla del dashboard publicado muestra domingos bajo un eje de lunes. El runner habría dado rojo, y la salida fácil —fijar `TZ` en el flujo, el `Dockerfile` o `render.yaml`— lo habría escondido para siempre. Fijar el huso del entorno para que un test pase queda prohibido; la suite del frontend corre en un huso distinto del del negocio para que esta clase de defecto no vuelva a esconderse. **Ajusta el orden de la 71 sin cambiar su motivo** | 2026-10-01 |
 
 ## 14. Mapa de documentación
 
