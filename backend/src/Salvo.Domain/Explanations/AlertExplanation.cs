@@ -121,8 +121,19 @@ public sealed class AlertExplanation
     /// </summary>
     public string? FailureDetail { get; private set; }
 
+    /// <summary>
+    /// What every attempt on this row was charged for its input, added up. <see langword="null"/>
+    /// while no attempt has reported a count, which is what a template always does.
+    /// </summary>
+    /// <remarks>
+    /// Accumulated on purpose (decision 76). Keeping only the last attempt, or only the attempt that
+    /// was accepted, measures the cheap subset: a refusal, a text cut at the output budget and a
+    /// figure the verifier rejected are all paid for, and a paragraph accepted on the third try cost
+    /// three calls rather than one.
+    /// </remarks>
     public int? InputTokens { get; private set; }
 
+    /// <summary>The output counterpart of <see cref="InputTokens"/>, accumulated the same way.</summary>
     public int? OutputTokens { get; private set; }
 
     /// <summary>How many times a provider has been asked. Rises on every reservation.</summary>
@@ -248,8 +259,8 @@ public sealed class AlertExplanation
         FailureCode = null;
         FailureDetail = null;
         ProviderVersion = null;
-        InputTokens = null;
-        OutputTokens = null;
+        // The tokens stay. What the previous attempts were charged is part of what this explanation
+        // costs, and the next attempt adds to it rather than replacing it.
         SettledAt = null;
         RequestedFromAlertId = requestedFromAlertId;
         AttemptCount++;
@@ -287,8 +298,8 @@ public sealed class AlertExplanation
         Summary = summary;
         ReferencedRulesJson = ReferencedRuleSerializer.Serialize(referencedRules);
         ProviderVersion = Normalize(providerVersion);
-        InputTokens = inputTokens;
-        OutputTokens = outputTokens;
+        InputTokens = Accumulate(InputTokens, inputTokens);
+        OutputTokens = Accumulate(OutputTokens, outputTokens);
         FailureCode = null;
         FailureDetail = null;
         SettledAt = settledAt.ToUniversalTime();
@@ -304,9 +315,22 @@ public sealed class AlertExplanation
     /// explanation worth retrying from one that is finished. What actually went wrong is kept in
     /// <see cref="FailureDetail"/>, which costs nothing and would otherwise be lost.
     /// </remarks>
+    /// <param name="inputTokens">
+    /// What this attempt was charged for its input, when the provider said. A failure is paid for
+    /// like a success — a refusal, a text cut at the budget, a figure the verifier rejected — and a
+    /// row that kept only the cost of its accepted texts would report the cheap subset.
+    /// </param>
+    /// <param name="outputTokens">The output counterpart of <paramref name="inputTokens"/>.</param>
     /// <exception cref="ExplanationTransitionException">The explanation is not awaiting an answer.</exception>
-    public void Fail(ExplanationFailureCode code, string? detail, DateTimeOffset settledAt)
+    public void Fail(
+        ExplanationFailureCode code,
+        string? detail,
+        DateTimeOffset settledAt,
+        int? inputTokens = null,
+        int? outputTokens = null)
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(inputTokens ?? 0);
+        ArgumentOutOfRangeException.ThrowIfNegative(outputTokens ?? 0);
         EnsurePending();
 
         // Throws on a member without a wire name, for the same reason the reservation does.
@@ -321,6 +345,8 @@ public sealed class AlertExplanation
         FailureDetail = exhausted
             ? Compose(ExplanationWireNames.ToWire(code), Normalize(detail))
             : Normalize(detail);
+        InputTokens = Accumulate(InputTokens, inputTokens);
+        OutputTokens = Accumulate(OutputTokens, outputTokens);
         SettledAt = settledAt.ToUniversalTime();
         RowVersion++;
     }
@@ -341,6 +367,14 @@ public sealed class AlertExplanation
                 $"Explanation {Id} is already "
                 + $"'{ExplanationWireNames.ToWire(Status)}' and settles once per attempt.");
         }
+    }
+
+    /// <summary>
+    /// The running total, which stays unknown only while no attempt has reported a count.
+    /// </summary>
+    private static int? Accumulate(int? total, int? attempt)
+    {
+        return total is null && attempt is null ? null : (total ?? 0) + (attempt ?? 0);
     }
 
     private static string Compose(string code, string? detail)

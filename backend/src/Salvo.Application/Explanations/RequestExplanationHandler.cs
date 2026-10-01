@@ -212,7 +212,7 @@ public sealed class RequestExplanationHandler(
 
         if (attempt.FailureCode is { } failure)
         {
-            await SettleAsync(explanation, failure, null);
+            await SettleAsync(explanation, failure, null, attempt.InputTokens, attempt.OutputTokens);
 
             return;
         }
@@ -221,8 +221,14 @@ public sealed class RequestExplanationHandler(
         var verdict = ExplanationGrounding.Verify(draft.Summary!, draft.ReferencedRules, input, facts);
         if (!verdict.IsGrounded)
         {
-            // The offending token, never the sentence that carried it.
-            await SettleAsync(explanation, verdict.FailureCode!.Value, verdict.Offender);
+            // The offending token, never the sentence that carried it. The tokens, though, are
+            // kept: a rejected text was paid for exactly like an accepted one.
+            await SettleAsync(
+                explanation,
+                verdict.FailureCode!.Value,
+                verdict.Offender,
+                draft.InputTokens,
+                draft.OutputTokens);
 
             return;
         }
@@ -245,9 +251,11 @@ public sealed class RequestExplanationHandler(
     private async Task SettleAsync(
         AlertExplanation explanation,
         ExplanationFailureCode code,
-        string? detail)
+        string? detail,
+        int? inputTokens = null,
+        int? outputTokens = null)
     {
-        explanation.Fail(code, detail, timeProvider.GetUtcNow());
+        explanation.Fail(code, detail, timeProvider.GetUtcNow(), inputTokens, outputTokens);
 
         await store.SaveAsync(explanation, CancellationToken.None);
     }

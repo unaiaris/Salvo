@@ -4,7 +4,15 @@ using Salvo.Domain.Explanations;
 namespace Salvo.Application.Explanations;
 
 /// <param name="FailureCode">Null exactly when the provider produced a draft.</param>
-internal sealed record ExplanationAttempt(ExplanationDraft? Draft, ExplanationFailureCode? FailureCode);
+/// <param name="InputTokens">
+/// What the attempt was charged, when the provider said, whether or not it produced a draft: a
+/// refusal is paid for too.
+/// </param>
+internal sealed record ExplanationAttempt(
+    ExplanationDraft? Draft,
+    ExplanationFailureCode? FailureCode,
+    int? InputTokens = null,
+    int? OutputTokens = null);
 
 /// <summary>
 /// Calls a provider under the explicit timeout of the port and names whatever comes back.
@@ -39,7 +47,11 @@ internal static class ExplanationExchange
         return outcome.Status switch
         {
             ProviderCallStatus.Completed when outcome.Value!.Summary is null =>
-                new(null, ExplanationFailureCode.ProviderRefused),
+                new(
+                    null,
+                    ExplanationFailureCode.ProviderRefused,
+                    outcome.Value.InputTokens,
+                    outcome.Value.OutputTokens),
             ProviderCallStatus.Completed => new(outcome.Value, null),
             ProviderCallStatus.TimedOut => new(null, ExplanationFailureCode.ProviderTimeout),
             ProviderCallStatus.CallerCancelled => new(null, ExplanationFailureCode.Cancelled),

@@ -65,6 +65,12 @@ internal static class ExplanationTestCorpus
         /// <summary>The last input it was handed, for the tests that inspect the boundary.</summary>
         public ExplanationInput? LastInput { get; private set; }
 
+        /// <summary>What the next answer reports it was charged, as a paid provider would.</summary>
+        public int? InputTokens { get; set; }
+
+        /// <summary>The output counterpart of <see cref="InputTokens"/>.</summary>
+        public int? OutputTokens { get; set; }
+
         public Task<ExplanationDraft> ExplainAsync(
             ExplanationInput input,
             CancellationToken cancellationToken)
@@ -74,16 +80,17 @@ internal static class ExplanationTestCorpus
             Calls++;
             LastInput = input;
 
-            return Behaviour switch
+            var draft = Behaviour switch
             {
-                ProviderBehaviour.Succeed => Task.FromResult(Succeed(input)),
-                ProviderBehaviour.InventANumber => Task.FromResult(Invent(input)),
-                ProviderBehaviour.CiteAnUnraisedRule => Task.FromResult(CiteUnraised(input)),
-                ProviderBehaviour.Refuse => Task.FromResult(
-                    new ExplanationDraft(null, [])),
+                ProviderBehaviour.Succeed => Succeed(input),
+                ProviderBehaviour.InventANumber => Invent(input),
+                ProviderBehaviour.CiteAnUnraisedRule => CiteUnraised(input),
+                ProviderBehaviour.Refuse => new ExplanationDraft(null, []),
                 ProviderBehaviour.Throw => throw new InvalidOperationException("The provider is down."),
-                _ => Task.FromResult(Succeed(input)),
+                _ => Succeed(input),
             };
+
+            return Task.FromResult(draft with { InputTokens = InputTokens, OutputTokens = OutputTokens });
         }
 
         /// <summary>
