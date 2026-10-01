@@ -9,9 +9,9 @@
 - Coordinador: Unai Arismendes
 - Fecha: 2026-10-01
 - Rama/worktree: `claude/e11a0-huso`
-- Commit base: **lo escribe el primer commit de la rama**, con lo que devuelva
-  `git merge-base main HEAD`. El coordinador acepta que este campo no lleve SHA, por la lección de
-  `E8B`: el commit que lo escribiera en `main` movería la punta y lo volvería falso.
+- Commit base: `01e6cff3faacf92d8cc5b84b726e14ac31894d85`, lo que devolvió `git merge-base main HEAD`
+  al cortar la rama. Lo escribe el primer commit de la rama, por la lección de `E8B`: el commit que
+  lo escribiera en `main` movería la punta y lo volvería falso.
 - Integración: **por merge, nunca por rebase.**
 - Modelo y esfuerzo acordados: **Sonnet 5.5 · `high`**, la fila «Implementación con brief cerrado» de
   `ClaudeAgent/Claude-Model-Policy.md`: la causa ya está diagnosticada hasta la línea. El
