@@ -15,15 +15,22 @@
   este campo no lleve SHA; la verificación la hacen el primer commit de la rama y el handoff.
 - Integración: **por merge, nunca por rebase.**
 - Modelo y esfuerzo acordados: **Opus 5.5 · `high`**, la fila «ambigüedad real dentro del alcance» de
-  `ClaudeAgent/Claude-Model-Policy.md`: el punto 8 depende de lo que diga la documentación de Render.
-  El `brief-check`, con un modelo distinto.
+  `ClaudeAgent/Claude-Model-Policy.md`: la primera ejecución en Linux puede pedir ajustes del flujo
+  que no se pueden prever desde acá. El `brief-check` ya vio dos candidatos —ver «Lo que
+  probablemente falle la primera vez»—. El `brief-check`, con un modelo distinto.
 - Dependencias: ninguna. `E11B` —el adaptador de Anthropic— depende de ésta.
 
 ## Resultado esperado
 
 **La compuerta se corre sola.** Cada push, a cualquier rama, corre `scripts/check.sh` y
 `scripts/smoke-ui.sh` en GitHub Actions, con las mismas versiones exactas que el repositorio fija y
-sin ningún secreto. Y `main` solo se despliega en Render cuando esa corrida está en verde.
+sin ningún secreto. Y `render.yaml` declara que `main` solo se despliega en Render cuando esa corrida
+está en verde.
+
+**Lo que esta tarea verifica es el valor declarado; que la plataforma lo cumple lo observa el
+coordinador al integrar**, porque solo se puede ver después del merge a `main` y desde el panel de
+Render. La tarea entrega los pasos de esa observación, y el coordinador la registra en la fila de
+integración del Progress.
 
 ### Por qué va primero, y por qué dentro de esta etapa
 
@@ -102,10 +109,24 @@ adaptador.
      los checks pasan, y el `brief-check` lo encontró documentado el 2026-10-01. Con la compuerta
      corriendo en cada push, `main` solo se despliega en verde. La tarea vuelve a abrir esa página el
      día que ejecute; si cambió, se detiene y consulta.
+   - **Una consecuencia que el comentario tiene que decir**: según la misma documentación, Render no
+     despliega un commit en el que no detecta ningún check. Hoy no pasa, porque todo push corre la
+     compuerta. Pero si algún día el flujo deja de correr para ciertos cambios —un filtro por
+     carpetas, por ejemplo—, esos commits a `main` **no se despliegan nunca**, y nada avisa.
    - **Nunca `off`**: con la compuerta corriendo sola, un despliegue a mano es un paso más que alguien
      tiene que recordar, y la medición no lo justifica.
    - **Se reescribe el comentario**, con las cifras medidas y la decisión tomada, para
      que deje de prescribir algo que el proyecto decidió no hacer.
+
+### Lo que probablemente falle la primera vez
+
+El `brief-check` leyó los scripts pensando en una máquina Linux limpia y encontró dos candidatos. No
+son certezas: son lo primero que hay que mirar si el primer push sale rojo.
+
+- **`smoke-ui.sh` exige `lsof`** para comprobar los puertos, y un runner puede no traerlo. Instalarlo
+  en el runner es **entorno, no una dependencia del proyecto**, y está permitido.
+- **Los proyectos de test nunca se restauraron en modo bloqueado fuera de macOS**: el `Dockerfile` solo
+  restaura el proyecto de la API. Si un lockfile difiere entre plataformas, es hallazgo y consulta.
 
 ### Fuera
 
@@ -135,14 +156,19 @@ Ninguno. `E11B` todavía no tiene brief.
 - Red: leer documentación oficial de GitHub y de Render, y resolver el SHA de cada acción.
 - Escrituras externas: **no**. El agente **no hace push**: la configuración lo deniega a propósito.
   El coordinador sube las ramas y pega los resultados.
-- **La falsación la prepara el agente**: una segunda rama local, `claude/e11a-falsacion`, cortada de
-  `claude/e11a-ci` después del último commit de código, con **un solo commit** que invierte un
-  assert de un test existente y lo nombra en el mensaje. El coordinador la sube, ve el rojo, y la
-  borra local y remota: **el borrado es suyo**.
-- **La tarea termina en dos tiempos.** Primero el agente deja el flujo, el cartel, el punto 8 y la rama
-  de falsación, y **se detiene**. Después de que el coordinador suba las dos ramas y pegue los
-  enlaces de las corridas, el agente escribe el handoff con ellos, en un último commit sobre
-  `claude/e11a-ci`.
+- **La tarea avanza en tres tiempos, y cada uno espera al anterior**, porque el agente no puede
+  ejecutar el flujo: el primer push es su primera ejecución.
+  1. **El flujo.** El agente deja el flujo, el cartel y el punto 8 en `claude/e11a-ci`, y **se
+     detiene**. El coordinador sube la rama y pega el resultado. **Si sale rojo por el entorno**, el
+     agente ajusta el flujo con commits nuevos sobre la misma rama, el coordinador vuelve a subirla, y
+     se repite **hasta el verde**.
+  2. **La falsación, cortada desde el verde.** Recién con la rama en verde, el agente corta
+     `claude/e11a-falsacion` **desde ese commit**, con **un solo commit** que invierte un assert de un
+     test existente y lo nombra en el mensaje. Cortarla desde el verde garantiza que el rojo tenga un
+     solo motivo posible. El coordinador la sube, ve el rojo, y la borra local y remota: **el borrado
+     es suyo**.
+  3. **El handoff.** Con los enlaces de las dos corridas, el agente escribe el handoff en un último
+     commit sobre `claude/e11a-ci`.
 - Acciones destructivas: **no**.
 
 ## Criterios de aceptación
@@ -159,7 +185,10 @@ Ninguno. `E11B` todavía no tiene brief.
       **rojo**, y el log de `check.sh` nombra ese test. Un flujo que nunca se vio fallar no está
       probado.
 - [ ] El cartel de estado en el README, y `./scripts/check-docs.sh` verde.
-- [ ] El punto 8 resuelto en una de sus dos formas, con la URL oficial que lo sostiene.
+- [ ] El punto 8: `autoDeployTrigger: checksPass`, con el comentario reescrito —cifras medidas,
+      decisión tomada, y la consecuencia de los commits sin checks— y la URL oficial que lo sostiene.
+- [ ] Los pasos para que el coordinador observe en Render, al integrar, que el despliegue del merge
+      **esperó** a los checks y que el servicio tomó el valor nuevo.
 
 ## Verificación y evidencia
 
@@ -168,6 +197,7 @@ Ninguno. `E11B` todavía no tiene brief.
 | `./scripts/check.sh` en local | Verde |
 | El push de `claude/e11a-ci` | `check.sh` y `smoke-ui.sh` verdes, con la duración de cada job |
 | El push de `claude/e11a-falsacion` | **Roja**, y el log de `check.sh` nombra el test invertido |
+| **Al integrar**, en el panel de Render —lo observa el coordinador— | El servicio muestra el disparo condicionado a los checks, y el despliegue del merge esperó la corrida verde antes de empezar |
 | `./scripts/check-docs.sh` | Verde con el cartel agregado |
 
 ## Decisiones delegadas
@@ -178,6 +208,8 @@ Ninguno. `E11B` todavía no tiene brief.
 
 ## Detenerse y consultar si
 
+- la restauración bloqueada (`--locked-mode`) falla en Linux por un lockfile: cambiar lockfiles está
+  fuera de esta tarea;
 - `check.sh` o `smoke-ui.sh` fallan en CI por algo que exige cambiar el script;
 - el flujo necesita un secreto para algo;
 - la documentación de Render sobre el punto 8 es ambigua;
@@ -188,6 +220,8 @@ Ninguno. `E11B` todavía no tiene brief.
 - Resumen, archivos tocados, y las dos corridas —la verde de `claude/e11a-ci` y la roja de la
   falsación— con su enlace y la duración de cada job.
 - Qué se decidió sobre el punto 8, con la fuente oficial.
+- **Los pasos de la observación en Render**, escritos para que el coordinador los siga al integrar: dónde
+  mirar en el panel que el servicio tomó el valor, y cómo se ve un despliegue que espera a los checks.
 - Supuestos, riesgos y pendientes.
 - Estado: `Lista para integrar | Parcial | Bloqueada`.
 - Handoff en `Coordination/Handoffs/Claude.md`.
