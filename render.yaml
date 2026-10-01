@@ -48,11 +48,34 @@ services:
     # que corre sale del árbol que cualquiera puede leer, y no de un registro donde habría que
     # confiar en que alguien subió lo que dice.
     #
-    # `commit` reconstruye en cada push a la rama vinculada. **Tiene un costo medido**: el workspace
-    # Hobby incluye 500 minutos de construcción por mes (https://render.com/docs/build-pipeline), y
-    # una construcción sin caché de esta imagen tarda lo que dice el handoff de `E10C`. Si el
-    # repositorio vuelve a tener actividad de desarrollo, esto pasa a `off` y se despliega a mano.
-    autoDeployTrigger: commit
+    # **`checksPass`: `main` solo se despliega cuando la compuerta está en verde.** La especificación
+    # lo define así: «Trigger a deploy only if the linked branch's CI checks pass»
+    # (https://render.com/docs/blueprint-spec, leído el 2026-10-01). Los checks son los dos jobs de
+    # `.github/workflows/compuerta.yml`, que corren `scripts/check.sh` y `scripts/smoke-ui.sh` en
+    # cada push.
+    #
+    # Hasta la Etapa 10 este valor era `commit`, con la prescripción de pasar a `off` si el
+    # repositorio volvía a tener actividad de desarrollo, por el cupo de 500 minutos de construcción
+    # del workspace Hobby (https://render.com/docs/build-pipeline). **La medición desmintió esa
+    # premisa**: las cuatro primeras construcciones tardaron 11,9 s, 2 min 10 s, 28,3 s y 1 min 15 s
+    # —unos cuatro minutos de quinientos—, porque la caché de capas reconstruye un commit de
+    # documentos en medio minuto. El riesgo real nunca fue el cupo: era **desplegar un `main` en
+    # rojo**, y eso es lo que este valor impide. `off` queda descartado: con la compuerta corriendo
+    # sola, un despliegue a mano es un paso más que alguien tiene que recordar.
+    #
+    # **Una consecuencia que no avisa.** Render no despliega cuando «Zero checks are detected for the
+    # new commit» (https://render.com/docs/deploys). Hoy no pasa, porque todo push a cualquier rama
+    # corre la compuerta. Pero un commit a `main` que no dispare el flujo —un `[skip ci]` en el
+    # mensaje, o un filtro por carpetas que alguien agregue algún día— **no se despliega nunca**, y
+    # nada lo dice: la instancia sigue sirviendo el commit anterior.
+    #
+    # **Lo que la documentación no contesta, y por eso no se afirma**: cuánto espera Render a que los
+    # checks terminen, en qué momento decide que hay «zero checks», y si la sincronización del
+    # Blueprint respeta este valor. Esa última importa: «Each push to the linked branch that modifies
+    # your Blueprint file triggers a deploy of any added or modified resources»
+    # (https://render.com/docs/infrastructure-as-code), así que un push que toque este archivo puede
+    # desplegar sin esperar a la compuerta.
+    autoDeployTrigger: checksPass
 
     # **No se declara `healthCheckPath`, y es una decisión con evidencia, no un olvido.**
     #
