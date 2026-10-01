@@ -219,6 +219,72 @@ public sealed partial class ExplanationIsolationTests
     }
 
     /// <summary>
+    /// The same spy, one layer further out: what leaves the process in the body of the HTTP request
+    /// to Anthropic.
+    /// </summary>
+    /// <remarks>
+    /// The test above reads what the port was handed; this reads what the adapter put on the wire,
+    /// which is a different object — a sheet of facts it rendered, a prompt and a schema — and the one
+    /// that actually reaches a model. The sentinels are the same, and so is the corpus: an instruction
+    /// in every field an importer lets through, an external verdict and a human note.
+    /// </remarks>
+    [Fact]
+    public async Task NoTextTheEngineDidNotWriteLeavesInTheHttpBody()
+    {
+        using var transport = new AnthropicTestTransport();
+        await using var factory = new SalvoApiFactory
+        {
+            ConfigureTestServices = services => services.AddSingleton<IExplanationProvider>(provider =>
+                new Salvo.Infrastructure.Explanations.AnthropicExplanationProvider(
+                    transport,
+                    new Salvo.Infrastructure.Explanations.AnthropicSettings(
+                        AnthropicTestTransport.FictitiousKey,
+                        AnthropicTestTransport.Model),
+                    provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<
+                        Salvo.Infrastructure.Explanations.AnthropicExplanationProvider>>())),
+        };
+        using var client = await factory.CreateMigratedClientAsync();
+        await AlertTestCorpus.ImportAsync(client, InjectionCorpus());
+        await AlertTestCorpus.RunScoringAsync(client);
+        var alert = Assert.Single((await AlertTestCorpus.ListAlertsAsync(client)).Items);
+
+        (await client.PostAsync($"/api/orders/{alert.OrderId}/external-evaluations", null))
+            .EnsureSuccessStatusCode();
+        (await AlertTestCorpus.ReviewAsync(client, alert.Id, "CONFIRMED_SAFE", NoteSentinel))
+            .EnsureSuccessStatusCode();
+
+        await ExplanationTestCorpus.RequestOkAsync(client, alert.Id);
+
+        var sent = Assert.Single(transport.Requests).Body;
+        var decoded = JsonNode.Parse(sent)!.ToJsonString(new JsonSerializerOptions
+        {
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        });
+
+        foreach (var forbidden in new[]
+        {
+            CitySentinel,
+            "Ignora",
+            "legitimo",
+            "BUY_INYECCION",
+            "MER_INYECCION",
+            "ORD_INYECCION",
+            "DEV_INYECCION",
+            NoteSentinel,
+            "EXTERNAL_MOCK",
+            "isFraudLabel",
+            AnthropicTestTransport.FictitiousKey,
+        })
+        {
+            Assert.DoesNotContain(forbidden, decoded, StringComparison.OrdinalIgnoreCase);
+        }
+
+        // And what does leave: the facts the engine computed, rendered.
+        Assert.Contains("Hechos de la evaluación", decoded, StringComparison.Ordinal);
+        Assert.Contains("UYU", decoded, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// Naming a provider this build cannot supply stops the process.
     /// </summary>
     /// <remarks>
