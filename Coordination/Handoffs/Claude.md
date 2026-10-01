@@ -5821,3 +5821,196 @@ Qué prueba cada rojo:
 - Posibles conflictos: ninguno con `E11A`, que reserva `.github/workflows/**`, el README y `render.yaml`.
 - Verificación posterior al merge: `./scripts/check.sh`, `./scripts/smoke-ui.sh` y la comprobación de
   `/dashboard` en la instancia pública.
+
+## `E11A-INTEGRACION-CONTINUA` — la compuerta se corre sola, y `main` solo se despliega en verde
+
+### Identificación
+
+- Estado de la rama: `Lista para integrar`
+- Etapa: 11
+- Rama/worktree: `claude/e11a-ci`
+- Commit base: `fcf93709399df766bddc9fee274c8442479e3a06` (`git merge-base main HEAD` al cortar la
+  rama, escrito en el brief por `8bc55fd`)
+- Commit final: el commit de este handoff, que sigue a `dfe7fea`; un commit no puede citar su propio
+  hash. La corrida verde es la de `dfe7fea`, y este commit solo agrega esta entrada.
+- Fecha: 2026-10-01
+
+### Resultado
+
+Cada push, a cualquier rama, corre `scripts/check.sh` y `scripts/smoke-ui.sh` en GitHub Actions,
+con el SDK, Node y npm que declara el repositorio, comprobados antes de correr nada, y sin ningún
+secreto. `render.yaml` pasa a `autoDeployTrigger: checksPass`, con el comentario reescrito. El
+README lleva el cartel de estado de `main`.
+
+**El flujo se vio pasar y se vio fallar.** Salió verde al primer push, sin ajustes. En la falsación
+salió rojo, solo en el job de `check.sh` y nombrando el test invertido. **Que Render cumpla el valor
+nuevo no lo verifica esta tarea**: lo observa el coordinador después de integrar, con los pasos de
+abajo.
+
+### Archivos modificados
+
+- `.github/workflows/compuerta.yml` — nuevo (`7360656`).
+- `README.md` — solo el cartel, en la línea 3 (`c9c33e6`).
+- `render.yaml` — solo `autoDeployTrigger` y su comentario (`dfe7fea`).
+- `Coordination/Tasks/E11A-INTEGRACION-CONTINUA.md` — solo el campo «Commit base» (`8bc55fd`).
+- `Coordination/Handoffs/Claude.md` — esta entrada.
+
+La rama de falsación tocó `backend/tests/Salvo.Domain.Tests/OrderTests.cs`, en un solo commit
+(`d96d3c4`). **No se integra.** El coordinador ya la borró, en local y en el remoto.
+
+### Verificación
+
+| Comprobación | Resultado |
+| --- | --- |
+| `./scripts/check.sh` en local, sobre `dfe7fea` | Verde: `check-docs.sh` con 73 comprobaciones y 0 fallas, 117 + 178 tests .NET, 313 de frontend y build de producción |
+| `./scripts/check-docs.sh` con el cartel agregado | 73 comprobaciones, 0 fallas. El destino del cartel es una URL absoluta y el script no la cuenta como enlace relativo |
+| **Push de `claude/e11a-ci`** (`dfe7fea`): https://github.com/unaiaris/Salvo/actions/runs/36818826315 | **Verde.** `scripts/check.sh`: **2 min 36 s**. `scripts/smoke-ui.sh`: **1 min 49 s**, con «Recorrido verde: 71 comprobaciones, 0 fallas» |
+| **Push de `claude/e11a-falsacion`** (`d96d3c4`): https://github.com/unaiaris/Salvo/actions/runs/36819442505 | **Rojo.** `scripts/check.sh`: **rojo en 1 min 37 s**, `[FAIL]` en `Salvo.Domain.Tests.OrderTests.BusinessEqualityIgnoresTechnicalIdentityButNotImmutableFacts`, «Failed: 1, Passed: 116», y los 178 de integración pasan. `scripts/smoke-ui.sh`: **verde en 1 min 25 s**, completo |
+| `dotnet test` del proyecto de dominio en local, con el assert invertido | 1 con error y 116 superados: cae ese test y ningún otro |
+| Paso «Versiones», en los dos jobs de la corrida verde | SDK 10.0.400, Node v24.20.0 y npm 11.19.0, iguales a `global.json`, `.nvmrc` y `packageManager` |
+| Paso `lsof` | «lsof ya está en la imagen: /usr/bin/lsof»: no instaló nada |
+
+Las dos corridas las comprobé con `gh run view` contra el SHA de cada rama, no solo contra lo que
+me pasaron.
+
+**Qué prueba la falsación.** Salió de la punta verde, con un solo commit que cambia
+`Assert.False(first.HasSameBusinessFactsAs(changedAmount))` por `Assert.True(...)`, en la línea 90.
+Así el rojo tiene un solo motivo posible. Además:
+
+- El recorrido siguió hasta el final en verde, que es lo que `fail-fast: false` tenía que
+  garantizar.
+- El job rojo terminó en 1 min 37 s y no en 2 min 36 s porque `check.sh` corta en `dotnet test`,
+  antes de los pasos del frontend.
+
+### El punto 8: `checksPass`, con la fuente oficial
+
+Las tres citas del brief se volvieron a abrir el 2026-10-01 y siguen siendo textuales:
+
+- https://render.com/docs/blueprint-spec — `checksPass`: «Trigger a deploy only if the linked
+  branch's CI checks pass».
+- https://render.com/docs/deploys — Render no despliega si «Zero checks are detected for the new
+  commit» o si falla al menos un check. Cuentan los de GitHub Actions, y un check pasa con
+  conclusión `success`, `neutral` o `skipped`.
+- https://render.com/docs/infrastructure-as-code — «Each push to the linked branch that modifies
+  your Blueprint file triggers a deploy of any added or modified resources».
+
+**La decisión fue la que manda el brief, y el comentario de `render.yaml` la explica entera.**
+Contiene:
+
+- **La premisa del `off` desmentida por la medición.** Las cuatro construcciones medidas suman unos
+  cuatro minutos de los 500 del cupo. Comprobé que el cupo del plan Hobby sigue siendo de 500
+  minutos en https://render.com/docs/build-pipeline.
+- **El riesgo real:** desplegar un `main` en rojo.
+- **El descarte de `off`.**
+- **La consecuencia sin aviso:** un commit a `main` que no dispare el flujo no se despliega nunca.
+  Para eso agregué un ejemplo concreto que el brief no tenía: `[skip ci]` en el mensaje del commit.
+  Comprobé en la documentación de GitHub que esa marca aplica a `push` y a `pull_request`
+  (https://docs.github.com/en/actions/how-tos/manage-workflow-runs/skip-workflow-runs).
+- **Los tres silencios conocidos, escritos como silencios:** cuánto espera Render a los checks, en
+  qué momento decide que hay «zero checks», y si la sincronización del Blueprint respeta el valor.
+
+### Los pasos de la observación en Render, para después de integrar
+
+**Por qué no sirve el push del merge.** El merge modifica `render.yaml`. Según la página de
+infraestructura como código, un push que toca el Blueprint dispara un despliegue de lo que cambió,
+y ninguna página dice que esa sincronización espere a los checks. Lo que pase en ese push no prueba
+nada, ni en un sentido ni en el otro.
+
+1. **Integrá y subí el merge solo**, en su propio push, sin el cierre del estado canónico:
+   `git merge --no-ff claude/e11a-ci`, la compuerta y el recorrido en local, y `git push` con
+   `main` conteniendo el merge y nada más.
+2. **Comprobá que el servicio tomó el valor.** En el panel de Render: servicio `salvo` →
+   **Settings** → el campo de auto-deploy tiene que decir **«After CI Checks Pass»**, que es el
+   rótulo que documenta https://render.com/docs/deploys. Si dice «On Commit», la sincronización del
+   Blueprint no aplicó el valor. Es hallazgo: se registra, y la observación siguiente no vale hasta
+   resolverlo.
+3. **Si el push del merge desplegó, anotalo, pero no lo cuentes.** Es la sincronización del
+   Blueprint, y es justamente el silencio de la documentación. Que haya esperado o no a los checks
+   es un dato interesante, y no es la evidencia.
+4. **Subí el cierre del estado canónico en un push aparte**, con Progress, Workboard y lo que haga
+   falta, **sin tocar `render.yaml`**. Ese push dispara el flujo, porque corre en cualquier rama y
+   no filtra por carpetas, y **esa es la observación que cuenta**.
+5. **Del lado de GitHub**, anotá cuándo terminó cada job de la corrida de ese SHA:
+   `gh run list --branch main --limit 1` y
+   `gh run view <id> --json headSha,jobs --jq '.headSha, (.jobs[] | .name, .completedAt)'`.
+6. **Del lado de Render**, en la pestaña **Events** del servicio, buscá el despliegue de ese
+   commit. Render muestra el SHA corto y el mensaje. Anotá su hora de inicio.
+   - **Esperó**: el inicio del despliegue es posterior al `completedAt` más tardío de los dos jobs.
+     Eso es lo que hay que registrar en el Progress.
+   - **No esperó**: el despliegue empezó antes de que los dos jobs terminaran. Es hallazgo.
+   - **No hubo despliegue**, con la corrida verde: es o el «zero checks» o el tiempo de espera, los
+     dos sin documentar. Es hallazgo, y no se adivina cuál de los dos fue.
+   - **Las horas de `gh` vienen en UTC y el panel de Render muestra la hora local.** Compará en la
+     misma zona.
+7. **Cómo se ve un despliegue que espera.** La documentación **no describe** qué muestra el panel
+   mientras espera los checks, así que no busques un rótulo concreto. La prueba es la comparación
+   de horas del paso 6, que no depende de cómo Render lo dibuje.
+8. Cuando haya desplegado, la instancia pública tiene que seguir sirviendo `/` y `/dashboard`.
+
+### Decisiones y supuestos
+
+- **Dos jobs y no uno**, con la misma definición: una matriz sobre los dos scripts, no sobre
+  sistemas operativos. Hay dos veredictos distintos, y cada uno tiene que poder ponerse rojo sin
+  tapar al otro. La falsación lo demostró: `fail-fast: false` dejó el recorrido terminar en verde
+  mientras la compuerta caía. Corren en paralelo porque ninguno usa lo que construye el otro.
+- **Caché de NuGet y de npm, sí.** No puede cambiar qué se instala: la restauración bloqueada
+  compara el `contentHash` de cada paquete con el lockfile, y `npm ci` comprueba el `integrity`.
+  **Las dos corridas de esta tarea, sin embargo, no la aprovecharon.** Las dos *guardaron* la caché
+  con la misma clave y ninguna la restauró, porque una corrida solo puede restaurar cachés «created
+  in either the current branch or the default branch»
+  (https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching). Las
+  duraciones de arriba son, entonces, **en frío**. La primera caché útil es la que guarde `main`
+  después del merge, y desde ahí la leen todas las ramas.
+- **Runner `ubuntu-24.04`**, una etiqueta vigente según
+  https://docs.github.com/en/actions/reference/runners/github-hosted-runners, y la que hoy resuelve
+  `ubuntu-latest`. Es además la misma base que la imagen de runtime del `Dockerfile`.
+- **Acciones por SHA**, resueltas con `git ls-remote --tags` el 2026-10-01, con la versión en un
+  comentario al lado: `actions/checkout` v7.0.1, `actions/setup-dotnet` v6.0.0 y
+  `actions/setup-node` v7.0.0.
+- **npm**: se instala la versión de `packageManager`, leída del archivo, y el paso «Versiones»
+  compara las tres versiones antes de correr nada. No hay ninguna versión escrita en el flujo.
+- **Endurecimiento sin costo:**
+  - `persist-credentials: false` en el checkout.
+  - `shell: bash` declarado, para que cada paso corra con `pipefail`.
+  - `timeout-minutes` en el job y en los pasos que tocan la red.
+  - `NEXT_TELEMETRY_DISABLED`.
+- **`push` filtra `branches: ["**"]`**, así que las etiquetas no disparan el flujo: no son ramas.
+- **El cartel apunta a la corrida de `main`** (`?branch=main`), porque esa es la que decide el
+  despliegue. Supuse que el repositorio es público, como lo es la instancia: en uno privado, el
+  cartel no se muestra a quien no tenga acceso.
+
+### Riesgos o pendientes
+
+- **La observación en Render la hace el coordinador.** Es un criterio de aceptación del brief y no
+  la puedo hacer yo.
+- **Un commit a `main` sin checks no se despliega nunca, y nada avisa.** Pasa con `[skip ci]` en el
+  mensaje, o con un filtro por carpetas que alguien agregue al flujo. Queda escrito en `render.yaml`.
+  Lo mismo vale, probablemente, para una corrida cancelada o vencida por `timeout-minutes`, porque
+  su conclusión no es ninguna de las tres que Render cuenta como verde. **No lo afirmo**: la página
+  no habla de cancelaciones.
+- **Las acciones fijadas no se actualizan solas.** Dependabot está fuera del alcance. Hasta que
+  alguien lo decida, subir una acción es resolver el SHA nuevo a mano.
+- **`ubuntu-24.04` se va a retirar algún día.** Cuando pase, el flujo falla ruidosamente, que es lo
+  que se quiere de una referencia fija.
+- **El paso de npm baja el paquete del registro en cada corrida.** Son segundos, y no lo cacheé para
+  no agregar una pieza más.
+- **Costo por push: unos 2 min 36 s de reloj**, con los dos jobs en paralelo y en frío. Con la caché
+  de `main` debería bajar, pero no está medido. Si algún día el recorrido en cada push resulta caro,
+  el brief deja la decisión para después y con ese número.
+- `pull_request` y `push` juntos corren dos veces el flujo para una PR de una rama de este mismo
+  repositorio. Hoy no se usan PR.
+
+### Integración
+
+- **Orden sugerido**: merge a `main`, **por merge y nunca por rebase**, y **subido solo**, en su
+  propio push. El cierre del estado canónico va en un push aparte que no toque `render.yaml`: ese es
+  el push que se observa en Render. `E11B` depende de ésta.
+- **Migraciones o pasos manuales**: ninguna migración. El paso manual es la observación en Render de
+  arriba, y registrarla en el Progress, en el checklist de `E11A`.
+- **Posibles conflictos**: ninguno. `README.md` cambia en una sola línea al principio y `render.yaml`
+  en un solo bloque. `E11B` todavía no tiene brief.
+- **Verificación posterior al merge**:
+  - `./scripts/check.sh` y `./scripts/smoke-ui.sh` en local.
+  - La corrida del flujo sobre el merge en `main`, que además estrena la caché.
+  - El cartel del README en verde.
+  - La observación en Render.

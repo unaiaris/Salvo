@@ -1,5 +1,7 @@
 # Salvo
 
+[![Compuerta](https://github.com/unaiaris/Salvo/actions/workflows/compuerta.yml/badge.svg?branch=main)](https://github.com/unaiaris/Salvo/actions/workflows/compuerta.yml)
+
 Consola antifraude para el equipo de riesgo de un comercio electrónico. Puntúa pedidos con reglas
 deterministas sobre historia estrictamente anterior, abre alertas auditables, pide una segunda
 opinión a un proveedor externo simulado y pone la evaluación en palabras verificando el texto antes
