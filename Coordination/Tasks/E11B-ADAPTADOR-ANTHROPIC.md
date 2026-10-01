@@ -75,8 +75,23 @@ que se ejecute.
 
 ## Correcciones al diseño, hechas por este brief
 
-El código y la documentación del día desmienten tres cosas del diseño. Las tres se resuelven acá, y
-la segunda quedó registrada como **decisión 81**.
+**Regla de precedencia: donde este brief y `E11-DISENO.md` difieren, manda este brief.** El diseño lo
+dice en su encabezado. Ésta es la lista completa de diferencias; cualquier otra que el agente
+encuentre es hallazgo y consulta, no una elección:
+
+| Punto del diseño | Lo que dice el diseño | Lo que manda este brief |
+| --- | --- | --- |
+| D6 | `FailureDetail` se ve en la consola | No se ve hoy; se agrega a la vista (abajo, 1) |
+| D14 | No se pide razonamiento | Se apaga con `between_tools` y esfuerzo `medium` (abajo, 2; decisión 81) |
+| D3 | `enum` de las reglas que dispararon | `enum` constante de todas las reglas (abajo, 3; decisión 81) |
+| D6 | Tipo y `request-id` a `FailureDetail` | Solo valores de una lista cerrada, o con forma de `request-id` (abajo, 4) |
+| D10 | El test de propiedad cubre la hoja | Propiedad **y** un test explícito de las tres prohibiciones (punto 7) |
+| D11 | Tres pasos | Cinco casos, y la revisión registra la mostrada (punto 9) |
+| D12 | El botón dice «escritor vigente» | Con la plantilla conserva su rótulo exacto, por el smoke (punto 10) |
+| D15 | Cuatro scripts; `. ./.env` | Cinco scripts y la fábrica de tests; `SALVO_ENV_FILE` sin valor por omisión (puntos 2 y 11) |
+
+El código y la documentación del día desmienten cuatro cosas del diseño. Se resuelven acá, y la
+segunda y la tercera quedaron registradas como **decisión 81**.
 
 1. **`FailureDetail` no se ve hoy en la consola**, aunque D6 lo afirma: la columna existe y se
    guarda, pero `AlertExplanationView` no la lleva y el frontend no la conoce. Esta tarea la agrega a
@@ -94,8 +109,13 @@ la segunda quedó registrada como **decisión 81**.
    **Decisión**: el adaptador envía `thinking: {"type": "between_tools"}` y
    `output_config.effort: "medium"`. Así `max_tokens` = 1.024 y el costo de D14 siguen valiendo, y
    un test sobre el cuerpo de la petición lo afirma. El adaptador lee
-   `usage.output_tokens_details.thinking_tokens` cuando viene, y un valor mayor que cero va al
-   diagnóstico: es la señal de que la API cambió.
+   `usage.output_tokens_details.thinking_tokens` cuando viene, y un valor mayor que cero se registra
+   como log `Warning`, con el `request-id` y la cifra: es la señal de que la API cambió. No va a
+   `FailureDetail`, porque en un texto aceptado `Complete` lo vacía. Un test afirma el log.
+   **No se envían `fallbacks` ni parámetros de muestreo** —`temperature`, `top_p`, `top_k`—. El
+   respaldo del servidor, en beta, reintenta ciertos rechazos con otro modelo, y un rechazo acá es un
+   desenlace que se registra, no algo que se esconde; el muestreo queda en el valor del modelo. Si la
+   documentación del día exige alguno de los dos, es parada.
 3. **Un esquema por conjunto de reglas compilaría una gramática por conjunto.** D3 pedía el `enum` de
    las reglas que dispararon en cada evaluación; cada esquema distinto compila su gramática la primera
    vez, y la primera es la lenta, contra un plazo de 15 s. **Decisión**: el esquema es **constante**,
@@ -103,6 +123,14 @@ la segunda quedó registrada como **decisión 81**.
    comprobando el verificador, como `NotGroundedRule`, que es donde ya vive esa garantía. El
    adaptador comprueba además que cada valor pertenezca al `enum`, sin distinguir mayúsculas; uno que
    no pertenezca vuelve el borrador `Malformed`, **sin copiar el valor**.
+4. **Lo que escribe el proveedor no entra crudo a la base ni a la pantalla.** `error.type`,
+   `error.details.error_code`, el `stop_reason` y la categoría de un rechazo llegan a `FailureDetail`
+   **solo** si están en una **lista cerrada** que el adaptador lleva, compilada de la documentación
+   del día; si no, se escribe `unrecognized`. El `request-id` entra solo si tiene la forma que muestra
+   la página de errores —`req_` seguido de letras y dígitos, con un tope de largo—; si no, se omite.
+   Así lo que cruza la frontera de infraestructura es un vocabulario cerrado que el adaptador
+   valida, no un tipo ni un texto del proveedor, que es lo que `AGENTS.md` y el comentario de
+   `IExplanationProvider` prohíben.
 
 ## Alcance
 
@@ -115,7 +143,9 @@ El orden es obligatorio: pone las protecciones **antes** que lo que protegen.
    adaptador, una terminal con la clave exportada haría gastar al smoke y hornearía texto de un modelo
    en la imagen pública.
    - `check.sh`, `smoke-ui.sh`, `demo.sh`, `capturas.sh` y `hornear-base.sh` exportan
-     `AI_PROVIDER=mock`, una línea cada uno, con un comentario que diga por qué.
+     `AI_PROVIDER=mock`, una línea cada uno, con un comentario que diga por qué. El de
+     `hornear-base.sh` dice el motivo verdadero: dentro de `docker build` el entorno de la terminal
+     no entra, así que la línea es defensa para quien lo corra fuera de Docker.
    - **La fábrica de los tests de integración fija `AI_PROVIDER=mock`** en su propia configuración,
      por encima del entorno, salvo en los tests que piden otro proveedor a propósito. El
      `brief-check` lo midió: con `AI_PROVIDER=anthropic` exportado, `SystemCapabilitiesTests` cae 4
@@ -151,7 +181,15 @@ El orden es obligatorio: pone las protecciones **antes** que lo que protegen.
      el campo `model` de la **respuesta**. El modelo **nunca** entra en la identidad.
    - `max_tokens` = 1.024, con el margen que pide D6.
    - **La hoja de hechos**, construida con `ExplanationFigures` y el vocabulario de la plantilla, sin
-     versiones, sin centavos y sin instantes ISO, y un prompt que exige cifras en dígitos.
+     versiones, sin centavos y sin instantes ISO, y un prompt que exige cifras en dígitos. **En el
+     idioma del despliegue**: la hoja y el prompt existen en castellano y en portugués, y los tests
+     cubren los dos.
+   - **Dos tests sobre la hoja, porque protegen cosas distintas.** El de **propiedad** afirma que todo
+     número de la hoja está fundamentado por `ExplanationFacts`. No puede proteger las tres
+     prohibiciones: el monto en centavos **es** un hecho, las versiones se tachan antes de tokenizar,
+     y de un instante ISO solo los segundos quedan sin fundamentar. Por eso hay un segundo test,
+     **explícito**, que mira la hoja renderizada y afirma que no contiene el monto en centavos, ni un
+     instante con forma ISO, ni ninguna cadena de versión.
    - La taxonomía de D6, entera, a `FailureDetail`. Se leen `error.type`, `error.details.error_code` y
      la presencia de `retry-after`; **nunca `message`**. Un log `Warning` para toda respuesta que no
      sea `2xx`, sin cuerpo y sin cabeceras.
@@ -169,12 +207,16 @@ El orden es obligatorio: pone las protecciones **antes** que lo que protegen.
    evaluación que la alerta muestra —la del snapshot y la vigente, como hoy—:
    - **La explicación mostrada** es la `READY` del escritor vigente, si existe; si no, la `READY` más
      recientemente asentada de cualquier otro escritor, rotulada con quién la escribió; si no hay
-     ninguna `READY`, la fila del escritor vigente, como hoy.
+     ninguna `READY`, la fila del escritor vigente; y si tampoco hay fila del vigente, la más
+     recientemente pedida de cualquier escritor, como hoy.
    - **El intento vigente** se muestra además, con su estado, su código y su `FailureDetail`, cuando
      la explicación mostrada es de otro escritor y existe una fila del vigente que no está `READY`.
-   - Los cuatro casos tienen su test: `READY` del vigente; `READY` de otro y `FAILED` del vigente;
-     `READY` de otro y **ninguna** fila del vigente —el caso 1d del smoke, que no cambia—; y ninguna
-     `READY`.
+   - Los cinco casos tienen su test: `READY` del vigente; `READY` de otro y `FAILED` del vigente;
+     `READY` de otro y **ninguna** fila del vigente —el caso 1d del smoke, que no cambia—; ninguna
+     `READY` y una fila del vigente; y ninguna `READY`, ninguna fila del vigente y una `FAILED` o
+     `PENDING` de otro.
+   - **El intento vigente viaja anidado en `AlertExplanationView`.** Es la forma que la reserva de
+     paths permite: no hace falta tocar `AlertViews.cs` ni `format.ts`.
    - **La revisión registra la explicación mostrada**, nunca el intento: es lo que la analista tenía
      delante, que es lo que guarda la decisión 56. `ReviewAlertHandler` acepta citar la mostrada y
      rechaza citar el intento, con su test.
@@ -186,7 +228,8 @@ El orden es obligatorio: pone las protecciones **antes** que lo que protegen.
     la plantilla **no cambia una letra**: el smoke la comprueba. La del modelo nombra el modelo
     —desde `ProviderVersion`— y la versión del prompt. **El rótulo del botón depende del escritor
     vigente**: cuando es la plantilla, sigue diciendo exactamente «Redactar con la plantilla vigente»
-    —las anclas 504 y 510 del smoke lo exigen y lo prohíben donde corresponde, y no se tocan—; cuando
+    —las anclas del bloque 1d del smoke, `expect_text` y `expect_no_text` sobre ese rótulo, lo exigen
+    y lo prohíben donde corresponde, y no se tocan—; cuando
     es el modelo, nombra al modelo. El intento vigente se muestra junto al texto aceptado de otro
     escritor cuando D11 lo pide, con su código y su `FailureDetail`.
 11. **El script de la corrida real**, `scripts/explicar-con-anthropic.sh`, para `E11C`:
@@ -221,9 +264,10 @@ protege, viendo el rojo con el nombre del test, y restaurando:
 | El adaptador reintenta una vez ante un 529 | El test que cuenta exactamente una petición por intento (D5) |
 | Un `ILogger` registra `HttpRequestMessage.ToString()` | El espía de logs a nivel `Trace`, en el camino que funciona (D8) |
 | Se quita la guarda de `SharedInstance` | El test que arranca con la bandera **y** con una clave presente (D9) |
-| La hoja de hechos lleva el monto en centavos | El test de propiedad: todo número de la hoja está fundamentado (D10) |
+| La hoja de hechos lleva el monto en centavos | El test explícito de las tres prohibiciones (D10) |
+| La hoja de hechos lleva los segundos del instante del pedido | El test de propiedad: todo número de la hoja está fundamentado (D10) |
 | La regla de selección vuelve a elegir la fila más recientemente pedida, donde sea que viva | El test con una `READY` de la plantilla y una `FAILED` del modelo (D11) |
-| La fábrica de tests deja de fijar `AI_PROVIDER=mock` | Los tests de integración corridos con `AI_PROVIDER=anthropic` exportado (D15) |
+| La fábrica de tests deja de fijar `AI_PROVIDER=mock` | Los tests de integración corridos con **solo** `AI_PROVIDER=anthropic` exportado, sin clave ni modelo: el arranque se niega y los tests caen, sin una sola petición (D15) |
 | `Retake` vuelve a borrar los tokens | El test de acumulación entre intentos (D7) |
 
 ### Fuera
@@ -233,7 +277,10 @@ protege, viendo el rojo con el nombre del test, y restaurando:
   `VersionStrings`, del punto 5.
 - **Tocar `ProviderCall`** o cualquier pieza del proveedor antifraude.
 - **Llamar a la API real** desde un test, desde la compuerta, desde el smoke o desde cualquier
-  comando que corra el agente.
+  comando que corra el agente. La única corrida que **podría** llegar a la red es la del entorno
+  contaminado de la tabla de verificación, y existe para probar que no llega: si llegara, lo haría
+  con una clave ficticia, recibiría un 401 sin costo ni secreto, y el smoke caería. Se corre **solo**
+  después del commit 2, con las protecciones puestas.
 - Streaming, herramientas, varias llamadas por intento, caché de prompt.
 - El SDK oficial de C#: es candidata registrada, no esta tarea.
 - La verificación por señal: es candidata registrada.
@@ -292,13 +339,16 @@ Ninguno en uso. `E11C` no tiene brief y empieza cuando ésta esté integrada.
       (`git diff` vacío sobre esos archivos); `AProviderThatThrowsIsRecordedRatherThanRaised` sigue
       verde.
 - [ ] D7: tokens en `Fail`, `Retake` no los borra, la fila acumula; con su falsación.
-- [ ] D10: `e3-v2` en `VersionStrings`, con su test; la propiedad de la hoja de hechos, con su
-      falsación; el espía extendido al **cuerpo HTTP** que sale.
+- [ ] D10: `e3-v2` en `VersionStrings`, con su test; la propiedad de la hoja y el test explícito de
+      sus tres prohibiciones, cada uno con su falsación, en los dos idiomas; el espía extendido al
+      **cuerpo HTTP** que sale.
 - [ ] D13: los tres tests de caracterización, nombrados por la clase, en verde.
 - [ ] D5: una petición por intento, afirmada contando peticiones, con su falsación.
 - [ ] D6: **un test por fila** de la taxonomía, contra el transporte simulado, con las formas de la
-      documentación del día; uno que afirma que `FailureDetail` nunca lleva texto del modelo; y uno
-      con un `error.type` que no cumple el patrón y termina como `unrecognized`.
+      documentación del día —con `request-id` reales de la forma documentada—; uno que afirma que
+      `FailureDetail` nunca lleva texto del modelo; uno con un `error.type` fuera de la lista
+      cerrada, que termina como `unrecognized`; y uno con `thinking_tokens` mayor que cero, que deja
+      su log.
 - [ ] El cuerpo de la petición lleva `thinking: {"type": "between_tools"}`, `output_config.effort:
       "medium"`, el esquema constante y `max_tokens` = 1.024, afirmado por un test.
 - [ ] D8: el espía a nivel `Trace`, camino feliz y camino que falla, buscando la clave en cada
@@ -306,7 +356,7 @@ Ninguno en uso. `E11C` no tiene brief y empieza cuando ésta esté integrada.
       modelo falla nombrando la variable.
 - [ ] D9: el arranque con `SharedInstance:Enabled=true`, `AI_PROVIDER=anthropic` **y** clave
       falla; con su falsación.
-- [ ] D11: los cuatro casos de la regla, cada uno con su test, y la revisión que cita la mostrada y
+- [ ] D11: los cinco casos de la regla, cada uno con su test, y la revisión que cita la mostrada y
       no el intento; con su falsación.
 - [ ] D12: el test del bloque de explicación cubre la oración de la plantilla y la del modelo, en los
       dos idiomas; la de la plantilla, sin una letra cambiada.
@@ -320,7 +370,7 @@ Ninguno en uso. `E11C` no tiene brief y empieza cuando ésta esté integrada.
 | --- | --- |
 | `./scripts/check.sh` | Verde |
 | `./scripts/smoke-ui.sh` | Verde, con la frase de la plantilla intacta |
-| Las siete falsaciones | Rojo con el nombre del test, y verde al restaurar |
+| Las ocho falsaciones | Rojo con el nombre del test, y verde al restaurar |
 | `AI_PROVIDER=anthropic`, `ANTHROPIC_MODEL=claude-sonnet-5-5` y una clave **ficticia** exportados, y después `./scripts/check.sh` y `./scripts/smoke-ui.sh` | Los dos verdes. Si algo llamara a la API, la clave ficticia daría 401 y el smoke caería: el verde prueba que nada la llamó (D15) |
 | `git diff <base>..HEAD -- backend/src/Salvo.Application/Providers backend/src/Salvo.Application/External` | Vacío |
 | `git diff <base>..HEAD -- backend/src/Salvo.Domain/Explanations/ExplanationGrounding.cs backend/src/Salvo.Domain/Explanations/ExplanationFacts.cs` | Vacío |
@@ -354,7 +404,7 @@ Ninguno en uso. `E11C` no tiene brief y empieza cuando ésta esté integrada.
 
 - Resumen, archivos tocados, y los doce commits.
 - **La tabla de «Datos verificados» rehecha**, con la fecha de lectura y lo que cambió.
-- Las siete falsaciones, con su salida, y la corrida de D15 con el entorno contaminado.
+- Las ocho falsaciones, con su salida, y la corrida de D15 con el entorno contaminado.
 - Una muestra de la hoja de hechos para una alerta del corpus, y el prompt `anthropic-p1` entero: son
   lo único que viaja a la API, junto con el esquema.
 - El costo estimado por explicación y el techo de la corrida, recalculados con `max_tokens` y los

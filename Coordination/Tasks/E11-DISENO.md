@@ -5,6 +5,8 @@
 > Coordinador: Unai Arismendes
 > Revisión: `Coordination/Tasks/E11-revision-adversarial.md` — quince hallazgos, cinco altos. La v1
 > queda en la historia de Git, que es donde una versión equivocada sirve de evidencia.
+> **Precedencia**: el brief de `E11B` corrige este diseño en ocho puntos, que lista en su sección
+> «Correcciones al diseño». Donde difieren, manda el brief.
 > Base: la Etapa 7 dejó el puerto, la verificación, las columnas de costo y los códigos de fallo
 > preparados para este adaptador. Esta etapa escribe lo que falta y **no afloja nada de lo que ya
 > existe**.
