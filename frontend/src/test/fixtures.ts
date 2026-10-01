@@ -146,12 +146,35 @@ export function wireExplanation(overrides: WirePayload = {}): WirePayload {
     summary: "El pedido obtuvo 100 puntos sobre un umbral de 60.",
     referencedRules: ["amount_anomaly"],
     failureCode: null,
+    failureDetail: null,
     attemptCount: 1,
     attemptsExhausted: false,
     isOutdated: false,
     writtenByAnotherTemplate: false,
+    currentWriterProvider: "MOCK",
     requestedAt: "2026-09-03T11:00:00+00:00",
     settledAt: "2026-09-03T11:00:01+00:00",
+    currentWriterAttempt: null,
+    ...overrides,
+  };
+}
+
+/**
+ * The attempt of the current writer that a view carries beside somebody else's text: here, a model
+ * whose answer was a refusal.
+ */
+export function wireExplanationAttempt(overrides: WirePayload = {}): WirePayload {
+  return {
+    id: "8f8b7f3e-0000-4000-8000-000000000008",
+    provider: "ANTHROPIC",
+    templateVersion: "anthropic-p1",
+    status: "FAILED",
+    failureCode: "PROVIDER_REFUSED",
+    failureDetail: "cyber; req_011CSHoEeqs5C35K2UUqR7Fy",
+    attemptCount: 1,
+    attemptsExhausted: false,
+    requestedAt: "2026-09-03T11:05:00+00:00",
+    settledAt: "2026-09-03T11:05:02+00:00",
     ...overrides,
   };
 }

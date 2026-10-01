@@ -82,6 +82,27 @@ public sealed class ExplanationFactsTests
         Assert.Empty(NumberTokenizer.Extract("configuración e3-v1 y política e4-v1"));
     }
 
+    /// <summary>
+    /// Every configuration version the engine can have written is struck out, not only the first.
+    /// </summary>
+    /// <remarks>
+    /// <c>e3-v2</c> was missing from <c>VersionStrings</c> from <c>E9B</c>, when the engine started
+    /// writing it, until <c>E11B</c> (decision 78). It cost nothing while the template was the only
+    /// writer, because the template never writes a version; a model can copy one, and «e3-v2» read
+    /// as a 3 and a 2 is a figure grounded by coincidence or rejected for no reason. Reading the
+    /// versions off <see cref="RuleConfig.Known"/> is what makes the next one fail here instead.
+    /// </remarks>
+    [Fact]
+    public void EveryRuleConfigurationVersionDonatesNoDigits()
+    {
+        foreach (var config in RuleConfig.Known)
+        {
+            Assert.Empty(NumberTokenizer.Extract($"según la configuración {config.Version}"));
+        }
+
+        Assert.Empty(NumberTokenizer.Extract("configuración e3-v2"));
+    }
+
     [Fact]
     public void EverySignalTheEngineWritesIsReadIntoTypedFields()
     {

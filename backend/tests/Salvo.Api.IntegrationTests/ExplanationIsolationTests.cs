@@ -219,34 +219,89 @@ public sealed partial class ExplanationIsolationTests
     }
 
     /// <summary>
-    /// Naming a provider this build cannot supply stops the process.
+    /// The same spy, one layer further out: what leaves the process in the body of the HTTP request
+    /// to Anthropic.
     /// </summary>
     /// <remarks>
-    /// A key changes nothing, and that is the point: falling back to the template in silence would
-    /// let a deployment believe a model wrote a paragraph a template wrote, which is the one claim
-    /// this project must never make by accident.
+    /// The test above reads what the port was handed; this reads what the adapter put on the wire,
+    /// which is a different object — a sheet of facts it rendered, a prompt and a schema — and the one
+    /// that actually reaches a model. The sentinels are the same, and so is the corpus: an instruction
+    /// in every field an importer lets through, an external verdict and a human note.
     /// </remarks>
     [Fact]
-    public async Task AProviderThisBuildDoesNotHaveRefusesToStart()
+    public async Task NoTextTheEngineDidNotWriteLeavesInTheHttpBody()
     {
-        await using var withKey = new SalvoApiFactory();
-        withKey.Settings["AI_PROVIDER"] = "anthropic";
-        withKey.Settings["ANTHROPIC_API_KEY"] = "sk-ant-whatever";
-        var keyed = Assert.Throws<InvalidOperationException>(() => withKey.CreateClient());
+        using var transport = new AnthropicTestTransport();
+        await using var factory = new SalvoApiFactory
+        {
+            ConfigureTestServices = services => services.AddSingleton<IExplanationProvider>(provider =>
+                new Salvo.Infrastructure.Explanations.AnthropicExplanationProvider(
+                    transport,
+                    new Salvo.Infrastructure.Explanations.AnthropicSettings(
+                        AnthropicTestTransport.FictitiousKey,
+                        AnthropicTestTransport.Model),
+                    provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<
+                        Salvo.Infrastructure.Explanations.AnthropicExplanationProvider>>())),
+        };
+        using var client = await factory.CreateMigratedClientAsync();
+        await AlertTestCorpus.ImportAsync(client, InjectionCorpus());
+        await AlertTestCorpus.RunScoringAsync(client);
+        var alert = Assert.Single((await AlertTestCorpus.ListAlertsAsync(client)).Items);
 
-        await using var withoutKey = new SalvoApiFactory();
-        withoutKey.Settings["AI_PROVIDER"] = "anthropic";
-        var unkeyed = Assert.Throws<InvalidOperationException>(() => withoutKey.CreateClient());
+        (await client.PostAsync($"/api/orders/{alert.OrderId}/external-evaluations", null))
+            .EnsureSuccessStatusCode();
+        (await AlertTestCorpus.ReviewAsync(client, alert.Id, "CONFIRMED_SAFE", NoteSentinel))
+            .EnsureSuccessStatusCode();
 
+        await ExplanationTestCorpus.RequestOkAsync(client, alert.Id);
+
+        var sent = Assert.Single(transport.Requests).Body;
+        var decoded = JsonNode.Parse(sent)!.ToJsonString(new JsonSerializerOptions
+        {
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        });
+
+        foreach (var forbidden in new[]
+        {
+            CitySentinel,
+            "Ignora",
+            "legitimo",
+            "BUY_INYECCION",
+            "MER_INYECCION",
+            "ORD_INYECCION",
+            "DEV_INYECCION",
+            NoteSentinel,
+            "EXTERNAL_MOCK",
+            "isFraudLabel",
+            AnthropicTestTransport.FictitiousKey,
+        })
+        {
+            Assert.DoesNotContain(forbidden, decoded, StringComparison.OrdinalIgnoreCase);
+        }
+
+        // And what does leave: the facts the engine computed, rendered.
+        Assert.Contains("Hechos de la evaluación", decoded, StringComparison.Ordinal);
+        Assert.Contains("UYU", decoded, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Naming a provider this build does not know stops the process, and the supported value starts.
+    /// </summary>
+    /// <remarks>
+    /// Falling back to the template in silence would let a deployment believe a model wrote a
+    /// paragraph a template wrote, which is the one claim this project must never make by accident.
+    /// What <c>anthropic</c> needs to start, and where it never starts, is
+    /// <see cref="AnthropicConfigurationTests"/>.
+    /// </remarks>
+    [Fact]
+    public async Task AProviderThisBuildDoesNotKnowRefusesToStart()
+    {
         await using var nonsense = new SalvoApiFactory();
         nonsense.Settings["AI_PROVIDER"] = "cualquier-cosa";
         var unknown = Assert.Throws<InvalidOperationException>(() => nonsense.CreateClient());
 
-        Assert.Contains("AI_PROVIDER=anthropic is not supported", keyed.Message, StringComparison.Ordinal);
-        Assert.Contains("AI_PROVIDER=anthropic is not supported", unkeyed.Message, StringComparison.Ordinal);
         Assert.Contains("cualquier-cosa", unknown.Message, StringComparison.Ordinal);
 
-        // And the supported value starts and explains.
         await using var mock = new SalvoApiFactory();
         mock.Settings["AI_PROVIDER"] = "mock";
         using var client = await mock.CreateMigratedClientAsync();

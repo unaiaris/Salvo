@@ -28,6 +28,7 @@ export type AlertList = ApiView<Schemas["ListAlertsResult"]>;
 export type AlertDetail = ApiView<Schemas["AlertDetail"]>;
 export type AlertExternalEvaluation = ApiView<Schemas["AlertExternalEvaluationView"]>;
 export type AlertExplanation = ApiView<Schemas["AlertExplanationView"]>;
+export type ExplanationAttempt = ApiView<Schemas["ExplanationAttemptView"]>;
 export type AlertReviewOutcome = ApiView<Schemas["AlertReviewResult"]>;
 export type OrderList = ApiView<Schemas["ListOrdersResult"]>;
 
@@ -136,6 +137,20 @@ export const EXPLANATION_STATUS = {
   pending: "PENDING",
   ready: "READY",
   failed: "FAILED",
+} as const;
+
+/**
+ * Wire values of `ExplanationProvider`, mirrored from
+ * `Salvo.Domain.Explanations.ExplanationWireNames`.
+ *
+ * The console reads them for one decision: whether a paragraph was written by the template or by a
+ * model, which changes the sentence that says who wrote it (decision 79). The template's sentence
+ * says «no por un modelo», and that sentence under a model's text would be the false claim this
+ * console exists not to make.
+ */
+export const EXPLANATION_PROVIDER = {
+  template: "MOCK",
+  anthropic: "ANTHROPIC",
 } as const;
 
 export type DashboardScoringRun = ApiView<Schemas["DashboardScoringRunView"]>;

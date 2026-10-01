@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Salvo.Application.Alerts;
 using Salvo.Application.Dashboard;
 using Salvo.Application.Explanations;
@@ -152,35 +153,83 @@ public static class DependencyInjection
     /// Registers the writer of explanations this deployment has.
     /// </summary>
     /// <remarks>
-    /// <c>AI_PROVIDER</c> with any value other than <c>mock</c> fails at startup, and
-    /// <c>anthropic</c> is not an exception to that: there is no adapter for it in this build, with
-    /// or without a key. Falling back to the template in silence would let a deployment believe a
-    /// model wrote a paragraph that a template wrote, which is the one claim this project must
-    /// never make by accident. The same shape as <c>KOIN_MODE</c>, for the same reason.
+    /// <para>
+    /// <c>AI_PROVIDER</c> is <c>mock</c> — the deterministic template, the default and the only writer
+    /// of the public instance — or <c>anthropic</c>. Any other value stops the process: falling back to
+    /// the template in silence would let a deployment believe a model wrote a paragraph a template
+    /// wrote, which is the one claim this project must never make by accident. The same shape as
+    /// <c>KOIN_MODE</c>, for the same reason.
+    /// </para>
+    /// <para>
+    /// <strong>This is the only reader of <c>ANTHROPIC_API_KEY</c></strong> (decision 77). Without a
+    /// key or without a model the process does not start, and the message names the variable and
+    /// never its value. And <c>SharedInstance:Enabled</c> with <c>anthropic</c> does not start
+    /// <em>even with a key</em>: the shared public instance is reachable by anybody, runs with no
+    /// authentication, and must never hold a paid credential. That check comes first, so the answer
+    /// does not depend on whether the key happened to be there.
+    /// </para>
+    /// <para>
+    /// The adapter is a singleton because it owns one long-lived <see cref="HttpClient"/>: a client
+    /// per request exhausts sockets. Its handler recycles connections, so a long-running process
+    /// still follows a change of address.
+    /// </para>
     /// </remarks>
     /// <exception cref="InvalidOperationException">
-    /// <c>AI_PROVIDER</c> names a provider this build cannot supply.
+    /// <c>AI_PROVIDER</c> names a provider this build cannot supply, or <c>anthropic</c> without what
+    /// it needs, or on the shared public instance.
     /// </exception>
     private static void AddExplanationProvider(
         IServiceCollection services,
         IConfiguration configuration)
     {
-        var mode = configuration["AI_PROVIDER"];
-        if (!string.IsNullOrWhiteSpace(mode)
-            && !string.Equals(mode, "mock", StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException(
-                string.Equals(mode, "anthropic", StringComparison.OrdinalIgnoreCase)
-                    ? "AI_PROVIDER=anthropic is not supported: this build has no Anthropic adapter, "
-                        + "and whether to add one is a decision taken after stage 7 is running. A "
-                        + "key changes nothing. Use AI_PROVIDER=mock, which registers the "
-                        + "deterministic template."
-                    : $"AI_PROVIDER='{mode}' is not a supported provider. Use AI_PROVIDER=mock.");
-        }
-
         services.AddSingleton(new ExplanationOptions(
             TimeSpan.FromSeconds(ReadSeconds(configuration, "Explanations:RequestTimeoutSeconds", 15))));
-        services.AddScoped<IExplanationProvider, DeterministicExplanationProvider>();
+
+        var mode = configuration["AI_PROVIDER"];
+        if (string.IsNullOrWhiteSpace(mode) || string.Equals(mode, "mock", StringComparison.OrdinalIgnoreCase))
+        {
+            services.AddScoped<IExplanationProvider, DeterministicExplanationProvider>();
+
+            return;
+        }
+
+        if (!string.Equals(mode, "anthropic", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"AI_PROVIDER='{mode}' is not a supported provider. Use AI_PROVIDER=mock, which "
+                + "registers the deterministic template, or AI_PROVIDER=anthropic.");
+        }
+
+        if (bool.TryParse(configuration["SharedInstance:Enabled"], out var shared) && shared)
+        {
+            throw new InvalidOperationException(
+                "AI_PROVIDER=anthropic is refused on the shared public instance "
+                + "(SharedInstance:Enabled=true), with or without a key: that instance is open to anybody "
+                + "and never holds a paid credential. Use AI_PROVIDER=mock.");
+        }
+
+        var key = configuration["ANTHROPIC_API_KEY"];
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            throw new InvalidOperationException(
+                "AI_PROVIDER=anthropic needs ANTHROPIC_API_KEY, and it is not set. Use AI_PROVIDER=mock "
+                + "to run with the deterministic template.");
+        }
+
+        var model = configuration["ANTHROPIC_MODEL"];
+        if (string.IsNullOrWhiteSpace(model))
+        {
+            throw new InvalidOperationException(
+                "AI_PROVIDER=anthropic needs ANTHROPIC_MODEL, and it is not set. The model is named "
+                + "explicitly rather than defaulted, so that what answers is a choice somebody wrote down.");
+        }
+
+        var settings = new AnthropicSettings(key, model);
+        services.AddSingleton(settings);
+        services.AddSingleton<IExplanationProvider>(provider => new AnthropicExplanationProvider(
+            new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) },
+            settings,
+            provider.GetRequiredService<ILogger<AnthropicExplanationProvider>>()));
     }
 
     /// <summary>

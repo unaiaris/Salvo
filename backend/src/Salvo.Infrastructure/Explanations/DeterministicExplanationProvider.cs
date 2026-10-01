@@ -60,7 +60,7 @@ public sealed class DeterministicExplanationProvider : IExplanationProvider
 
     public string TemplateVersion => Version;
 
-    public Task<ExplanationDraft> ExplainAsync(
+    public Task<ExplanationProviderResult> ExplainAsync(
         ExplanationInput input,
         CancellationToken cancellationToken)
     {
@@ -80,9 +80,9 @@ public sealed class DeterministicExplanationProvider : IExplanationProvider
 
         Close(builder, words, input, config);
 
-        return Task.FromResult(new ExplanationDraft(
+        return Task.FromResult(ExplanationProviderResult.Drafted(new ExplanationDraft(
             builder.ToString(),
-            [.. signals.Select(signal => signal.Rule)]));
+            [.. signals.Select(signal => signal.Rule)])));
     }
 
     private static void Open(

@@ -226,7 +226,7 @@ export const es = {
     PROVIDER_UNAVAILABLE: "No se pudo redactar: el proveedor falló antes de responder",
     PROVIDER_TIMEOUT: "El proveedor no respondió dentro del tiempo permitido",
     PROVIDER_REFUSED: "El proveedor respondió sin texto",
-    MALFORMED_OUTPUT: "El texto devuelto no era utilizable: vino vacío o con marcado",
+    MALFORMED_OUTPUT: "El texto devuelto no era utilizable: vino vacío, cortado, ilegible o con marcado",
     NOT_GROUNDED_NUMBER:
       "El texto traía una cifra que la evaluación no respalda, así que se descartó entero",
     NOT_GROUNDED_RULE:
@@ -390,6 +390,10 @@ export const es = {
       + "próximo pedido retoma la misma fila.",
     explanationWrittenBy: (provider: string, version: string, settledAt: string) =>
       `Redactada por una ${provider} (${version}), no por un modelo${settledAt}.`,
+    explanationWrittenByModel: (model: string | null, version: string, settledAt: string) =>
+      model === null
+        ? `Redactada por un modelo de Anthropic (prompt ${version})${settledAt}.`
+        : `Redactada por el modelo ${model} de Anthropic (prompt ${version})${settledAt}.`,
     explanationWrittenAt: (instant: string) => `, el ${instant}`,
     explanationVerified:
       "Cada cifra y cada regla del texto se verificaron contra esta evaluación antes de guardarlo: "
@@ -403,9 +407,21 @@ export const es = {
       "Se agotó el presupuesto de intentos, así que no se vuelve a pedir. Un veredicto no necesita "
       + "explicación para emitirse.",
     explanationNotStored: "El texto que no se pudo verificar no se guarda ni llega a esta pantalla.",
+    explanationFailureDetail: (detail: string) => `Detalle técnico: ${detail}.`,
+    explanationWriterTemplate: "la plantilla vigente",
+    explanationWriterModel: "el modelo de Anthropic",
+    explanationAttemptHeading: (writer: string) => `Último intento con ${writer}`,
+    explanationAttemptPending:
+      "Está redactando ahora. Mientras tanto se muestra el texto de arriba, que es el último que se "
+      + "verificó y se guardó.",
+    explanationAttemptKept:
+      "El texto de arriba se sigue mostrando: es el último que se verificó y se guardó.",
     explanationAskFirst: "Explicar esta evaluación",
     explanationAskRetry: "Volver a intentar la explicación",
     explanationAskCurrentTemplate: "Redactar con la plantilla vigente",
+    explanationAskCurrentModel: "Redactar con el modelo de Anthropic",
+    explanationAskRetryCurrentTemplate: "Volver a intentar con la plantilla vigente",
+    explanationAskRetryCurrentModel: "Volver a intentar con el modelo de Anthropic",
     explanationAskPending: "Redactando…",
 
     reviewTitle: "Emitir veredicto",
@@ -757,6 +773,10 @@ export const es = {
     explanationWrittenFirstTitle: "Explicación redactada",
     explanationWrittenRetryTitle: "Explicación redactada en el nuevo intento",
     explanationWrittenCurrentTemplateTitle: "Redactada de nuevo con la plantilla vigente",
+    explanationWrittenCurrentModelTitle: (model: string | null) =>
+      model === null
+        ? "Redactada con un modelo de Anthropic"
+        : `Redactada con el modelo ${model} de Anthropic`,
     explanationWrittenBody:
       "El texto quedó guardado junto a la evaluación y ya se muestra arriba. Una explicación "
       + "escrita no se reescribe: si el pedido vuelve a evaluarse, la evaluación nueva lleva la "

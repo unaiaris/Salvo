@@ -18,7 +18,7 @@ dos idiomas.
 brasileño; «monto» es *valor*; «corrida» es *execução*; «veredicto» es *veredito*; «denegado» es
 *negado*; «etiqueta» es *rótulo*.
 
-Entradas: **543**.
+Entradas: **554**.
 
 | Clave | Castellano | Português |
 | --- | --- | --- |
@@ -95,7 +95,7 @@ Entradas: **543**.
 | `explanationFailure.PROVIDER_UNAVAILABLE` | No se pudo redactar: el proveedor falló antes de responder | Não foi possível redigir: o provedor falhou antes de responder |
 | `explanationFailure.PROVIDER_TIMEOUT` | El proveedor no respondió dentro del tiempo permitido | O provedor não respondeu dentro do tempo permitido |
 | `explanationFailure.PROVIDER_REFUSED` | El proveedor respondió sin texto | O provedor respondeu sem texto |
-| `explanationFailure.MALFORMED_OUTPUT` | El texto devuelto no era utilizable: vino vacío o con marcado | O texto devolvido não era utilizável: veio vazio ou com marcação |
+| `explanationFailure.MALFORMED_OUTPUT` | El texto devuelto no era utilizable: vino vacío, cortado, ilegible o con marcado | O texto devolvido não era utilizável: veio vazio, cortado, ilegível ou com marcação |
 | `explanationFailure.NOT_GROUNDED_NUMBER` | El texto traía una cifra que la evaluación no respalda, así que se descartó entero | O texto trazia um número que a avaliação não sustenta, então foi descartado inteiro |
 | `explanationFailure.NOT_GROUNDED_RULE` | El texto nombraba una regla que esta evaluación no disparó, así que se descartó entero | O texto citava uma regra que esta avaliação não disparou, então foi descartado inteiro |
 | `explanationFailure.TOO_LONG` | El texto superó el largo máximo admitido | O texto passou do comprimento máximo admitido |
@@ -185,6 +185,7 @@ Entradas: **543**.
 | `alertDetail.explanationWriting` | Redactando la explicación… | Redigindo a explicação… |
 | `alertDetail.explanationWritingHint` | Pedida el {instant}. Recargá la alerta en unos segundos. Si la petición quedó a medias, el próximo pedido retoma la misma fila. | Pedida em {instant}. Recarregue o alerta em alguns segundos. Se a requisição ficou pela metade, o próximo pedido retoma a mesma linha. |
 | `alertDetail.explanationWrittenBy` | Redactada por una {provider} ({version}), no por un modelo{settledAt}. | Redigida por um {provider} ({version}), não por um modelo de linguagem{settledAt}. |
+| `alertDetail.explanationWrittenByModel` | Redactada por el modelo {model} de Anthropic (prompt {version}){settledAt}. | Redigida pelo modelo {model} da Anthropic (prompt {version}){settledAt}. |
 | `alertDetail.explanationWrittenAt` | , el {instant} | , em {instant} |
 | `alertDetail.explanationVerified` | Cada cifra y cada regla del texto se verificaron contra esta evaluación antes de guardarlo: un texto que no pasa esa comprobación no se guarda ni se muestra. | Cada número e cada regra do texto foram verificados contra esta avaliação antes de guardá-lo: um texto que não passa nessa checagem não é guardado nem exibido. |
 | `alertDetail.explanationCitedRules` | Reglas citadas: {rules}. | Regras citadas: {rules}. |
@@ -193,9 +194,18 @@ Entradas: **543**.
 | `alertDetail.explanationLastAttempt` | ; el último, el {instant} | ; a última, em {instant} |
 | `alertDetail.explanationExhausted` | Se agotó el presupuesto de intentos, así que no se vuelve a pedir. Un veredicto no necesita explicación para emitirse. | O orçamento de tentativas se esgotou, então não é pedido de novo. Um veredito não precisa de explicação para ser emitido. |
 | `alertDetail.explanationNotStored` | El texto que no se pudo verificar no se guarda ni llega a esta pantalla. | O texto que não pôde ser verificado não é guardado nem chega a esta tela. |
+| `alertDetail.explanationFailureDetail` | Detalle técnico: {detail}. | Detalhe técnico: {detail}. |
+| `alertDetail.explanationWriterTemplate` | la plantilla vigente | o modelo vigente |
+| `alertDetail.explanationWriterModel` | el modelo de Anthropic | o modelo da Anthropic |
+| `alertDetail.explanationAttemptHeading` | Último intento con {writer} | Última tentativa com {writer} |
+| `alertDetail.explanationAttemptPending` | Está redactando ahora. Mientras tanto se muestra el texto de arriba, que es el último que se verificó y se guardó. | Está redigindo agora. Enquanto isso é exibido o texto acima, que é o último que foi verificado e guardado. |
+| `alertDetail.explanationAttemptKept` | El texto de arriba se sigue mostrando: es el último que se verificó y se guardó. | O texto acima continua sendo exibido: é o último que foi verificado e guardado. |
 | `alertDetail.explanationAskFirst` | Explicar esta evaluación | Explicar esta avaliação |
 | `alertDetail.explanationAskRetry` | Volver a intentar la explicación | Tentar a explicação de novo |
 | `alertDetail.explanationAskCurrentTemplate` | Redactar con la plantilla vigente | Redigir com o modelo vigente |
+| `alertDetail.explanationAskCurrentModel` | Redactar con el modelo de Anthropic | Redigir com o modelo da Anthropic |
+| `alertDetail.explanationAskRetryCurrentTemplate` | Volver a intentar con la plantilla vigente | Tentar de novo com o modelo vigente |
+| `alertDetail.explanationAskRetryCurrentModel` | Volver a intentar con el modelo de Anthropic | Tentar de novo com o modelo da Anthropic |
 | `alertDetail.explanationAskPending` | Redactando… | Redigindo… |
 | `alertDetail.reviewTitle` | Emitir veredicto | Emitir veredito |
 | `alertDetail.reviewLead` | El veredicto es definitivo: una alerta revisada no se reabre. Si el criterio cambia, hace falta una alerta nueva sobre el pedido. | O veredito é definitivo: um alerta revisado não é reaberto. Se o critério mudar, é preciso um alerta novo sobre o pedido. |
@@ -404,6 +414,7 @@ Entradas: **543**.
 | `outcomes.explanationWrittenFirstTitle` | Explicación redactada | Explicação redigida |
 | `outcomes.explanationWrittenRetryTitle` | Explicación redactada en el nuevo intento | Explicação redigida na nova tentativa |
 | `outcomes.explanationWrittenCurrentTemplateTitle` | Redactada de nuevo con la plantilla vigente | Redigida de novo com o modelo vigente |
+| `outcomes.explanationWrittenCurrentModelTitle` | Redactada con el modelo {model} de Anthropic | Redigida com o modelo {model} da Anthropic |
 | `outcomes.explanationWrittenBody` | El texto quedó guardado junto a la evaluación y ya se muestra arriba. Una explicación escrita no se reescribe: si el pedido vuelve a evaluarse, la evaluación nueva lleva la suya. | O texto ficou guardado junto à avaliação e já é exibido acima. Uma explicação escrita não é reescrita: se o pedido for avaliado de novo, a avaliação nova leva a sua. |
 | `outcomes.explanationWrittenCurrentTemplateBody` | El texto nuevo se escribió al lado del anterior y es el que se muestra arriba. El anterior sigue guardado sin cambios, porque es el registro de lo que se pudo leer mientras se formaba el veredicto. | O texto novo foi escrito ao lado do anterior e é o que aparece acima. O anterior continua guardado sem mudanças, porque é o registro do que se pôde ler enquanto o veredito se formava. |
 | `outcomes.explanationUnchangedTitle` | Esta evaluación ya tenía su explicación | Esta avaliação já tinha sua explicação |

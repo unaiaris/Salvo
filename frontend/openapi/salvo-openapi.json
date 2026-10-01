@@ -1159,12 +1159,15 @@
           "summary",
           "referencedRules",
           "failureCode",
+          "failureDetail",
           "attemptCount",
           "attemptsExhausted",
           "isOutdated",
           "writtenByAnotherTemplate",
+          "currentWriterProvider",
           "requestedAt",
-          "settledAt"
+          "settledAt",
+          "currentWriterAttempt"
         ],
         "type": "object",
         "properties": {
@@ -1205,6 +1208,12 @@
               "string"
             ]
           },
+          "failureDetail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "attemptCount": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
@@ -1222,6 +1231,9 @@
           "writtenByAnotherTemplate": {
             "type": "boolean"
           },
+          "currentWriterProvider": {
+            "type": "string"
+          },
           "requestedAt": {
             "type": "string",
             "format": "date-time"
@@ -1232,6 +1244,16 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "currentWriterAttempt": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExplanationAttemptView"
+              }
+            ]
           }
         }
       },
@@ -2501,6 +2523,70 @@
               "string"
             ],
             "format": "double"
+          }
+        }
+      },
+      "ExplanationAttemptView": {
+        "required": [
+          "id",
+          "provider",
+          "templateVersion",
+          "status",
+          "failureCode",
+          "failureDetail",
+          "attemptCount",
+          "attemptsExhausted",
+          "requestedAt",
+          "settledAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "templateVersion": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "failureCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "failureDetail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "attemptCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "attemptsExhausted": {
+            "type": "boolean"
+          },
+          "requestedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "settledAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },

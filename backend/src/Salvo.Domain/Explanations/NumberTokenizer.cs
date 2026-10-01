@@ -65,7 +65,13 @@ public static partial class NumberTokenizer
     /// 3 and a 1 to the fact set on the engine side, and would have to be explained away on the
     /// summary side.
     /// </summary>
-    private static readonly string[] VersionStrings = ["e3-v1", "e4-v1", "e7-v1", "e7-v2"];
+    /// <remarks>
+    /// <c>e3-v2</c> joined in <c>E11B</c> (decision 78), two stages after the engine started writing
+    /// it. It is the one change that stage makes to a piece of the verifier. <c>anthropic-p1</c> is
+    /// deliberately absent: the fact sheet a model reads carries no version, and widening what this
+    /// strikes out is widening what the verifier accepts.
+    /// </remarks>
+    private static readonly string[] VersionStrings = ["e3-v1", "e3-v2", "e4-v1", "e7-v1", "e7-v2"];
 
     /// <summary>
     /// A run of digits with interior separators. Colons are not separators, so <c>00:00-06:00</c>

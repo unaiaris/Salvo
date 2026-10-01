@@ -27,16 +27,31 @@ namespace Salvo.Application.Explanations;
 /// stops being outdated on its own, with nothing written.
 /// </param>
 /// <param name="WrittenByAnotherTemplate">
-/// Whether the template that wrote this text is the one this deployment writes with today.
-/// Computed on every read against the registered provider, and never stored, for the same reason
-/// <paramref name="IsOutdated"/> is not: the answer changes when the provider changes, and a stored
-/// copy would be a second opinion able to disagree with the one the console is about to act on.
+/// Whether the writer of this text — the provider and the template or prompt it wrote with — is the
+/// one this deployment writes with today. Computed on every read against the registered provider,
+/// and never stored, for the same reason <paramref name="IsOutdated"/> is not: the answer changes
+/// when the provider changes, and a stored copy would be a second opinion able to disagree with the
+/// one the console is about to act on. The name predates the model; a different provider is a
+/// different writer just as a different template is.
 /// <para>
 /// It is inequality and not an ordering. Versions are opaque strings, so nothing here can tell a
 /// later template from an earlier one, and after a rollback the stored row is the newer of the two.
-/// The offer the console makes is the same either way — write this evaluation with the template
+/// The offer the console makes is the same either way — write this evaluation with the writer
 /// that is current — which is what the field is read for.
 /// </para>
+/// </param>
+/// <param name="FailureDetail">
+/// Why the attempt failed, in a few words: the offending token, or what the provider said from a
+/// closed vocabulary. Never the rejected text. Present only on a failed row.
+/// </param>
+/// <param name="CurrentWriterProvider">
+/// The provider this deployment writes with today, whoever wrote this row. It is what lets the
+/// console name the writer a button would ask before any row of that writer exists.
+/// </param>
+/// <param name="CurrentWriterAttempt">
+/// The row of the current writer, when the text shown is somebody else's and that row is not ready:
+/// pending, or failed with its code. Shown beside the text and never instead of it (decision 79),
+/// and never what a review cites.
 /// </param>
 public sealed record AlertExplanationView(
     Guid Id,
@@ -47,10 +62,28 @@ public sealed record AlertExplanationView(
     string? Summary,
     IReadOnlyList<string> ReferencedRules,
     string? FailureCode,
+    string? FailureDetail,
     int AttemptCount,
     bool AttemptsExhausted,
     bool IsOutdated,
     bool WrittenByAnotherTemplate,
+    string CurrentWriterProvider,
+    DateTimeOffset RequestedAt,
+    DateTimeOffset? SettledAt,
+    ExplanationAttemptView? CurrentWriterAttempt);
+
+/// <summary>
+/// An attempt of the current writer that has no text to show: what it is waiting for or why it failed.
+/// </summary>
+public sealed record ExplanationAttemptView(
+    Guid Id,
+    string Provider,
+    string TemplateVersion,
+    string Status,
+    string? FailureCode,
+    string? FailureDetail,
+    int AttemptCount,
+    bool AttemptsExhausted,
     DateTimeOffset RequestedAt,
     DateTimeOffset? SettledAt);
 
@@ -62,17 +95,22 @@ public sealed record RequestExplanationResult(bool Applied, AlertExplanationView
 
 public static class ExplanationProjection
 {
-    /// <param name="currentTemplateVersion">
-    /// What the registered provider writes with today, handed in rather than read from a constant:
-    /// a copy of the version would keep answering for a provider that is no longer the one wired
+    /// <param name="writer">
+    /// Who the registered provider is and what it writes with today, handed in rather than read
+    /// from a constant: a copy would keep answering for a provider that is no longer the one wired
     /// up, and the whole point of the field is to follow whoever is.
+    /// </param>
+    /// <param name="currentWriterAttempt">
+    /// The not-ready row of the current writer, when <paramref name="explanation"/> is somebody else's.
     /// </param>
     public static AlertExplanationView ToView(
         AlertExplanation explanation,
         bool isOutdated,
-        string currentTemplateVersion)
+        ExplanationWriter writer,
+        AlertExplanation? currentWriterAttempt = null)
     {
         ArgumentNullException.ThrowIfNull(explanation);
+        ArgumentNullException.ThrowIfNull(writer);
 
         return new(
             explanation.Id,
@@ -83,11 +121,29 @@ public static class ExplanationProjection
             explanation.Summary,
             explanation.ReferencedRules(),
             explanation.FailureCode is { } code ? ExplanationWireNames.ToWire(code) : null,
+            explanation.FailureDetail,
             explanation.AttemptCount,
             explanation.AttemptsExhausted,
             isOutdated,
-            !string.Equals(explanation.TemplateVersion, currentTemplateVersion, StringComparison.Ordinal),
+            !writer.Wrote(explanation),
+            ExplanationWireNames.ToWire(writer.Provider),
             explanation.RequestedAt,
-            explanation.SettledAt);
+            explanation.SettledAt,
+            currentWriterAttempt is null ? null : ToAttempt(currentWriterAttempt));
+    }
+
+    private static ExplanationAttemptView ToAttempt(AlertExplanation attempt)
+    {
+        return new(
+            attempt.Id,
+            ExplanationWireNames.ToWire(attempt.Provider),
+            attempt.TemplateVersion,
+            ExplanationWireNames.ToWire(attempt.Status),
+            attempt.FailureCode is { } code ? ExplanationWireNames.ToWire(code) : null,
+            attempt.FailureDetail,
+            attempt.AttemptCount,
+            attempt.AttemptsExhausted,
+            attempt.RequestedAt,
+            attempt.SettledAt);
     }
 }

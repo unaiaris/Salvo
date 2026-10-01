@@ -181,7 +181,7 @@ export const pt: Dictionary = {
     PROVIDER_UNAVAILABLE: "Não foi possível redigir: o provedor falhou antes de responder",
     PROVIDER_TIMEOUT: "O provedor não respondeu dentro do tempo permitido",
     PROVIDER_REFUSED: "O provedor respondeu sem texto",
-    MALFORMED_OUTPUT: "O texto devolvido não era utilizável: veio vazio ou com marcação",
+    MALFORMED_OUTPUT: "O texto devolvido não era utilizável: veio vazio, cortado, ilegível ou com marcação",
     NOT_GROUNDED_NUMBER:
       "O texto trazia um número que a avaliação não sustenta, então foi descartado inteiro",
     NOT_GROUNDED_RULE:
@@ -343,6 +343,10 @@ export const pt: Dictionary = {
       + "metade, o próximo pedido retoma a mesma linha.",
     explanationWrittenBy: (provider: string, version: string, settledAt: string) =>
       `Redigida por um ${provider} (${version}), não por um modelo de linguagem${settledAt}.`,
+    explanationWrittenByModel: (model: string | null, version: string, settledAt: string) =>
+      model === null
+        ? `Redigida por um modelo da Anthropic (prompt ${version})${settledAt}.`
+        : `Redigida pelo modelo ${model} da Anthropic (prompt ${version})${settledAt}.`,
     explanationWrittenAt: (instant: string) => `, em ${instant}`,
     explanationVerified:
       "Cada número e cada regra do texto foram verificados contra esta avaliação antes de guardá-lo: "
@@ -357,9 +361,21 @@ export const pt: Dictionary = {
       + "explicação para ser emitido.",
     explanationNotStored:
       "O texto que não pôde ser verificado não é guardado nem chega a esta tela.",
+    explanationFailureDetail: (detail: string) => `Detalhe técnico: ${detail}.`,
+    explanationWriterTemplate: "o modelo vigente",
+    explanationWriterModel: "o modelo da Anthropic",
+    explanationAttemptHeading: (writer: string) => `Última tentativa com ${writer}`,
+    explanationAttemptPending:
+      "Está redigindo agora. Enquanto isso é exibido o texto acima, que é o último que foi "
+      + "verificado e guardado.",
+    explanationAttemptKept:
+      "O texto acima continua sendo exibido: é o último que foi verificado e guardado.",
     explanationAskFirst: "Explicar esta avaliação",
     explanationAskRetry: "Tentar a explicação de novo",
     explanationAskCurrentTemplate: "Redigir com o modelo vigente",
+    explanationAskCurrentModel: "Redigir com o modelo da Anthropic",
+    explanationAskRetryCurrentTemplate: "Tentar de novo com o modelo vigente",
+    explanationAskRetryCurrentModel: "Tentar de novo com o modelo da Anthropic",
     explanationAskPending: "Redigindo…",
 
     reviewTitle: "Emitir veredito",
@@ -710,6 +726,10 @@ export const pt: Dictionary = {
     explanationWrittenFirstTitle: "Explicação redigida",
     explanationWrittenRetryTitle: "Explicação redigida na nova tentativa",
     explanationWrittenCurrentTemplateTitle: "Redigida de novo com o modelo vigente",
+    explanationWrittenCurrentModelTitle: (model: string | null) =>
+      model === null
+        ? "Redigida com um modelo da Anthropic"
+        : `Redigida com o modelo ${model} da Anthropic`,
     explanationWrittenBody:
       "O texto ficou guardado junto à avaliação e já é exibido acima. Uma explicação escrita não é "
       + "reescrita: se o pedido for avaliado de novo, a avaliação nova leva a sua.",

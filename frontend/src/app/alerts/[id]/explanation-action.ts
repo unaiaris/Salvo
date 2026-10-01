@@ -2,7 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { deploymentLanguage } from "@/lib/api/console";
-import { EXPLANATION_STATUS, type Language } from "@/lib/api/contract";
+import {
+  EXPLANATION_PROVIDER,
+  EXPLANATION_STATUS,
+  type AlertExplanation,
+  type Language,
+} from "@/lib/api/contract";
 import { requestAlertExplanation } from "@/lib/api/explanations";
 import type { ApiFailure } from "@/lib/api/failures";
 import { describeFailure } from "@/lib/api/messages";
@@ -18,9 +23,17 @@ import type { ExplanationActionState, ExplanationAsk } from "./explanation-state
  */
 function written(
   ask: Exclude<ExplanationAsk, "none">,
+  explanation: AlertExplanation,
   language: Language,
 ): { title: string; body: string } {
   const { outcomes } = formatting(language).t;
+
+  // Who wrote it is known by now, model and all: the answer named it. With the template the title
+  // is exactly what it always was.
+  const currentWriterTitle =
+    explanation.provider === EXPLANATION_PROVIDER.anthropic
+      ? outcomes.explanationWrittenCurrentModelTitle(explanation.providerVersion)
+      : outcomes.explanationWrittenCurrentTemplateTitle;
 
   switch (ask) {
     case "first":
@@ -34,8 +47,9 @@ function written(
         body: outcomes.explanationWrittenBody,
       };
     case "currentTemplate":
+    case "retryCurrentWriter":
       return {
-        title: outcomes.explanationWrittenCurrentTemplateTitle,
+        title: currentWriterTitle,
         body: outcomes.explanationWrittenCurrentTemplateBody,
       };
   }
@@ -60,7 +74,7 @@ export async function explainEvaluation(
   const submissionId = previous.submissionId + 1;
   const alertId = readField(formData, "alertId");
   const ask = readAsk(formData);
-  const regenerate = ask === "retry";
+  const regenerate = ask === "retry" || ask === "retryCurrentWriter";
   const language = await deploymentLanguage();
   const f = formatting(language);
 
@@ -87,7 +101,7 @@ export async function explainEvaluation(
   if (explanation.status === EXPLANATION_STATUS.ready) {
     return {
       outcome: "done",
-      ...written(ask, language),
+      ...written(ask, explanation, language),
       recovery: "",
       technicalDetail: "",
       submissionId,
@@ -140,7 +154,9 @@ function failed(
 function readAsk(formData: FormData): Exclude<ExplanationAsk, "none"> {
   const value = readField(formData, "ask");
 
-  return value === "retry" || value === "currentTemplate" ? value : "first";
+  return value === "retry" || value === "currentTemplate" || value === "retryCurrentWriter"
+    ? value
+    : "first";
 }
 
 function readField(formData: FormData, name: string): string {

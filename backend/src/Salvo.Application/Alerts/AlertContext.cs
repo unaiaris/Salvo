@@ -38,6 +38,12 @@ namespace Salvo.Application.Alerts;
 /// has explained where it moved to. Usually absent, and never a replacement for the other: the two
 /// describe different moments, exactly as the two evaluation blocks do.
 /// </param>
+/// <param name="ExplanationAttempt">
+/// The not-ready row of the current writer for the snapshot's evaluation, when
+/// <paramref name="Explanation"/> is a text somebody else wrote (decision 79). Shown beside it; never
+/// what a review may cite, because nobody read it.
+/// </param>
+/// <param name="CurrentExplanationAttempt">The same, for <paramref name="CurrentExplanation"/>.</param>
 public sealed record AlertContext(
     Alert Alert,
     Order Order,
@@ -47,4 +53,6 @@ public sealed record AlertContext(
     ExternalEvaluation? ExternalEvaluation = null,
     bool HasContradictoryCallback = false,
     AlertExplanation? Explanation = null,
-    AlertExplanation? CurrentExplanation = null);
+    AlertExplanation? CurrentExplanation = null,
+    AlertExplanation? ExplanationAttempt = null,
+    AlertExplanation? CurrentExplanationAttempt = null);

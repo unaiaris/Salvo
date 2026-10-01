@@ -213,6 +213,56 @@ public sealed class ExplanationEndpointTests
     }
 
     /// <summary>
+    /// What every attempt cost stays on the row and adds up, whatever became of the attempt.
+    /// </summary>
+    /// <remarks>
+    /// Decision 76. A refusal and a figure the verifier rejected are paid for exactly like an
+    /// accepted paragraph; a row that kept only the tokens of its accepted text — or of its last
+    /// attempt — would report the cheap subset of what the explanation actually cost.
+    /// </remarks>
+    [Fact]
+    public async Task EveryAttemptLeavesWhatItCostOnTheRow()
+    {
+        var provider = new ExplanationTestCorpus.SwitchableProvider
+        {
+            Behaviour = ExplanationTestCorpus.ProviderBehaviour.Refuse,
+            InputTokens = 400,
+            OutputTokens = 0,
+        };
+        await using var factory = new SalvoApiFactory
+        {
+            ConfigureTestServices = services => services.AddScoped<IExplanationProvider>(_ => provider),
+        };
+        using var client = await factory.CreateMigratedClientAsync();
+        var alert = await OneAlertAsync(client);
+
+        var refused = await ExplanationTestCorpus.RequestOkAsync(client, alert.Id);
+        var afterRefusal = await StoredAsync(factory);
+
+        provider.Behaviour = ExplanationTestCorpus.ProviderBehaviour.InventANumber;
+        provider.InputTokens = 1500;
+        provider.OutputTokens = 300;
+        var rejected = await ExplanationTestCorpus.RequestOkAsync(client, alert.Id, regenerate: true);
+        var afterRejection = await StoredAsync(factory);
+
+        provider.Behaviour = ExplanationTestCorpus.ProviderBehaviour.Succeed;
+        provider.InputTokens = 1510;
+        provider.OutputTokens = 250;
+        var written = await ExplanationTestCorpus.RequestOkAsync(client, alert.Id, regenerate: true);
+        var afterWriting = await StoredAsync(factory);
+
+        Assert.Equal(ExplanationWireNames.ProviderRefused, refused.Explanation.FailureCode);
+        Assert.Equal((400, 0), (afterRefusal.InputTokens, afterRefusal.OutputTokens));
+
+        Assert.Equal(ExplanationWireNames.NotGroundedNumber, rejected.Explanation.FailureCode);
+        Assert.Equal((1900, 300), (afterRejection.InputTokens, afterRejection.OutputTokens));
+
+        Assert.Equal(ExplanationWireNames.Ready, written.Explanation.Status);
+        Assert.Equal(3, written.Explanation.AttemptCount);
+        Assert.Equal((3410, 550), (afterWriting.InputTokens, afterWriting.OutputTokens));
+    }
+
+    /// <summary>
     /// A caller that goes away mid-call leaves the row settled, not reserved.
     /// </summary>
     /// <remarks>
@@ -328,5 +378,14 @@ public sealed class ExplanationEndpointTests
         var dbContext = scope.ServiceProvider.GetRequiredService<SalvoDbContext>();
 
         return await dbContext.AlertExplanations.CountAsync();
+    }
+
+    /// <summary>The one row of the database, read fresh, so the tokens are what was committed.</summary>
+    private static async Task<AlertExplanation> StoredAsync(SalvoApiFactory factory)
+    {
+        await using var scope = factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SalvoDbContext>();
+
+        return await dbContext.AlertExplanations.AsNoTracking().SingleAsync();
     }
 }

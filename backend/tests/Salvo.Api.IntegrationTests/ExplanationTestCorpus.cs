@@ -53,9 +53,10 @@ internal static class ExplanationTestCorpus
     /// </summary>
     public sealed class SwitchableProvider : IExplanationProvider
     {
-        public ExplanationProvider Provider => ExplanationProvider.Mock;
+        /// <summary>Who it claims to be. A test of the console's choice of writer makes it a model.</summary>
+        public ExplanationProvider Provider { get; init; } = ExplanationProvider.Mock;
 
-        public string TemplateVersion => "e7-v1";
+        public string TemplateVersion { get; init; } = "e7-v1";
 
         /// <summary>What the next call does.</summary>
         public ProviderBehaviour Behaviour { get; set; } = ProviderBehaviour.Succeed;
@@ -65,7 +66,16 @@ internal static class ExplanationTestCorpus
         /// <summary>The last input it was handed, for the tests that inspect the boundary.</summary>
         public ExplanationInput? LastInput { get; private set; }
 
-        public Task<ExplanationDraft> ExplainAsync(
+        /// <summary>What the next answer reports it was charged, as a paid provider would.</summary>
+        public int? InputTokens { get; set; }
+
+        /// <summary>The output counterpart of <see cref="InputTokens"/>.</summary>
+        public int? OutputTokens { get; set; }
+
+        /// <summary>What the next refusal, malformed answer or outage reports as its diagnostic.</summary>
+        public string? Diagnostic { get; set; }
+
+        public Task<ExplanationProviderResult> ExplainAsync(
             ExplanationInput input,
             CancellationToken cancellationToken)
         {
@@ -74,16 +84,27 @@ internal static class ExplanationTestCorpus
             Calls++;
             LastInput = input;
 
-            return Behaviour switch
+            var result = Behaviour switch
             {
-                ProviderBehaviour.Succeed => Task.FromResult(Succeed(input)),
-                ProviderBehaviour.InventANumber => Task.FromResult(Invent(input)),
-                ProviderBehaviour.CiteAnUnraisedRule => Task.FromResult(CiteUnraised(input)),
-                ProviderBehaviour.Refuse => Task.FromResult(
-                    new ExplanationDraft(null, [])),
+                ProviderBehaviour.Succeed => Drafted(Succeed(input)),
+                ProviderBehaviour.InventANumber => Drafted(Invent(input)),
+                ProviderBehaviour.CiteAnUnraisedRule => Drafted(CiteUnraised(input)),
+                ProviderBehaviour.Refuse => ExplanationProviderResult.Refused(
+                    Diagnostic, null, InputTokens, OutputTokens),
+                ProviderBehaviour.Malformed => ExplanationProviderResult.Malformed(
+                    Diagnostic, null, InputTokens, OutputTokens),
+                ProviderBehaviour.Unavailable => ExplanationProviderResult.Unavailable(
+                    Diagnostic, null, InputTokens, OutputTokens),
                 ProviderBehaviour.Throw => throw new InvalidOperationException("The provider is down."),
-                _ => Task.FromResult(Succeed(input)),
+                _ => Drafted(Succeed(input)),
             };
+
+            return Task.FromResult(result);
+        }
+
+        private ExplanationProviderResult Drafted(ExplanationDraft draft)
+        {
+            return ExplanationProviderResult.Drafted(draft, null, InputTokens, OutputTokens);
         }
 
         /// <summary>
@@ -147,6 +168,8 @@ internal static class ExplanationTestCorpus
         CiteAnUnraisedRule = 3,
         Refuse = 4,
         Throw = 5,
+        Malformed = 6,
+        Unavailable = 7,
     }
 
     /// <summary>
@@ -159,14 +182,14 @@ internal static class ExplanationTestCorpus
 
         public string TemplateVersion => "e7-v1";
 
-        public Task<ExplanationDraft> ExplainAsync(
+        public Task<ExplanationProviderResult> ExplainAsync(
             ExplanationInput input,
             CancellationToken cancellationToken)
         {
             source.Cancel();
             cancellationToken.ThrowIfCancellationRequested();
 
-            return Task.FromResult(new ExplanationDraft("nunca llega", []));
+            return Task.FromResult(ExplanationProviderResult.Drafted(new ExplanationDraft("nunca llega", [])));
         }
     }
 

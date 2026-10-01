@@ -52,7 +52,7 @@ public sealed class ReviewAlertHandler(
 
         if (alert.Status != AlertStatus.Open)
         {
-            return RepeatOf(context, command.NewStatus, note, explanationProvider.TemplateVersion);
+            return RepeatOf(context, command.NewStatus, note, ExplanationWriter.Of(explanationProvider));
         }
 
         EnsureExplanationBelongsToTheAlert(context, command.ExplanationId);
@@ -80,7 +80,7 @@ public sealed class ReviewAlertHandler(
             true,
             AlertProjection.ToDetail(
                 context with { Review = review },
-                explanationProvider.TemplateVersion));
+                ExplanationWriter.Of(explanationProvider)));
     }
 
     /// <summary>
@@ -91,6 +91,11 @@ public sealed class ReviewAlertHandler(
     /// identifier would make it a record of nothing. The two explanations an alert can show are the
     /// one of its snapshot and the one of the evaluation that is current; anything else means the
     /// page the verdict was formed on is not the page this alert has now.
+    /// <para>
+    /// <strong>The attempt of the current writer is not one of them</strong>, even when the page
+    /// shows it beside a text somebody else wrote (decision 79): it has no text, so nobody read it,
+    /// and decision 56 records what was read.
+    /// </para>
     /// </remarks>
     /// <exception cref="AlertReviewConflictException">The identifier is not one of the two.</exception>
     private static void EnsureExplanationBelongsToTheAlert(AlertContext context, Guid? explanationId)
@@ -116,7 +121,7 @@ public sealed class ReviewAlertHandler(
         AlertContext context,
         AlertStatus newStatus,
         string? note,
-        string currentTemplateVersion)
+        ExplanationWriter writer)
     {
         var alert = context.Alert;
 
@@ -136,7 +141,7 @@ public sealed class ReviewAlertHandler(
                 + $"'{AlertWireNames.ToWire(alert.Status)}' with a different note.");
         }
 
-        return new(false, AlertProjection.ToDetail(context, currentTemplateVersion));
+        return new(false, AlertProjection.ToDetail(context, writer));
     }
 
     private static string? Normalize(string? note)

@@ -12,7 +12,7 @@ atados a una herramienta de construcción, un LLM o un proveedor antifraude.
 | Capa | Hoy | Alternativas |
 | --- | --- | --- |
 | Agente que construye | Codex construyó las Etapas 0 a 3; Claude Code, de la 4 en adelante | Cursor u otro |
-| Explicación en runtime | Plantilla determinista en proceso, sin red | Anthropic u otro LLM, si se aprueba |
+| Explicación en runtime | Plantilla determinista en proceso, sin red; con `AI_PROVIDER=anthropic`, un modelo de Anthropic | Otro LLM, detrás del mismo puerto y del mismo verificador |
 | Evaluación antifraude externa | Mock determinista en proceso, sin red | Koin sandbox u otro proveedor |
 
 Cambiar una capa no debe obligar a reescribir las demás. Que la primera fila haya cambiado de agente
@@ -39,7 +39,7 @@ public interface IExplanationProvider
 
     string TemplateVersion { get; }
 
-    Task<ExplanationDraft> ExplainAsync(
+    Task<ExplanationProviderResult> ExplainAsync(
         ExplanationInput input,
         CancellationToken cancellationToken);
 }
@@ -50,16 +50,22 @@ de la fila que se persiste: la misma evaluación redactada por una plantilla pos
 explicación distinta, no la misma reescrita. Por eso cambiar el texto que produce una plantilla
 obliga a subir su versión (decisión 58).
 
-`ExplanationDraft` devuelve el resumen —que puede ser nulo, porque un modelo puede legítimamente
-declinar, y eso es un fallo con código y no una excepción—, las reglas citadas, y opcionalmente el
-modelo concreto y el consumo de tokens. Que la salida sea estructurada en el puerto y no en el
-adaptador es deliberado: a un modelo se le pedirá exactamente esa forma como esquema JSON, y la
-plantilla determinista la completa igual.
+`ExplanationProviderResult` devuelve un **desenlace cerrado, por valor** (decisión 73): `Drafted`,
+`Refused`, `Malformed` o `Unavailable`. El borrador —el resumen y las reglas citadas— viaja solo con
+`Drafted`; los tokens, en todo desenlace; el modelo concreto, tomado de la respuesta; y un diagnóstico
+corto que nunca lleva texto del modelo. Un adaptador no avisa lanzando, porque `ProviderCall`, que el
+puerto comparte con el antifraude, descarta la excepción antes de clasificarla; y no nombra el código
+de fallo: lo fija el intercambio a partir del desenlace, así que un adaptador no puede reportar un
+código del verificador. Que el borrador sea estructurado en el puerto y no en el adaptador es
+deliberado: a un modelo se le pide exactamente esa forma como esquema JSON, y la plantilla
+determinista la completa igual.
 
 Implementaciones previstas:
 
 - Determinista: la que existe, siempre disponible y sin red.
-- Anthropic: decisión aparte, todavía no tomada. Hoy no hay adaptador.
+- Anthropic: `AnthropicExplanationProvider`, con `HttpClient` directo y sin SDK, una petición por
+  intento. Al modelo le entra una hoja de hechos renderizada como la escribe la plantilla, no los
+  datos crudos, y su texto pasa por el mismo verificador. Nunca en la instancia pública.
 - Otro LLM: posible sin cambiar scoring, alertas o UI.
 
 La salida es estructurada y no decide fraude o severidad. «Usa únicamente señales suministradas»
@@ -84,18 +90,19 @@ Los datos específicos del proveedor permanecen en infraestructura. El dominio c
 Los nombres y los valores seguros están en `.env.example`. Ninguna de estas variables es necesaria
 para el modo local, y ninguna usa prefijo `NEXT_PUBLIC_`.
 
-**Estos dos valores hoy hacen fallar el arranque, a propósito.** No están «pendientes de
-configurar»: `backend/src/Salvo.Infrastructure/DependencyInjection.cs` los rechaza al componer,
-porque esta build no tiene adaptador para ninguno de los dos y degradar en silencio a mock sería
-exactamente la mentira que este documento existe para impedir. Un valor desconocido en cualquiera de
-las dos variables también falla.
+**`KOIN_MODE=sandbox` hace fallar el arranque, a propósito.** No está «pendiente de configurar»:
+`backend/src/Salvo.Infrastructure/DependencyInjection.cs` lo rechaza al componer, porque esta build no
+tiene adaptador de Koin y degradar en silencio a mock sería exactamente la mentira que este documento
+existe para impedir. **`AI_PROVIDER=anthropic` arranca solo con la clave y el modelo**, y nunca con
+`SharedInstance:Enabled`, aunque la clave esté. Un valor desconocido en cualquiera de las dos
+variables también falla.
 
-Anthropic, si se aprueba:
+Anthropic:
 
 ```dotenv
 AI_PROVIDER="anthropic"
 ANTHROPIC_API_KEY=""
-ANTHROPIC_MODEL=""
+ANTHROPIC_MODEL="claude-sonnet-5-5"
 ```
 
 Koin, si se aprueba:

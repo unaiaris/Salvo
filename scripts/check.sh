@@ -7,6 +7,11 @@ cd "$repository_root"
 
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
 export DOTNET_NOLOGO=1
+# The explanation provider is fixed rather than inherited. Without this line a terminal with
+# `AI_PROVIDER=anthropic` exported would run the build-time tooling and every test host against the
+# paid adapter; the test factory protects itself too, and this protects whatever else the gate
+# starts.
+export AI_PROVIDER=mock
 
 # What the README claims about this repository is checked first: it needs no dependencies installed
 # and no process listening, it takes well under a second, and a broken path or a renamed test is

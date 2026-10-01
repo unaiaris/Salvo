@@ -41,7 +41,9 @@ Lo que **no** es:
   ninguna superficie de decisión, y el texto que redacta se verifica antes de guardarse.
 - **No usa la etiqueta de fraude como señal.** `isFraudLabel` existe únicamente para medir el
   criterio, en una superficie aparte que solo aparece si la instancia se declara de demostración.
-- **No habló nunca con Koin**, ni con Anthropic, ni con ningún servicio remoto.
+- **No habló nunca con Koin.** Con Anthropic puede hablar, si quien lo despliega pone su clave: el
+  adaptador existe, pero ningún test, ni la compuerta, ni la integración continua, ni la instancia
+  pública lo llaman, y todavía no se corrió contra la API real.
 
 ## Simulación, sandbox y producción
 
@@ -51,14 +53,16 @@ repositorio no puede hacerlo, y no porque lo prometa en un párrafo.
 | Capa | Hoy | Qué haría falta |
 | --- | --- | --- |
 | Proveedor antifraude | Mock determinista en proceso, sin red | Los ocho requisitos del §5.3 del Blueprint: private key y `org_id`, base URL confirmada, payload de la versión elegida, callback HTTPS accesible, mecanismo oficial de autenticación del callback, device fingerprint, casos sandbox y política de timeout/retry/backoff |
-| Redacción de explicaciones | Plantilla determinista en proceso, sin red | Decisión aparte, todavía no tomada |
+| Redacción de explicaciones | Plantilla determinista en proceso, sin red, por defecto y en la instancia pública. Con `AI_PROVIDER=anthropic`, un modelo de Anthropic (`claude-sonnet-5-5`) a través de un adaptador propio, gobernado por el mismo verificador que la plantilla | La corrida real, con una clave de un espacio de trabajo con tope de gasto: todavía no se hizo |
 | Datos | Fixture sintética, compradores pseudónimos | Nada: el proyecto no incorpora datos reales |
 
-El hecho, y no la promesa: **`KOIN_MODE=sandbox` y `AI_PROVIDER=anthropic` hacen fallar el
-arranque**, con o sin clave configurada. Están rechazados explícitamente en
-`backend/src/Salvo.Infrastructure/DependencyInjection.cs`, con el mensaje que dice por qué. Un valor
-desconocido en cualquiera de las dos variables también falla: el modo por defecto es el único que
-existe, y elegir otro tiene que ser un error ruidoso y no una degradación silenciosa a mock.
+El hecho, y no la promesa: **`KOIN_MODE=sandbox` hace fallar el arranque**, con o sin clave
+configurada. **`AI_PROVIDER=anthropic` arranca solo con `ANTHROPIC_API_KEY` y `ANTHROPIC_MODEL`**, y
+**nunca en la instancia pública**: con `SharedInstance:Enabled` se niega aunque la clave esté. Todo
+eso se decide en `backend/src/Salvo.Infrastructure/DependencyInjection.cs`, con un mensaje que nombra
+la variable que falta y nunca su valor. Un valor desconocido en cualquiera de las dos variables
+también falla: elegir un modo que no existe tiene que ser un error ruidoso y no una degradación
+silenciosa a mock.
 
 La autenticación del callback es la misma clase de honestidad. Hay un secreto compartido en una
 cabecera, `X-Salvo-Callback-Secret`, y el endpoint **falla cerrado**: sin secreto configurado
@@ -429,8 +433,21 @@ una clave foránea real.
 su precio: es **compartida y efímera**, lo que alguien escribe ahí lo ven los demás hasta el próximo
 reinicio, y el reinicio devuelve todo al corpus sintético.
 Tampoco hay observabilidad, ni Postgres, ni consulta en lenguaje natural: están fuera del MVP.
-**Anthropic sigue siendo una decisión aparte** y no tiene adaptador: `AI_PROVIDER=anthropic` se niega
-a arrancar, a propósito.
+**El adaptador de Anthropic existe y todavía no habló con la API real.** Todo lo que se sabe de él
+sale de un transporte simulado que reproduce las formas que la documentación oficial mostraba el día
+que se escribió. Que la API se comporte igual es lo que mide la primera corrida real, y si no se
+comporta igual, lo que se corrige primero es el simulador.
+
+**El verificador comprueba que cada cifra exista, no que la oración sea verdadera.** Un modelo puede
+escribir un texto en el que todas las cifras son hechos de la evaluación y la oración es falsa, y el
+verificador lo deja pasar. Son tres clases, fijadas por tests que afirman que pasan
+(`backend/tests/Salvo.Domain.Tests/ExplanationSemanticGapTests.cs`), para que quien cierre una tenga
+que corregir este párrafo: **la inversión** —«3,4 veces menor que la mediana»—, **la atribución
+cruzada** —una cifra verdadera pegada al hecho equivocado, «la mediana fue 507,86» usando el monto— y
+**las cifras en palabras** —«se dispararon cuatro reglas»—, que el tokenizador no extrae y por lo tanto
+no valida. El prompt pide dígitos y pide no invertir; pedir es todo lo que puede hacer. Leer los textos
+de una corrida es observación y no compuerta: una explicación escrita no se rechaza después, y la
+palanca sobre un texto falso es la versión siguiente del prompt, que los vuelve a escribir todos.
 
 **La instancia pública no tiene región sudamericana.** El plan gratuito de Render ofrece Oregon,
 Ohio, Virginia, Frankfurt y Singapur, y ninguna está en Sudamérica. Está en Virginia, que es la más

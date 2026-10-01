@@ -6014,3 +6014,337 @@ nada, ni en un sentido ni en el otro.
   - La corrida del flujo sobre el merge en `main`, que además estrena la caché.
   - El cartel del README en verde.
   - La observación en Render.
+
+## `E11B-ADAPTADOR-ANTHROPIC` — un modelo de Anthropic redacta, y el mismo verificador decide
+
+### Identificación
+
+- Estado de la rama: `Lista para integrar`
+- Etapa: 11
+- Rama/worktree: `claude/e11b-anthropic`
+- Commit base: `0b04d3bf5f7381c59177f3c54fef9244ee1cd6c9` (`git merge-base main HEAD` al cortar la
+  rama, escrito en el brief por `ff92016`)
+- Commit final: el commit de este handoff, que sigue a `8464fd0`; un commit no puede citar su propio
+  hash. La verificación final es la de `8464fd0`, y este commit solo agrega esta entrada.
+- Fecha: 2026-10-01
+- Modelo y esfuerzo: Opus 5.5 · `high`, el acordado.
+- **Sin push**, como pidió el coordinador.
+
+### Resultado
+
+`AI_PROVIDER=anthropic`, con `ANTHROPIC_API_KEY` y `ANTHROPIC_MODEL`, registra un adaptador real
+(`AnthropicExplanationProvider`, `HttpClient` directo, sin SDK ni dependencias nuevas). Sin clave o
+sin modelo el arranque falla nombrando la variable; con `SharedInstance:Enabled` falla aunque la
+clave esté. Lo que el modelo escribe es un borrador, y pasa por el mismo `ExplanationGrounding` que
+la plantilla, en el caso de uso.
+
+**Ningún test, ni la compuerta, ni el smoke tocan la red de Anthropic**: el adaptador se prueba contra
+un transporte simulado (`AnthropicTestTransport`) con las formas que la documentación oficial
+mostraba hoy. **No se llamó nunca a la API real, no se leyó `.env` y no se pidió ni usó una clave**:
+todas las claves de esta tarea son ficticias, están construidas en los tests, y `git grep` no las
+encuentra fuera de `backend/tests`.
+
+La consola dice quién escribió cada párrafo, nunca esconde un texto aceptado detrás de un intento
+fallido, y su botón pide lo correcto en cada uno de los cinco casos de D11. Queda
+`scripts/explicar-con-anthropic.sh` para `E11C`, **que esta tarea no corrió contra Anthropic**.
+
+**Lo que esta tarea no puede verificar es que la API real se comporte como el simulador.** Eso es
+`E11C`.
+
+### Los commits
+
+En el orden del brief, cada uno con la compuerta verde (corrida sobre ese mismo commit en un
+worktree aparte, con `node_modules` enlazado):
+
+| # | Commit | Qué | Compuerta (dominio + integración + frontend) |
+| --- | --- | --- | --- |
+| 1 | `ff92016` | El campo «Commit base» | 117 + 178 + 313 |
+| 2 | `0a87095` | D15: los cinco scripts y la fábrica fijan `AI_PROVIDER=mock` | 117 + 178 + 313 |
+| 3 | `506f3bd` | D7: tokens en todo desenlace, acumulados | 121 + 179 + 313 |
+| 4 | `c9f1b50` | D1: el desenlace cerrado del puerto | 121 + 182 + 313 |
+| 5 | `f4ae1e2` | D10, primera parte: `e3-v2` en `VersionStrings` | 122 + 182 + 313 |
+| 6 | `95531b8` | D13: el agujero semántico, fijado como clase | 126 + 182 + 313 |
+| 7 | `02a3f8a` | El adaptador (D2–D6, D10 segunda parte) | 126 + 230 + 313 |
+| 8 | `c14bc13` | D8 y D9: el secreto y la instancia pública | 126 + 235 + 313 |
+| 9 | `e573dfd` | D11: la selección de la consola y `FailureDetail` en la vista; contrato recapturado | 126 + 246 + 315 |
+| 10 | `a6b1ce1` | D12: la consola dice quién escribió qué | 126 + 246 + 332, y smoke verde (71) |
+| 11 | `fc7a15b` | El script de la corrida real | 126 + 246 + 332 |
+| 12 | `2a6b8ac` | Los documentos que la tarea vuelve falsos | 126 + 246 + 332 |
+| 13 | `8464fd0` | **Fuera de la lista del brief**: la fábrica tampoco hereda clave ni modelo | 126 + 246 + 332 |
+
+**El commit 13 es una desviación y la digo.** El brief pide doce. La corrida con el entorno
+contaminado —la última comprobación de la tabla del brief— encontró que dos tests míos del commit 8
+dependían de la terminal: con `ANTHROPIC_API_KEY` exportada, `WithoutAKeyTheApiRefusesToStartNamingTheVariable`
+y `WithoutAModelTheApiRefusesToStartNamingTheVariableAndNotTheKey` veían arrancar el host. Ninguno
+llegaba a la red (fallaban porque el host arrancaba, no porque llamara a nadie). El arreglo vive en la
+fábrica —ruta reservada— y es D15 aplicado a dos variables más. No reescribí historia para meterlo en
+el commit 2: lo dejo como commit propio, y el coordinador decide si lo acepta así.
+
+### Archivos modificados
+
+Todos dentro de la reserva del brief; 59 archivos, `git diff --stat 0b04d3b..8464fd0`.
+
+- Application: `Explanations/IExplanationProvider.cs`, `ExplanationExchange.cs`,
+  `ExplanationSelection.cs` (nuevo), `ExplanationViews.cs`, `RequestExplanationHandler.cs`;
+  `Alerts/AlertContext.cs`, `AlertProjection.cs`, `GetAlertHandler.cs`, `ReviewAlertHandler.cs`.
+- Domain: `Explanations/AlertExplanation.cs`, `ExplanationFailureCode.cs`, `ExplanationProvider.cs`,
+  `NumberTokenizer.cs` (solo `VersionStrings` y su comentario).
+- Infrastructure: `Explanations/AnthropicExplanationProvider.cs`, `AnthropicFactSheet.cs`,
+  `AnthropicSettings.cs` (nuevos), `DeterministicExplanationProvider.cs`; `DependencyInjection.cs`
+  (solo `AddExplanationProvider`); `Persistence/EfAlertStore.cs` (constructor y lectura de
+  explicaciones).
+- Tests: `AlertExplanationTests.cs`, `ExplanationSemanticGapTests.cs` (nuevos, dominio);
+  `AnthropicTestTransport.cs`, `AnthropicExplanationProviderTests.cs`, `AnthropicFactSheetTests.cs`,
+  `AnthropicEndToEndTests.cs`, `AnthropicConfigurationTests.cs`, `ExplanationSelectionTests.cs`
+  (nuevos, integración); y `SalvoApiFactory.cs`, `ExplanationTestCorpus.cs`,
+  `ExplanationEndpointTests.cs`, `ExplanationGroundingTests.cs`, `ExplanationIsolationTests.cs`,
+  `AlertReviewTests.cs`, `ExplanationFactsTests.cs`.
+- Frontend: `openapi/salvo-openapi.json`, `src/lib/api/schema.d.ts`, `guards.ts`, `guards.test.ts`,
+  `contract.ts`; `src/test/fixtures.ts`; `app/alerts/[id]/explanation-action.ts`,
+  `explanation-actions.tsx`, `explanation-block.tsx`, `explanation-state.ts`,
+  `explanation-writer.test.tsx` (nuevo); `lib/i18n/es.ts`, `pt.ts`, `glosario-pt.md`.
+- Scripts: `check.sh`, `smoke-ui.sh`, `demo.sh`, `capturas.sh`, `hornear-base.sh` (una línea y su
+  comentario cada uno); `explicar-con-anthropic.sh` (nuevo).
+- Documentos: `.env.example`, `README.md`, `DesignAgent/Salvo-Getting-Started.md`,
+  `DesignAgent/Salvo-Portability.md`; `Coordination/Tasks/E11B-ADAPTADOR-ANTHROPIC.md` (solo
+  «Commit base»); esta entrada.
+- **No tocados**: `review-panel.tsx` (ya enviaba el id de la explicación mostrada), `format.ts`,
+  `AlertViews.cs`, ninguna migración, ningún `csproj`, lockfile ni `package.json`.
+
+### Datos verificados, rehechos el 2026-10-01
+
+Todas las páginas abiertas hoy. **Nada de lo que el diseño y «Correcciones» afirman quedó
+desmentido**, así que ninguna condición de parada se cumplió.
+
+| Qué | Valor de hoy | Fuente | Cambio respecto del diseño |
+| --- | --- | --- | --- |
+| La suscripción no incluye la API | «A paid Claude subscription … doesn't include access to the Claude API or Console» | [support.claude.com](https://support.claude.com/en/articles/9876003-i-have-a-paid-claude-subscription-pro-max-team-or-enterprise-plans-why-do-i-have-to-pay-separately-to-use-the-claude-api-and-console) | Igual |
+| Modelo | `claude-sonnet-5-5`, Active, «Not sooner than September 28, 2027» | [Deprecations](https://platform.claude.com/docs/en/about-claude/model-deprecations) | Igual |
+| Haiku 4.5 | `claude-haiku-4-5-20251001`, «Not sooner than October 15, 2026» | Deprecations | Igual. Nuevo en la página: Sonnet 4.5 deprecado el 2026-09-30, irrelevante acá |
+| Precio | Sonnet 5.5: US$ 2 / MTok de entrada, US$ 10 / MTok de salida. «New users receive a small amount of free credits» | [Pricing](https://platform.claude.com/docs/en/about-claude/pricing) | Igual |
+| ID sin fecha | «Anthropic does not update the weights or configuration of an existing model ID», desde la 4.6 | [Model IDs](https://platform.claude.com/docs/en/about-claude/models/model-ids-and-versions) | Igual. La página agrega que la infraestructura alrededor sí puede cambiar el comportamiento observable |
+| Salida estructurada | `output_config.format`, `type: "json_schema"`, `schema`; Sonnet 5.5 en la lista; `additionalProperties` debe ser `false` | [Structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs) | Igual |
+| Lo que el esquema no admite | `minLength`, `maxLength`, `minimum`, `maximum`; mayúsculas de un `enum` no garantizadas: «Compare enum values case-insensitively» | Structured outputs | Igual |
+| Esquema no garantizado | `refusal` (200, «may not match your schema») y `max_tokens` | Structured outputs | Igual |
+| Gramática | Primera petición más lenta; caché de **24 horas desde el último uso** | Structured outputs | Igual |
+| `stop_reason` | `end_turn`, `max_tokens`, `stop_sequence`, `tool_use`, `pause_turn`, `refusal`, `model_context_window_exceeded` | [Stop reasons](https://platform.claude.com/docs/en/build-with-claude/handling-stop-reasons) | Igual |
+| Rechazo | 200, `content: []`, `stop_details: {type: "refusal", category, explanation}`; `category` y `explanation` pueden ser `null` («a normal, permanent value»). Categorías de Sonnet 5.5: `cyber`, `bio`, `frontier_llm`, `reasoning_extraction`, `general_harms` | [Refusals and fallback](https://platform.claude.com/docs/en/build-with-claude/refusals-and-fallback), [What's new in Sonnet 5.5](https://platform.claude.com/docs/en/models/sonnet-5-5/whats-new-sonnet-5-5) | **Precisado**: la forma exacta y las cinco categorías. `bio`, `frontier_llm` y `reasoning_extraction` se cobran aunque no haya salida |
+| Cabecera de versión | `anthropic-version: 2023-06-01`, obligatoria | [Versioning](https://platform.claude.com/docs/en/api/versioning) | Igual |
+| Errores | 400 `invalid_request_error`, 401 `authentication_error`, 402 `billing_error`, 403 `permission_error`, 404 `not_found_error`, 409 `conflict_error`, 413 `request_too_large`, 429 `rate_limit_error`, 500 `api_error`, 504 `timeout_error`, 529 `overloaded_error`. Cuerpo `{type: "error", error: {type, message}, request_id}` | [Errors](https://platform.claude.com/docs/en/api/errors) | **Precisado**: la lista completa, que es la lista cerrada del adaptador, y el `request_id` también en el cuerpo |
+| `request-id` | Cabecera en toda respuesta; ejemplos `req_011CSHoEeqs5C35K2UUqR7Fy` y `req_018EeWyXxfu5pfWkrYcMdjWG` | Errors | Igual |
+| Tope propio | 400 `invalid_request_error`, mensaje «You have reached your specified (workspace) API usage limits» | [Rate limits](https://platform.claude.com/docs/en/api/rate-limits) | Igual |
+| Tope del tier | 429 `rate_limit_error`, **sin `retry-after`**, `error.details.error_code = "enforced_spend_limit_reached"`; Start: US$ 500 | Rate limits | Igual |
+| Espacio por defecto | «You cannot set limits on the Default Workspace» | [Workspaces](https://platform.claude.com/docs/en/manage-claude/workspaces) | Igual |
+| Razonamiento en Sonnet 5.5 | Adaptativo por defecto, esfuerzo `high` por defecto; `disabled` → 400 con un mensaje que apunta a `between_tools`; `between_tools` aceptado en `low`, `medium` y `high`, 400 en `xhigh` y `max`, no admite otro campo; «If your requests don't use tools, the response contains only text» | What's new in Sonnet 5.5, [Thinking](https://platform.claude.com/docs/en/build-with-claude/thinking), Errors | **Coincide con «Correcciones», punto 2**, y se precisa: `between_tools` no acepta `display` ni `budget_tokens` |
+| Cobro del razonamiento | «billed as output tokens», cuenta contra `max_tokens`; `usage.output_tokens_details.thinking_tokens` | [Steering thinking](https://platform.claude.com/docs/en/build-with-claude/thinking-steering-and-cost) | Igual |
+| Muestreo | En Sonnet 5.5, `temperature`, `top_p` o `top_k` con valores distintos del de omisión → 400 en toda petición | Thinking | **Nuevo**, y refuerza la decisión de no enviarlos. No exige enviarlos, así que no es parada |
+| `fallbacks` | Opcional, beta (`server-side-fallback-2026-07-01`) | Refusals and fallback | No se envía. No es obligatorio, así que no es parada |
+| `between_tools` en otro modelo | «Sending `thinking: {"type": "between_tools"}` to any model other than Claude Sonnet 5.5 returns a 400» | Errors | **Nuevo y relevante para `E11C`** (ver riesgos) |
+| SDK de C# | Paquete `Anthropic`, oficial desde la 10; reintenta 2 veces por omisión, `MaxRetries` configurable | [SDK C#](https://platform.claude.com/docs/en/cli-sdks-libraries/sdks/csharp) | La página de hoy no menciona el `HttpClient` inyectable; no lo verifiqué en el repositorio del SDK. Es candidata, no esta tarea |
+
+### Las ocho falsaciones
+
+Cada una revirtiendo solo la línea que protege, viendo el rojo con el nombre del test, y
+restaurando. Dos parches de falsación no compilaron la primera vez por los analizadores (CA1305 y
+CA1873); el verde de esos primeros intentos corría binarios viejos, **no cuenta**, y los dos se
+rehicieron hasta compilar.
+
+| Qué se rompió | Rojo | Restaurado |
+| --- | --- | --- |
+| **D5**: el adaptador manda una segunda petición idéntica ante un 529 | `AnthropicExplanationProviderTests.OneAttemptIsExactlyOneRequest` — «Assert.Single() Failure: The collection contained 2 items» | 38/38 |
+| **D8**: `logger.LogTrace("Sending {Request}", request)` tras poner las cabeceras | `AnthropicConfigurationTests.TheKeyReachesNoLogAndNoExceptionAtTrace` — «Assert.DoesNotContain() Failure: Sub-string found» | 5/5 |
+| **D9**: `if (false && …SharedInstance…)` | `AnthropicConfigurationTests.TheSharedInstanceRefusesAPaidProviderEvenWithAKey` — «Assert.Throws() Failure: No exception was thrown» | 5/5 |
+| **D10**: la hoja lleva `Monto en centavos: 50786.` | `AnthropicFactSheetTests.TheSheetCarriesNoCentsNoIsoInstantAndNoVersion` — «Filter matched in collection». **La propiedad siguió verde**: los centavos son un hecho; por eso hacen falta los dos tests | 3/3 |
+| **D10**: la hoja lleva un número sin respaldo. El parche lo elige con la misma regla del verificador —el menor entero positivo que `IsGrounded` rechaza— y **antes de escribirlo lanza si estuviera respaldado** | `AnthropicFactSheetTests.EveryNumberOnTheSheetIsGrounded` — «'5' is on the Spanish sheet and no fact backs it» | 3/3 |
+| **D11**: `ExplanationSelection.Choose` devuelve la fila más recientemente pedida | 4 de 11: `Case2AReadyTextOfTheTemplateIsNotHiddenBehindAFailedAttemptOfTheModel`, `Case2WithTheAttemptsSpentOffersNothingAndSaysSo`, `Case2WithTheCurrentWriterPendingOffersNothing`, `TheReviewCitesTheShownTextAndNeverTheAttempt` | 11/11 |
+| **D15**: la fábrica deja de fijar `AI_PROVIDER=mock`; corrida con **solo** `AI_PROVIDER=anthropic` exportado, sin clave ni modelo en el entorno | 177 de 235 caen; 176 con «AI_PROVIDER=anthropic needs ANTHROPIC_API_KEY, and it is not set». El host no arranca, así que no hay ni una petición posible | `git status` limpio sobre la fábrica |
+| **D7**: `Retake` vuelve a poner `InputTokens = null; OutputTokens = null` | `AlertExplanationTests.TheTokensOfEveryAttemptAddUpOnTheSameRow` y `ExplanationEndpointTests.EveryAttemptLeavesWhatItCostOnTheRow` — «Values differ» | 4/4 y 1/1 |
+
+Además, `EveryRuleConfigurationVersionDonatesNoDigits` se vio rojo antes del arreglo de `e3-v2`
+(«Assert.Empty() Failure: Collection was not empty»), que es lo que corresponde a un defecto latente.
+
+### La corrida con el entorno contaminado (D15)
+
+`AI_PROVIDER=anthropic`, `ANTHROPIC_MODEL=claude-sonnet-5-5` y una clave ficticia exportados en la
+misma shell, y después `./scripts/check.sh` y `./scripts/smoke-ui.sh`:
+
+| Sobre | `check.sh` | `smoke-ui.sh` |
+| --- | --- | --- |
+| `2a6b8ac` (commit 12) | **Rojo**: 2 de 246, los dos tests de arranque sin clave o sin modelo, que heredaban la clave. Motivó el commit 13 | Verde: 71 comprobaciones, 0 fallas |
+| `8464fd0` (punta) | **Verde**: 74 comprobaciones de documentos, 126 + 246 + 332 tests y build | **Verde**: 71 comprobaciones, 0 fallas. El `api.log` del smoke no menciona Anthropic ni una vez, y la clave ficticia no aparece en ningún log |
+
+Si algo hubiera llamado a la API, la clave ficticia habría dado 401 y el smoke habría caído en «no
+por un modelo». El verde prueba que nada la llamó.
+
+### Verificación
+
+| Comprobación | Resultado |
+| --- | --- |
+| `./scripts/check.sh` sobre `8464fd0`, entorno limpio | Verde: `check-docs.sh` 74 comprobaciones, 126 + 246 tests .NET, 332 de frontend, build de producción |
+| `./scripts/smoke-ui.sh` sobre `8464fd0`, entorno limpio (sin `AI_PROVIDER` ni `ANTHROPIC_*`: `env` lo confirmó) | Verde: «Recorrido verde: 71 comprobaciones, 0 fallas» |
+| `./scripts/smoke-ui.sh` sobre `a6b1ce1` (el commit de la consola) | Verde, 71 comprobaciones, con «no por un modelo», «plantilla determinista (e7-v1)» y «Redactar con la plantilla vigente» del 1d intactos |
+| Las ocho falsaciones | Arriba |
+| `git diff 0b04d3b..HEAD -- backend/src/Salvo.Application/Providers backend/src/Salvo.Application/External` | Vacío |
+| `git diff 0b04d3b..HEAD -- …/ExplanationGrounding.cs …/ExplanationFacts.cs` | Vacío |
+| `git diff` de migraciones, `csproj`, `Directory.Packages.props`, lockfiles y `package.json` | Vacío |
+| `git grep "sk-ant"` fuera de `backend/tests` y `Coordination/` | Sin resultados |
+| `OpenApiDriftTests` tras recapturar | Verde |
+| `bash -n scripts/explicar-con-anthropic.sh` | Sin errores |
+| El script sin `SALVO_ENV_FILE` | «ERROR: falta SALVO_ENV_FILE…», código 1 |
+| El script con un archivo vacío que creé | «ERROR: falta ANTHROPIC_API_KEY en el archivo de SALVO_ENV_FILE.», código 1 |
+| Con un archivo inexistente | «ERROR: SALVO_ENV_FILE no nombra un archivo legible.», código 1 |
+| Con un archivo con una clave ficticia y sin modelo | «ERROR: falta ANTHROPIC_MODEL…», código 1; la clave no aparece en la salida |
+| Con la clave ficticia exportada en la terminal y el archivo vacío | Se niega igual: lee solo del archivo, en un proceso con el entorno vacío |
+| En los cinco casos | Se niega antes de compilar nada: no se creó base ni carpeta de salida. **No se corrió contra Anthropic** |
+
+### Muestra de la hoja de hechos, el prompt y el esquema
+
+Es lo único que viaja a la API, junto con `model`, `max_tokens: 1024`, `thinking: {"type":
+"between_tools"}` y `output_config.effort: "medium"`. `ORD_000011` del corpus, con el instante de la
+fixture (`2026-05-05T05:15Z`) y las señales de los tests dorados:
+
+```text
+Hechos de la evaluación. Son los únicos que podés usar.
+
+Puntaje: 90, sobre un umbral de 60. Severidad resultante: crítica.
+Reglas que se dispararon: 3. Sus pesos suman 90; el puntaje máximo es 100.
+Monto del pedido: 507,86 BRL.
+Fecha del pedido, en hora del comercio: 5 de mayo de 2026, a las 02:15.
+
+Reglas que se dispararon:
+- amount_anomaly, con peso 40. El monto, 507,86 BRL, es 3,4 veces la mediana del comercio, calculada sobre 3 pedidos previos de los últimos 90 días.
+- new_buyer_high_value, con peso 30. El comprador no tenía pedidos previos con este comercio, y el monto es 3,4 veces la mediana del comercio sobre 3 pedidos previos.
+- foreign_country, con peso 20. El país del pedido, AR, difiere del habitual del comercio, BR, observado en 3 de 3 pedidos previos: un 100 %.
+```
+
+La de portugués tiene las mismas cifras, palabra por palabra en el vocabulario de la plantilla
+(`AnthropicFactSheetTests.TheSheetAndThePromptExistInBothLanguagesWithTheSameFigures`).
+
+El prompt `anthropic-p1` en castellano, entero (el portugués es su traducción, en
+`AnthropicFactSheet.cs`):
+
+```text
+Redactás la explicación de una evaluación de riesgo de un pedido de comercio electrónico, para una analista antifraude que la lee en una consola. La decisión ya está tomada: el puntaje, la severidad y las reglas los calculó un motor determinista. Tu trabajo es contar en palabras por qué el pedido obtuvo ese puntaje. No opinás sobre si el pedido es fraude, no recomendás ninguna acción y no calificás al comprador ni al comercio.
+
+Cómo escribir:
+- Usá solo los hechos de la hoja que recibís. No agregues cifras, fechas, porcentajes, cálculos ni comparaciones que no estén escritos en ella.
+- Escribí toda cifra en dígitos y tal como aparece en la hoja. Nunca escribas una cantidad con palabras: ni "tres reglas" ni "el triple de la mediana".
+- Cada cifra va junto al hecho del que sale. No uses la cifra de un hecho para hablar de otro, y no inviertas una comparación: si la hoja dice que el monto es varias veces la mediana, el monto es mayor que la mediana.
+- Nombrá cada regla por su identificador, tal como aparece en la hoja, o describila con las palabras de la hoja.
+- Un solo párrafo de texto plano en castellano, de no más de 900 caracteres. Sin listas, sin títulos, sin enlaces y sin ninguno de estos caracteres: ` * [ ] < > | #
+- En referencedRules, poné los identificadores de las reglas en las que se apoya el texto.
+```
+
+El prompt no lleva cifras de ejemplo, a propósito: una primera versión decía «3 y no tres, 3,4 y no
+más del triple», y un modelo puede copiar esas cifras a una evaluación donde no son hechos. Pide 900
+caracteres contra los 1.200 del verificador, para dejar margen.
+
+El esquema, constante:
+
+```json
+{"type":"object","properties":{"summary":{"type":"string"},"referencedRules":{"type":"array","items":{"type":"string","enum":["amount_anomaly","velocity","cross_border_velocity","unusual_hour","new_buyer_high_value","foreign_country"]}}},"required":["summary","referencedRules"],"additionalProperties":false}
+```
+
+### Costo, con los precios del día
+
+Sonnet 5.5 a US$ 2 / 10 por millón de tokens de entrada / salida, leídos el 2026-10-01.
+
+- **Estimado por explicación**: la estimación del diseño, ~1.500 de entrada y ~300 de salida, da
+  US$ 0,003 + US$ 0,003 ≈ **US$ 0,006**. La entrada es una estimación: el prompt y la hoja de
+  `ORD_000011` son cortos, pero no los conté con `count_tokens`, que exige una clave. El número real
+  sale de las filas, que desde esta tarea acumulan tokens en todo desenlace.
+- **Techo de la corrida**, con `max_tokens` y no con la estimación: 23 alertas × 3 intentos = 69
+  llamadas, cada una a lo sumo 1.500 × US$ 2/M + 1.024 × US$ 10/M = US$ 0,01324 → **US$ 0,91**. Si la
+  entrada real fuera el doble, 3.000 tokens, el techo sería US$ 1,12. Un rechazo de categoría
+  `bio`, `frontier_llm` o `reasoning_extraction` se cobra aunque no haya salida, y está dentro del
+  techo porque cuenta como intento.
+
+### Decisiones y supuestos
+
+- **La forma del desenlace** (delegada): `ExplanationProviderResult`, clase sellada con constructor
+  privado y una fábrica por desenlace, sin ninguna propiedad de tipo `ExplanationFailureCode`;
+  `AProviderCannotNameAFailureCode` lo lee del tipo. El diagnóstico tiene tope de 120 caracteres, para
+  que con el prefijo de `ATTEMPT_LIMIT_REACHED` siga cabiendo en los 200 de `FailureDetail`.
+- **Dónde vive la regla de D11** (delegada): `ExplanationSelection.Choose`, pura, en Application.
+  `EfAlertStore` recibe `IExplanationProvider` en su constructor y arma el escritor en cada lectura,
+  igual que los handlers: así un test que reemplaza el proveedor reemplaza también al escritor que la
+  lectura compara.
+- **`CurrentWriterProvider` en la vista**: no lo nombra el brief y lo agregué. Sin él, la consola no
+  puede rotular el botón de los casos 3 y 5 (la fila mostrada es de otro escritor, y el vigente no
+  tiene fila) ni aplicar la regla de la `PENDING` del mismo proveedor. Viaja en la vista que la
+  reserva ya permitía tocar.
+- **Un pedido nuevo del botón**: `retryCurrentWriter`, para el caso 2. Es el mismo pedido que
+  «Volver a intentar» (`regenerate: true`) y el rótulo lo dice: «Volver a intentar con el modelo de
+  Anthropic», o «con la plantilla vigente». `currentTemplate` conserva su nombre por las anclas.
+- **`WrittenByAnotherTemplate`** compara ahora el par proveedor y versión, no solo la versión. El
+  nombre del campo queda por el contrato, y su documentación lo explica.
+- **`ProviderVersion` con forma de ID de modelo o nada**: es el único texto de la respuesta que llega
+  a la pantalla, así que solo se toma si cumple `^[a-z0-9][a-z0-9.-]{0,63}$`; si no, queda nulo y el
+  pie dice «un modelo de Anthropic». No lo pedía el brief; es la misma lógica de la lista cerrada.
+- **El `request-id` va también a `FailureDetail` de un rechazo y de una respuesta malformada**, no
+  solo de un estado de error. Tiene la forma validada y es lo que permite cruzar con la Consola.
+- **El log `Warning` de un estado no 2xx** lleva el estado y la clasificación cerrada, y **no** el
+  `request-id`: el brief dice «sin cuerpo y sin cabeceras», y el `request-id` es una cabecera. El log
+  de `thinking_tokens` sí lo lleva, porque el brief lo pide.
+- **El plazo del puerto** (delegado): se conserva en 15 s. La documentación de hoy no da una cifra de
+  la compilación de la gramática que justifique otro.
+- **`HttpClient`**: `SocketsHttpHandler` con `PooledConnectionLifetime` de 5 minutos, sin timeout
+  propio (el del puerto cancela el token) y con `MaxResponseContentBufferSize` de 1 MiB.
+- **El script lee del archivo de entorno con `set -a` dentro de un `env -i bash`**, y no en el shell
+  del script: así no hereda la terminal ni exporta a sí mismo nada del archivo, y la clave solo entra
+  al entorno del proceso de la API, nunca a una línea de comando. Con un modelo que no sea
+  `claude-sonnet-5-5` exige los precios por variable y su fecha, en vez de calcular con precios de
+  otro modelo. Escribe `explicaciones.json` y `explicaciones.md`, y se niega si la carpeta del día ya
+  tiene archivos.
+
+### Hallazgos
+
+- **El glosario ya estaba desfasado antes de esta tarea**: le faltan las cuatro claves
+  `startingUp.*` de `E10C`. Regenerarlo entero tocaba claves fuera de mi reserva, así que agregué solo
+  las once filas nuevas de explicación (y la de `MALFORMED_OUTPUT`) y dejé las otras cuatro para quien
+  corresponda. El conteo de la cabecera dice 554, que es lo que la tabla tiene.
+- **Una aspereza de la hoja de hechos**: «Reglas que se dispararon» aparece dos veces, una con la
+  cuenta y otra como encabezado de la lista. No cambia ninguna cifra; si se corrige, sube el prompt a
+  `anthropic-p2`.
+
+### Riesgos y pendientes
+
+- **Que la API real se comporte como el simulador.** Es lo primero que mide `E11C`, y si no, se
+  corrige el simulador primero.
+- **`between_tools` solo existe en Sonnet 5.5.** La documentación de hoy: «Sending `between_tools` to
+  any model other than Claude Sonnet 5.5 returns a 400». Cambiar `ANTHROPIC_MODEL` a otro modelo,
+  hoy, haría que cada petición termine en `HTTP 400; invalid_request_error`. La forma de la petición
+  ata el adaptador a este modelo; si algún día cambia, cambia también el cuerpo.
+- **La primera petición compila la gramática** y puede ver un `PROVIDER_TIMEOUT` que las demás no
+  ven. Con el esquema constante, compila una sola vez.
+- **Límite dicho y no empeorado**: una `PENDING` abandonada de otro escritor del mismo proveedor deja
+  la alerta sin botón hasta que alguien la retome.
+- **El agujero semántico** sigue abierto como clase; el README lo dice y tres tests lo fijan.
+
+### Lo que `E11C` tiene que mirar primero
+
+1. Que la clave salga de un **espacio de trabajo dedicado con tope** (el Default no admite topes), y
+   correr con `SALVO_ENV_FILE=.env ./scripts/explicar-con-anthropic.sh`.
+2. La **primera** fila: si es `PROVIDER_TIMEOUT`, es la gramática; si es `PROVIDER_UNAVAILABLE` con
+   `HTTP 400; invalid_request_error`, la forma de la petición no es la que la API acepta —el primer
+   sospechoso es `between_tools` con `effort`—, y es parada para corregir el simulador.
+3. Que `ProviderVersion` de las filas `READY` diga `claude-sonnet-5-5`: es la pregunta que la revisión
+   adversarial dejó abierta, si la API devuelve el ID pedido.
+4. Que ninguna respuesta haya dejado el `Warning` de `thinking_tokens` en el registro de la API.
+5. Los `FAILED` por código: `NOT_GROUNDED_NUMBER` con su token ofensor dice qué cifra inventó el
+   modelo; si son mayoría, **se cambia el prompt, nunca el verificador**.
+
+### Integración
+
+- **Orden sugerido**: merge a `main`, por merge y nunca por rebase. Sin dependencias pendientes.
+- **Migraciones o pasos manuales**: ninguna migración. El contrato ya está recapturado
+  (`salvo-openapi.json` y `schema.d.ts`).
+- **Posibles conflictos**: ninguno conocido; `E11C` no tiene brief.
+- **Estado canónico que cierra el coordinador** (la reserva no me lo permitía): el Blueprint (la
+  bitácora si acepta el commit 13 o las decisiones que este handoff agrega, y §4.7 «Sin clave el
+  sistema funciona con un proveedor determinista. Un `AI_PROVIDER` que nombre un adaptador
+  inexistente falla al arrancar», que sigue siendo cierto pero ya no es la historia entera), el
+  Overview, el Progress (el checklist de `E11B` y «Decidir aparte si se activa Anthropic»), el
+  Workboard, `AGENTS.md`, `Salvo-MOC.md` y `Salvo-Project-Instructions.md`.
+- **Verificación posterior al merge**: `./scripts/check.sh` y `./scripts/smoke-ui.sh` en local, y la
+  corrida de GitHub Actions en verde: la CI no tiene clave y nada debe pedirla.

@@ -110,11 +110,68 @@ public sealed class ExplanationGroundingTests
             ExplanationWireNames.ProviderUnavailable);
     }
 
-    private static async Task AssertSettlesWithAsync(
-        ExplanationTestCorpus.ProviderBehaviour behaviour,
-        string expectedCode)
+    /// <summary>
+    /// An answer that is not a draft — cut short, unreadable — is named as such, with what the
+    /// provider could say about it, and is never mistaken for an outage.
+    /// </summary>
+    [Fact]
+    public async Task AMalformedAnswerIsRecordedAsMalformedWithItsDiagnostic()
     {
-        var provider = new ExplanationTestCorpus.SwitchableProvider { Behaviour = behaviour };
+        var stored = await AssertSettlesWithAsync(
+            ExplanationTestCorpus.ProviderBehaviour.Malformed,
+            ExplanationWireNames.MalformedOutput,
+            "max_tokens");
+
+        Assert.Equal("max_tokens", stored.FailureDetail);
+    }
+
+    [Fact]
+    public async Task AnUnavailableProviderIsRecordedWithItsDiagnostic()
+    {
+        var stored = await AssertSettlesWithAsync(
+            ExplanationTestCorpus.ProviderBehaviour.Unavailable,
+            ExplanationWireNames.ProviderUnavailable,
+            "HTTP 529; overloaded_error");
+
+        Assert.Equal("HTTP 529; overloaded_error", stored.FailureDetail);
+    }
+
+    /// <summary>
+    /// A provider has no way to name a failure code: what it hands back carries an outcome, and the
+    /// exchange fixes the code from it.
+    /// </summary>
+    /// <remarks>
+    /// Read off the type rather than trusted to review, because the property it protects is
+    /// structural: if a code could ride on the result, an adapter could report
+    /// <c>NOT_GROUNDED_NUMBER</c> for a text nobody verified, or <c>CANCELLED</c> for a refusal.
+    /// </remarks>
+    [Fact]
+    public void AProviderCannotNameAFailureCode()
+    {
+        var type = typeof(ExplanationProviderResult);
+        var codeType = typeof(ExplanationFailureCode);
+
+        Assert.DoesNotContain(
+            type.GetProperties(),
+            property => property.PropertyType == codeType
+                || Nullable.GetUnderlyingType(property.PropertyType) == codeType);
+        Assert.DoesNotContain(
+            type.GetMethods().SelectMany(method => method.GetParameters()),
+            parameter => parameter.ParameterType == codeType
+                || Nullable.GetUnderlyingType(parameter.ParameterType) == codeType);
+        Assert.Empty(type.GetConstructors());
+    }
+
+    private static async Task<AlertExplanation> AssertSettlesWithAsync(
+        ExplanationTestCorpus.ProviderBehaviour behaviour,
+        string expectedCode,
+        string? diagnostic = null)
+    {
+        var provider = new ExplanationTestCorpus.SwitchableProvider
+        {
+            Behaviour = behaviour,
+            Diagnostic = diagnostic,
+        };
         await using var factory = Factory(provider);
         using var client = await factory.CreateMigratedClientAsync();
         var alert = await OneAlertAsync(client, AlertTestCorpus.DivergenceBase());
@@ -126,6 +183,11 @@ public sealed class ExplanationGroundingTests
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(ExplanationWireNames.Failed, result.Explanation.Status);
         Assert.Equal(expectedCode, result.Explanation.FailureCode);
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SalvoDbContext>();
+
+        return await dbContext.AlertExplanations.AsNoTracking().SingleAsync();
     }
 
     /// <summary>

@@ -1,12 +1,14 @@
 import {
+  EXPLANATION_PROVIDER,
   EXPLANATION_STATUS,
   type AlertDetail,
   type AlertExplanation,
+  type ExplanationAttempt,
   type Language,
 } from "@/lib/api/contract";
 import { formatting, type Formatting } from "@/lib/format";
 import { ExplanationActions } from "./explanation-actions";
-import type { ExplanationAsk } from "./explanation-state";
+import type { ExplanationAsk, ExplanationWriterKind } from "./explanation-state";
 
 /**
  * The evaluation of the snapshot, put into words.
@@ -59,7 +61,24 @@ export function ExplanationBlock({
 
       {explanation === null ? <NeverAsked f={f} /> : <Written explanation={explanation} f={f} />}
 
-      <ExplanationActions alertId={detail.id} ask={askOf(explanation)} language={language} />
+      {/*
+        Beside the text and never instead of it (decision 79): the attempt of the writer this
+        deployment uses today, when the text shown is somebody else's and that attempt has none.
+      */}
+      {explanation !== null && explanation.currentWriterAttempt !== null && (
+        <CurrentAttempt
+          attempt={explanation.currentWriterAttempt}
+          writer={writerOf(explanation)}
+          f={f}
+        />
+      )}
+
+      <ExplanationActions
+        alertId={detail.id}
+        ask={askOf(explanation)}
+        writer={writerOf(explanation)}
+        language={language}
+      />
     </section>
   );
 }
@@ -136,14 +155,23 @@ function ReadySummary({
 
           One expression rather than three, because adjacent expressions are separate text nodes in
           the server-rendered HTML and the smoke reads that HTML, not the text content of a DOM.
+
+          One sentence per writer (decision 79). The template's says «no por un modelo», and is not
+          a letter different from what it always was; under a model's paragraph that sentence would
+          be a false claim inside the product, so the model's names the model — from the answer —
+          and the version of the prompt.
         */}
-        {f.t.alertDetail.explanationWrittenBy(
-          f.explanationProviderLabel(explanation.provider),
-          explanation.templateVersion,
-          explanation.settledAt === null
-            ? ""
-            : f.t.alertDetail.explanationWrittenAt(f.formatInstant(explanation.settledAt)),
-        )}{" "}
+        {explanation.provider === EXPLANATION_PROVIDER.anthropic
+          ? f.t.alertDetail.explanationWrittenByModel(
+              explanation.providerVersion,
+              explanation.templateVersion,
+              settledAtOf(explanation, f),
+            )
+          : f.t.alertDetail.explanationWrittenBy(
+              f.explanationProviderLabel(explanation.provider),
+              explanation.templateVersion,
+              settledAtOf(explanation, f),
+            )}{" "}
         {f.t.alertDetail.explanationVerified}
       </p>
       {explanation.referencedRules.length > 0 && (
@@ -184,30 +212,116 @@ function Failure({
           ? f.t.alertDetail.explanationExhausted
           : f.t.alertDetail.explanationNotStored}
       </p>
+      <FailureDetail detail={explanation.failureDetail} f={f} />
     </div>
   );
 }
 
 /**
- * Which of the three questions the button asks, or none at all.
+ * What the row says about why it failed: the offending figure, or what the provider answered from a
+ * closed vocabulary. Never the rejected text, which is never stored.
+ */
+function FailureDetail({ detail, f }: { readonly detail: string | null; readonly f: Formatting }) {
+  return detail === null ? null : (
+    <p className="font-mono text-xs leading-5 text-slate-600">
+      {f.t.alertDetail.explanationFailureDetail(detail)}
+    </p>
+  );
+}
+
+function CurrentAttempt({
+  attempt,
+  writer,
+  f,
+}: {
+  readonly attempt: ExplanationAttempt;
+  readonly writer: ExplanationWriterKind;
+  readonly f: Formatting;
+}) {
+  const name =
+    writer === "model"
+      ? f.t.alertDetail.explanationWriterModel
+      : f.t.alertDetail.explanationWriterTemplate;
+
+  return (
+    <div className="flex flex-col gap-1 rounded-md border border-slate-300 bg-white p-3">
+      <p className="text-sm font-semibold text-slate-900">
+        {f.t.alertDetail.explanationAttemptHeading(name)}
+      </p>
+      {attempt.status === EXPLANATION_STATUS.pending ? (
+        <p className="text-xs leading-5 text-slate-600">{f.t.alertDetail.explanationAttemptPending}</p>
+      ) : (
+        <>
+          <p className="text-sm text-slate-900">
+            {attempt.failureCode === null
+              ? f.t.alertDetail.explanationFailedWithoutCode
+              : f.explanationFailureLabel(attempt.failureCode)}
+          </p>
+          <p className="text-xs leading-5 text-slate-600">
+            {f.t.alertDetail.explanationAttempts(attempt.attemptCount, f.formatCount(attempt.attemptCount))}
+            {". "}
+            {attempt.attemptsExhausted
+              ? f.t.alertDetail.explanationExhausted
+              : f.t.alertDetail.explanationAttemptKept}
+          </p>
+          <FailureDetail detail={attempt.failureDetail} f={f} />
+        </>
+      )}
+    </div>
+  );
+}
+
+function settledAtOf(explanation: AlertExplanation, f: Formatting): string {
+  return explanation.settledAt === null
+    ? ""
+    : f.t.alertDetail.explanationWrittenAt(f.formatInstant(explanation.settledAt));
+}
+
+/**
+ * Who writes today, as the button needs to say it. Without any row there is nothing to tell, and the
+ * only question then — «explain this evaluation» — does not name a writer.
+ */
+function writerOf(explanation: AlertExplanation | null): ExplanationWriterKind {
+  return explanation?.currentWriterProvider === EXPLANATION_PROVIDER.anthropic ? "model" : "template";
+}
+
+/**
+ * Which question the button asks, or none at all — for each of the cases of decision 79.
  *
- * Over an explanation written by the template this deployment writes with, there is nothing to ask:
- * the API refuses to replace a paragraph somebody may have formed a verdict on, and it refuses a
- * spent budget too. The two cases that remain are a row that failed with attempts left, and a row a
- * previous template wrote — which is not a replacement at all. The row the current template would
- * own does not exist, so asking creates it beside the old one, and the old one stays exactly as it
- * was.
+ * Over a text the current writer wrote there is nothing to ask: the API refuses to replace a
+ * paragraph somebody may have formed a verdict on, and it refuses a spent budget too.
  *
- * The order of the checks is the point. A row from another template is offered the current template
- * whatever its status, because its status describes a row the request will not touch.
+ * Over somebody else's text, what matters is the row of the current writer, which the view carries
+ * beside it when it exists and is not ready:
+ *
+ * - **Case 2.** It failed with attempts left: the button retries *that* row. Asking without
+ *   regenerating would find it, not retake it, and answer that nothing changed — the defect of `E7D`
+ *   in the scenario a model creates. Spent, or still answering: no button.
+ * - **Cases 3 and 5.** There is no row of the current writer: the button creates it beside the old
+ *   one, and the old one stays exactly as it was. Except over a row still pending of *the same
+ *   provider*: the reservation of pending rows is unique per evaluation, provider and language, so
+ *   a second one would collide. With a pending row of another provider the button does create it.
+ *
+ * And over the current writer's own row with nothing ready (case 4), the plain retry, as always.
  */
 function askOf(explanation: AlertExplanation | null): ExplanationAsk {
   if (explanation === null) {
     return "first";
   }
 
+  const attempt = explanation.currentWriterAttempt;
+  if (attempt !== null) {
+    return attempt.status === EXPLANATION_STATUS.failed && !attempt.attemptsExhausted
+      ? "retryCurrentWriter"
+      : "none";
+  }
+
   if (explanation.writtenByAnotherTemplate) {
-    return "currentTemplate";
+    const collides =
+      explanation.status === EXPLANATION_STATUS.pending
+      && explanation.provider === explanation.currentWriterProvider;
+
+    return collides ? "none" : "currentTemplate";
   }
 
   return explanation.status === EXPLANATION_STATUS.failed && !explanation.attemptsExhausted

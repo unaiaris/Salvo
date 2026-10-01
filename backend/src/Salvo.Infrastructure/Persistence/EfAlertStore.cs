@@ -12,10 +12,14 @@ namespace Salvo.Infrastructure.Persistence;
 /// <remarks>
 /// The deployment language is a dependency of this store rather than an argument of its methods
 /// because it decides <em>which row</em> answers the question, and selecting rows is what a store
-/// does. The template version, in contrast, travels as an argument of the projection, because it
-/// only decides how the row that was already chosen is described.
+/// does. Since decision 79 the writer does too: which of an evaluation's rows the console shows
+/// depends on who writes today, so the registered provider is a dependency here as well, read on
+/// every request exactly as the handlers read it.
 /// </remarks>
-public sealed class EfAlertStore(SalvoDbContext dbContext, DeploymentLanguage language) : IAlertStore
+public sealed class EfAlertStore(
+    SalvoDbContext dbContext,
+    DeploymentLanguage language,
+    IExplanationProvider explanationProvider) : IAlertStore
 {
     private const int ConstraintUnique = 2067;
     private const int ConstraintPrimaryKey = 1555;
@@ -237,8 +241,10 @@ public sealed class EfAlertStore(SalvoDbContext dbContext, DeploymentLanguage la
                 ToReference(lastRun),
                 external.GetValueOrDefault(alert.OrderId),
                 external.GetValueOrDefault(alert.OrderId) is { } one && contradicted.Contains(one.Id),
-                explanations.GetValueOrDefault(alert.RiskEvaluationId),
-                CurrentExplanationOf(alert, currentEvaluations, explanations)))
+                explanations.GetValueOrDefault(alert.RiskEvaluationId)?.Shown,
+                CurrentExplanationOf(alert, currentEvaluations, explanations)?.Shown,
+                explanations.GetValueOrDefault(alert.RiskEvaluationId)?.CurrentWriterAttempt,
+                CurrentExplanationOf(alert, currentEvaluations, explanations)?.CurrentWriterAttempt))
             .ToArray();
     }
 
@@ -251,10 +257,10 @@ public sealed class EfAlertStore(SalvoDbContext dbContext, DeploymentLanguage la
     /// current evaluation may already carry its explanation, and showing the reader that the corpus
     /// moved <em>and</em> where it moved to is better than showing only that it moved.
     /// </remarks>
-    private static AlertExplanation? CurrentExplanationOf(
+    private static ExplanationChoice? CurrentExplanationOf(
         Alert alert,
         Dictionary<Guid, RiskEvaluation> currentEvaluations,
-        Dictionary<Guid, AlertExplanation> explanations)
+        Dictionary<Guid, ExplanationChoice> explanations)
     {
         return currentEvaluations.GetValueOrDefault(alert.OrderId) is { } current
             && current.Id != alert.RiskEvaluationId
@@ -269,8 +275,13 @@ public sealed class EfAlertStore(SalvoDbContext dbContext, DeploymentLanguage la
     /// Keyed by evaluation rather than by alert because that is the identity of an explanation: an
     /// escalation over an evaluation somebody already explained finds the paragraph written, and
     /// nobody pays for it twice. Narrowed to the policy version of the alert, since a summary names
-    /// a severity band and a different policy names it differently. The most recent request wins if
-    /// several templates have run.
+    /// a severity band and a different policy names it differently.
+    /// <para>
+    /// <strong>Which row of several is shown is <see cref="ExplanationSelection"/>'s to say</strong>
+    /// (decision 79), against the writer registered today. Until a writer could fail it was the most
+    /// recently requested row, and with a model that hides a correct paragraph behind a failed
+    /// attempt.
+    /// </para>
     /// <para>
     /// <strong>And narrowed to the language of the deployment</strong>, which is the half of the
     /// change that is easy to forget because everything else still passes without it. The write
@@ -280,7 +291,7 @@ public sealed class EfAlertStore(SalvoDbContext dbContext, DeploymentLanguage la
     /// again, on the reading side, and the falsification of this line is recorded in the handoff.
     /// </para>
     /// </remarks>
-    private async Task<Dictionary<Guid, AlertExplanation>> GetExplanationsAsync(
+    private async Task<Dictionary<Guid, ExplanationChoice>> GetExplanationsAsync(
         List<Alert> alerts,
         Dictionary<Guid, RiskEvaluation> currentEvaluations,
         CancellationToken cancellationToken)
@@ -300,14 +311,18 @@ public sealed class EfAlertStore(SalvoDbContext dbContext, DeploymentLanguage la
                 && explanation.Language == deploymentLanguage)
             .ToListAsync(cancellationToken);
 
-        return candidates
-            .GroupBy(explanation => explanation.RiskEvaluationId)
-            .ToDictionary(
-                group => group.Key,
-                group => group
-                    .OrderByDescending(explanation => explanation.RequestedAt)
-                    .ThenByDescending(explanation => explanation.Id)
-                    .First());
+        var writer = ExplanationWriter.Of(explanationProvider);
+
+        var chosen = new Dictionary<Guid, ExplanationChoice>();
+        foreach (var group in candidates.GroupBy(explanation => explanation.RiskEvaluationId))
+        {
+            if (ExplanationSelection.Choose(group, writer) is { } choice)
+            {
+                chosen[group.Key] = choice;
+            }
+        }
+
+        return chosen;
     }
 
     /// <summary>

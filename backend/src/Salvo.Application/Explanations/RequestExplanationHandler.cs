@@ -70,14 +70,14 @@ public sealed class RequestExplanationHandler(
             // free rather than merely harmless.
             return new(
                 false,
-                ExplanationProjection.ToView(existing!, outdated, provider.TemplateVersion));
+                ExplanationProjection.ToView(existing!, outdated, ExplanationWriter.Of(provider)));
         }
 
         await GenerateAsync(reserved, target, cancellationToken);
 
         return new(
             true,
-            ExplanationProjection.ToView(reserved, outdated, provider.TemplateVersion));
+            ExplanationProjection.ToView(reserved, outdated, ExplanationWriter.Of(provider)));
     }
 
     /// <summary>
@@ -210,29 +210,39 @@ public sealed class RequestExplanationHandler(
             options.RequestTimeout,
             cancellationToken);
 
-        if (attempt.FailureCode is { } failure)
+        if (attempt.Draft is not { } draft)
         {
-            await SettleAsync(explanation, failure, null);
+            await SettleAsync(
+                explanation,
+                attempt.FailureCode ?? ExplanationFailureCode.ProviderUnavailable,
+                attempt.Detail,
+                attempt.InputTokens,
+                attempt.OutputTokens);
 
             return;
         }
 
-        var draft = attempt.Draft!;
-        var verdict = ExplanationGrounding.Verify(draft.Summary!, draft.ReferencedRules, input, facts);
+        var verdict = ExplanationGrounding.Verify(draft.Summary, draft.ReferencedRules, input, facts);
         if (!verdict.IsGrounded)
         {
-            // The offending token, never the sentence that carried it.
-            await SettleAsync(explanation, verdict.FailureCode!.Value, verdict.Offender);
+            // The offending token, never the sentence that carried it. The tokens, though, are
+            // kept: a rejected text was paid for exactly like an accepted one.
+            await SettleAsync(
+                explanation,
+                verdict.FailureCode!.Value,
+                verdict.Offender,
+                attempt.InputTokens,
+                attempt.OutputTokens);
 
             return;
         }
 
         explanation.Complete(
-            draft.Summary!,
+            draft.Summary,
             draft.ReferencedRules,
-            draft.ProviderVersion,
-            draft.InputTokens,
-            draft.OutputTokens,
+            attempt.ProviderVersion,
+            attempt.InputTokens,
+            attempt.OutputTokens,
             timeProvider.GetUtcNow());
 
         await store.SaveAsync(explanation, CancellationToken.None);
@@ -245,9 +255,11 @@ public sealed class RequestExplanationHandler(
     private async Task SettleAsync(
         AlertExplanation explanation,
         ExplanationFailureCode code,
-        string? detail)
+        string? detail,
+        int? inputTokens = null,
+        int? outputTokens = null)
     {
-        explanation.Fail(code, detail, timeProvider.GetUtcNow());
+        explanation.Fail(code, detail, timeProvider.GetUtcNow(), inputTokens, outputTokens);
 
         await store.SaveAsync(explanation, CancellationToken.None);
     }
