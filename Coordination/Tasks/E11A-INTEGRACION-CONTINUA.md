@@ -9,10 +9,10 @@
 - Coordinador: Unai Arismendes
 - Fecha: 2026-09-30 · revisado el 2026-10-01 tras seis rondas de `brief-check`; la sexta lo dio por válido
 - Rama/worktree: `claude/e11a-ci`
-- Commit base: **lo escribe el primer commit de la rama**, con lo que devuelva
-  `git merge-base main HEAD`. No se declara de antemano: el commit que lo escribiera en `main`
-  movería la punta y volvería falso el campo. Es la lección de `E8B`, y el coordinador acepta que
-  este campo no lleve SHA; la verificación la hacen el primer commit de la rama y el handoff.
+- Commit base: `fcf93709399df766bddc9fee274c8442479e3a06`, lo que devolvió
+  `git merge-base main HEAD` en `claude/e11a-ci`. Lo escribe el primer commit de la rama y no
+  `main`: el commit que lo escribiera en `main` movería la punta y volvería falso el campo. Es la
+  lección de `E8B`.
 - Integración: **por merge, nunca por rebase.**
 - Modelo y esfuerzo acordados: **Opus 5.5 · `high`**, la fila «ambigüedad real dentro del alcance» de
   `ClaudeAgent/Claude-Model-Policy.md`: la primera ejecución en Linux puede pedir ajustes del flujo
