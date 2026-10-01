@@ -135,7 +135,14 @@ public sealed class SalvoApiFactory : WebApplicationFactory<Program>
         // the real run of `E11C` happens — every test of this suite would start against the paid
         // adapter, or refuse to start at all. Set before `Settings`, so a test that asks for another
         // provider on purpose still gets it.
+        //
+        // The key and the model are fixed too, empty, for the same reason and one more: a test that
+        // asserts the API refuses to start without a key cannot be allowed to find one in the
+        // terminal. Measured: with a key exported, the two tests that assert the refusal saw the host
+        // start. And no test of this suite should ever be able to see a real key at all.
         builder.UseSetting("AI_PROVIDER", "mock");
+        builder.UseSetting("ANTHROPIC_API_KEY", string.Empty);
+        builder.UseSetting("ANTHROPIC_MODEL", string.Empty);
         builder.UseSetting("DemoData:Enabled", DemoDataEnabled ? "true" : "false");
         builder.UseSetting(ExternalCallbackEndpoints.SecretConfigurationKey, CallbackSecret ?? string.Empty);
         foreach (var setting in Settings)
