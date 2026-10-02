@@ -22,22 +22,27 @@
 ## Resultado esperado
 
 **El adaptador de Anthropic corre una vez contra la API real, y lo que pasó queda publicado tal como
-pasó**: los textos que el verificador aceptó, y de los que rechazó, el código y el detalle. El README
-deja de decir que el adaptador nunca se llamó y dice qué se midió, con su fecha y su costo.
+pasó**: los textos que el verificador aceptó, y de cada intento rechazado, el código y el detalle. El
+README deja de decir que el adaptador nunca se llamó y dice qué se midió, con su fecha y su costo.
 
-**La corrida la hace el coordinador, con su clave, y en tres tiempos que cuidan el saldo.** El
+**La corrida la hace el coordinador, con su clave, y en cuatro tiempos que cuidan el saldo.** El
 coordinador cargó US$ 5 de crédito prepago, sin recarga automática, y quiere que le queden para otras
 pruebas: la clave vive en un espacio de trabajo dedicado con un tope mensual de US$ 1.
 
 | Tiempo | Quién | Qué | Costo |
 | --- | --- | --- | --- |
 | 0. Ensayo en seco | El agente | El script entero contra la plantilla, sin clave y sin red | US$ 0 |
-| 1. Canario | El coordinador | 2 alertas contra la API real | Unos US$ 0,01; a lo sumo US$ 0,08 |
-| 2. Corrida completa | El coordinador | Las 23 alertas | Unos US$ 0,14; a lo sumo US$ 0,91 |
+| 1. Canario de fallo | El coordinador | 2 alertas contra la API real, con una clave **ficticia** | US$ 0: un pedido que falla no se cobra |
+| 2. Canario | El coordinador | 2 alertas contra la API real, con la clave verdadera | Unos US$ 0,01; a lo sumo US$ 0,08 |
+| 3. Corrida completa | El coordinador | Las 23 alertas | Unos US$ 0,14; a lo sumo US$ 0,91 |
 
-El ensayo en seco existe porque **el cuerpo del script nunca se ejecutó**: `E11B` probó que se niega
-sin clave, antes de compilar nada. Un error en la parte que escribe los archivos, descubierto después
-de pagar las llamadas, es el gasto que este orden evita.
+Los dos primeros existen porque **el cuerpo del script nunca se ejecutó**: `E11B` probó que se niega
+sin clave, antes de compilar nada. El ensayo en seco recorre el camino en que todo sale bien, y **no
+puede recorrer el de fallo, porque la plantilla nunca falla**. El canario de fallo lo recorre gratis:
+con una clave ficticia, la API real contesta un error de autenticación a cada pedido, y el bucle de
+reintentos, el agotamiento de la fila y el renglón de código y detalle corren por primera vez sin
+pagar una llamada. De paso mide, contra la API real, si el error de autenticación tiene la forma que
+el simulador supone.
 
 ## Contexto obligatorio
 
@@ -59,66 +64,120 @@ de pagar las llamadas, es el gasto que este orden evita.
 
 ## Alcance
 
-### Dentro, en tres tiempos, y cada uno espera al anterior
+### Dentro, en cuatro tiempos, y cada uno espera al anterior
 
-**Tiempo 0 — el agente prepara el script y lo ensaya en seco. Después se detiene.**
+**Tiempo 0 — el agente prepara el script, lo ensaya en seco, lo commitea y se detiene.**
 
 1. El campo «Commit base» del brief.
-2. **`EXPLICAR_MAX_ALERTAS`**, opcional: un entero positivo que limita la corrida a las primeras N
+2. **La historia de intentos.** Hoy el script reintenta cada fila hasta agotar sus tres intentos, y lo
+   que queda al final esconde lo que pasó: en el intento que agota, `AlertExplanation.Fail` guarda
+   `ATTEMPT_LIMIT_REACHED` y manda el código real al detalle como `<CÓDIGO>: <detalle>`, y `Retake`
+   borra el rechazo del intento anterior. **El script anota cada intento en el momento en que
+   ocurre**, tomando de la respuesta de ese pedido el estado, `failureCode` y `failureDetail` —la
+   vista los lleva desde `E11B`—, y publica por fila esa lista: intento, estado, código y detalle. El
+   código real de un intento que agotó la fila es el prefijo de su detalle, y el script lo separa.
+   Sigue siendo lo que D16 permite: código y detalle, nunca el texto.
+3. **`EXPLICAR_MAX_ALERTAS`**, opcional: un entero positivo que limita la corrida a las primeras N
    alertas, en el orden en que la API las devuelve. Sin la variable, corre todas, como hoy. Un valor
    que no sea un entero positivo detiene el script antes de compilar.
-3. **Una corrida limitada no publica.** Con `EXPLICAR_MAX_ALERTAS`, los dos archivos van a un
+4. **Una corrida limitada no publica.** Con `EXPLICAR_MAX_ALERTAS`, los dos archivos van a un
    directorio temporal fuera del repositorio, y el script dice dónde. `docs/explicaciones-modelo/`
-   queda solo para la corrida completa: así el canario no ocupa la carpeta del día, que el script se
+   queda solo para la corrida completa: así un canario no ocupa la carpeta del día, que el script se
    niega a pisar.
-4. **`EXPLICAR_ENSAYO=1`**, el ensayo en seco: levanta la API con `AI_PROVIDER=mock`, **no lee ningún
+5. **`EXPLICAR_ENSAYO=1`**, el ensayo en seco: levanta la API con `AI_PROVIDER=mock`, **no lee ningún
    archivo de entorno**, no exige `SALVO_ENV_FILE`, y escribe en un directorio temporal. Recorre el
-   mismo código que la corrida real —la siembra, el scoring, los pedidos, la lectura de la base, los
-   dos archivos— con la plantilla como escritor. El costo que informa es cero, y el resumen dice que
-   fue un ensayo.
-5. **El agente corre el ensayo dos veces**, completo y con `EXPLICAR_MAX_ALERTAS=2`, y comprueba la
-   salida: 23 y 2 filas, todas `READY` por la plantilla, los dos archivos bien formados, y nada
-   escrito en `docs/explicaciones-modelo/`. Si el ensayo descubre un defecto del script, lo corrige.
-6. **El agente se detiene** y entrega al coordinador los dos comandos exactos, el del canario y el de
-   la corrida completa.
+   mismo código que la corrida real en el camino en que todo sale bien —la siembra, el scoring, los
+   pedidos, la lectura de la base, los dos archivos— con la plantilla como escritor. El costo que
+   informa es cero, y el resumen dice que fue un ensayo.
+6. **Lo que la corrida mide de sí misma, en el resumen**, para que la evidencia no dependa de un
+   registro temporal:
+   - el commit del script que corrió y si el árbol estaba limpio;
+   - los tokens de entrada y de salida por llamada, el promedio y el máximo;
+   - **cuántas veces la API registró el aviso de `thinking_tokens`**, contado por el script en el
+     registro de la API antes de terminar. El agente no lee ese registro ni lo pega en ningún lado.
+7. **El agente corre el ensayo dos veces**, completo y con `EXPLICAR_MAX_ALERTAS=2`, y comprueba la
+   salida: 23 y 2 filas, todas `READY` por la plantilla en un intento, los dos archivos bien formados,
+   y nada escrito en `docs/explicaciones-modelo/`. Si el ensayo descubre un defecto del script, lo
+   corrige.
+8. **Las negativas, y solo ellas, sin `EXPLICAR_ENSAYO`.** El agente comprueba que el script se sigue
+   negando en los cinco casos que `E11B` probó: sin `SALVO_ENV_FILE`, con un archivo vacío, con uno
+   inexistente, con clave y sin modelo, y con la clave exportada en la terminal pero no en el archivo.
+   Los archivos de entorno los crea el agente en un directorio temporal, con una clave **ficticia y
+   evidente**; nunca `.env`. **Son los únicos casos en que el agente corre el script sin
+   `EXPLICAR_ENSAYO=1`, y todos se detienen antes de compilar.** Un archivo con clave **y** modelo
+   levantaría la API: ese caso no lo corre el agente, y es el canario de fallo, del coordinador.
+9. **El agente commitea el script** en `claude/e11c-corrida`, deja escrito en un directorio temporal
+   el archivo de entorno del canario de fallo —clave ficticia y `claude-sonnet-5-5`—, **se detiene**,
+   y entrega al coordinador los tres comandos exactos. El coordinador corre desde esa rama, con el
+   árbol limpio, así que lo que se publique lo escribió un script que está en la historia. **El
+   handoff no se escribe todavía.**
 
-**Tiempo 1 — el coordinador corre el canario y pega la salida.**
+**Tiempo 1 — el coordinador corre el canario de fallo y pega la salida.**
 
-`SALVO_ENV_FILE=.env EXPLICAR_MAX_ALERTAS=2 ./scripts/explicar-con-anthropic.sh`. El agente lee lo
-que el coordinador pega —la salida de la terminal y el `explicaciones.md` del directorio temporal— y
-contesta **una de tres cosas**, sin tocar código:
+`SALVO_ENV_FILE=<el archivo de la clave ficticia> EXPLICAR_MAX_ALERTAS=2
+./scripts/explicar-con-anthropic.sh`. Son a lo sumo seis pedidos, todos rechazados por la API y
+ninguno cobrado. Lo esperado: las dos filas `FAILED`, tres intentos cada una, cada intento con
+`PROVIDER_UNAVAILABLE` y `credentials` en el detalle, con su `request-id`, y los dos archivos escritos
+en el directorio temporal. El agente lee lo que el coordinador pega y contesta:
 
-- **Seguir**: al menos una fila `READY`, con `ProviderVersion` igual a `claude-sonnet-5-5`.
-- **Seguir, con aviso**: las filas fallan por el verificador —`NOT_GROUNDED_NUMBER`,
-  `NOT_GROUNDED_RULE`, `TOO_LONG`—. La API funciona y el modelo escribe; la corrida completa dirá
-  cuántas, y la decisión sobre el prompt es posterior y del coordinador.
-- **Parar**: `PROVIDER_UNAVAILABLE` con `HTTP 400` o `credentials`, `MALFORMED_OUTPUT`, o cualquier
-  forma que el simulador no reproduce. La API real no se comporta como el simulador, y la etapa manda
-  **corregir el simulador primero**: eso es otra tarea, con su brief.
+- **Seguir**: es lo esperado.
+- **Corregir el script**: el bucle, la historia de intentos o los archivos tienen un defecto. Lo
+  corrige, commitea, y el canario de fallo se repite. Sigue costando cero.
+- **Parar**: el error de autenticación no tiene la forma que el simulador supone —el detalle dice
+  `unrecognized`, falta el `request-id`, o el desenlace no es `PROVIDER_UNAVAILABLE`—. Es la
+  condición de la etapa: se corrige el simulador primero, y eso es otra tarea.
 
-Un `PROVIDER_TIMEOUT` en la **primera** fila se lee sabiendo que la primera petición compila la
-gramática: el reintento de la fila lo resuelve o no, y eso es el dato.
+**Tiempo 2 — el coordinador corre el canario y pega la salida.**
 
-**Tiempo 2 — el coordinador corre la completa, y el agente publica.**
+`SALVO_ENV_FILE=.env EXPLICAR_MAX_ALERTAS=2 ./scripts/explicar-con-anthropic.sh`. El agente lee la
+**historia de intentos** de las dos filas y contesta una sola cosa. **Si se cumple más de una, manda
+la de más arriba**:
 
-7. El coordinador corre `SALVO_ENV_FILE=.env ./scripts/explicar-con-anthropic.sh` y avisa. Los dos
-   archivos quedan en `docs/explicaciones-modelo/AAAA-MM-DD/`.
-8. **El agente no edita esos dos archivos**: se commitean tal como el script los escribió. Antes de
-   commitearlos comprueba que cumplen D16 —ninguna fila `FAILED` trae `summary`— y que no contienen
-   la clave ni nada con forma de clave.
-9. **El README dice lo que se midió**, con la fecha de la corrida: cuántas alertas, cuántas aceptadas
-   y cuántas rechazadas, por qué códigos, los tokens, el costo con la fecha del precio, y el modelo
-   que respondió. Enlaza la carpeta. La fila del redactor y «Límites declarados» dejan de decir que el
-   adaptador nunca se llamó. **Las cifras se copian de `explicaciones.json`**, no de la terminal ni de
-   memoria.
-10. `Salvo-Getting-Started.md`: cómo se corre el script, con el ensayo y el canario.
-11. El handoff, con la lectura de la corrida: las cinco cosas que `E11B` dejó para mirar primero, una
-    por una, con lo que se vio.
+1. **Parar: la API no es la que el simulador supone.** Algún intento con `HTTP 400` que no sea tope
+   de gasto, `MALFORMED_OUTPUT`, un detalle `unrecognized`, o una fila `READY` cuyo modelo no es
+   `claude-sonnet-5-5`. Se corrige el simulador primero; es otra tarea.
+2. **Parar: es de la cuenta, no del código.** `credentials` —la clave, o el espacio de trabajo— o
+   `spend cap` —el saldo o el tope—. El coordinador lo revisa en la consola. No se toca código.
+3. **Repetir el canario más tarde, una vez.** Todos los intentos de una fila fallan por algo
+   transitorio: `PROVIDER_TIMEOUT`, un 429 con `retry-after`, un 500 o un 529. Si al repetir sigue,
+   se para y se consulta. Un `PROVIDER_TIMEOUT` **solo en el primer intento de la primera fila** no
+   cuenta: la primera petición compila la gramática.
+4. **Seguir, con aviso.** Intentos rechazados por el verificador —`NOT_GROUNDED_NUMBER`,
+   `NOT_GROUNDED_RULE`, `TOO_LONG`— o `PROVIDER_REFUSED`. La API funciona y el modelo escribe; la
+   corrida completa dirá cuántos, y qué se hace con el prompt lo decide después el coordinador. Si
+   **las dos** filas terminan `FAILED`, se consulta antes de seguir.
+5. **Seguir.** Las dos filas `READY`, con `claude-sonnet-5-5`.
+
+**Y siempre, el presupuesto**, con los tokens que el canario midió y no con la estimación: el costo
+esperado de la corrida completa —23 por el costo medio de una fila— y el peor caso —69 por el costo
+de la llamada más cara—. El diseño supuso 1.500 tokens de entrada; si el peor caso, sumado a lo ya
+gastado, pasa el tope de US$ 1 del espacio de trabajo, el agente lo dice antes de la corrida completa
+y el coordinador decide: subir el tope, o aceptar que el tope puede cortarla.
+
+**Tiempo 3 — el coordinador corre la completa, y el agente publica.**
+
+10. El coordinador corre `SALVO_ENV_FILE=.env ./scripts/explicar-con-anthropic.sh` y avisa. Los dos
+    archivos quedan en `docs/explicaciones-modelo/AAAA-MM-DD/`.
+11. **El agente no edita esos dos archivos**: se commitean tal como el script los escribió. Antes de
+    agregarlos comprueba, **sobre los archivos en disco** —`git grep` no mira lo que todavía no está
+    en el índice—, que cumplen D16 —ninguna fila ni intento `FAILED` trae texto— y que no contienen
+    nada con forma de clave.
+12. **El README dice lo que se midió**, con la fecha de la corrida: cuántas alertas, cuántas aceptadas
+    y en qué intento, cuántos intentos rechazados y **por qué códigos, contados de la historia de
+    intentos**, los tokens, el costo con la fecha del precio, y el modelo que respondió. Enlaza la
+    carpeta. La fila del redactor y «Límites declarados» dejan de decir que el adaptador nunca se
+    llamó. **Las cifras se copian de `explicaciones.json`**, no de la terminal ni de memoria.
+13. `Salvo-Getting-Started.md`: cómo se corre el script, con el ensayo y los dos canarios.
+14. **El handoff, recién ahora**, con la lectura de la corrida y las cinco comprobaciones que `E11B`
+    dejó, cada una con su evidencia: la clave de un espacio dedicado con tope —lo afirma el
+    coordinador—; la primera fila; el modelo de las filas `READY`; el contador del aviso de
+    `thinking_tokens`, del resumen; y los rechazos por código, de la historia de intentos.
 
 ### Fuera
 
 - **Que el agente corra el script contra Anthropic**, lea `.env`, pida la clave o la vea. El agente
-  corre **solo** el ensayo en seco.
+  corre **solo** el ensayo en seco y las cinco negativas del punto 8, que se detienen antes de
+  compilar.
 - **Cambiar el verificador, el prompt o el adaptador.** Si la corrida pide un `anthropic-p2`, o
   corregir el simulador, es otra tarea.
 - **Repetir la corrida para que salga mejor.** Es una tirada: se publica la que salió.
@@ -142,22 +201,31 @@ Ninguno. No hay otra tarea abierta.
 - Ediciones locales: sí, en los paths de arriba.
 - Dependencias: **no**.
 - Red: **no**. El ensayo en seco no la usa.
-- **Secretos: ninguno, nunca.** El agente no lee `.env`, no corre el script sin `EXPLICAR_ENSAYO=1`,
-  y no pide que le peguen la clave. Lo que el coordinador pega es salida de terminal y archivos que
-  el script escribió, que no la contienen.
+- **Secretos: ninguno, nunca.** El agente no lee `.env` y no pide que le peguen la clave. Corre el
+  script **solo** con `EXPLICAR_ENSAYO=1`, o en las cinco negativas del punto 8, con archivos de
+  entorno que él mismo crea y una clave ficticia. **Nunca con un archivo que tenga clave y modelo a
+  la vez**: eso levanta la API y llama a Anthropic, y es del coordinador. Lo que el coordinador pega
+  es salida de terminal y archivos que el script escribió, que no contienen la clave. **El registro
+  de la API de una corrida real no se lee ni se pega**: lo que hace falta de él lo cuenta el script.
 - Escrituras externas: **no**. El agente no hace push.
 - Acciones destructivas: **no**. El script no borra nada, y las bases de las corridas quedan donde
   están.
 
 ## Criterios de aceptación
 
+- [ ] El script publica la historia de intentos de cada fila, con el código real de cada uno.
 - [ ] `EXPLICAR_MAX_ALERTAS` limita la corrida, y un valor inválido detiene el script antes de
       compilar.
 - [ ] Una corrida limitada escribe fuera del repositorio; `docs/explicaciones-modelo/` no cambia.
 - [ ] `EXPLICAR_ENSAYO=1` corre sin `SALVO_ENV_FILE`, sin leer ningún archivo de entorno y con
       `AI_PROVIDER=mock`; el agente lo corrió completo y con 2 alertas, y pega las dos salidas.
-- [ ] Sin `EXPLICAR_ENSAYO`, el script se sigue negando en los cinco casos que `E11B` probó.
-- [ ] El canario corrió, y el agente contestó seguir, seguir con aviso o parar, con el motivo.
+- [ ] Sin `EXPLICAR_ENSAYO`, el script se sigue negando en los cinco casos del punto 8, corridos por
+      el agente con archivos propios y clave ficticia.
+- [ ] El resumen trae el commit del script, los tokens por llamada y el contador del aviso de
+      `thinking_tokens`.
+- [ ] El canario de fallo corrió, sin costo, y mostró la historia de intentos de dos filas `FAILED`.
+- [ ] El canario corrió, y el agente contestó **una** de las cinco respuestas, con el motivo, y el
+      presupuesto de la corrida completa calculado con los tokens medidos.
 - [ ] La corrida completa está en `docs/explicaciones-modelo/AAAA-MM-DD/`, sin editar, sin un texto
       rechazado y sin nada con forma de clave.
 - [ ] El README dice lo que se midió, con cifras que coinciden con `explicaciones.json`, la fecha de
@@ -171,10 +239,11 @@ Ninguno. No hay otra tarea abierta.
 | `EXPLICAR_ENSAYO=1 ./scripts/explicar-con-anthropic.sh` | 23 filas `READY` de la plantilla, dos archivos en un directorio temporal, costo cero |
 | `EXPLICAR_ENSAYO=1 EXPLICAR_MAX_ALERTAS=2 ./scripts/explicar-con-anthropic.sh` | 2 filas |
 | `git status` después de los dos ensayos | Nada nuevo en `docs/explicaciones-modelo/` |
-| `./scripts/explicar-con-anthropic.sh`, sin ninguna variable | Se niega, nombrando `SALVO_ENV_FILE` |
+| Las cinco negativas del punto 8, **que corre el agente** | Cada una se niega antes de compilar, nombrando la variable y nunca un valor |
+| El canario de fallo, **que corre el coordinador** | Dos filas `FAILED`, tres intentos cada una, `credentials` en cada detalle; costo cero |
 | El canario, **que corre el coordinador** | Su salida, pegada en la entrega tal como salió |
 | La corrida completa, **que corre el coordinador** | Los dos archivos, commiteados sin editar |
-| `git grep -n "sk-ant" -- docs README.md` | Sin resultados |
+| `grep -rn "sk-ant" docs/explicaciones-modelo README.md`, **antes de `git add`** y sobre el disco | Sin resultados |
 | Las cifras del README contra `explicaciones.json` | Iguales |
 | `./scripts/check.sh` y `./scripts/smoke-ui.sh` | Verdes |
 
@@ -187,7 +256,7 @@ Ninguno. No hay otra tarea abierta.
 ## Detenerse y consultar si
 
 - el ensayo en seco exige tocar algo fuera de `scripts/explicar-con-anthropic.sh`;
-- el canario da cualquiera de las señales de **parar**;
+- cualquiera de los dos canarios da una señal de **parar**;
 - la corrida completa termina con más rechazadas que aceptadas: qué se publica y si hay un
   `anthropic-p2` lo decide el coordinador;
 - la corrida completa no termina, o el tope del espacio de trabajo la corta a la mitad;
@@ -197,10 +266,10 @@ Ninguno. No hay otra tarea abierta.
 ## Entrega requerida
 
 - Resumen, archivos tocados y commits.
-- Las dos salidas del ensayo en seco.
-- La salida del canario y la respuesta que se le dio.
-- La lectura de la corrida completa: aceptadas y rechazadas por código, tokens, costo, y las cinco
-  comprobaciones que dejó `E11B`.
+- Las dos salidas del ensayo en seco, y las cinco negativas.
+- La salida de cada canario y la respuesta que se le dio, con el presupuesto recalculado.
+- La lectura de la corrida completa: aceptadas y en qué intento, rechazos por código, tokens, costo,
+  y las cinco comprobaciones que dejó `E11B`.
 - Qué dijo el modelo que el verificador no pudo ver: si alguna explicación aceptada es falsa por
   inversión, atribución cruzada o cifras en palabras, se dice, con la referencia de la alerta. Es
   observación, no compuerta.
