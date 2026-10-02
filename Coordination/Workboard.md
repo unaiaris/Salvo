@@ -10,9 +10,10 @@
 > encontró un defecto de producto que el runner, en UTC, iba a mostrar como rojo —el dashboard
 > publicado corría un día las fechas de la tabla— y se corrigió en el producto, no en el entorno. **`E11B`, el adaptador de
 > Anthropic, está integrado** (merge `e9dda5a`), probado contra un simulador y con la CI verde sin clave.
-> Sigue `E11C`, la corrida real, que necesita una clave del coordinador.
+> Sigue `E11C`, la corrida real: tiene brief y espera `brief-check`. El coordinador ya tiene la clave,
+> en un espacio de trabajo dedicado con tope de US$ 1.
 > Instancia pública: https://salvo-k6wk.onrender.com
-> Última actualización: 2026-10-01
+> Última actualización: 2026-10-02
 > Responsable: coordinador de la etapa
 
 ## Estados
@@ -37,6 +38,7 @@ Una tarea no cambia a `Integrada` o `Verificada` por decisión del agente que la
 | `E11A0-HUSO-HORARIO` | `Verificada` (merge `1f76429`) | `Claude` | Sonnet 5.5 · `high` | `frontend/src/lib/format.ts` —**solo** `formatCalendarDate`, su comentario y, si hace falta, un formateador nuevo en `build()`; los existentes no se tocan—, su test, y la zona declarada de la suite en `vitest.config.mts` o `vitest.setup.ts`. **Prohibido** fijar `TZ` en el `Dockerfile`, `render.yaml` o la CI. **La reserva completa vive en el brief; esta fila la resume.** |
 | `E11A-INTEGRACION-CONTINUA` | `Verificada` (merge `d3d3408`; `checksPass` observado en `084e44f`) | `Claude` | Opus 5.5 · `high` | **Depende de `E11A0`, integrada antes de darle.** `.github/workflows/**`, el cartel del README, `autoDeployTrigger: checksPass` en `render.yaml` con su comentario reescrito, y la rama de falsación con un solo assert invertido. **La reserva completa vive en el brief; esta fila la resume.** |
 | `E11B-ADAPTADOR-ANTHROPIC` | `Verificada` (merge `e9dda5a`; CI sin clave en verde) | `Claude` | Opus 5.5 · `high` | El adaptador real detrás de `IExplanationProvider`, con `claude-sonnet-5-5`: el desenlace cerrado del puerto, la hoja de hechos, los tokens en todo desenlace, la selección de la consola, la oración por proveedor en los dos idiomas, los cinco scripts y la fábrica de tests fijando `AI_PROVIDER=mock`, y la revisión que registra la explicación mostrada. **Brief escrito el 2026-10-01** (`Coordination/Tasks/E11B-ADAPTADOR-ANTHROPIC.md`), con las decisiones 73 a 81 en el Blueprint; válido en la quinta ronda de `brief-check`. **La reserva completa vive en el brief; esta fila la resume.** |
+| `E11C-CORRIDA-REAL` | `Propuesta` | `Claude` | Sonnet 5.5 · `high` | `scripts/explicar-con-anthropic.sh` —el límite de alertas y el ensayo en seco—, `docs/explicaciones-modelo/**` solo para agregar lo que el script escriba, y lo que el README y la guía dicen de la corrida. **La corrida la hace el coordinador con su clave, en tres tiempos: ensayo, canario y completa.** **La reserva completa vive en el brief; esta fila la resume.** |
 | `E9D-CIERRE` | `Verificada` (merge `c2e9a65`) | `Claude` | Opus 5 · `high` | Repaso final: las seis capturas regeneradas, las cifras del corpus en README y guion, `docs/muestras/`, el artículo para revisores, y la deuda dicha —contraste sin verificar, recorrido parcial, `glosario.mjs` dentro de `src/`, `MER_US_MARKET`, la tasa base de construcción y la lista de bases `.db`—. **La reserva completa vive en el brief; esta fila la resume.** |
 
 **El orden es obligatorio y está argumentado en el diseño v2**: la fixture primero y el motor
