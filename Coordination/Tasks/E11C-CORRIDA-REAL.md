@@ -92,9 +92,17 @@ el simulador supone.
 6. **Lo que la corrida mide de sí misma, en el resumen**, para que la evidencia no dependa de un
    registro temporal:
    - el commit del script que corrió y si el árbol estaba limpio;
-   - los tokens de entrada y de salida por llamada, el promedio y el máximo;
-   - **cuántas veces la API registró el aviso de `thinking_tokens`**, contado por el script en el
-     registro de la API antes de terminar. El agente no lee ese registro ni lo pega en ningún lado.
+   - **los tokens de cada llamada**, con el promedio y el máximo. La respuesta del pedido no los
+     trae y la fila los acumula entre intentos, así que el script lee la fila en la base **después de
+     cada pedido** y anota la diferencia con la lectura anterior: eso es lo que costó ese intento;
+   - **cuántas veces la API registró el aviso de razonamiento**, contado por el script en el registro
+     de la API antes de terminar. El texto que busca es el del mensaje de `Log.ThinkingReported` en
+     `AnthropicExplanationProvider.cs` —«Anthropic reported … thinking tokens on request …»—, no el
+     nombre del campo de la API. El agente no lee ese registro ni lo pega en ningún lado.
+   - **El contador se tiene que ver contar.** Cero es también el resultado bueno, y sale en el
+     ensayo, en el canario de fallo y en una corrida sana: un contador roto daría lo mismo. El agente
+     corre la cuenta del script sobre un archivo que él arma, con dos renglones escritos con el
+     mensaje real, y muestra que da 2; y sobre uno sin el mensaje, que da 0.
 7. **El agente corre el ensayo dos veces**, completo y con `EXPLICAR_MAX_ALERTAS=2`, y comprueba la
    salida: 23 y 2 filas, todas `READY` por la plantilla en un intento, los dos archivos bien formados,
    y nada escrito en `docs/explicaciones-modelo/`. Si el ensayo descubre un defecto del script, lo
@@ -109,8 +117,10 @@ el simulador supone.
 9. **El agente commitea el script** en `claude/e11c-corrida`, deja escrito en un directorio temporal
    el archivo de entorno del canario de fallo —clave ficticia y `claude-sonnet-5-5`—, **se detiene**,
    y entrega al coordinador los tres comandos exactos. El coordinador corre desde esa rama, con el
-   árbol limpio, así que lo que se publique lo escribió un script que está en la historia. **El
-   handoff no se escribe todavía.**
+   árbol limpio, así que lo que se publique lo escribió un script que está en la historia. **Antes de
+   detenerse escribe el handoff, con estado `Parcial`**, y en él las dos salidas del ensayo, las cinco
+   negativas y la prueba del contador: si la sesión se pierde entre tiempos, nada de eso hay que
+   rehacerlo. El handoff se completa en el Tiempo 3, en la misma entrada.
 
 **Tiempo 1 — el coordinador corre el canario de fallo y pega la salida.**
 
@@ -133,11 +143,17 @@ en el directorio temporal. El agente lee lo que el coordinador pega y contesta:
 **historia de intentos** de las dos filas y contesta una sola cosa. **Si se cumple más de una, manda
 la de más arriba**:
 
-1. **Parar: la API no es la que el simulador supone.** Algún intento con `HTTP 400` que no sea tope
-   de gasto, `MALFORMED_OUTPUT`, un detalle `unrecognized`, o una fila `READY` cuyo modelo no es
-   `claude-sonnet-5-5`. Se corrige el simulador primero; es otra tarea.
-2. **Parar: es de la cuenta, no del código.** `credentials` —la clave, o el espacio de trabajo— o
-   `spend cap` —el saldo o el tope—. El coordinador lo revisa en la consola. No se toca código.
+1. **Parar: la API no es la que el simulador supone.** `MALFORMED_OUTPUT`, un detalle
+   `unrecognized`, una fila `READY` cuyo modelo no es `claude-sonnet-5-5`, o un `HTTP 400` **después
+   de que el coordinador descartó el tope**. El adaptador no puede distinguir el tope propio del
+   espacio de trabajo de un pedido mal formado: los dos llegan como `HTTP 400;
+   invalid_request_error`, y es un límite que D6 ya declara. **Lo distingue el coordinador, en la
+   consola**: si el gasto del espacio llegó al tope, o el saldo a cero, es la respuesta 2; si no, es
+   la forma de la petición, y se corrige el simulador primero, que es otra tarea. En el canario el
+   tope no puede haberse alcanzado —son a lo sumo US$ 0,08 de US$ 1—, así que ahí un 400 es la forma.
+2. **Parar: es de la cuenta, no del código.** `credentials` —la clave, o el espacio de trabajo—,
+   `spend_cap` —el tope del tier—, o el `HTTP 400` que el coordinador confirmó como tope propio o
+   saldo agotado. El coordinador lo resuelve en la consola. No se toca código.
 3. **Repetir el canario más tarde, una vez.** Todos los intentos de una fila fallan por algo
    transitorio: `PROVIDER_TIMEOUT`, un 429 con `retry-after`, un 500 o un 529. Si al repetir sigue,
    se para y se consulta. Un `PROVIDER_TIMEOUT` **solo en el primer intento de la primera fila** no
@@ -147,12 +163,21 @@ la de más arriba**:
    corrida completa dirá cuántos, y qué se hace con el prompt lo decide después el coordinador. Si
    **las dos** filas terminan `FAILED`, se consulta antes de seguir.
 5. **Seguir.** Las dos filas `READY`, con `claude-sonnet-5-5`.
+6. **Ninguna de las anteriores: parar y consultar.** Un 402, 404, 409 o 413 —el adaptador los
+   registra con su tipo, sin `credentials` ni `spend_cap`—, un estado distinto de 200 de la propia
+   API de Salvo, o cualquier salida que estas reglas no nombran. No se adivina.
 
-**Y siempre, el presupuesto**, con los tokens que el canario midió y no con la estimación: el costo
-esperado de la corrida completa —23 por el costo medio de una fila— y el peor caso —69 por el costo
-de la llamada más cara—. El diseño supuso 1.500 tokens de entrada; si el peor caso, sumado a lo ya
-gastado, pasa el tope de US$ 1 del espacio de trabajo, el agente lo dice antes de la corrida completa
-y el coordinador decide: subir el tope, o aceptar que el tope puede cortarla.
+**Y siempre, el presupuesto**, con la entrada que el canario midió y no con la estimación del diseño,
+que supuso 1.500 tokens:
+
+- **Esperado**: 23 por el costo medio de una fila del canario.
+- **Techo, como manda D14**: 69 llamadas, cada una con la **entrada más grande medida** y con
+  **`max_tokens` de salida, 1.024**, porque un texto cortado cobra toda la salida. Dos filas no acotan
+  la salida, así que la salida medida no entra en el techo.
+
+Si el techo, sumado a lo ya gastado, pasa el tope de US$ 1 del espacio de trabajo, el agente lo dice
+antes de la corrida completa y el coordinador decide: subir el tope, o aceptar que el tope puede
+cortarla.
 
 **Tiempo 3 — el coordinador corre la completa, y el agente publica.**
 
@@ -168,10 +193,11 @@ y el coordinador decide: subir el tope, o aceptar que el tope puede cortarla.
     carpeta. La fila del redactor y «Límites declarados» dejan de decir que el adaptador nunca se
     llamó. **Las cifras se copian de `explicaciones.json`**, no de la terminal ni de memoria.
 13. `Salvo-Getting-Started.md`: cómo se corre el script, con el ensayo y los dos canarios.
-14. **El handoff, recién ahora**, con la lectura de la corrida y las cinco comprobaciones que `E11B`
-    dejó, cada una con su evidencia: la clave de un espacio dedicado con tope —lo afirma el
+14. **El handoff se completa**, con la salida de cada canario, la lectura de la corrida y las cinco
+    comprobaciones que `E11B` dejó, cada una con su evidencia: la clave de un espacio dedicado con tope —lo afirma el
     coordinador—; la primera fila; el modelo de las filas `READY`; el contador del aviso de
-    `thinking_tokens`, del resumen; y los rechazos por código, de la historia de intentos.
+    razonamiento, del resumen; y los rechazos por código, de la historia de intentos. El estado pasa
+    de `Parcial` al que corresponda.
 
 ### Fuera
 
@@ -188,7 +214,7 @@ y el coordinador decide: subir el tope, o aceptar que el tope puede cortarla.
 
 - `scripts/explicar-con-anthropic.sh`.
 - `docs/explicaciones-modelo/**`, **solo** para agregar los archivos que el script escribió.
-- `README.md` y `DesignAgent/Salvo-Getting-Started.md`, **solo** lo de los puntos 9 y 10.
+- `README.md` y `DesignAgent/Salvo-Getting-Started.md`, **solo** lo de los puntos 12 y 13.
 - `Coordination/Handoffs/Claude.md`, entrada nueva.
 - `Coordination/Tasks/E11C-CORRIDA-REAL.md`, **solo** el campo «Commit base».
 
@@ -221,11 +247,11 @@ Ninguno. No hay otra tarea abierta.
       `AI_PROVIDER=mock`; el agente lo corrió completo y con 2 alertas, y pega las dos salidas.
 - [ ] Sin `EXPLICAR_ENSAYO`, el script se sigue negando en los cinco casos del punto 8, corridos por
       el agente con archivos propios y clave ficticia.
-- [ ] El resumen trae el commit del script, los tokens por llamada y el contador del aviso de
-      `thinking_tokens`.
+- [ ] El resumen trae el commit del script, los tokens de cada llamada y el contador del aviso de
+      razonamiento; y el contador se vio contar 2 y 0 sobre archivos armados.
 - [ ] El canario de fallo corrió, sin costo, y mostró la historia de intentos de dos filas `FAILED`.
-- [ ] El canario corrió, y el agente contestó **una** de las cinco respuestas, con el motivo, y el
-      presupuesto de la corrida completa calculado con los tokens medidos.
+- [ ] El canario corrió, y el agente contestó **una** de las seis respuestas, con el motivo, y el
+      presupuesto de la corrida completa: el esperado, y el techo con la entrada medida y `max_tokens`.
 - [ ] La corrida completa está en `docs/explicaciones-modelo/AAAA-MM-DD/`, sin editar, sin un texto
       rechazado y sin nada con forma de clave.
 - [ ] El README dice lo que se midió, con cifras que coinciden con `explicaciones.json`, la fecha de
@@ -240,6 +266,7 @@ Ninguno. No hay otra tarea abierta.
 | `EXPLICAR_ENSAYO=1 EXPLICAR_MAX_ALERTAS=2 ./scripts/explicar-con-anthropic.sh` | 2 filas |
 | `git status` después de los dos ensayos | Nada nuevo en `docs/explicaciones-modelo/` |
 | Las cinco negativas del punto 8, **que corre el agente** | Cada una se niega antes de compilar, nombrando la variable y nunca un valor |
+| La cuenta del aviso de razonamiento sobre dos archivos armados por el agente | 2 y 0 |
 | El canario de fallo, **que corre el coordinador** | Dos filas `FAILED`, tres intentos cada una, `credentials` en cada detalle; costo cero |
 | El canario, **que corre el coordinador** | Su salida, pegada en la entrega tal como salió |
 | La corrida completa, **que corre el coordinador** | Los dos archivos, commiteados sin editar |
@@ -256,7 +283,7 @@ Ninguno. No hay otra tarea abierta.
 ## Detenerse y consultar si
 
 - el ensayo en seco exige tocar algo fuera de `scripts/explicar-con-anthropic.sh`;
-- cualquiera de los dos canarios da una señal de **parar**;
+- cualquiera de los dos canarios da una señal de **parar**, o ninguna respuesta aplica;
 - la corrida completa termina con más rechazadas que aceptadas: qué se publica y si hay un
   `anthropic-p2` lo decide el coordinador;
 - la corrida completa no termina, o el tope del espacio de trabajo la corta a la mitad;
