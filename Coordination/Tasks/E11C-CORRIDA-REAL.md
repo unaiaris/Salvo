@@ -100,9 +100,12 @@ el simulador supone.
      `AnthropicExplanationProvider.cs` —«Anthropic reported … thinking tokens on request …»—, no el
      nombre del campo de la API. El agente no lee ese registro ni lo pega en ningún lado.
    - **El contador se tiene que ver contar.** Cero es también el resultado bueno, y sale en el
-     ensayo, en el canario de fallo y en una corrida sana: un contador roto daría lo mismo. El agente
-     corre la cuenta del script sobre un archivo que él arma, con dos renglones escritos con el
-     mensaje real, y muestra que da 2; y sobre uno sin el mensaje, que da 0.
+     ensayo, en el canario de fallo y en una corrida sana: un contador roto daría lo mismo. La cuenta
+     vive en **una sola función del script**, y el script la ofrece para probarla:
+     `EXPLICAR_CONTAR_AVISOS=<archivo>` corre esa misma función sobre el archivo, imprime el número y
+     termina, sin compilar ni levantar nada. El agente la corre sobre un archivo que él arma, con dos
+     renglones escritos con el mensaje real, y muestra que da 2; y sobre uno sin el mensaje, que da 0.
+     Probar una copia del patrón, escrita a mano, no prueba el camino que corre el script.
 7. **El agente corre el ensayo dos veces**, completo y con `EXPLICAR_MAX_ALERTAS=2`, y comprueba la
    salida: 23 y 2 filas, todas `READY` por la plantilla en un intento, los dos archivos bien formados,
    y nada escrito en `docs/explicaciones-modelo/`. Si el ensayo descubre un defecto del script, lo
@@ -118,9 +121,11 @@ el simulador supone.
    el archivo de entorno del canario de fallo —clave ficticia y `claude-sonnet-5-5`—, **se detiene**,
    y entrega al coordinador los tres comandos exactos. El coordinador corre desde esa rama, con el
    árbol limpio, así que lo que se publique lo escribió un script que está en la historia. **Antes de
-   detenerse escribe el handoff, con estado `Parcial`**, y en él las dos salidas del ensayo, las cinco
-   negativas y la prueba del contador: si la sesión se pierde entre tiempos, nada de eso hay que
-   rehacerlo. El handoff se completa en el Tiempo 3, en la misma entrada.
+   detenerse escribe el handoff, con estado `Parcial`, y lo commitea**: en él van las dos salidas del
+   ensayo, las cinco negativas y la prueba del contador, y si la sesión se pierde entre tiempos, nada
+   de eso hay que rehacerlo. **Se detiene con `git status` vacío**: un handoff sin commitear
+   ensuciaría el árbol, y el resumen de la corrida diría que no estaba limpio. El handoff se completa
+   en el Tiempo 3, en la misma entrada.
 
 **Tiempo 1 — el coordinador corre el canario de fallo y pega la salida.**
 
@@ -163,6 +168,12 @@ la de más arriba**:
    corrida completa dirá cuántos, y qué se hace con el prompt lo decide después el coordinador. Si
    **las dos** filas terminan `FAILED`, se consulta antes de seguir.
 5. **Seguir.** Las dos filas `READY`, con `claude-sonnet-5-5`.
+
+   **Y aparte de las anteriores, corregir el script, una sola vez.** La cuenta de tokens por
+   diferencia, el promedio y el máximo corren acá por primera vez con números: la plantilla y un 401
+   no reportan tokens. Si la API contestó bien y lo que está mal es **la contabilidad del script**
+   —tokens que no cierran contra la fila, un promedio vacío, un costo imposible—, el agente lo
+   corrige, commitea, y el canario se repite **una vez**. Son a lo sumo otros US$ 0,08.
 6. **Ninguna de las anteriores: parar y consultar.** Un 402, 404, 409 o 413 —el adaptador los
    registra con su tipo, sin `credentials` ni `spend_cap`—, un estado distinto de 200 de la propia
    API de Salvo, o cualquier salida que estas reglas no nombran. No se adivina.
